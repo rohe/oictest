@@ -31,7 +31,7 @@ setup(
     classifiers = ["Development Status :: 4 - Beta",
                    "License :: OSI Approved :: Apache Software License",
                    "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = ["oic", "mechanize"],
+    install_requires = ["oic", "mechanize", "argparse", "import_lib"],
 
     zip_safe=False,
     scripts=["script/oauth2c.py", "script/oicc.py"],
