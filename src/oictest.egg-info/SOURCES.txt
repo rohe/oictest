@@ -1,0 +1,15 @@
+setup.py
+script/oauth2c.py
+script/oicc.py
+src/oictest/__init__.py
+src/oictest/base.py
+src/oictest/httplib2cookie.py
+src/oictest/oauth2_operations.py
+src/oictest/oic_operations.py
+src/oictest/opfunc.py
+src/oictest.egg-info/PKG-INFO
+src/oictest.egg-info/SOURCES.txt
+src/oictest.egg-info/dependency_links.txt
+src/oictest.egg-info/not-zip-safe
+src/oictest.egg-info/requires.txt
+src/oictest.egg-info/top_level.txt

@@ -1,0 +1,13 @@
+Metadata-Version: 1.0
+Name: oictest
+Version: 0.0.1
+Summary: Tools to test OAuth2 and/or OpenID Connect implementations
+Home-page: UNKNOWN
+Author: Roland Hedberg
+Author-email: roland.hedberg@adm.umu.se
+License: Apache 2.0
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Development Status :: 4 - Beta
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
