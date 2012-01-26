@@ -19,6 +19,8 @@ class FlowException(Exception):
 
 
 class DResponse():
+    """ A Response class that behaves in the way that mechanize expects it
+    """
     def __init__(self, **kwargs):
         self.status = 200
         self.index = 0
@@ -41,9 +43,23 @@ class DResponse():
             return getattr(self, item)
 
     def geturl(self):
+        """
+        The base url for the response
+
+        :return: The url
+        """
         return self.url
 
     def read(self, size=0):
+        """
+        Read from the content of the response. The class remembers what has
+        been read so it's possible to read small consecutive parts of the
+        content.
+
+        :param size: The number of bytes to read
+        :return: Somewhere between zero and 'size' number of bytes depending
+            on how much it left in the content buffer to read.
+        """
         if size:
             if self._len < size:
                 return self._message
@@ -61,11 +77,30 @@ class DResponse():
             return self._message
 
     def write(self, message):
+        """
+        Write the message into the content buffer
+
+        :param message: The message
+        """
         self._message = message
         self._len = len(message)
 
 
 def do_request(client, url, method, body="", headers=None, trace=False):
+    """
+    Sends a HTTP request. It handles trace logging if asked for
+
+    :param client: The client instance
+    :param url: Where to send the request
+    :param method: The HTTP method to use for the request
+    :param body: The request body
+    :param headers: The requset headers
+    :param trace: A class instance to use for trace logging
+    :return: A tuple of
+        url - the url the request was sent to
+        response - the response to the request
+        content - the content of the response if any
+    """
     if headers is None:
         headers = {}
 
@@ -84,6 +119,14 @@ def do_request(client, url, method, body="", headers=None, trace=False):
     return url, response, content
 
 def pick_form(response, content, url=None, **kwargs):
+    """
+    Picks which form in a web-page that should be used
+
+    :param response: A HTTP request response. A DResponse instance
+    :param content: The HTTP response content
+    :param url: The url the request was sent to
+    :return: The picked form or None of no form matched the criteria.
+    """
     forms = ParseResponse(response)
     if not forms:
         raise FlowException(content=content, url=url)
@@ -120,6 +163,13 @@ def pick_form(response, content, url=None, **kwargs):
     return _form
 
 def do_click(client, form, **kwargs):
+    """
+    Emulates the user clicking submit on a form.
+
+    :param client: The Client instance
+    :param form: The form that should be submitted
+    :return: What do_request() returns
+    """
     request = form.click()
 
     headers = {}
@@ -138,46 +188,55 @@ def do_click(client, form, **kwargs):
         return do_request(client, url, "GET", headers=headers, trace=_trace)
 
 #noinspection PyUnusedLocal
-def login_form(client, orig_response, content, **kwargs):
-    try:
-        _url = orig_response["content-location"]
-    except KeyError:
-        _url = kwargs["location"]
-    # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"], url=_url)
-    response.write(content)
+#def login_form(client, orig_response, content, **kwargs):
+#    try:
+#        _url = orig_response["content-location"]
+#    except KeyError:
+#        _url = kwargs["location"]
+#    # content is a form to be filled in and returned
+#    response = DResponse(status=orig_response["status"], url=_url)
+#    response.write(content)
+#
+#    form = pick_form(response, content, _url, **kwargs)
+#
+#    try:
+#        form[kwargs["user_label"]] = kwargs["user"]
+#    except KeyError:
+#        pass
+#
+#    try:
+#        form[kwargs["password_label"]] = kwargs["password"]
+#    except KeyError:
+#        pass
+#
+#    return do_click(client, form, **kwargs)
 
-    form = pick_form(response, content, _url, **kwargs)
-
-    try:
-        form[kwargs["user_label"]] = kwargs["user"]
-    except KeyError:
-        pass
-
-    try:
-        form[kwargs["password_label"]] = kwargs["password"]
-    except KeyError:
-        pass
-
-    return do_click(client, form, **kwargs)
-
-#noinspection PyUnusedLocal
-def approve_form(client, orig_response, content, **kwargs):
-    # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"])
-    if orig_response["status"] == 302:
-        response.url = orig_response["content-location"]
-    else:
-        response.url = client.authorization_endpoint
-    response.write(content)
-
-    form = pick_form(response, content, **kwargs)
-
-    # do something with args
-
-    return do_click(client, form, **kwargs)
+##noinspection PyUnusedLocal
+#def approve_form(client, orig_response, content, **kwargs):
+#    # content is a form to be filled in and returned
+#    response = DResponse(status=orig_response["status"])
+#    if orig_response["status"] == 302:
+#        response.url = orig_response["content-location"]
+#    else:
+#        response.url = client.authorization_endpoint
+#    response.write(content)
+#
+#    form = pick_form(response, content, **kwargs)
+#
+#    # do something with args
+#
+#    return do_click(client, form, **kwargs)
 
 def select_form(client, orig_response, content, **kwargs):
+    """
+    Pick a form on a web page, possibly enter some information and submit
+    the form.
+
+    :param client: The Client
+    :param orig_response: The original response (as returned by httplib2)
+    :param content: The content of the response
+    :return: The response do_click() returns
+    """
     try:
         _url = orig_response["content-location"]
     except KeyError:
@@ -200,7 +259,16 @@ def select_form(client, orig_response, content, **kwargs):
     return do_click(client, form, **kwargs)
 
 #noinspection PyUnusedLocal
-def chose(client, orig_response, content, **kwargs):
+def chose(client, orig_response, content, path, **kwargs):
+    """
+    Sends a HTTP GET to a url given by the present url and the given
+    relative path.
+
+    :param orig_response: The original response
+    :param content: The content of the response
+    :param path: The relative path to add to the base URL
+    :return: The response do_click() returns
+    """
     try:
         _url = orig_response["content-location"]
     except KeyError:
@@ -213,11 +281,20 @@ def chose(client, orig_response, content, **kwargs):
     except KeyError:
         _trace = False
 
-    url = "%s://%s%s" %  (part[0], part[1], kwargs["path"])
+    url = "%s://%s%s" %  (part[0], part[1], path)
     return do_request(client, url, "GET", trace=_trace)
     #return resp, ""
 
 def post_form(client, orig_response, content, **kwargs):
+    """
+    The same as select_form but with no possibility of change the content
+    of the form.
+
+    :param client: The Client instance
+    :param orig_response: The original response (as returned by httplib2)
+    :param content: The content of the response
+    :return: The response do_click() returns
+    """
     _url = orig_response["content-location"]
     # content is a form to be filled in and returned
     response = DResponse(status=orig_response["status"], url=_url)
@@ -228,50 +305,19 @@ def post_form(client, orig_response, content, **kwargs):
     return do_click(client, form, **kwargs)
 
 # ========================================================================
-
-#LOGIN_FORM = {
-#    "function": login_form,
-#    "args": {
-#        "user_label": "login",
-#        "password_label": "password",
-#        "user": "username",
-#        "password": "hemligt"
-#        }
-#}
-
-LOGIN_FORM = {
-    "id": "login_form",
-    "function": login_form,
-    }
-
-APPROVE_FORM = {
-    "id": "approve_form",
-    "function": approve_form,
-    }
-
-CHOSE = {
-    "id": "chose",
-    "function": chose,
-    "args": { "path": "/account/fake"}
-}
-
-SELECT_FORM = {
-    "id": "select_form",
-    "function": select_form,
-    "args": { }
-}
-
-POST_FORM = {
-    "id": "post_form",
-    "function": post_form,
-    }
-
-# ========================================================================
 from oic.oic.message import IdToken
 
 def cmp_idtoken(client, item):
+    """
+    Compare the idToken received in response 1 of the flow with that
+    received in the last response.
+
+    :param client: A Client instance
+    :param item: A list of responses collected during a flow
+    :return: True if the IdTokens are equivalent otherwise False
+    """
     idt = IdToken.from_jwt(item[0].id_token, key=client.client_secret)
-    return idt.dictionary() == item[1].dictionary()
+    return idt.dictionary() == item[-1].dictionary()
 
 # ========================================================================
 

@@ -1,3 +1,5 @@
+.. _index:
+
 .. OicTest documentation master file, created by
    sphinx-quickstart on Wed Jan 25 12:20:08 2012.
    You can adapt this file completely to your liking, but it should at least
@@ -6,10 +8,16 @@
 Welcome to OicTest's documentation!
 ===================================
 
+:Release: |release|
+:Date: |today|
+
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
+
+   install
+   testsetup/index
 
 Indices and tables
 ==================

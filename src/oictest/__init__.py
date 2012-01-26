@@ -61,7 +61,7 @@ class OAuth2(object):
         else:
             self.parse_args()
             if self.args.verbose:
-                print "SERVER CONFIGURATION: %s" % self.pinfo
+                self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
                 #client.http = MyFakeOICServer()
             _seq = self.make_sequence()
             interact = self.get_interactions()
@@ -248,7 +248,7 @@ class OIC(OAuth2):
                     pass
 
             if self.args.verbose:
-                print "REGISTRATION INFORMATION: %s" % self.reg_resp
+                self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
 
 if __name__ == "__main__":
