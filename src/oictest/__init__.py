@@ -4,6 +4,10 @@ __author__ = 'rohe0002'
 import sys
 import argparse
 import json
+import httplib2
+
+from oic.utils import exception_trace
+from oic.utils import jwt
 
 from oictest import httplib2cookie
 from oictest.base import *
@@ -15,6 +19,17 @@ QUERY2RESPONSE = {
     "UserInfoRequest": "OpenIDSchema",
     "RegistrationRequest": "RegistrationResponse"
 }
+
+class HTTP_ERROR(Exception):
+    pass
+
+def get_page(url):
+    http = httplib2.Http()
+    resp, content = http.request(url)
+    if resp.status == 200:
+        return content
+    else:
+        raise HTTP_ERROR(resp.status)
 
 class OAuth2(object):
     client_args = ["client_id", "redirect_uri", "password"]
@@ -32,12 +47,15 @@ class OAuth2(object):
         self._parser.add_argument('-J', dest="json_config_file")
         self._parser.add_argument('-I', dest="interactions")
         self._parser.add_argument("-l", dest="list", action="store_true")
+        self._parser.add_argument("-T", dest="traceback", action="store_true")
         self._parser.add_argument("flow")
 
         self.args = None
         self.pinfo = None
         self.sequences = []
         self.function_args = {}
+        self.signing_key = None
+        self.encryption_key = None
 
     def parse_args(self):
         self.json_config= self.json_config_file()
@@ -60,9 +78,7 @@ class OAuth2(object):
             return self.operations()
         else:
             self.parse_args()
-            if self.args.verbose:
-                self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
-                #client.http = MyFakeOICServer()
+            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
             _seq = self.make_sequence()
             interact = self.get_interactions()
             tests = self.get_test()
@@ -70,10 +86,13 @@ class OAuth2(object):
 
             try:
                 run_sequence(self.client, _seq, self.trace, interact,
-                             self.message_mod, self.args.verbose, tests)
+                             self.message_mod, self.args.verbose, tests,
+                             self.pinfo)
             except Exception, err:
                 print self.trace
                 print err
+                if self.args.traceback:
+                    exception_trace("RUN", err)
 
     def operations(self):
         lista = []
@@ -207,6 +226,23 @@ class OIC(OAuth2):
 
     def parse_args(self):
         OAuth2.parse_args(self)
+
+        if "x509_url" in self.pinfo:
+            _txt = get_page(self.pinfo["x509_url"])
+            self.client.srv_sig_key["rsa"] = jwt.x509_rsa_loads(_txt)
+        if "x509_encryption_url" in self.pinfo:
+            _txt = get_page(self.pinfo["x509_encryption_url"])
+            self.client.srv_enc_key["rsa"] = jwt.x509_rsa_loads(_txt)
+        elif self.signing_key:
+            self.client.srv_enc_key = self.client.srv_sig_key
+
+        #        if "jwk_url" in self.pinfo:
+        #            self.signing_key = http.request(self.pinfo["jwk_url"])
+        #        if "jwk_encryption_url" in self.pinfo:
+        #            self.encryption_key = http.request(self.pinfo["jwk_encryption_url"])
+        #        elif self.signing_key:
+        #            self.encryption_key = self.signing_key
+
         self.register()
 
     def discover(self, principal):
@@ -243,13 +279,16 @@ class OIC(OAuth2):
 
             for prop in ["client_id", "client_secret"]:
                 try:
-                    setattr(self.client, prop, self.reg_resp[prop])
+                    _val = getattr(self.reg_resp, prop)
+                    setattr(self.client, prop, _val)
+                    if prop == "client_secret":
+                        self.client.srv_sig_key["hmac"] = _val
                 except KeyError:
                     pass
 
-            if self.args.verbose:
-                self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
-
+            self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
+            if self.client.srv_sig_key is None:
+                self.client.srv_sig_key = self.client.client_secret
 
 if __name__ == "__main__":
     from oictest import OAuth2

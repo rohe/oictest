@@ -180,9 +180,34 @@ FLOWS = {
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an access code.'),
-        "sequence": ["login"],
+        "sequence": ["oic-login"],
         "endpoints": ["authorization_endpoint"]
     },
+    'openid-code-token': {
+        "name": 'Basic Code flow with Token fetching',
+        "descr": (''),
+        "depends": ['openid-code'],
+        "sequence": ["oic-login", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        },
+    'openid-code-userdata': {
+        "name": 'Basic Code flow with User info fetching',
+        "descr": (''),
+        "depends": ['openid-code'],
+        "sequence": ["oic-login", "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        },
+    'openid-code-check_id': {
+        "name": 'Basic Code flow with IdToken checking',
+        "descr": (''),
+        "depends": ['openid-code'],
+        "sequence": ["oic-login", "access-token-request", "check-id-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "check_id_endpoint"],
+        },
+    # -------------------------------------------------------------------------
     'openid-token': {
         "name": 'Basic OpenID Connect Token flow with authentication',
         "descr": ('Very basic test of a OIC Provider using the token ',
@@ -191,16 +216,6 @@ FLOWS = {
         "sequence": ["oic-login-token"],
         "endpoints": ["authorization_endpoint"]
     },
-    'openid-code-userdata': {
-        "name": 'Basic Code flow with ID Token and User data',
-        "descr": ('Very basic test of a Provider using the authorization code'
-                  ' flow, but in addition to retrieve an ID Token,',
-                  ' this test flow also tried to obtain user data.'),
-        "depends": ['openid-token'],
-        "sequence": ["oic-login", "access-token-request", "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "userinfo_endpoint"],
-        },
     'openid-token-idtoken-userdata': {
         "name": 'Token flow with ID Token and User data',
         "descr": ('Very basic test of a Provider using the authorization code'

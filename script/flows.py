@@ -7,6 +7,21 @@ __author__ = 'rohe0002'
 
 LIST = [
     ("openid-code", None),
+    ("openid-code-token", None),
+    (
+        "openid-code-token",
+        "{'OpenIDRequest':{'request':{'response_type':['code','id_token']}}}"
+    ),
+    ("openid-code-userdata", None),
+    (
+        "openid-code-userdata",
+        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
+        ),
+    ("openid-code-check_id", None),
+    (
+        "openid-code-check_id",
+        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
+    ),
     ("openid-token", None),
     (
         "openid-token",
@@ -17,7 +32,7 @@ LIST = [
     ),
     (
         "openid-token",
-        "{'OpenIDRequest':{'request':{'response_type':['id_token'])"
+        "{'OpenIDRequest':{'request':{'response_type':['id_token']}}}"
     ),
     (
         "openid-token",
@@ -37,11 +52,6 @@ LIST = [
         "openid-token-idtoken-userdata",
         "{'OpenIDRequest':{'request':{'scope':['openid','address']}}}"
     ),
-    ("openid-code-userdata", None),
-    (
-        "openid-code-userdata",
-        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
-    ),
     (
         "openid-token-idtoken-userdata",
         "{'OpenIDRequest':{'kw':{'userinfo_claims':{'name':null,'nickname':{'optional':true},'email':null,'verified':null,'picture':{'optional': true}}}}}"
@@ -55,7 +65,7 @@ output = NO_PROBLEM
 iaction = flow = ""
 for (flow, iaction) in LIST:
     p1 = Popen(["./%s.py" % who], stdout=PIPE)
-    cmd2 = ["oicc.py", "-J", "-"]
+    cmd2 = ["oicc.py", "-J", "-", "-T"]
     if iaction:
         cmd2.extend(['-I', iaction])
     cmd2.append(flow)

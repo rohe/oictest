@@ -2,6 +2,7 @@
 
 __author__ = 'rohe0002'
 
+import sys
 from importlib import import_module
 from oic.oauth2.message import ErrorResponse
 
@@ -186,12 +187,35 @@ def rec_update(dic0, dic1):
 
     return res
 
+def response_types_supported(request_args, provider_info):
+    try:
+        rts = [set(s.split(" ")) for s in
+                                    provider_info["response_types_supported"]]
+    except KeyError:
+        rts = [{"code"}]
+
+    try:
+        val = request_args["response_type"]
+        if isinstance(val, basestring):
+            rt = {val}
+        else:
+            rt = set(val)
+        for sup in rts:
+            if sup == rt:
+                return True
+        return False
+    except KeyError:
+        pass
+
+    return True
+
 def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
-                 tests=None):
+                 tests=None, provider_info=None):
     item = []
     response = None
     content = None
     err = None
+    ignored = False
 
     for req, resp in sequence:
         err = None
@@ -203,6 +227,27 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
                 req["args"] = rec_update(req["args"], extra_args)
             except KeyError:
                 req["args"] = extra_args
+        except KeyError:
+            pass
+
+        try:
+            _sup = response_types_supported(req["args"]["request"],
+                                            provider_info)
+            if not _sup:
+                if trace:
+                    trace.info("Response type not supported")
+                ignored = True
+                break
+        except KeyError:
+            pass
+
+        try:
+            _met = req["args"]["kw"]["authn_method"]
+            if _met not in provider_info["token_endpoint_auth_types_supported"]:
+                if trace:
+                    trace.info("Token endpoint auth type not supported")
+                ignored = True
+                break
         except KeyError:
             pass
 
@@ -297,7 +342,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
                     qresp = client.parse_response(respcls, info,
                                                   resp["type"],
                                                   client.state, True,
-                                                  key=client.client_secret,
+                                                  key=client.srv_sig_key,
                                                   client_id=client.client_id)
                     if trace and qresp:
                         trace.info("[%s]: %s" % (qresp.__class__.__name__,
@@ -314,7 +359,10 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
     if err or verbose:
         print trace
 
-    if not err and tests:
+    if ignored:
+        print >> sys.stderr, "IGNORED"
+
+    if not ignored and not err and tests:
         for test in tests:
             assert test(client, item)
 
