@@ -187,13 +187,10 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     content = None
     test_output = []
 
-    stat = None
     try:
         for req, resp in sequence:
             environ["request_spec"] = req
             environ["response_spec"] = resp
-            stat = None
-            err = None
             if trace:
                 trace.info(70*"=")
             try:
@@ -302,6 +299,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 except KeyError:
                     chk = factory("missing-redirect")()
                     stat = chk(environ, test_output)
+                    check_severity(stat)
             else:
                 check = factory("check_content_type_header")()
                 stat = check(environ, test_output)
