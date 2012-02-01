@@ -45,6 +45,12 @@ def endpoint(client, base):
 
     return False
 
+def check_severity(stat):
+    if stat["status"] >= 400:
+        raise FatalError
+    elif stat["status"] < 200:
+        raise FatalError
+
 #noinspection PyUnusedLocal
 def do_operation(client, opdef, message_mod, response=None, content=None,
                  trace=None, location=""):
@@ -182,114 +188,113 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     test_output = []
 
     stat = None
-    for req, resp in sequence:
-        environ["request_spec"] = req
-        environ["response_spec"] = resp
-        stat = None
-        err = None
-        if trace:
-            trace.info(70*"=")
-        try:
-            extra_args = interaction[req["request"]]
+    try:
+        for req, resp in sequence:
+            environ["request_spec"] = req
+            environ["response_spec"] = resp
+            stat = None
+            err = None
+            if trace:
+                trace.info(70*"=")
             try:
-                req["args"] = rec_update(req["args"], extra_args)
-            except KeyError:
-                req["args"] = extra_args
-        except KeyError:
-            pass
-
-        try:
-            environ["request_args"] = req["args"]["request"]
-        except KeyError:
-            pass
-        try:
-            environ["args"] = req["args"]["kw"]
-        except KeyError:
-            pass
-
-        try:
-            _pretests = req["tests"]["pre"]
-            for test in _pretests:
-                chk = test()
-                stat = chk(environ, test_output)
-                if 400 <= stat["status"] < 200 :
-                    break
-        except KeyError:
-            pass
-
-
-        try:
-            part = do_operation(client, req, message_mod, response, content,
-                                trace)
-            environ.update(dict(zip(ORDER, part)))
-            (url, response, content) = part
-
-            try:
-                for test in req["tests"]["post"]:
-                    chk = test()
-                    stat = chk(environ, test_output)
-                    if 400 <= stat["status"] < 200 :
-                        break
+                extra_args = interaction[req["request"]]
+                try:
+                    req["args"] = rec_update(req["args"], extra_args)
+                except KeyError:
+                    req["args"] = extra_args
             except KeyError:
                 pass
-        except Exception, err:
-            trace.error("%s: %s" % (err.__class__.__name__, err))
-            break
 
-        done = False
-        while not done:
-            while response.status in [302, 301, 303]:
-                try:
-                    url = response.url
-                except AttributeError:
-                    url = response["location"]
-
-                # If back to me
-                for_me = False
-                for redirect_uri in client.redirect_uri:
-                    if url.startswith(redirect_uri):
-                        for_me=True
-
-                if for_me:
-                    done = True
-                    break
-                else:
-                    part = do_request(client, url, "GET", trace=trace)
-                    environ.update(dict(zip(ORDER, part)))
-                    (url, response, content) = part
-
-                    check = factory("check-http-response")()
-                    stat = check(environ, test_output)
-                    if 400 <= stat["status"] < 200 :
-                        break
-
-            if done or (stat and stat["status"] in [0,9]):
-                break
-
-            _base = url.split("?")[0]
             try:
-                _spec = interaction[_base]
+                environ["request_args"] = req["args"]["request"]
             except KeyError:
-                if endpoint(client, _base):
-                    break
-                chk = factory("interaction-needed")()
-                stat = chk(environ, test_output)
-                break
-
-            _op = {"function": _spec[0], "args": _spec[1]}
+                pass
+            try:
+                environ["args"] = req["args"]["kw"]
+            except KeyError:
+                pass
 
             try:
-                part = do_operation(client, _op, message_mod, response,
-                                    content, trace, location=url)
+                _pretests = req["tests"]["pre"]
+                for test in _pretests:
+                    chk = test()
+                    stat = chk(environ, test_output)
+                    check_severity(stat)
+            except KeyError:
+                pass
+
+
+            try:
+                part = do_operation(client, req, message_mod, response, content,
+                                    trace)
                 environ.update(dict(zip(ORDER, part)))
                 (url, response, content) = part
+
+                try:
+                    for test in req["tests"]["post"]:
+                        chk = test()
+                        stat = chk(environ, test_output)
+                        check_severity(stat)
+                except KeyError:
+                    pass
             except Exception, err:
                 environ["exception"] = err
                 chk = factory("wrap-exception")()
-                stat = chk(environ, test_output)
-                break
+                chk(environ, test_output)
+                raise FatalError()
 
-        if err is None and not (stat and 400 <= stat["status"] < 200):
+            done = False
+            while not done:
+                while response.status in [302, 301, 303]:
+                    try:
+                        url = response.url
+                    except AttributeError:
+                        url = response["location"]
+
+                    # If back to me
+                    for_me = False
+                    for redirect_uri in client.redirect_uri:
+                        if url.startswith(redirect_uri):
+                            for_me=True
+
+                    if for_me:
+                        done = True
+                        break
+                    else:
+                        part = do_request(client, url, "GET", trace=trace)
+                        environ.update(dict(zip(ORDER, part)))
+                        (url, response, content) = part
+
+                        check = factory("check-http-response")()
+                        stat = check(environ, test_output)
+                        check_severity(stat)
+
+                if done:
+                    break
+
+                _base = url.split("?")[0]
+                try:
+                    _spec = interaction[_base]
+                except KeyError:
+                    if endpoint(client, _base):
+                        break
+                    chk = factory("interaction-needed")()
+                    chk(environ, test_output)
+                    raise FatalError()
+
+                _op = {"function": _spec[0], "args": _spec[1]}
+
+                try:
+                    part = do_operation(client, _op, message_mod, response,
+                                        content, trace, location=url)
+                    environ.update(dict(zip(ORDER, part)))
+                    (url, response, content) = part
+                except Exception, err:
+                    environ["exception"] = err
+                    chk = factory("wrap-exception")()
+                    chk(environ, test_output)
+                    raise FatalError
+
             info = None
             if resp["where"] == "url":
                 try:
@@ -300,8 +305,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
             else:
                 check = factory("check_content_type_header")()
                 stat = check(environ, test_output)
-                if 200 <= stat["status"] < 400 :
-                    info = content
+                check_severity(stat)
+                info = content
 
             if info:
                 if isinstance(resp["response"], tuple):
@@ -311,6 +316,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 else:
                     respcls = getattr(message_mod, resp["response"])
 
+                chk = factory("response-parse")()
+                environ["response_type"] = respcls.__name__
                 try:
                     qresp = client.parse_response(respcls, info,
                                                   resp["type"],
@@ -322,30 +329,29 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                                                  qresp.dictionary()))
                     item.append(qresp)
                 except Exception, err:
-                    chk = factory("response-parse-error")
-                    environ["reason"] = "%s" % err
-                    stat = chk(environ, test_output)
+                    environ["exception"] = "%s" % err
 
-        if err:
-            environ["exception"] = err
-            we = factory("wrap-exception")()
-            stat = we(environ, test_output)
+                stat = chk(environ, test_output)
+                check_severity(stat)
 
-        if 400 <= stat["status"] < 200 :
-            break
+    #    if err or verbose:
+    #        print trace
+    #
+    #    if ignored:
+    #        print >> sys.stderr, "IGNORED"
 
-#    if err or verbose:
-#        print trace
-#
-#    if ignored:
-#        print >> sys.stderr, "IGNORED"
-
-    if stat and 400 > stat["status"] >= 200:
         if tests is not None:
             environ["item"] = item
             for test in tests:
                 chk = test()
                 chk(environ, test_output)
+
+    except FatalError:
+        pass
+    except Exception, err:
+        environ["exception"] = err
+        chk = factory("wrap-exception")()
+        chk(environ, test_output)
 
     return test_output, "%s" % trace
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 __author__ = 'rohe0002'
 
 # ========================================================================
@@ -25,7 +26,7 @@ AUTHZRESP = {
     "response": "AuthorizationResponse",
     "where": "url",
     "type": "urlencoded",
-    "tests": {CheckAuthorizationResponse}
+    "tests": {"post": [CheckAuthorizationResponse]}
     }
 
 OPENID_REQUEST_CODE = {
@@ -262,23 +263,23 @@ FLOWS = {
         "descr": ("Does an Authentication Request with",
                   "response type = ['code','idtoken']"),
         "depends": ['openid-code'],
-        "sequence": ['openid-login-code+idtoken'],
+        "sequence": ['oic-login-code+idtoken'],
         "endpoints": ["authorization_endpoint"],
         },
-    'openid-token+idtoken': {
+    'openid-idtoken+token': {
         "name": 'Implicit flow with Token+IDToken ',
         "descr": ("Does an Authentication Request with",
                   "response type = ['token','idtoken']"),
         "depends": ['openid-token'],
-        "sequence": ['openid-login-token+idtoken'],
+        "sequence": ['oic-login-idtoken+token'],
         "endpoints": ["authorization_endpoint"],
         },
-    'openid-code+token+idtoken': {
+    'openid-code+idtoken+token': {
         "name": 'Implicit flow with Code+Token+IDToken ',
         "descr": ("Does an Authentication Request with",
                   "response type = ['code','token','idtoken']"),
         "depends":["openid-code+token"],
-        "sequence": ['openid-login-code+idtoken+token'],
+        "sequence": ['oic-login-code+idtoken+token'],
         "endpoints": ["authorization_endpoint",],
         },
     # -------------------------------------------------------------------------
@@ -289,7 +290,7 @@ FLOWS = {
                   "response type = ['code','token'] and then",
                   "does a Token request"),
         "depends": ['openid-code+token'],
-        "sequence": ["openid-login-code+token", "access-token-request"],
+        "sequence": ["oic-login-code+token", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'openid-code+idtoken-get_token': {
@@ -299,16 +300,16 @@ FLOWS = {
                   "response type = ['code','idtoken'] and then",
                   "does a Token request"),
         "depends": ['openid-code+idtoken'],
-        "sequence": ["openid-login-code+idtoken", "access-token-request"],
+        "sequence": ["oic-login-code+idtoken", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-    'openid-code+token+idtoken_get_token': {
+    'openid-code+idtoken+token_get_token': {
         "name": ("Get an accesstoken using access code with 'token' and ",
                  "'idtoken' in response type"),
         "descr": ("Does an Authentication Request with",
                   "response type = ['code','token','idtoken']",
                   "does a Token request"),
-        "depends": ['openid-code+token+idtoken'],
+        "depends": ['openid-code+idtoken+token'],
         "sequence": ["oic-login-code+idtoken+token", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
@@ -319,8 +320,8 @@ FLOWS = {
                 " 'token idtoken' and then uses the idtoken to get",
                 " some user info.",
                 "Authentication used is 'bearer_header'."),
-        "depends": ['openid-token+idtoken'],
-        "sequence": ['openid-login-token+idtoken', "user-info-request"],
+        "depends": ['openid-idtoken+token'],
+        "sequence": ['oic-login-idtoken+token', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     'openid-token-idtoken-check_id': {
@@ -328,10 +329,27 @@ FLOWS = {
         "descr": ("Very basic test of a OIC Provider using the token ",
                   "flow with response type ['token','idtoken'].",
                   "And then does a check ID request"),
-        "depends": ['openid-token+idtoken'],
-        "sequence": ['openid-login-token+idtoken', "check-id-request"],
+        "depends": ['openid-idtoken+token'],
+        "sequence": ['oic-login-idtoken+token', "check-id-request"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
         "tests": ["cmp_idtoken"]
     },
-
 }
+
+if __name__ == "__main__":
+    for name, spec in FLOWS.items():
+        try:
+            for dep in spec["depends"]:
+                try:
+                    assert dep in FLOWS
+                except AssertionError:
+                    print "%s missing in FLOWS" % dep
+                    raise
+        except KeyError:
+            pass
+        for op in spec["sequence"]:
+            try:
+                assert op in PHASES
+            except AssertionError:
+                print "%s missing in PHASES" % op
+                raise

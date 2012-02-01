@@ -148,12 +148,12 @@ class CheckResponseType(Check):
             rts = [set(s.split(" ")) for s in
                    provider_info["response_types_supported"]]
         except KeyError:
-            rts = [{"code"}]
+            rts = [{"code",}]
 
         try:
             val = request_args["response_type"]
             if isinstance(val, basestring):
-                rt = {val}
+                rt = {val,}
             else:
                 rt = set(val)
             for sup in rts:
@@ -178,7 +178,7 @@ class CheckTokenEndpointAuthType(Check):
             _met = environ["args"]["authn_method"]
             _pi = environ["provider_info"]
             if _met not in _pi["token_endpoint_auth_types_supported"]:
-                self._message = sef.msg
+                self._message = self.msg
                 self._status = self.errcode
         except KeyError:
             pass
@@ -198,15 +198,11 @@ class CheckContentTypeHeader(Check):
         try:
             ctype = _response["content-type"]
             if environ["response_spec"]["type"] == "json":
-                if "application/json" in ctype:
-                    return
-                else:
+                if not "application/json" in ctype:
                     self._status = self.errcode
                     self._message = "Wrong content type: %s" % ctype
             else: # has to be uuencoded
-                if "application/x-www-form-urlencoded" in ctype:
-                    return
-                else:
+                if not "application/x-www-form-urlencoded" in ctype:
                     self._status = self.errcode
                     self._message = "Wrong content type: %s" % ctype
         except KeyError:
@@ -284,14 +280,21 @@ class MissingRedirect(Check):
         self._status = self.errcode
         return {"url": environ["url"]}
 
-class ParseError(Check):
-    id = "response-parse-error"
+class Parse(Check):
+    id = "response-parse"
     errcode = 509
     errmsg = "Parse error"
     
     def _func(self, environ=None):
-        self._status = self.errcode
-        return {"url": environ["url"]}
+        if "exception" in environ:
+            self._status = self.errcode
+            self._message = environ["exception"]
+
+        return {
+            "response_type": environ["response_type"],
+            "url": environ["url"]
+        }
+
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
