@@ -35,7 +35,7 @@ class Check():
     
     def __init__(self):
         self._status = 200
-        self._message = None
+        self._message = "OK"
         self.content = None
         self.url = ""
 
@@ -56,10 +56,8 @@ class Check():
         res = {
             "id": self.id,
             "status": self._status,
-            "status_message": self.msg,
             "name": name
         }
-
 
         if self._message:
             res["message"] = self._message
@@ -108,6 +106,7 @@ class CheckHTTPResponse(Check):
         res = {}
         if _response.status >= 400 :
             self._status = self.errcode
+            self._message = self.msg
             if _response["content-type"] == "application/json":
                 try:
                     err = ErrorResponse.set_json(_content, extended=True)
@@ -138,6 +137,7 @@ class CheckResponseType(Check):
                                                  environ["provider_info"])
             if not _sup:
                 self._status = self.errcode
+                self._message = self.msg
         except KeyError:
             pass
 
@@ -171,13 +171,14 @@ class CheckTokenEndpointAuthType(Check):
     """
     id = "check-token-endpoint-auth-type"
     errcode = 504
+    msg = "Auth type not supported"
 
     def _func(self, environ):
         try:
             _met = environ["args"]["authn_method"]
             _pi = environ["provider_info"]
             if _met not in _pi["token_endpoint_auth_types_supported"]:
-                self._message = "Auth type not supported"
+                self._message = sef.msg
                 self._status = self.errcode
         except KeyError:
             pass
@@ -222,7 +223,7 @@ class CheckProviderInfo(Check):
     msg = "Provider information error"
 
     def _func(self, environ=None):
-        self._status = self.errcode
+        #self._status = self.errcode
         return {}
 
 class CheckRegistrationResponse(Check):
@@ -235,7 +236,7 @@ class CheckRegistrationResponse(Check):
     msg = "Registration response error"
 
     def _func(self, environ=None):
-        self._status = self.errcode
+        #self._status = self.errcode
         return {}
 
 class CheckAuthorizationResponse(Check):
@@ -247,7 +248,7 @@ class CheckAuthorizationResponse(Check):
     errcode = 510
 
     def _func(self, environ=None):
-        self._status = self.errcode
+        #self._status = self.errcode
         return {}
 
 class WrapException(Check):
