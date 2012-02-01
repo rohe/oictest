@@ -3,6 +3,7 @@ __author__ = 'rohe0002'
 # ========================================================================
 
 from oictest.opfunc import *
+from oictest.check import *
 
 # ========================================================================
 
@@ -17,25 +18,34 @@ AUTHZREQ_CODE = {
         "request": {"response_type": "code",
                     "scope": ["openid"],
         },
-    }
+    },
 }
 
 AUTHZRESP = {
     "response": "AuthorizationResponse",
     "where": "url",
     "type": "urlencoded",
+    "tests": {CheckAuthorizationResponse}
     }
 
 OPENID_REQUEST_CODE = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "code", "scope": ["openid"]}}
+    "args": {"request": {"response_type": "code", "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 OPENID_REQUEST_TOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "token", "scope": ["openid"]}}
+    "args": {"request": {"response_type": "token", "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 # {"OpenIDRequest": {"request", {"response_type":["code","token"]}}}
@@ -44,28 +54,44 @@ OPENID_REQUEST_CODE_TOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
     "args": {"request": {"response_type": ["code","token"],
-                         "scope": ["openid"]}}
+                         "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 OPENID_REQUEST_CODE_IDTOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
     "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"]}}
+                         "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 OPENID_REQUEST_TOKEN_IDTOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
     "args": {"request": {"response_type": ["token","id_token"],
-                         "scope": ["openid"]}}
+                         "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 OPENID_REQUEST_CODE_TOKEN_IDTOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
     "args": {"request": {"response_type": ["code", "token", "id_token"],
-                         "scope": ["openid"]}}
+                         "scope": ["openid"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
 }
 
 # 2.1.2.1.2
@@ -163,10 +189,12 @@ PHASES= {
     "login": (AUTHZREQ_CODE, AUTHZRESP),
     "oic-login": (OPENID_REQUEST_CODE, AUTHZRESP),
     "oic-login-token": (OPENID_REQUEST_TOKEN, AUTHZRESP),
-    "oic-login-idtoken-token": (OPENID_REQUEST_TOKEN_IDTOKEN, AUTHZRESP),
-#    "login-form": ([AUTHZREQ_CODE, LOGIN_FORM], AUTHZRESP),
-#    "login-form-approve": ([AUTHZREQ_CODE, LOGIN_FORM, APPROVE_FORM],
-#                            AUTHZRESP),
+    "oic-login-code+token": (OPENID_REQUEST_CODE_TOKEN, AUTHZRESP),
+    "oic-login-code+idtoken": (OPENID_REQUEST_CODE_IDTOKEN, AUTHZRESP),
+    "oic-login-idtoken+token": (OPENID_REQUEST_TOKEN_IDTOKEN, AUTHZRESP),
+    "oic-login-code+idtoken+token": (OPENID_REQUEST_CODE_TOKEN_IDTOKEN,
+                                     AUTHZRESP),
+#
     "access-token-request":(ACCESS_TOKEN_REQUEST_CLI_SECRET,
                             ACCESS_TOKEN_RESPONSE),
     "check-id-request":(CHECK_ID_REQUEST, CHECK_ID_RESPONSE),
@@ -176,7 +204,7 @@ PHASES= {
 
 FLOWS = {
     'openid-code': {
-        "name": 'Basic OpenID Connect Code flow with authentication',
+        "name": 'First phase in a OpenID Connect Code flow',
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an access code.'),
@@ -185,7 +213,9 @@ FLOWS = {
     },
     'openid-code-token': {
         "name": 'Basic Code flow with Token fetching',
-        "descr": (''),
+        "descr": ("Does an Authentication Request and then using",
+            "the access code received asks for an access token.",
+            "Authentication method used is 'client_secret_post'"),
         "depends": ['openid-code'],
         "sequence": ["oic-login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -193,7 +223,9 @@ FLOWS = {
         },
     'openid-code-userdata': {
         "name": 'Basic Code flow with User info fetching',
-        "descr": (''),
+        "descr": ("Does an Authentication request, an token request",
+                  " and then an UserInfo request.",
+                  "Authentication used is 'bearer_header'."),
         "depends": ['openid-code'],
         "sequence": ["oic-login", "access-token-request", "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -201,7 +233,8 @@ FLOWS = {
         },
     'openid-code-check_id': {
         "name": 'Basic Code flow with IdToken checking',
-        "descr": (''),
+        "descr": ('Does an Authentication request, an token request',
+                  ' and then an UserInfo request'),
         "depends": ['openid-code'],
         "sequence": ["oic-login", "access-token-request", "check-id-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -209,29 +242,94 @@ FLOWS = {
         },
     # -------------------------------------------------------------------------
     'openid-token': {
-        "name": 'Basic OpenID Connect Token flow with authentication',
-        "descr": ('Very basic test of a OIC Provider using the token ',
+        "name": 'Basic OpenID Connect implicit flow with authentication',
+        "descr": ('Very basic test of a OIC Provider using the implicit ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an access token.'),
         "sequence": ["oic-login-token"],
         "endpoints": ["authorization_endpoint"]
     },
+    'openid-code+token': {
+        "name": 'Implicit flow with Code+Token ',
+        "descr": ("Does an Authentication Request with",
+            "response type = ['code','token']"),
+        "depends": ['openid-code', 'openid-token'],
+        "sequence": ["oic-login-code+token"],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'openid-code+idtoken': {
+        "name": 'Implicit flow with Code+IDToken ',
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['code','idtoken']"),
+        "depends": ['openid-code'],
+        "sequence": ['openid-login-code+idtoken'],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'openid-token+idtoken': {
+        "name": 'Implicit flow with Token+IDToken ',
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['token','idtoken']"),
+        "depends": ['openid-token'],
+        "sequence": ['openid-login-token+idtoken'],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'openid-code+token+idtoken': {
+        "name": 'Implicit flow with Code+Token+IDToken ',
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['code','token','idtoken']"),
+        "depends":["openid-code+token"],
+        "sequence": ['openid-login-code+idtoken+token'],
+        "endpoints": ["authorization_endpoint",],
+        },
+    # -------------------------------------------------------------------------
+    'openid-code+token-get_token': {
+        "name": ("Get an accesstoken using access code with 'token' in ",
+                "response type"),
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['code','token'] and then",
+                  "does a Token request"),
+        "depends": ['openid-code+token'],
+        "sequence": ["openid-login-code+token", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'openid-code+idtoken-get_token': {
+        "name": ("Get an accesstoken using access code with 'idtoken' in ",
+                 "response type"),
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['code','idtoken'] and then",
+                  "does a Token request"),
+        "depends": ['openid-code+idtoken'],
+        "sequence": ["openid-login-code+idtoken", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'openid-code+token+idtoken_get_token': {
+        "name": ("Get an accesstoken using access code with 'token' and ",
+                 "'idtoken' in response type"),
+        "descr": ("Does an Authentication Request with",
+                  "response type = ['code','token','idtoken']",
+                  "does a Token request"),
+        "depends": ['openid-code+token+idtoken'],
+        "sequence": ["oic-login-code+idtoken+token", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    # -------------------------------------------------------------------------
     'openid-token-idtoken-userdata': {
         "name": 'Token flow with ID Token and User data',
-        "descr": ('Very basic test of a Provider using the authorization code'
-                  ' flow, but in addition to retrieve an ID Token,',
-                  ' this test flow also tried to obtain user data.'),
-        "depends": ['openid-token'],
-        "sequence": ["oic-login-idtoken-token", "user-info-request"],
+        "descr": ("Uses the implicit flow with the response type",
+                " 'token idtoken' and then uses the idtoken to get",
+                " some user info.",
+                "Authentication used is 'bearer_header'."),
+        "depends": ['openid-token+idtoken'],
+        "sequence": ['openid-login-token+idtoken', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     'openid-token-idtoken-check_id': {
         "name": 'OpenID Connect Token flow with check id',
-        "descr": ('Very basic test of a OIC Provider using the token ',
-                  'flow. The test tool acting as a consumer is very relaxed',
-                  'and tries to obtain an ID Token.'),
-        "depends": ["openid-token"],
-        "sequence": ["oic-login-idtoken-token", "check-id-request"],
+        "descr": ("Very basic test of a OIC Provider using the token ",
+                  "flow with response type ['token','idtoken'].",
+                  "And then does a check ID request"),
+        "depends": ['openid-token+idtoken'],
+        "sequence": ['openid-login-token+idtoken', "check-id-request"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
         "tests": ["cmp_idtoken"]
     },

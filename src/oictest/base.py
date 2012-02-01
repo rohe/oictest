@@ -2,9 +2,12 @@
 
 __author__ = 'rohe0002'
 
-import sys
 from importlib import import_module
-from oic.oauth2.message import ErrorResponse
+from oictest.opfunc import do_request
+from oictest.check import factory
+
+class FatalError(Exception):
+    pass
 
 class Trace(object):
     def __init__(self):
@@ -41,24 +44,6 @@ def endpoint(client, base):
             return True
 
     return False
-
-def do_request(client, url, method, body="", headers=None, trace=False):
-    if headers is None:
-        headers = {}
-
-    if trace:
-        trace.request("URL: %s" % url)
-        trace.request("BODY: %s" % body)
-
-    response, content = client.http_request(url, method=method,
-                                            body=body, headers=headers,
-                                            trace=trace)
-
-    if trace:
-        trace.reply("RESPONSE: %s" % response)
-        trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
-
-    return response, content
 
 #noinspection PyUnusedLocal
 def do_operation(client, opdef, message_mod, response=None, content=None,
@@ -134,8 +119,8 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
         _args["location"] = location
 
         if trace:
-            trace.request("FUNCTION: %s" % func.__name__)
-            trace.request("ARGS: %s" % _args)
+            trace.reply("FUNCTION: %s" % func.__name__)
+            trace.reply("ARGS: %s" % _args)
 
         url, response, content = func(client, response, content, **_args)
     else:
@@ -187,37 +172,20 @@ def rec_update(dic0, dic1):
 
     return res
 
-def response_types_supported(request_args, provider_info):
-    try:
-        rts = [set(s.split(" ")) for s in
-                                    provider_info["response_types_supported"]]
-    except KeyError:
-        rts = [{"code"}]
+ORDER = ["url","response","content"]
 
-    try:
-        val = request_args["response_type"]
-        if isinstance(val, basestring):
-            rt = {val}
-        else:
-            rt = set(val)
-        for sup in rts:
-            if sup == rt:
-                return True
-        return False
-    except KeyError:
-        pass
-
-    return True
-
-def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
-                 tests=None, provider_info=None):
+def run_sequence(client, sequence, trace, interaction, message_mod,
+                 environ=None, tests=None):
     item = []
     response = None
     content = None
-    err = None
-    ignored = False
+    test_output = []
 
+    stat = None
     for req, resp in sequence:
+        environ["request_spec"] = req
+        environ["response_spec"] = resp
+        stat = None
         err = None
         if trace:
             trace.info(70*"=")
@@ -231,31 +199,39 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
             pass
 
         try:
-            _sup = response_types_supported(req["args"]["request"],
-                                            provider_info)
-            if not _sup:
-                if trace:
-                    trace.info("Response type not supported")
-                ignored = True
-                break
+            environ["request_args"] = req["args"]["request"]
+        except KeyError:
+            pass
+        try:
+            environ["args"] = req["args"]["kw"]
         except KeyError:
             pass
 
         try:
-            _met = req["args"]["kw"]["authn_method"]
-            if _met not in provider_info["token_endpoint_auth_types_supported"]:
-                if trace:
-                    trace.info("Token endpoint auth type not supported")
-                ignored = True
-                break
+            _pretests = req["tests"]["pre"]
+            for test in _pretests:
+                chk = test()
+                stat = chk(environ, test_output)
+                if 400 <= stat["status"] < 200 :
+                    break
         except KeyError:
             pass
 
+
         try:
-            url, response, content = do_operation(client, req,
-                                                  message_mod,
-                                                  response, content,
-                                                  trace)
+            part = do_operation(client, req, message_mod, response, content,
+                                trace)
+            environ.update(dict(zip(ORDER, part)))
+            (url, response, content) = part
+
+            try:
+                for test in req["tests"]["post"]:
+                    chk = test()
+                    stat = chk(environ, test_output)
+                    if 400 <= stat["status"] < 200 :
+                        break
+            except KeyError:
+                pass
         except Exception, err:
             trace.error("%s: %s" % (err.__class__.__name__, err))
             break
@@ -278,25 +254,17 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
                     done = True
                     break
                 else:
-                    if trace:
-                        trace.info(70*".")
-                    response, content = do_request(client, url, "GET",
-                                                  trace=trace)
-            if done or err:
-                break
+                    part = do_request(client, url, "GET", trace=trace)
+                    environ.update(dict(zip(ORDER, part)))
+                    (url, response, content) = part
 
-            if response.status >= 400:
-                if response["content-type"] == "application/json":
-                    err = ErrorResponse.set_json(content)
-                    if trace:
-                        trace.error("%s: %s" % (response.status,
-                                                err.get_json()))
-                else:
-                    err = content
-                break
+                    check = factory("check-http-response")()
+                    stat = check(environ, test_output)
+                    if 400 <= stat["status"] < 200 :
+                        break
 
-            if trace:
-                trace.info(70*"=")
+            if done or (stat and stat["status"] in [0,9]):
+                break
 
             _base = url.split("?")[0]
             try:
@@ -304,31 +272,36 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
             except KeyError:
                 if endpoint(client, _base):
                     break
-                trace.error("No interaction bound to '%s'" % _base)
-                raise
+                chk = factory("interaction-needed")()
+                stat = chk(environ, test_output)
+                break
 
             _op = {"function": _spec[0], "args": _spec[1]}
 
             try:
-                url, response, content = do_operation(client, _op,
-                                                      message_mod,
-                                                      response, content,
-                                                      trace, location=url)
-                #print content
+                part = do_operation(client, _op, message_mod, response,
+                                    content, trace, location=url)
+                environ.update(dict(zip(ORDER, part)))
+                (url, response, content) = part
             except Exception, err:
-                trace.error("%s: %s" % (err.__class__.__name__, err))
-                raise
+                environ["exception"] = err
+                chk = factory("wrap-exception")()
+                stat = chk(environ, test_output)
+                break
 
-
-        if err is None:
+        if err is None and not (stat and 400 <= stat["status"] < 200):
+            info = None
             if resp["where"] == "url":
                 try:
                     info = response["location"]
                 except KeyError:
-                    trace.error("Not a final redirect")
-                    raise Exception
+                    chk = factory("missing-redirect")()
+                    stat = chk(environ, test_output)
             else:
-                info = content
+                check = factory("check_content_type_header")()
+                stat = check(environ, test_output)
+                if 200 <= stat["status"] < 400 :
+                    info = content
 
             if info:
                 if isinstance(resp["response"], tuple):
@@ -349,24 +322,32 @@ def run_sequence(client, sequence, trace, interaction, message_mod, verbose,
                                                  qresp.dictionary()))
                     item.append(qresp)
                 except Exception, err:
-                    trace.error("info: %s" % info)
-                    trace.error("%s" % err)
-                    raise
+                    chk = factory("response-parse-error")
+                    environ["reason"] = "%s" % err
+                    stat = chk(environ, test_output)
 
         if err:
+            environ["exception"] = err
+            we = factory("wrap-exception")()
+            stat = we(environ, test_output)
+
+        if 400 <= stat["status"] < 200 :
             break
 
-    if err or verbose:
-        print trace
+#    if err or verbose:
+#        print trace
+#
+#    if ignored:
+#        print >> sys.stderr, "IGNORED"
 
-    if ignored:
-        print >> sys.stderr, "IGNORED"
+    if stat and 400 > stat["status"] >= 200:
+        if tests is not None:
+            environ["item"] = item
+            for test in tests:
+                chk = test()
+                chk(environ, test_output)
 
-    if not ignored and not err and tests:
-        for test in tests:
-            assert test(client, item)
-
-    return err
+    return test_output, "%s" % trace
 
 
 def run_sequences(client, sequences, trace, interaction, message_mod,

@@ -1,85 +1,102 @@
 #!/usr/bin/env python
-import sys
-from subprocess import Popen
-from subprocess import PIPE
-
 __author__ = 'rohe0002'
 
-LIST = [
-    ("openid-code", None),
-    ("openid-code-token", None),
-    (
-        "openid-code-token",
-        "{'OpenIDRequest':{'request':{'response_type':['code','id_token']}}}"
-    ),
-    ("openid-code-userdata", None),
-    (
-        "openid-code-userdata",
-        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
-        ),
-    ("openid-code-check_id", None),
-    (
-        "openid-code-check_id",
-        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
-    ),
-    ("openid-token", None),
-    (
-        "openid-token",
-        "{'OpenIDRequest':{'request':{'response_type':['code','token']}}}"),
-    (
-        "openid-token",
-        "{'OpenIDRequest':{'request':{'response_type':['code','id_token','token']}}}"
-    ),
-    (
-        "openid-token",
-        "{'OpenIDRequest':{'request':{'response_type':['id_token']}}}"
-    ),
-    (
-        "openid-token",
-        "{'OpenIDRequest':{'request':{'response_type':['id_token','token']}}}"
-    ),
-    ("openid-token-idtoken-check_id", None),
-    ("openid-token-idtoken-userdata", None),
-    (
-        "openid-token-idtoken-userdata",
-        "{'OpenIDRequest':{'request':{'scope':['openid','profile']}}}"
-    ),
-    (
-        "openid-token-idtoken-userdata",
-        "{'OpenIDRequest':{'request':{'scope':['openid','email']}}}"
-    ),
-    (
-        "openid-token-idtoken-userdata",
-        "{'OpenIDRequest':{'request':{'scope':['openid','address']}}}"
-    ),
-    (
-        "openid-token-idtoken-userdata",
-        "{'OpenIDRequest':{'kw':{'userinfo_claims':{'name':null,'nickname':{'optional':true},'email':null,'verified':null,'picture':{'optional': true}}}}}"
-    )
-]
+import sys
+import json
+from subprocess import Popen
+from subprocess import PIPE
+from oictest.oic_operations import FLOWS
 
-NO_PROBLEM = ("", "")
+#    ("openid-code", None),
+#    ("openid-code-token", None),
+#    (
+#        "openid-code-token",
+#        "{'OpenIDRequest':{'request':{'response_type':['code','id_token']}}}"
+#    ),
+#    ("openid-code-userdata", None),
+#    (
+#        "openid-code-userdata",
+#        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
+#        ),
+#    ("openid-code-check_id", None),
+#    (
+#        "openid-code-check_id",
+#        "{'UserInfoRequest':{'kw':{'authn_method':'bearer_header'}}}"
+#    ),
+#    ("openid-token", None),
+#    (
+#        "openid-token",
+#        "{'OpenIDRequest':{'request':{'response_type':['code','token']}}}"),
+#    (
+#        "openid-token",
+#        "{'OpenIDRequest':{'request':{'response_type':['code','id_token','token']}}}"
+#    ),
+#    (
+#        "openid-token",
+#        "{'OpenIDRequest':{'request':{'response_type':['id_token']}}}"
+#    ),
+#    (
+#        "openid-token",
+#        "{'OpenIDRequest':{'request':{'response_type':['id_token','token']}}}"
+#    ),
+#    ("openid-token-idtoken-check_id", None),
+#    ("openid-token-idtoken-userdata", None),
+#    (
+#        "openid-token-idtoken-userdata",
+#        "{'OpenIDRequest':{'request':{'scope':['openid','profile']}}}"
+#    ),
+#    (
+#        "openid-token-idtoken-userdata",
+#        "{'OpenIDRequest':{'request':{'scope':['openid','email']}}}"
+#    ),
+#    (
+#        "openid-token-idtoken-userdata",
+#        "{'OpenIDRequest':{'request':{'scope':['openid','address']}}}"
+#    ),
+#    (
+#        "openid-token-idtoken-userdata",
+#        "{'OpenIDRequest':{'kw':{'userinfo_claims':{'name':null,'nickname':{'optional':true},'email':null,'verified':null,'picture':{'optional': true}}}}}"
+#    )
+
 who = sys.argv[1]
 
-output = NO_PROBLEM
-iaction = flow = ""
-for (flow, iaction) in LIST:
+def sorted_flows(flows):
+    result = []
+    remains = flows.keys()
+    while remains:
+        for flow in remains:
+            spec = flows[flow]
+            if "depends" in spec:
+                flag = False
+                for dep in spec["depends"]:
+                    if dep in result:
+                        flag = True
+                    else:
+                        flag = False
+                        break
+
+                if flag:
+                    result.append(flow)
+                    remains.remove(flow)
+            else:
+                result.append(flow)
+                remains.remove(flow)
+
+    return result
+
+OICC = "/Users/rohe0002/code/oictest/test/oic/oicc.py"
+
+for flow in sorted_flows(FLOWS):
     p1 = Popen(["./%s.py" % who], stdout=PIPE)
-    cmd2 = ["oicc.py", "-J", "-", "-T"]
-    if iaction:
-        cmd2.extend(['-I', iaction])
-    cmd2.append(flow)
+    cmd2 = [OICC, "-J", "-", flow]
 
     p2 = Popen(cmd2, stdin=p1.stdout, stdout=PIPE, stderr=PIPE)
-    output = p2.communicate()
-    if output != NO_PROBLEM:
-        break
-    print "OK"
-
-if output != NO_PROBLEM:
-    print flow
-    print iaction
-    if output[0]:
-        print output[0]
-    if output[1]:
-        print output[1]
+    p_out = p2.stdout.read()
+    print p_out
+    output = json.loads(p_out)
+    if output["status"] == "0":
+        print "%s - OK" % flow
+    else:
+        print p_out
+        p_err = p2.stderr.read()
+        print p_err

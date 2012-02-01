@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+from oictest.check import CheckRegistrationResponse
+
 __author__ = 'rohe0002'
 
-import sys
 import argparse
+import sys
 import json
 import httplib2
 
@@ -11,6 +13,8 @@ from oic.utils import jwt
 
 from oictest import httplib2cookie
 from oictest.base import *
+
+#from oictest.check import WrapException
 
 QUERY2RESPONSE = {
     "AuthorizationRequest": "AuthorizationResponse",
@@ -48,7 +52,7 @@ class OAuth2(object):
         self._parser.add_argument('-I', dest="interactions")
         self._parser.add_argument("-l", dest="list", action="store_true")
         self._parser.add_argument("-T", dest="traceback", action="store_true")
-        self._parser.add_argument("flow")
+        self._parser.add_argument("flow", nargs="?")
 
         self.args = None
         self.pinfo = None
@@ -56,6 +60,8 @@ class OAuth2(object):
         self.function_args = {}
         self.signing_key = None
         self.encryption_key = None
+        self.test_log = []
+        self.environ = {}
 
     def parse_args(self):
         self.json_config= self.json_config_file()
@@ -69,14 +75,33 @@ class OAuth2(object):
         else:
             return json.loads(open(self.args.json_config_file).read())
 
+    def test_summation(self, id):
+        status = 0
+        for item in self.test_log:
+            if item["status"] < 200:
+                status = 2
+            elif item["status"] >= 400:
+                status = 2
+            elif item["status"] >= 300:
+                if status != 2:
+                    status = 1
+
+        return {
+            "id": id,
+            "status": status,
+            "tests": self.test_log
+        }
+
     def run(self):
         self.args = self._parser.parse_args()
 
-        self.args.flow = self.args.flow.strip("'")
-        self.args.flow = self.args.flow.strip('"')
         if self.args.list:
             return self.operations()
         else:
+            if not self.args.flow:
+                raise Exception("Missing flow specification")
+            self.args.flow = self.args.flow.strip("'")
+            self.args.flow = self.args.flow.strip('"')
             self.parse_args()
             self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
             _seq = self.make_sequence()
@@ -84,12 +109,20 @@ class OAuth2(object):
             tests = self.get_test()
             self.client.state = "STATE0"
 
+            self.environ.update({"provider_info": self.pinfo,
+                                 "client": self.client})
+
             try:
-                run_sequence(self.client, _seq, self.trace, interact,
-                             self.message_mod, self.args.verbose, tests,
-                             self.pinfo)
+                testres, trace = run_sequence(self.client, _seq, self.trace,
+                                              interact, self.message_mod,
+                                              self.environ, tests)
+                self.test_log.extend(testres)
+                sum = self.test_summation(self.args.flow)
+                print >>sys.stdout, json.dumps(sum)
+                if sum["status"]:
+                    print >>sys.stderr, trace
             except Exception, err:
-                print self.trace
+                print >> sys.stderr, self.trace
                 print err
                 if self.args.traceback:
                     exception_trace("RUN", err)
@@ -102,7 +135,7 @@ class OAuth2(object):
                     "descr": "".join(val["descr"])}
             lista.append(item)
 
-        return json.dumps(lista)
+        print json.dumps(lista)
 
     def provider_info(self):
         # Should provide a Metadata class
@@ -285,6 +318,10 @@ class OIC(OAuth2):
                         self.client.srv_sig_key["hmac"] = _val
                 except KeyError:
                     pass
+
+            self.environ["registration_response"] = self.reg_resp
+            chk = CheckRegistrationResponse()
+            chk(self.environ, self.test_log)
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
             if self.client.srv_sig_key is None:
