@@ -119,7 +119,7 @@ class OAuth2(object):
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
-                if sum["status"]:
+                if sum["status"] or self.args.debug:
                     print >>sys.stderr, trace
             except Exception, err:
                 print >> sys.stderr, self.trace
@@ -240,7 +240,7 @@ class OAuth2(object):
             flow = None
 
         try:
-            return [getattr(self.operations_mod, t) for t in flow["tests"]]
+            return flow["tests"]
         except KeyError:
             return []
 
@@ -262,12 +262,12 @@ class OIC(OAuth2):
 
         if "x509_url" in self.pinfo:
             _txt = get_page(self.pinfo["x509_url"])
-            self.client.srv_sig_key["rsa"] = jwt.x509_rsa_loads(_txt)
+            self.client.verify_key = ("rsa", jwt.x509_rsa_loads(_txt))
         if "x509_encryption_url" in self.pinfo:
             _txt = get_page(self.pinfo["x509_encryption_url"])
-            self.client.srv_enc_key["rsa"] = jwt.x509_rsa_loads(_txt)
-        elif self.signing_key:
-            self.client.srv_enc_key = self.client.srv_sig_key
+            self.client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
+        elif "rsa" in self.client.verify_key:
+            self.client.decrypt_key["rsa"] = self.client.verify_key["rsa"]
 
         #        if "jwk_url" in self.pinfo:
         #            self.signing_key = http.request(self.pinfo["jwk_url"])
@@ -314,8 +314,6 @@ class OIC(OAuth2):
                 try:
                     _val = getattr(self.reg_resp, prop)
                     setattr(self.client, prop, _val)
-                    if prop == "client_secret":
-                        self.client.srv_sig_key["hmac"] = _val
                 except KeyError:
                     pass
 
@@ -324,8 +322,6 @@ class OIC(OAuth2):
             chk(self.environ, self.test_log)
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
-            if self.client.srv_sig_key is None:
-                self.client.srv_sig_key = self.client.client_secret
 
 if __name__ == "__main__":
     from oictest import OAuth2

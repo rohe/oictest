@@ -86,10 +86,7 @@ def do_operation(client, opdef, message_mod, response=None, content=None,
         ht_add = None
 
         if "authn_method" in kwargs:
-            (r_arg, h_arg) = client.init_authentication_method(**kwargs)
-            if r_arg:
-                for key,val in r_arg.items():
-                    setattr(cis, key, val)
+            h_arg = client.init_authentication_method(cis, **kwargs)
         else:
             h_arg = None
 
@@ -318,14 +315,15 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 environ["response_type"] = respcls.__name__
                 try:
                     qresp = client.parse_response(respcls, info,
-                                                  resp["type"],
-                                                  client.state, True,
-                                                  key=client.srv_sig_key,
-                                                  client_id=client.client_id)
+                                                resp["type"],
+                                                client.state, True,
+                                                key=client.verify_key,
+                                                client_id=client.client_id)
                     if trace and qresp:
                         trace.info("[%s]: %s" % (qresp.__class__.__name__,
                                                  qresp.dictionary()))
                     item.append(qresp)
+                    environ["response"] = qresp
                 except Exception, err:
                     environ["exception"] = "%s" % err
 
@@ -341,8 +339,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
         if tests is not None:
             environ["item"] = item
             for test in tests:
-                chk = test()
-                chk(environ, test_output)
+                chk = factory(test)()
+                check_severity(chk(environ, test_output))
 
     except FatalError:
         pass

@@ -6,6 +6,7 @@ import traceback
 
 from oic.oauth2.message import ErrorResponse
 from oic.oic.message import IdToken
+#from oic.oic import REQUEST2ENDPOINT
 
 STATUS_CODES = {
     101: "Cannot open connection",
@@ -81,7 +82,7 @@ class CmpIdtoken(Other):
     def _func(self, environ):
         res = {}
         idt = IdToken.from_jwt(environ["item"][0].id_token,
-                               key=environ["client"].client_secret)
+                               key=environ["client"].verify_key)
         if idt.dictionary() == environ["item"][-1].dictionary():
             pass
         else:
@@ -127,7 +128,7 @@ class CheckResponseType(Check):
     Checks that the asked for response type are among the supported
     """
     id = "check-response-type"
-    errcode = 505
+    errcode = 504
     msg = "Response type not supported"
 
     def _func(self, environ):
@@ -210,6 +211,22 @@ class CheckContentTypeHeader(Check):
 
         return res
 
+class CheckEndpoint(Check):
+    id = "check-endpoint"
+    errcode = 504
+    msg = "Endpoint missing"
+
+    def _func(self, environ=None):
+        cls = environ["request_spec"]["request"]
+        endpoint = environ["client"].request2endpoint[cls]
+        try:
+            assert endpoint in environ["provider_info"]
+        except AssertionError:
+            self._status = self.errcode
+            self._message = "No '%s' registered" % endpoint
+
+        return {}
+
 class CheckProviderInfo(Check):
     """
     Check that the Provider Info is sound
@@ -269,6 +286,7 @@ class InteractionNeeded(Check):
 
     def _func(self, environ=None):
         self._status = self.errcode
+        self._message = None
         return {"url": environ["url"]}
 
 class MissingRedirect(Check):
@@ -289,7 +307,14 @@ class Parse(Check):
         if "exception" in environ:
             self._status = self.errcode
             self._message = environ["exception"]
-
+        else:
+            cname = environ["response"].__class__.__name__
+            if environ["response_type"] != cname:
+                self._status = self.errcode
+                self._message = ("Didn't get a response of the type I expected:",
+                                " '%s' instead of '%s'" % (
+                                                environ["response_type"],
+                                                cname))
         return {
             "response_type": environ["response_type"],
             "url": environ["url"]
