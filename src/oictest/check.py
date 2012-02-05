@@ -283,6 +283,7 @@ class InteractionNeeded(Check):
     """
     id = "interaction-needed"
     errcode = 507
+    msg = "Unknown error"
 
     def _func(self, environ=None):
         self._status = self.errcode
@@ -306,15 +307,15 @@ class Parse(Check):
     def _func(self, environ=None):
         if "exception" in environ:
             self._status = self.errcode
-            self._message = environ["exception"]
+            err = environ["exception"]
+            self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
             cname = environ["response"].__class__.__name__
             if environ["response_type"] != cname:
                 self._status = self.errcode
                 self._message = ("Didn't get a response of the type I expected:",
-                                " '%s' instead of '%s'" % (
-                                                environ["response_type"],
-                                                cname))
+                                " '%s' instead of '%s'" % (cname,
+                                                environ["response_type"]))
         return {
             "response_type": environ["response_type"],
             "url": environ["url"]

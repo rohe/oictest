@@ -224,6 +224,10 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 environ.update(dict(zip(ORDER, part)))
                 (url, response, content) = part
 
+                check = factory("check-http-response")()
+                stat = check(environ, test_output)
+                check_severity(stat)
+
                 try:
                     for test in req["tests"]["post"]:
                         chk = test()
@@ -231,9 +235,11 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                         check_severity(stat)
                 except KeyError:
                     pass
+            except FatalError:
+                raise
             except Exception, err:
                 environ["exception"] = err
-                chk = factory("wrap-exception")()
+                chk = factory("exception")()
                 chk(environ, test_output)
                 raise FatalError()
 
@@ -285,7 +291,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                     (url, response, content) = part
                 except Exception, err:
                     environ["exception"] = err
-                    chk = factory("wrap-exception")()
+                    chk = factory("exception")()
                     chk(environ, test_output)
                     raise FatalError
 
@@ -346,7 +352,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
         pass
     except Exception, err:
         environ["exception"] = err
-        chk = factory("wrap-exception")()
+        chk = factory("exception")()
         chk(environ, test_output)
 
     return test_output, "%s" % trace
