@@ -131,8 +131,11 @@ class OAuth2(object):
         lista = []
         for key,val in self.operations_mod.FLOWS.items():
             item = {"id": key,
-                    "name": val["name"],
-                    "descr": "".join(val["descr"])}
+                    "name": val["name"],}
+            try:
+                item["descr"] = "".join(val["descr"])
+            except KeyError:
+                pass
             lista.append(item)
 
         print json.dumps(lista)
