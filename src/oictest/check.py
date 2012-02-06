@@ -6,6 +6,7 @@ import traceback
 
 from oic.oauth2.message import ErrorResponse
 from oic.oic.message import IdToken
+from oic.oic.message import SCOPE2CLAIMS
 #from oic.oic import REQUEST2ENDPOINT
 
 STATUS_CODES = {
@@ -321,6 +322,45 @@ class Parse(Check):
             "url": environ["url"]
         }
 
+class ScopeWithClaims(Check):
+    """
+    Verifies that the user infomation returned is consistent with
+    what was asked for
+    """
+    id = "scope-claims"
+    errcode=520
+    errmsg= "attributes received not matching claims"
+
+    def _func(self, environ=None):
+        userinfo_claims = {}
+        for scope in environ["request_args"]["scope"]:
+            try:
+                claims = dict([(name, {"optional":True}) for name in
+                                                         SCOPE2CLAIMS[scope]])
+                userinfo_claims.update(claims)
+            except KeyError:
+                pass
+
+        if "userinfo_claims" in environ["request_args"]:
+            _uic = environ["request_args"]["userinfo_claims"]
+            for key, val in _uic["claims"].items():
+                userinfo_claims[key] = val
+
+        # last item should be the UserInfoResponse
+        resp = environ["response"]
+        if userinfo_claims:
+            for key, restr in userinfo_claims.items():
+                if key in resp:
+                    pass
+                else:
+                    if restr == {"optional": True}:
+                        pass
+                    else:
+                        self._status = self.errcode
+                        self._message = self.errmsg
+                        return {"claims": resp.keys()}
+
+        return {}
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

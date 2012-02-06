@@ -40,6 +40,202 @@ OPENID_REQUEST_CODE = {
     }
 }
 
+OPENID_REQUEST_CODE_DISPLAY_PAGE = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "display": "page"}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_DISPLAY_POPUP = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "display": "popup"}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_PROMPT_NONE = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "prompt": "none"}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_PROMPT_LOGIN = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "prompt": "login"}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_PROFILE = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid", "profile"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_EMAIL = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid", "email"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_ADDRESS = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid", "address"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_PHONE = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid","phone"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_ALL = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid", "address", "email", "phone",
+                                   "profile"]}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_SPEC1 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "userinfo_claims": {"claims": {"name": None}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_SPEC2 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "userinfo_claims": {
+                             "claims": {
+                                 "picture": {"optional":True},
+                                 "email": {"optional": True}}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_SPEC3 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "userinfo_claims": {
+                             "claims": {
+                                 "name": None,
+                                 "picture": {"optional":True},
+                                 "email": {"optional": True}}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_IDTC1 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "idtoken_claims":{"claims":{"auth_time": None}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_IDTC2 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "idtoken_claims":{"claims":{
+                                                "acr": {"values": ["2"]}}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_IDTC3 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "idtoken_claims":{"claims":{"acr": None}}}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
+OPENID_REQUEST_CODE_IDTC4 = {
+    "request": "OpenIDRequest",
+    "method": "GET",
+    "args": {"request": {"response_type": "code",
+                         "scope": ["openid"],
+                         "idtoken_claims":{"max_age": 10 }}},
+    "tests": {
+        "pre": [CheckResponseType],
+        "post": [CheckHTTPResponse]
+    }
+}
+
 OPENID_REQUEST_TOKEN = {
     "request": "OpenIDRequest",
     "method": "GET",
@@ -139,7 +335,10 @@ ACCESS_TOKEN_RESPONSE = {
 USER_INFO_RESPONSE = {
     "response": "OpenIDSchema",
     "where": "body",
-    "type": "json"
+    "type": "json",
+    "tests": {
+        "post": [ScopeWithClaims]
+    }
 }
 
 ACCESS_TOKEN_REQUEST_PASSWD = {
@@ -166,13 +365,21 @@ USER_INFO_REQUEST = {
     },
 }
 
-USER_INFO_REQUEST_BODY = {
+USER_INFO_REQUEST_POST_BB = {
     "request":"UserInfoRequest",
     "method": "POST",
     "args": {
         "kw": {"authn_method": "bearer_body"}
     },
 }
+
+USER_INFO_REQUEST_POST_BH = {
+    "request":"UserInfoRequest",
+    "method": "POST",
+    "args": {
+        "kw": {"authn_method": "bearer_header"}
+    },
+    }
 
 #USER_INFO_REQUEST_BODY_GET = {
 #    "request":"UserInfoRequest",
@@ -219,6 +426,26 @@ CHECK_ID_RESPONSE = {
 PHASES= {
     "login": (AUTHZREQ_CODE, AUTHZRESP),
     "oic-login": (OPENID_REQUEST_CODE, AUTHZRESP),
+    "oic-login+profile": (OPENID_REQUEST_CODE_PROFILE, AUTHZRESP),
+    "oic-login+email": (OPENID_REQUEST_CODE_EMAIL, AUTHZRESP),
+    "oic-login+phone": (OPENID_REQUEST_CODE_PHONE, AUTHZRESP),
+    "oic-login+address": (OPENID_REQUEST_CODE_ADDRESS, AUTHZRESP),
+    "oic-login+all": (OPENID_REQUEST_CODE_ALL, AUTHZRESP),
+    "oic-login+spec1": (OPENID_REQUEST_CODE_SPEC1, AUTHZRESP),
+    "oic-login+spec2": (OPENID_REQUEST_CODE_SPEC2, AUTHZRESP),
+    "oic-login+spec3": (OPENID_REQUEST_CODE_SPEC3, AUTHZRESP),
+
+    "oic-login+idtc1": (OPENID_REQUEST_CODE_IDTC1, AUTHZRESP),
+    "oic-login+idtc2": (OPENID_REQUEST_CODE_IDTC2, AUTHZRESP),
+    "oic-login+idtc3": (OPENID_REQUEST_CODE_IDTC3, AUTHZRESP),
+    "oic-login+idtc4": (OPENID_REQUEST_CODE_IDTC4, AUTHZRESP),
+
+    "oic-login+disp_page": (OPENID_REQUEST_CODE_DISPLAY_PAGE, AUTHZRESP),
+    "oic-login+disp_popup": (OPENID_REQUEST_CODE_DISPLAY_POPUP, AUTHZRESP),
+
+    "oic-login+prompt_none": (OPENID_REQUEST_CODE_PROMPT_NONE, AUTHZRESP),
+    "oic-login+prompt_login": (OPENID_REQUEST_CODE_PROMPT_LOGIN, AUTHZRESP),
+
     "oic-login-token": (OPENID_REQUEST_TOKEN, AUTHZRESP),
     "oic-login-idtoken": (OPENID_REQUEST_IDTOKEN, AUTHZRESP),
     "oic-login-code+token": (OPENID_REQUEST_CODE_TOKEN, AUTHZRESP),
@@ -233,7 +460,8 @@ PHASES= {
     "check-id-request_pbh":(CHECK_ID_REQUEST_POST_BH, CHECK_ID_RESPONSE),
     "check-id-request_pbb":(CHECK_ID_REQUEST_POST_BB, CHECK_ID_RESPONSE),
     "user-info-request":(USER_INFO_REQUEST, USER_INFO_RESPONSE),
-    "user-info-request_bb":(USER_INFO_REQUEST_BODY, USER_INFO_RESPONSE)
+    "user-info-request_pbh":(USER_INFO_REQUEST_POST_BH, USER_INFO_RESPONSE),
+    "user-info-request_pbb":(USER_INFO_REQUEST_POST_BB, USER_INFO_RESPONSE),
 }
 
 
@@ -284,6 +512,7 @@ FLOWS = {
     'oic-code-token': {
         "name": '',
         "descr": ("1) Request with response_type=code",
+                  "scope = ['openid']",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
         "depends": ['oic-code'],
@@ -329,6 +558,127 @@ FLOWS = {
         "sequence": ["oic-login", "access-token-request", "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
+        },
+    'oic-code+profile-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid', 'profile']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+profile", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+email-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid', 'email']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+email", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+address-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid', 'address']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+address", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+phone-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid', 'phone']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+phone", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+all-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid', 'email', 'phone', 'address', 'profile']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+all", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+spec1-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+spec1", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+spec2-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+spec2", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+spec3-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+spec3", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+idtc1-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+idtc1", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+idtc2-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+idtc2", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+idtc3-token-userinfo': {
+        "name": '',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid'], claims={'name':None}",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['oic-code-token-userinfo'],
+        "sequence": ["oic-login+idtc3", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'oic-token-userinfo': {
         "name": '',
@@ -471,7 +821,7 @@ FLOWS = {
                   "  'bearer_body' authentication used"),
         "depends": ['oic-code-token'],
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_bb"],
+                     "user-info-request_pbb"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         },
@@ -481,10 +831,185 @@ FLOWS = {
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
         "depends": ['oic-token'],
-        "sequence": ['oic-login-token', "user-info-request_bb"],
+        "sequence": ['oic-login-token', "user-info-request_pbb"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
-
+    'mj-01': {
+        "name": 'Request with response_type=code',
+        "sequence": ["oic-login"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-02': {
+        "name": 'Request with response_type=token',
+        "sequence": ["oic-login-token"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-03': {
+        "name": 'Request with response_type=id_token',
+        "sequence": ["oic-login-idtoken"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-04': {
+        "name": 'Request with response_type=code token',
+        "sequence": ["oic-login-code+token"],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'mj-05': {
+        "name": 'Request with response_type=code id_token',
+        "sequence": ['oic-login-code+idtoken'],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'mj-06': {
+        "name": 'Request with response_type=id_token token',
+        "sequence": ['oic-login-idtoken+token'],
+        "endpoints": ["authorization_endpoint"],
+        },
+    'mj-07': {
+        "name": 'Request with response_type=code id_token token',
+        "sequence": ['oic-login-code+idtoken+token'],
+        "endpoints": ["authorization_endpoint",],
+        },
+    # -------------------------------------------------------------------------
+    'mj-08': {
+        "name": 'Check ID Endpoint Access with GET and bearer_header',
+        "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "check_id_endpoint"],
+        },
+    'mj-09': {
+        "name": 'Check ID Endpoint Access with POST and bearer_header',
+        "sequence": ["oic-login", "access-token-request",
+                     "check-id-request_pbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "check_id_endpoint"],
+        },
+    'mj-10': {
+        "name": 'Check ID Endpoint Access with POST and bearer_body',
+        "sequence": ["oic-login", "access-token-request",
+                     "check-id-request_pbb"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "check_id_endpoint"],
+        },
+    # -------------------------------------------------------------------------
+    'mj-11': {
+        "name": 'UserInfo Endpoint Access with GET and bearer_header',
+        "sequence": ["oic-login", "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        },
+    'mj-12': {
+        "name": 'UserInfo Endpoint Access with POST and bearer_header',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request_pbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        },
+    'mj-13': {
+        "name": 'UserInfo Endpoint Access with POST and bearer_body',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request_pbb"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        },
+    # -------------------------------------------------------------------------
+    'mj-14': {
+        "name": 'Scope Requesting profile Claims',
+        "sequence": ["oic-login+profile", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-15': {
+        "name": 'Scope Requesting email Claims',
+        "sequence": ["oic-login+email", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-16': {
+        "name": 'Scope Requesting address Claims',
+        "sequence": ["oic-login+address", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-17': {
+        "name": 'Scope Requesting phone Claims',
+        "sequence": ["oic-login+phone", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-18': {
+        "name": 'Scope Requesting all Claims',
+        "sequence": ["oic-login+all", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-19': {
+        "name": 'OpenID Request Object with Required name Claim',
+        "sequence": ["oic-login+spec1", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-20': {
+        "name": 'OpenID Request Object with Optional email and picture Claim',
+        "sequence": ["oic-login+spec2", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-21': {
+        "name": ('OpenID Request Object with Required name and Optional email and picture Claim'),
+        "sequence": ["oic-login+spec3", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-22': {
+        "name": 'Requesting ID Token with auth_time Claim',
+        "sequence": ["oic-login+idtc1", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-23': {
+        "name": 'Requesting ID Token with Required acr Claim',
+        "sequence": ["oic-login+idtc2", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-24': {
+        "name": 'Requesting ID Token with Optional acr Claim',
+        "sequence": ["oic-login+idtc3", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-25': {
+        "name": 'Requesting ID Token with max_age=10 seconds Restriction',
+        "sequence": ["oic-login+idtc4", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    # ---------------------------------------------------------------------
+    'mj-26': {
+        "name": 'Request with display=page',
+        "sequence": ["oic-login+disp_page", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-27': {
+        "name": 'Request with display=popup',
+        "sequence": ["oic-login+disp_popup", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-28': {
+        "name": 'Request with prompt=none',
+        "sequence": ["oic-login+prompt_none", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-29': {
+        "name": 'Request with prompt=login',
+        "sequence": ["oic-login+prompt_login", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    # ---------------------------------------------------------------------
 }
 
 if __name__ == "__main__":

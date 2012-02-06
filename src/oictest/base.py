@@ -335,6 +335,13 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
                 stat = chk(environ, test_output)
                 check_severity(stat)
+                try:
+                    for test in resp["tests"]["post"]:
+                        chk = test()
+                        stat = chk(environ, test_output)
+                        check_severity(stat)
+                except KeyError:
+                    pass
 
     #    if err or verbose:
     #        print trace
