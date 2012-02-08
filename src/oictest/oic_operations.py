@@ -21,6 +21,7 @@ AUTHZREQ_CODE = {
                     "scope": ["openid"],
         },
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 AUTHZRESP = {
@@ -29,6 +30,13 @@ AUTHZRESP = {
     "type": "urlencoded",
     "tests": {"post": [CheckAuthorizationResponse]}
     }
+
+AUTHZERRRESP = {
+    "response": "AuthorizationErrorResponse",
+    "where": "url",
+    "type": "urlencoded",
+    "tests": {"post": [LoginRequired]}
+}
 
 OPENID_REQUEST_CODE = {
     "request": "OpenIDRequest",
@@ -72,7 +80,7 @@ OPENID_REQUEST_CODE_PROMPT_NONE = {
                          "prompt": "none"}},
     "tests": {
         "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
+        "post": [verifyErrResponse]
     }
 }
 
@@ -190,7 +198,7 @@ OPENID_REQUEST_CODE_SPEC3 = {
 OPENID_REQUEST_CODE_IDTC1 = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "code",
+    "args": {"request": {"response_type": ["code","id_token"],
                          "scope": ["openid"],
                          "idtoken_claims":{"claims":{"auth_time": None}}}},
     "tests": {
@@ -202,7 +210,7 @@ OPENID_REQUEST_CODE_IDTC1 = {
 OPENID_REQUEST_CODE_IDTC2 = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "code",
+    "args": {"request": {"response_type": ["code","id_token"],
                          "scope": ["openid"],
                          "idtoken_claims":{"claims":{
                                                 "acr": {"values": ["2"]}}}}},
@@ -215,7 +223,7 @@ OPENID_REQUEST_CODE_IDTC2 = {
 OPENID_REQUEST_CODE_IDTC3 = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "code",
+    "args": {"request": {"response_type": ["code","id_token"],
                          "scope": ["openid"],
                          "idtoken_claims":{"claims":{"acr": None}}}},
     "tests": {
@@ -227,12 +235,12 @@ OPENID_REQUEST_CODE_IDTC3 = {
 OPENID_REQUEST_CODE_IDTC4 = {
     "request": "OpenIDRequest",
     "method": "GET",
-    "args": {"request": {"response_type": "code",
+    "args": {"request": {"response_type": ["code","id_token"],
                          "scope": ["openid"],
                          "idtoken_claims":{"max_age": 10 }}},
     "tests": {
         "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
+        "post": [CheckHTTPResponse],
     }
 }
 
@@ -302,6 +310,25 @@ OPENID_REQUEST_CODE_TOKEN_IDTOKEN = {
     }
 }
 
+OPENID_REGISTRATION_REQUEST = {
+    "request" : "RegistrationRequest",
+    "method" : "POST",
+    "args": {"request":
+                     {"type": "client_associate",
+                      "redirect_uris": ["https://example.com/authz_cb"],
+                      "contact": ["roland@example.com"],
+                      "application_type": "web",
+                      "application_name": "OIC test tool",
+                      }},
+    "tests": {"post": [CheckHTTPResponse]}
+}
+
+OPENID_REGISTRATION_RESPONSE = {
+    "response" : "RegistrationResponse",
+    "where": "body",
+    "type": "json"
+}
+
 # 2.1.2.1.2
 # The User Identifier for which an ID Token is being requested.
 # If the specified user is not currently authenticated to the Authorization
@@ -347,6 +374,7 @@ ACCESS_TOKEN_REQUEST_PASSWD = {
     "args": {
         "kw": {"authn_method": "client_secret_basic"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 ACCESS_TOKEN_REQUEST_CLI_SECRET = {
@@ -355,6 +383,7 @@ ACCESS_TOKEN_REQUEST_CLI_SECRET = {
     "args": {
         "kw": {"authn_method": "client_secret_post"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 USER_INFO_REQUEST = {
@@ -363,6 +392,7 @@ USER_INFO_REQUEST = {
     "args": {
         "kw": {"authn_method": "bearer_header"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 USER_INFO_REQUEST_POST_BB = {
@@ -371,6 +401,7 @@ USER_INFO_REQUEST_POST_BB = {
     "args": {
         "kw": {"authn_method": "bearer_body"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 USER_INFO_REQUEST_POST_BH = {
@@ -379,7 +410,8 @@ USER_INFO_REQUEST_POST_BH = {
     "args": {
         "kw": {"authn_method": "bearer_header"}
     },
-    }
+    "tests": {"post": [CheckHTTPResponse]}
+}
 
 #USER_INFO_REQUEST_BODY_GET = {
 #    "request":"UserInfoRequest",
@@ -390,7 +422,8 @@ USER_INFO_REQUEST_POST_BH = {
 #}
 
 PROVIDER_CONFIGURATION = {
-    "request": "ProviderConfigurationRequest"
+    "request": "ProviderConfigurationRequest",
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 CHECK_ID_REQUEST_GET_BH = {
@@ -399,6 +432,7 @@ CHECK_ID_REQUEST_GET_BH = {
     "args": {
         "kw": {"authn_method": "bearer_header"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 CHECK_ID_REQUEST_POST_BH = {
@@ -407,7 +441,8 @@ CHECK_ID_REQUEST_POST_BH = {
     "args": {
         "kw": {"authn_method": "bearer_header"}
     },
-    }
+    "tests": {"post": [CheckHTTPResponse]}
+}
 
 CHECK_ID_REQUEST_POST_BB = {
     "request": "CheckIDRequest",
@@ -415,6 +450,7 @@ CHECK_ID_REQUEST_POST_BB = {
     "args": {
         "kw": {"authn_method": "bearer_body"}
     },
+    "tests": {"post": [CheckHTTPResponse]}
 }
 
 CHECK_ID_RESPONSE = {
@@ -443,7 +479,7 @@ PHASES= {
     "oic-login+disp_page": (OPENID_REQUEST_CODE_DISPLAY_PAGE, AUTHZRESP),
     "oic-login+disp_popup": (OPENID_REQUEST_CODE_DISPLAY_POPUP, AUTHZRESP),
 
-    "oic-login+prompt_none": (OPENID_REQUEST_CODE_PROMPT_NONE, AUTHZRESP),
+    "oic-login+prompt_none": (OPENID_REQUEST_CODE_PROMPT_NONE, None),
     "oic-login+prompt_login": (OPENID_REQUEST_CODE_PROMPT_LOGIN, AUTHZRESP),
 
     "oic-login-token": (OPENID_REQUEST_TOKEN, AUTHZRESP),
@@ -462,6 +498,8 @@ PHASES= {
     "user-info-request":(USER_INFO_REQUEST, USER_INFO_RESPONSE),
     "user-info-request_pbh":(USER_INFO_REQUEST_POST_BH, USER_INFO_RESPONSE),
     "user-info-request_pbb":(USER_INFO_REQUEST_POST_BB, USER_INFO_RESPONSE),
+    "oic-registration": (OPENID_REGISTRATION_REQUEST,
+                         OPENID_REGISTRATION_RESPONSE)
 }
 
 
@@ -657,6 +695,7 @@ FLOWS = {
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verifyIDToken", {"claims":{"auth_time": None}})]
         },
     'oic-code+idtc2-token-userinfo': {
         "name": '',
@@ -789,7 +828,6 @@ FLOWS = {
         "depends": ['oic-idtoken+token'],
         "sequence": ['oic-login-idtoken+token', "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-        "tests": ["compare-idoken-received-with-check_id-response"]
     },
     'oic-code+idtoken-check_id': {
         "name": '',
@@ -834,6 +872,11 @@ FLOWS = {
         "sequence": ['oic-login-token', "user-info-request_pbb"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
+    'mj-00': {
+        "name": 'Client registration Request',
+        "sequence": ["oic-registration"],
+        "endpoints": ["registration_endpoint"]
+    },
     'mj-01': {
         "name": 'Request with response_type=code',
         "sequence": ["oic-login"],
@@ -965,24 +1008,28 @@ FLOWS = {
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"auth_time": None}})]
         },
     'mj-23': {
         "name": 'Requesting ID Token with Required acr Claim',
         "sequence": ["oic-login+idtc2", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"acr": {"values": ["2"]}}})]
         },
     'mj-24': {
         "name": 'Requesting ID Token with Optional acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"acr": None}})]
         },
     'mj-25': {
         "name": 'Requesting ID Token with max_age=10 seconds Restriction',
         "sequence": ["oic-login+idtc4", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"max_age": 10}})]
         },
     # ---------------------------------------------------------------------
     'mj-26': {
@@ -999,9 +1046,8 @@ FLOWS = {
         },
     'mj-28': {
         "name": 'Request with prompt=none',
-        "sequence": ["oic-login+prompt_none", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "sequence": ["oic-login+prompt_none"],
+        "endpoints": ["authorization_endpoint"],
         },
     'mj-29': {
         "name": 'Request with prompt=login',

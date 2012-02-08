@@ -248,7 +248,7 @@ class OAuth2(object):
             return []
 
 class OIC(OAuth2):
-    client_args = ["client_id", "redirect_uri", "password", "client_secret"]
+    client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
     def __init__(self, operations_mod, message_mod, client_class,
                  consumer_class):

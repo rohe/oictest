@@ -224,13 +224,13 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 environ.update(dict(zip(ORDER, part)))
                 (url, response, content) = part
 
-                check = factory("check-http-response")()
-                stat = check(environ, test_output)
-                check_severity(stat)
-
                 try:
                     for test in req["tests"]["post"]:
-                        chk = test()
+                        if isinstance(test, tuple):
+                            test, kwargs = test
+                        else:
+                            kwargs = {}
+                        chk = test(**kwargs)
                         stat = chk(environ, test_output)
                         check_severity(stat)
                 except KeyError:
@@ -243,6 +243,9 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 chk(environ, test_output)
                 raise FatalError()
 
+            if not resp:
+                continue
+
             done = False
             while not done:
                 while response.status in [302, 301, 303]:
@@ -253,7 +256,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
                     # If back to me
                     for_me = False
-                    for redirect_uri in client.redirect_uri:
+                    for redirect_uri in client.redirect_uris:
                         if url.startswith(redirect_uri):
                             for_me=True
 
@@ -289,6 +292,10 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                                         content, trace, location=url)
                     environ.update(dict(zip(ORDER, part)))
                     (url, response, content) = part
+
+                    check = factory("check-http-response")()
+                    stat = check(environ, test_output)
+                    check_severity(stat)
                 except Exception, err:
                     environ["exception"] = err
                     chk = factory("exception")()
@@ -332,12 +339,18 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                     environ["response"] = qresp
                 except Exception, err:
                     environ["exception"] = "%s" % err
+                    qresp = None
 
                 stat = chk(environ, test_output)
                 check_severity(stat)
+
                 try:
                     for test in resp["tests"]["post"]:
-                        chk = test()
+                        if isinstance(test, tuple):
+                            test, kwargs = test
+                        else:
+                            kwargs = {}
+                        chk = test(**kwargs)
                         stat = chk(environ, test_output)
                         check_severity(stat)
                 except KeyError:
@@ -351,8 +364,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
         if tests is not None:
             environ["item"] = item
-            for test in tests:
-                chk = factory(test)()
+            for test, args in tests:
+                chk = factory(test)(**args)
                 check_severity(chk(environ, test_output))
 
     except FatalError:
