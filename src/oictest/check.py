@@ -155,12 +155,12 @@ class CheckResponseType(CriticalError):
             rts = [set(s.split(" ")) for s in
                    provider_info["response_types_supported"]]
         except KeyError:
-            rts = [{"code",}]
+            rts = [set(["code"])]
 
         try:
             val = request_args["response_type"]
             if isinstance(val, basestring):
-                rt = {val,}
+                rt = set([val])
             else:
                 rt = set(val)
             for sup in rts:
