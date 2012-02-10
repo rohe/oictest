@@ -11,34 +11,23 @@ from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import AuthorizationErrorResponse
 from oic.utils import time_util
 
-#STATUS_CODES = {
-#    101: "Cannot open connection",
-#    102: "Connection refused",
-#    200: "OK",
-#    301: "Expiration time strange",
-#    400: "Other",
-#    401: "Required attribute missing in response",
-#    402: "Wrong content-type",
-#    500: "Process error",
-#    501: "Timeout, communication problem encountered",
-#    502: "OP error",
-#    503: "Information about endpoint missing",
-#    504: "Authentication method not supported",
-#    505: "Response type not supported",
-#    506: "Could not verify signature",
-#    507: "User interaction needed",
-#    508: "Missing redirect",
-#    509: "Parse error"
-#}
+INFORMATION = 0
+OK = 1
+WARNING = 2
+ERROR = 3
+CRITICAL = 4
+
+STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL"]
+
 
 class Check():
     """ General test
     """
     id = "check"
     msg = "OK"
-    
+
     def __init__(self, **kwargs):
-        self._status = 200
+        self._status = OK
         self._message = ""
         self.content = None
         self.url = ""
@@ -72,9 +61,14 @@ class Check():
 
         return res
 
-class Other(Check):
+class CriticalError(Check):
+    status = CRITICAL
+
+class Error(Check):
+    status = ERROR
+
+class Other(CriticalError):
     """ Other error """
-    errcode = 400
     msg  = "Other error"
     
 class CmpIdtoken(Other):
@@ -91,18 +85,17 @@ class CmpIdtoken(Other):
         if idt.dictionary() == environ["item"][-1].dictionary():
             pass
         else:
-            self._status = self.errcode
-            res["message"] = (
-                "My deserialization of the IDToken differs from what the ",
-                "checkID response")
+            self._status = self.status
+            res["message"] = " ".join([
+                    "My deserialization of the IDToken differs from what the",
+                    "checkID response"])
         return res
 
-class CheckHTTPResponse(Check):
+class CheckHTTPResponse(CriticalError):
     """
     Checks that the HTTP response status is within the 200 or 300 range
     """
     id = "check-http-response"
-    errcode = 502
     msg = "OP error"
 
     def _func(self, environ):
@@ -111,7 +104,7 @@ class CheckHTTPResponse(Check):
 
         res = {}
         if _response.status >= 400 :
-            self._status = self.errcode
+            self._status = self.status
             self._message = self.msg
             if "application/json" in _response["content-type"]:
                 try:
@@ -129,7 +122,7 @@ class CheckHTTPResponse(Check):
                 err = ErrorResponse.set_json(_content, extended=True)
                 err.verify()
                 self._message = err.get_json(extended=True)
-                self._status = self.errcode
+                self._status = self.status
             except Exception:
                 pass
 
@@ -137,12 +130,11 @@ class CheckHTTPResponse(Check):
 
         return res
 
-class CheckResponseType(Check):
+class CheckResponseType(CriticalError):
     """
     Checks that the asked for response type are among the supported
     """
     id = "check-response-type"
-    errcode = 504
     msg = "Response type not supported"
 
     def _func(self, environ):
@@ -151,7 +143,7 @@ class CheckResponseType(Check):
             _sup = self.response_types_supported(environ["request_args"],
                                                  environ["provider_info"])
             if not _sup:
-                self._status = self.errcode
+                self._status = self.status
                 self._message = self.msg
         except KeyError:
             pass
@@ -180,12 +172,11 @@ class CheckResponseType(Check):
 
         return True
 
-class CheckTokenEndpointAuthType(Check):
+class CheckTokenEndpointAuthType(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
     """
     id = "check-token-endpoint-auth-type"
-    errcode = 504
     msg = "Auth type not supported"
 
     def _func(self, environ):
@@ -194,169 +185,167 @@ class CheckTokenEndpointAuthType(Check):
             _pi = environ["provider_info"]
             if _met not in _pi["token_endpoint_auth_types_supported"]:
                 self._message = self.msg
-                self._status = self.errcode
+                self._status = self.status
         except KeyError:
             pass
 
         return {}
 
-class CheckContentTypeHeader(Check):
+class CheckContentTypeHeader(Error):
     """
     Verify that the content-type header is what it should be.
     """
     id = "check_content_type_header"
-    errcode = 402
 
     def _func(self, environ=None):
         res = {}
         _response = environ["response"]
         try:
             ctype = _response["content-type"]
-            if environ["response_spec"]["type"] == "json":
+            if environ["response_spec"].type == "json":
                 if not "application/json" in ctype:
-                    self._status = self.errcode
+                    self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
             else: # has to be uuencoded
                 if not "application/x-www-form-urlencoded" in ctype:
-                    self._status = self.errcode
+                    self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
         except KeyError:
             pass
 
         return res
 
-class CheckEndpoint(Check):
+class CheckEndpoint(CriticalError):
     """ Checks that the necessary endpoint exists at a server """
     id = "check-endpoint"
-    errcode = 504
     msg = "Endpoint missing"
 
     def _func(self, environ=None):
-        cls = environ["request_spec"]["request"]
+        cls = environ["request_spec"].request
         endpoint = environ["client"].request2endpoint[cls]
         try:
             assert endpoint in environ["provider_info"]
         except AssertionError:
-            self._status = self.errcode
+            self._status = self.status
             self._message = "No '%s' registered" % endpoint
 
         return {}
 
-class CheckProviderInfo(Check):
+class CheckProviderInfo(Error):
     """
     Check that the Provider Info is sound
     """
     id = "check-provider-info"
-    errcode = 512
     msg = "Provider information error"
 
     def _func(self, environ=None):
-        #self._status = self.errcode
+        #self._status = self.status
         return {}
 
-class CheckRegistrationResponse(Check):
+class CheckRegistrationResponse(Error):
     """
     Verifies an Registration response. This is additional constrains besides
     what is optional or required.
     """
     id = "check-registration-response"
-    errcode = 511
     msg = "Registration response error"
 
     def _func(self, environ=None):
-        #self._status = self.errcode
+        #self._status = self.status
         return {}
 
-class CheckAuthorizationResponse(Check):
+class CheckAuthorizationResponse(Error):
     """
     Verifies an Authorization response. This is additional constrains besides
     what is optional or required.
     """
     id = "check-authorization-response"
-    errcode = 510
 
     def _func(self, environ=None):
-        #self._status = self.errcode
+        #self._status = self.status
         return {}
 
-class LoginRequired(Check):
+class LoginRequired(Error):
     """
     Verifies an Authorization error response. The error should be
     login_required.
     """
     id = "login-required"
-    errcode = 510
 
     def _func(self, environ=None):
-        #self._status = self.errcode
+        #self._status = self.status
         resp = environ["response"]
         try:
             assert isinstance(resp, AuthorizationErrorResponse)
         except AssertionError:
-            self._status = self.errcode
+            self._status = self.status
             self._message = "Expected authorization error response got %s" %(
                                                         resp.__class__.__name__)
+
+            try:
+                assert isinstance(resp, ErrorResponse)
+            except AssertionError:
+                self.status = CRITICAL
+                self._message = "Expected an Error Response got %s" % (
+                                                        resp.__class__.__name__)
+                return {}
 
         try:
             assert resp.error == "login_required"
         except AssertionError:
-            self._status = self.errcode
+            self._status = self.status
             self._message = "Wrong error code"
 
         return {}
 
-class WrapException(Check):
+class WrapException(CriticalError):
     """
     A runtime exception
     """
     id = "exception"
-    errcode = 500
     msg = "Test tool exception"
 
     def _func(self, environ=None):
-        self._status = 500
+        self._status = self.status
         self._message = traceback.format_exception(*sys.exc_info())
         return {}
 
-class InteractionNeeded(Check):
+class InteractionNeeded(CriticalError):
     """
     A Webpage was displayed for which no known interaction is defined.
     """
     id = "interaction-needed"
-    errcode = 507
     msg = "Unknown error"
 
     def _func(self, environ=None):
-        self._status = self.errcode
+        self._status = self.status
         self._message = None
         return {"url": environ["url"]}
 
-class MissingRedirect(Check):
+class MissingRedirect(CriticalError):
     """ At this point in the flow a redirect back to the client was expected.
     """
     id = "missing-redirect"
-    errcode = 508
     msg = "Expected redirect to the RP, got something else"
 
     def _func(self, environ=None):
-        self._status = self.errcode
+        self._status = self.status
         return {"url": environ["url"]}
 
-class Parse(Check):
+class Parse(CriticalError):
     """ Parsing the response """
     id = "response-parse"
-    errcode = 509
     errmsg = "Parse error"
     
     def _func(self, environ=None):
         if "exception" in environ:
-            self._status = self.errcode
+            self._status = self.status
             err = environ["exception"]
             self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
             cname = environ["response"].__class__.__name__
             if environ["response_type"] != cname:
-                self._status = self.errcode
+                self._status = self.status
                 self._message = ("Didn't get a response of the type I expected:",
                                 " '%s' instead of '%s'" % (cname,
                                                 environ["response_type"]))
@@ -365,13 +354,12 @@ class Parse(Check):
             "url": environ["url"]
         }
 
-class ScopeWithClaims(Check):
+class ScopeWithClaims(Error):
     """
-    Verifies that the user infomation returned is consistent with
+    Verifies that the user information returned is consistent with
     what was asked for
     """
     id = "scope-claims"
-    errcode=520
     errmsg= "attributes received not matching claims"
 
     def _func(self, environ=None):
@@ -399,18 +387,17 @@ class ScopeWithClaims(Check):
                     if restr == {"optional": True}:
                         pass
                     else:
-                        self._status = self.errcode
+                        self._status = self.status
                         self._message = self.errmsg
                         return {"claims": resp.keys()}
 
         return {}
 
-class verifyErrResponse(Check):
+class verifyErrResponse(CriticalError):
     """
-    Checks that the HTTP response status is within the 200 or 300 range
+    Verifies that the response received was an Error response
     """
     id = "verify-err-response"
-    errcode = 502
     msg = "OP error"
 
     def _func(self, environ):
@@ -422,38 +409,40 @@ class verifyErrResponse(Check):
             err.verify()
         except Exception:
             self._message = self.msg
-            self._status = self.errcode
+            self._status = self.status
 
         res["url"] = environ["url"]
 
         return res
 
-class verifyIDToken(Check):
+class verifyIDToken(CriticalError):
     """
     Verifies that the IDToken contains what it should
     """
     id = "verify-id-token"
-    errcode = 503
     msg = "IDToken error"
 
     def _func(self, environ):
         done = False
         _vkeys = environ["client"].recv_keys["verify"]
         for item in environ["item"]:
-            if self._status == self.errcode or done:
+            if self._status == self.status or done:
                 break
 
             try:
                 _jwt = item.id_token
+                if _jwt is None:
+                    continue
             except KeyError:
                 continue
 
-            idtoken = IdToken.set_jwt(_jwt, _vkeys)
+            idtoken = IdToken.set_jwt(str(_jwt), _vkeys)
             for key, val in self._kwargs["claims"].items():
                 if key == "max_age":
-                    if idtoken.exp > (time_util.time_sans_frac() + val):
-                        self._status = self.errcode
-                        self._message = "exp to far in the future"
+                    if idtoken.exp > (time_util.utc_time_sans_frac() + val):
+                        self._status = self.status
+                        diff = idtoken.exp - time_util.utc_time_sans_frac()
+                        self._message = "exp to far in the future [%d]" % diff
                         break
                     else:
                         continue
@@ -461,7 +450,7 @@ class verifyIDToken(Check):
                 if val is None:
                     _val = getattr(idtoken, key)
                     if _val is None:
-                        self._status = self.errcode
+                        self._status = self.status
                         self._message = "'%s' was supposed to be there" % key
                         break
                 elif val == {"optional":True}:
@@ -470,25 +459,48 @@ class verifyIDToken(Check):
                     _val = getattr(idtoken, key)
                     if isinstance(_val, basestring):
                         if _val not in val["values"]:
-                            self._status = self.errcode
+                            self._status = self.status
                             self._message = "Wrong value on '%s'" % key
                             break
                     elif isinstance(_val, int):
                         if _val not in val["values"]:
-                            self._status = self.errcode
+                            self._status = self.status
                             self._message = "Wrong value on '%s'" % key
                             break
                     else:
                         for sval in _val:
                             if sval in val["values"]:
                                 continue
-                        self._status = self.errcode
+                        self._status = self.status
                         self._message = "Wrong value on '%s'" % key
                         break
 
             done = True
 
         return {}
+
+class Information(Check):
+    status = INFORMATION
+
+class ResponseInfo(Information):
+    """Response information"""
+
+    def _func(self, environ=None):
+        self._status = self.status
+        _msg = environ["content"]
+
+        if isinstance(_msg, basestring):
+            self._message = _msg
+        else:
+            self._message = _msg.get_json()
+
+        return {}
+
+class RegistrationInfo(ResponseInfo):
+    """Registration Response"""
+
+class ProviderConfigurationInfo(ResponseInfo):
+    """Provider Configuration Response"""
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

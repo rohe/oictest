@@ -1,0 +1,50 @@
+{"status":0, "tests":[
+    {
+        "status":200,
+        "message":"OK",
+        "id":"check-registration-response",
+        "name":"Verifies an Registration response. This is additional constrains besides     what is optional or required."
+    },
+    {
+        "status":200,
+        "message":"OK",
+        "id":"check-response-type",
+        "name":"Checks that the asked for response type are among the supported"
+    },
+    {
+        "status":200,
+        "url":"https://openidconnect.info/connect/authorize?nonce=EmoHWkJbtgix&state=STATE0&redirect_uri=https%3A%2F%2Fsmultron.catalogix.se%2Fauthz_cb&response_type=token&client_id=a3001e208ec89182817777d234b27363c4e4a07f&scope=openid",
+        "message":"OK",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":200,
+        "url":"https://openidconnect.info/connect/consent?data_id=1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
+        "message":"OK",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":200,
+        "url":"https://openidconnect.info/account/login?done=https%3A%2F%2Fopenidconnect.info%2Fconnect%2Fconsent%3Fdata_id%3D1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
+        "message":"OK",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":200,
+        "url":"https://openidconnect.info/connect/consent?data_id=1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
+        "message":"OK",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":200,
+        "name":"",
+        "url":"https://openidconnect.info/connect/consent",
+        "message":"OK",
+        "id":"response-parse",
+        "response_type":"AuthorizationResponse"
+    }
+], "id":"oic-token"}

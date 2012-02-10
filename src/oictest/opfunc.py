@@ -1,11 +1,23 @@
 __author__ = 'rohe0002'
 
 import json
+import httplib2
 
 from urlparse import urlparse
 
 from mechanize import ParseResponse
 from mechanize._form import ControlNotFoundError
+
+class HTTP_ERROR(Exception):
+    pass
+
+def get_page(url):
+    http = httplib2.Http()
+    resp, content = http.request(url)
+    if resp.status == 200:
+        return content
+    else:
+        raise HTTP_ERROR(resp.status)
 
 class FlowException(Exception):
     def __init__(self, function="", content="", url=""):
@@ -305,20 +317,36 @@ def post_form(client, orig_response, content, **kwargs):
     return do_click(client, form, **kwargs)
 
 # ========================================================================
-from oic.oic.message import IdToken
 
-def cmp_idtoken(client, item):
-    """
-    Compare the idToken received in response 1 of the flow with that
-    received in the last response.
+class Operation(object):
+    def __init__(self, message_mod, function=None, args=None):
+        if function:
+            self.function = function
 
-    :param client: A Client instance
-    :param item: A list of responses collected during a flow
-    :return: True if the IdTokens are equivalent otherwise False
-    """
-    idt = IdToken.from_jwt(item[0].id_token, key=client.client_secret)
-    return idt.dictionary() == item[-1].dictionary()
+        self.message_mod = message_mod
+        self.args = args or {}
+        self.request = None
 
-# ========================================================================
+    def update(self, dic):
+        self.args.update(dic)
 
+    def post_op(self, result, environ):
+        pass
+
+    def __call__(self, environ, trace, location, response, content):
+        try:
+            _args = self.args.copy()
+        except (KeyError, AttributeError):
+            _args = {}
+
+        _args["_trace_"] = trace
+        _args["location"] = location
+
+        if trace:
+            trace.reply("FUNCTION: %s" % self.function.__name__)
+            trace.reply("ARGS: %s" % _args)
+
+        result = self.function(environ["client"], response, content, **_args)
+        self.post_op(result, environ)
+        return result
 

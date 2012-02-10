@@ -14,6 +14,8 @@ from oic.utils import jwt
 from oictest import httplib2cookie
 from oictest.base import *
 
+from oictest.oic_operations import Discover
+
 #from oictest.check import WrapException
 
 QUERY2RESPONSE = {
@@ -78,13 +80,8 @@ class OAuth2(object):
     def test_summation(self, id):
         status = 0
         for item in self.test_log:
-            if item["status"] < 200:
-                status = 2
-            elif item["status"] >= 400:
-                status = 2
-            elif item["status"] >= 300:
-                if status != 2:
-                    status = 1
+            if item["status"] > status:
+                status = item["status"]
 
         return {
             "id": id,
@@ -103,9 +100,22 @@ class OAuth2(object):
             self.args.flow = self.args.flow.strip("'")
             self.args.flow = self.args.flow.strip('"')
             self.parse_args()
-            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
             _seq = self.make_sequence()
             interact = self.get_interactions()
+            if self.cconf["register"]:
+                _ext = self.operations_mod.PHASES["oic-registration"]
+                if _ext not in _seq:
+                    _seq.insert(0, _ext)
+                interact["RegistrationRequest"] = {"request":
+                                                       self.register_args()}
+            if "dynamic" in self.json_config["provider"]:
+                op_spec = self.operations_mod.PHASES["provider-discovery"]
+                if op_spec not in _seq:
+                    _seq.insert(0, op_spec)
+                interact[op_spec[0].__name__] = {"issuer":
+                                        self.json_config["provider"]["dynamic"]}
+
+            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
             tests = self.get_test()
             self.client.state = "STATE0"
 
@@ -119,7 +129,7 @@ class OAuth2(object):
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
-                if sum["status"] or self.args.debug:
+                if sum["status"] > 1 or self.args.debug:
                     print >>sys.stderr, trace
             except Exception, err:
                 print >> sys.stderr, self.trace
@@ -247,6 +257,9 @@ class OAuth2(object):
         except KeyError:
             return []
 
+    def register_args(self):
+        pass
+
 class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
@@ -279,26 +292,35 @@ class OIC(OAuth2):
         #        elif self.signing_key:
         #            self.encryption_key = self.signing_key
 
-        self.register()
+        #self.register()
 
     def discover(self, principal):
         c = self.consumer_class(None, None)
         return c.discover(principal)
 
-    def provider_config(self, issuer):
-        c = self.consumer_class(None, None)
-        return c.provider_config(issuer)
+#    def provider_config(self, issuer):
+#        c = self.consumer_class(None, None)
+#        return c.provider_config(issuer)
 
     def _register(self, endpoint, info):
         c = self.consumer_class(None, None)
         return c.register(endpoint, **info)
 
-    def provider_info(self):
-        if "conf_url" in self.json_config["provider"]:
-            _url = self.json_config["provider"]["conf_url"]
-            return self.provider_config(_url).dictionary()
-        else:
-            return OAuth2.provider_info(self)
+#    def provider_info(self):
+#        if "conf_url" in self.json_config["provider"]:
+#            _url = self.json_config["provider"]["conf_url"]
+#            return self.provider_config(_url).dictionary()
+#        else:
+#            return OAuth2.provider_info(self)
+
+    def register_args(self):
+        info = {}
+        for prop in self.message_mod.RegistrationRequest.c_attributes.keys():
+            try:
+                info[prop] = self.cconf[prop]
+            except KeyError:
+                pass
+        return info
 
     def register(self):
         # should I register the client ?

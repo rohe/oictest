@@ -1,0 +1,71 @@
+* (mj-00)Client registration Request - succeeded
+* (mj-01)Request with response_type=code - succeeded
+* (mj-02)Request with response_type=token - succeeded
+* (mj-03)Request with response_type=id_token - succeeded
+* (mj-04)Request with response_type=code token - succeeded
+* (mj-05)Request with response_type=code id_token - succeeded
+* (mj-06)Request with response_type=id_token token - succeeded
+* (mj-07)Request with response_type=code id_token token - succeeded
+* (mj-08)Check ID Endpoint Access with GET and bearer_header - succeeded
+* (mj-09)Check ID Endpoint Access with POST and bearer_header - succeeded
+* (mj-10)Check ID Endpoint Access with POST and bearer_body - succeeded
+* (mj-11)UserInfo Endpoint Access with GET and bearer_header - succeeded
+* (mj-12)UserInfo Endpoint Access with POST and bearer_header - succeeded
+* (mj-13)UserInfo Endpoint Access with POST and bearer_body - succeeded
+* (mj-14)Scope Requesting profile Claims - succeeded
+* (mj-15)Scope Requesting email Claims - succeeded
+* (mj-16)Scope Requesting address Claims - succeeded
+* (mj-17)Scope Requesting phone Claims - succeeded
+* (mj-18)Scope Requesting all Claims - succeeded
+* (mj-19)OpenID Request Object with Required name Claim - succeeded
+* (mj-20)OpenID Request Object with Optional email and picture Claim - succeeded
+* (mj-21)OpenID Request Object with Required name and Optional email and picture Claim - succeeded
+* (mj-22)Requesting ID Token with auth_time Claim - succeeded
+* (mj-23)Requesting ID Token with Required acr Claim - succeeded
+* (mj-24)Requesting ID Token with Optional acr Claim - succeeded
+* (mj-25)Requesting ID Token with max_age=10 seconds Restriction - succeeded
+* (mj-26)Request with display=page - succeeded
+* (mj-27)Request with display=popup - succeeded
+* (mj-28)Request with prompt=none - succeeded
+* (mj-29)Request with prompt=login - succeeded
+
+real	0m14.520s
+user	0m10.129s
+sys	0m5.171s
+
+edmund
+* (mj-00)Client registration Request - succeeded
+* (mj-01)Request with response_type=code - succeeded
+* (mj-02)Request with response_type=token - succeeded
+* (mj-03)Request with response_type=id_token - failed (Response type not supported)
+* (mj-04)Request with response_type=code token - failed (Response type not supported)
+* (mj-05)Request with response_type=code id_token - succeeded
+* (mj-06)Request with response_type=id_token token - succeeded
+* (mj-07)Request with response_type=code id_token token - failed (Response type not supported)
+* (mj-08)Check ID Endpoint Access with GET and bearer_header - failed ({"error": "invalid_id_token"})
+* (mj-09)Check ID Endpoint Access with POST and bearer_header - failed ({"error": "invalid_id_token"})
+* (mj-10)Check ID Endpoint Access with POST and bearer_body - succeeded
+* (mj-11)UserInfo Endpoint Access with GET and bearer_header - failed ({"error": "access_denied"})
+* (mj-12)UserInfo Endpoint Access with POST and bearer_header - failed ({"error": "access_denied"})
+* (mj-13)UserInfo Endpoint Access with POST and bearer_body - succeeded
+* (mj-14)Scope Requesting profile Claims - failed ({"error": "access_denied"})
+* (mj-15)Scope Requesting email Claims - failed ({"error": "access_denied"})
+* (mj-16)Scope Requesting address Claims - failed ({"error": "access_denied"})
+* (mj-17)Scope Requesting phone Claims - failed ({"error": "access_denied"})
+* (mj-18)Scope Requesting all Claims - failed ({"error": "access_denied"})
+* (mj-19)OpenID Request Object with Required name Claim - failed ({"error": "access_denied"})
+* (mj-20)OpenID Request Object with Optional email and picture Claim - failed ({"error": "access_denied"})
+* (mj-21)OpenID Request Object with Required name and Optional email and picture Claim - failed ({"error": "access_denied"})
+* (mj-22)Requesting ID Token with auth_time Claim - failed ({"error": "access_denied"})
+* (mj-23)Requesting ID Token with Required acr Claim - failed ({"error": "access_denied"})
+* (mj-24)Requesting ID Token with Optional acr Claim - failed ({"error": "access_denied"})
+* (mj-25)Requesting ID Token with max_age=10 seconds Restriction - failed ({"error": "access_denied"})
+* (mj-26)Request with display=page - failed ({"error": "access_denied"})
+* (mj-27)Request with display=popup - failed ({"error": "access_denied"})
+* (mj-28)Request with prompt=none - failed (OP error)
+* (mj-29)Request with prompt=login - failed ({"error": "access_denied"})
+
+real	2m34.718s
+user	0m13.614s
+sys	0m5.349s
+

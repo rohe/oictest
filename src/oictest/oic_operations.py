@@ -1,505 +1,477 @@
 #!/usr/bin/env python
+
 __author__ = 'rohe0002'
 
 # ========================================================================
 
+from importlib import import_module
+
+from oic.utils import jwt
+
 from oictest.check import *
 # Used upstream not in this module so don't remove
 from oictest.opfunc import *
+from oic.oic.consumer import Consumer
 
 # ========================================================================
 
-RESPOND = {
-    "method": "POST",
-    }
+class Request():
+    request = ""
+    method = ""
+    request_args= {}
+    kw_args = {}
+    tests = {"post": [CheckHTTPResponse], "pre":[]}
 
-AUTHZREQ_CODE = {
-    "request": "AuthorizationRequest",
-    "method": "GET",
-    "args": {
-        "request": {"response_type": "code",
-                    "scope": ["openid"],
-        },
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+    def __init__(self, message_mod):
+        self.message_mod = message_mod
 
-AUTHZRESP = {
-    "response": "AuthorizationResponse",
-    "where": "url",
-    "type": "urlencoded",
-    "tests": {"post": [CheckAuthorizationResponse]}
-    }
+    #noinspection PyUnusedLocal
+    def __call__(self, environ, trace, location, response, content):
+        _client = environ["client"]
+        if isinstance(self.request, tuple):
+            (mod, klass) = self.request
+            imod = import_module(mod)
+            cls = getattr(imod, klass)
+        else:
+            cls = getattr(self.message_mod, self.request)
 
-AUTHZERRRESP = {
-    "response": "AuthorizationErrorResponse",
-    "where": "url",
-    "type": "urlencoded",
-    "tests": {"post": [LoginRequired]}
-}
+        try:
+            kwargs = self.kw_args.copy()
+        except KeyError:
+            kwargs = {}
 
-OPENID_REQUEST_CODE = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code", "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        try:
+            kwargs["request_args"] = self.request_args.copy()
+            _req = kwargs["request_args"]
+        except KeyError:
+            _req = {}
 
-OPENID_REQUEST_CODE_DISPLAY_PAGE = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "display": "page"}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        cis = getattr(_client, "construct_%s" % cls.__name__)(cls, **kwargs)
 
-OPENID_REQUEST_CODE_DISPLAY_POPUP = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "display": "popup"}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        ht_add = None
 
-OPENID_REQUEST_CODE_PROMPT_NONE = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "prompt": "none"}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [verifyErrResponse]
-    }
-}
+        if "authn_method" in kwargs:
+            h_arg = _client.init_authentication_method(cis, **kwargs)
+        else:
+            h_arg = None
 
-OPENID_REQUEST_CODE_PROMPT_LOGIN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "prompt": "login"}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        url, body, ht_args, cis = _client.uri_and_body(cls, cis,
+                                                      method=self.method,
+                                                      request_args=_req)
 
-OPENID_REQUEST_CODE_PROFILE = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid", "profile"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        if h_arg:
+            ht_args.update(h_arg)
+        if ht_add:
+            ht_args.update({"headers": ht_add})
 
-OPENID_REQUEST_CODE_EMAIL = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid", "email"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        if trace:
+            trace.request("URL: %s" % url)
+            trace.request("BODY: %s" % body)
 
-OPENID_REQUEST_CODE_ADDRESS = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid", "address"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        response, content = _client.http_request(url, method=self.method,
+                                                body=body, trace=trace,
+                                                **ht_args)
 
-OPENID_REQUEST_CODE_PHONE = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid","phone"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        if trace:
+            trace.reply("RESPONSE: %s" % response)
+            trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
 
-OPENID_REQUEST_CODE_ALL = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid", "address", "email", "phone",
-                                   "profile"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        return url, response, content
 
-OPENID_REQUEST_CODE_SPEC1 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "userinfo_claims": {"claims": {"name": None}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+    def update(self, dic):
+        _tmp = {"request": self.request_args, "kw": self.kw_args}
+        for key, val in self.rec_update(_tmp, dic).items():
+            setattr(self, "%s_args" % key, val)
 
-OPENID_REQUEST_CODE_SPEC2 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "userinfo_claims": {
-                             "claims": {
-                                 "picture": {"optional":True},
-                                 "email": {"optional": True}}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+    def rec_update(self, dic0, dic1):
+        res = {}
+        for key, val in dic0.items():
+            if key not in dic1:
+                res[key] = val
+            else:
+                if isinstance(val, dict):
+                    res[key] = self.rec_update(val, dic1[key])
+                else:
+                    res[key] = dic1[key]
 
-OPENID_REQUEST_CODE_SPEC3 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "code",
-                         "scope": ["openid"],
-                         "userinfo_claims": {
-                             "claims": {
-                                 "name": None,
-                                 "picture": {"optional":True},
-                                 "email": {"optional": True}}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        for key, val in dic1.items():
+            if key in dic0:
+                continue
+            else:
+                res[key] = val
 
-OPENID_REQUEST_CODE_IDTC1 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"],
-                         "idtoken_claims":{"claims":{"auth_time": None}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+        return res
 
-OPENID_REQUEST_CODE_IDTC2 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"],
-                         "idtoken_claims":{"claims":{
-                                                "acr": {"values": ["2"]}}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+class GetRequest(Request):
+    method = "GET"
 
-OPENID_REQUEST_CODE_IDTC3 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"],
-                         "idtoken_claims":{"claims":{"acr": None}}}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+class AuthorizationRequestCode(GetRequest):
+    request = "AuthorizationRequest"
+    request_args= {"response_type": ["code"]}
 
-OPENID_REQUEST_CODE_IDTC4 = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"],
-                         "idtoken_claims":{"max_age": 10 }}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse],
-    }
-}
+class OpenIDRequestCode(GetRequest):
+    request = "OpenIDRequest"
+    request_args = {"response_type": ["code"], "scope": ["openid"]}
+    tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
 
-OPENID_REQUEST_TOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "token", "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+class OpenIDRequestCodeDisplayPage(OpenIDRequestCode):
 
-OPENID_REQUEST_IDTOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": "id_token", "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["display"] = "page"
 
-# {"OpenIDRequest": {"request", {"response_type":["code","token"]}}}
+class OpenIDRequestCodeDisplayPopUp(OpenIDRequestCode):
 
-OPENID_REQUEST_CODE_TOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","token"],
-                         "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["display"] = "popup"
 
-OPENID_REQUEST_CODE_IDTOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code","id_token"],
-                         "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+class OpenIDRequestCodePromptNone(OpenIDRequestCode):
 
-OPENID_REQUEST_TOKEN_IDTOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["token","id_token"],
-                         "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["prompt"] = "none"
+        self.tests["post"] = [verifyErrResponse]
 
-OPENID_REQUEST_CODE_TOKEN_IDTOKEN = {
-    "request": "OpenIDRequest",
-    "method": "GET",
-    "args": {"request": {"response_type": ["code", "token", "id_token"],
-                         "scope": ["openid"]}},
-    "tests": {
-        "pre": [CheckResponseType],
-        "post": [CheckHTTPResponse]
-    }
-}
+class OpenIDRequestCodePromptLogin(OpenIDRequestCode):
 
-OPENID_REGISTRATION_REQUEST = {
-    "request" : "RegistrationRequest",
-    "method" : "POST",
-    "args": {"request":
-                     {"type": "client_associate",
-                      "redirect_uris": ["https://example.com/authz_cb"],
-                      "contact": ["roland@example.com"],
-                      "application_type": "web",
-                      "application_name": "OIC test tool",
-                      }},
-    "tests": {"post": [CheckHTTPResponse]}
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["prompt"] = "login"
 
-OPENID_REGISTRATION_RESPONSE = {
-    "response" : "RegistrationResponse",
-    "where": "body",
-    "type": "json"
-}
 
-# 2.1.2.1.2
-# The User Identifier for which an ID Token is being requested.
-# If the specified user is not currently authenticated to the Authorization
-# Server, they may be prompted for authenticated, unless the prompt parameter
-# in the Authorization Request is set to none. The Claim Value in the request
-# is an object containing the single element value.
-#"user_id": {"value":"248289761001"}
+class OpenIDRequestCodeScopeProfile(OpenIDRequestCode):
 
-#OPENID_REQUEST_CODE_21212 = {
-#    "request": "AuthorizationRequest",
-#    "method": "GET",
-#    "args": {
-#        "request": {"response_type": "code",
-#                    "scope": ["oic"],
-#                    "prompt": "none"
-#                    },
-#        "kw": {
-#            "idtoken_claims": {
-#                "claims": {"user_id": {"value":"248289761001"}}
-#            }
-#        }
-#    }
-#}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["scope"].append("profile")
 
-ACCESS_TOKEN_RESPONSE = {
-    "response": "AccessTokenResponse",
-    "where": "body",
-    "type": "json"
-}
+class OpenIDRequestCodeScopeEMail(OpenIDRequestCode):
 
-USER_INFO_RESPONSE = {
-    "response": "OpenIDSchema",
-    "where": "body",
-    "type": "json",
-    "tests": {
-        "post": [ScopeWithClaims]
-    }
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["scope"].append("email")
 
-ACCESS_TOKEN_REQUEST_PASSWD = {
-    "request":"AccessTokenRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "client_secret_basic"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+class OpenIDRequestCodeScopeAddress(OpenIDRequestCode):
 
-ACCESS_TOKEN_REQUEST_CLI_SECRET = {
-    "request":"AccessTokenRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "client_secret_post"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["scope"].append("address")
 
-USER_INFO_REQUEST = {
-    "request":"UserInfoRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "bearer_header"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+class OpenIDRequestCodeScopePhone(OpenIDRequestCode):
 
-USER_INFO_REQUEST_POST_BB = {
-    "request":"UserInfoRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "bearer_body"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["scope"].append("phone")
 
-USER_INFO_REQUEST_POST_BH = {
-    "request":"UserInfoRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "bearer_header"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+class OpenIDRequestCodeScopeAll(OpenIDRequestCode):
 
-#USER_INFO_REQUEST_BODY_GET = {
-#    "request":"UserInfoRequest",
-#    "method": "GET",
-#    "args": {
-#        "kw": {"authn_method": "bearer_body"}
-#    },
-#}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["scope"].extend(["phone", "address", "email",
+                                           "profile"])
 
-PROVIDER_CONFIGURATION = {
-    "request": "ProviderConfigurationRequest",
-    "tests": {"post": [CheckHTTPResponse]}
-}
+class OpenIDRequestCodeUIClaim1(OpenIDRequestCode):
 
-CHECK_ID_REQUEST_GET_BH = {
-    "request": "CheckIDRequest",
-    "method": "GET",
-    "args": {
-        "kw": {"authn_method": "bearer_header"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["userinfo_claims"] = {"claims": {"name": None}}
 
-CHECK_ID_REQUEST_POST_BH = {
-    "request": "CheckIDRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "bearer_header"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
 
-CHECK_ID_REQUEST_POST_BB = {
-    "request": "CheckIDRequest",
-    "method": "POST",
-    "args": {
-        "kw": {"authn_method": "bearer_body"}
-    },
-    "tests": {"post": [CheckHTTPResponse]}
-}
+class OpenIDRequestCodeUIClaim2(OpenIDRequestCode):
 
-CHECK_ID_RESPONSE = {
-    "response": "IdToken",
-    "where": "body",
-    "type": "json"
-}
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["userinfo_claims"] = {"claims": {
+                                                "picture": {"optional":True},
+                                                "email": {"optional": True}}}
+
+class OpenIDRequestCodeUIClaim3(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["userinfo_claims"] = {"claims": {
+                                                "name": None,
+                                                "picture": {"optional":True},
+                                                "email": {"optional": True}}}
+
+class OpenIDRequestCodeIDTClaim1(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["idtoken_claims"] = {"claims": {"auth_time": None}}
+
+class OpenIDRequestCodeIDTClaim2(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["idtoken_claims"] = {"claims": {"acr": {"values":
+                                                                      ["2"]}}}
+
+class OpenIDRequestCodeIDTClaim3(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["idtoken_claims"] = {"claims": {"acr": None}}
+
+class OpenIDRequestCodeIDTClaim4(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["idtoken_claims"] = {"max_age": 10}
+
+
+class OpenIDRequestToken(GetRequest):
+    request = "OpenIDRequest"
+    request_args = {"response_type": ["token"], "scope": ["openid"]}
+    tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
+
+class OpenIDRequestIDToken(GetRequest):
+    request = "OpenIDRequest"
+    request_args = {"response_type": ["id_token"], "scope": ["openid"]}
+    tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
+
+class OpenIDRequestCodeToken(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["response_type"].append("token")
+
+class OpenIDRequestCodeIDToken(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["response_type"].append("id_token")
+
+class OpenIDRequestIDTokenToken(OpenIDRequestIDToken):
+
+    def __init__(self, message_mod):
+        OpenIDRequestIDToken.__init__(self, message_mod)
+        self.request_args["response_type"].append("token")
+
+class OpenIDRequestCodeIDTokenToken(OpenIDRequestCodeIDToken):
+
+    def __init__(self, message_mod):
+        OpenIDRequestCodeIDToken.__init__(self, message_mod)
+        self.request_args["response_type"].append("token")
+
+class PostRequest(Request):
+    method = "POST"
+
+class RegistrationRequest(PostRequest):
+    request = "RegistrationRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+
+        self.request_args = {"type": "client_associate",
+                             "redirect_uris": ["https://example.com/authz_cb"],
+                             "contact": ["roland@example.com"],
+                             "application_type": "web",
+                             "application_name": "OIC test tool"}
+
+        self.tests["post"].append(RegistrationInfo)
+
+class AccessTokenRequestCSBasic(PostRequest):
+    request = "AccessTokenRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "client_secret_basic"}
+
+class AccessTokenRequestCSPost(AccessTokenRequestCSBasic):
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "client_secret_post"}
+
+class UserInfoRequestGetBearerHeader(GetRequest):
+    request = "UserInfoRequest"
+
+    def __init__(self, message_mod):
+        GetRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_header"}
+
+class UserInfoRequestPostBearerHeader(PostRequest):
+    request = "UserInfoRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_header"}
+
+class UserInfoRequestPostBearerBody(PostRequest):
+    request = "UserInfoRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_body"}
+
+class CheckIDRequestGetBearerHeader(GetRequest):
+    request = "CheckIDRequest"
+
+    def __init__(self, message_mod):
+        GetRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_header"}
+
+class CheckIDRequestPostBearerHeader(PostRequest):
+    request = "CheckIDRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_header"}
+
+class CheckIDRequestPostBearerBody(PostRequest):
+    request = "CheckIDRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "bearer_body"}
+
+# -----------------------------------------------------------------------------
+
+class Response():
+    response = ""
+    tests = {}
+
+    def __init__(self):
+        pass
+
+    def __call__(self, environ, response):
+        pass
+
+class UrlResponse(Response):
+    where = "url"
+    type = "urlencoded"
+
+class AuthzResponse(UrlResponse):
+    response = "AuthorizationResponse"
+    tests = {"post": [CheckAuthorizationResponse]}
+
+class AuthzErrResponse(UrlResponse):
+    response = "AuthorizationErrorResponse"
+    tests = {"post": [LoginRequired]}
+
+class BodyResponse(Response):
+    where = "body"
+    type = "json"
+
+class RegistrationResponse(BodyResponse):
+    response = "RegistrationResponse"
+
+    def __call__(self, environ, response):
+        _client = environ["client"]
+        for prop in ["client_id", "client_secret"]:
+            try:
+                _val = getattr(response, prop)
+                setattr(_client, prop, _val)
+            except KeyError:
+                pass
+
+class AccessTokenResponse(BodyResponse):
+    response = "AccessTokenResponse"
+
+class UserinfoResponse(BodyResponse):
+    response = "OpenIDSchema"
+
+    def __init__(self):
+        BodyResponse.__init__(self)
+        self.tests = {"post": [ScopeWithClaims]}
+
+class CheckIdResponse(BodyResponse):
+    response = "IdToken"
+
+class ProviderConfigurationResponse(BodyResponse):
+    response = "ProviderConfigurationResponse"
+
+# ----------------------------------------------------------------------------
+class Response(object):
+    def __init__(self, status, type):
+        self.content_type = type
+        self.status = status
+
+    def __getattr__(self, item):
+        if item == "content-type":
+            return self.content_type
+
+
+#noinspection PyUnusedLocal
+def discover(self, environ, orig_response, content, issuer, location, _trace_):
+    c = Consumer(None, None)
+    pcr = c.provider_config(issuer)
+    return "", Response(200, "application/json"), pcr
+
+
+class Discover(Operation):
+    tests = {"post": [ProviderConfigurationInfo]}
+    function = discover
+    environ_param = "provider_info"
+
+    def post_op(self, result, environ):
+        # Update the environ with the provider information
+        # This overwrites what's there before. In some cases this might not
+        # be preferable.
+        _pi = result[2].dictionary()
+
+        environ[self.environ_param].update(_pi)
+
+        _client = environ["client"]
+        for key, val in _pi.items():
+            if key.endswith("_endpoint"):
+                setattr(_client, key, val)
+
+        if "x509_url" in _pi:
+            _txt = get_page(_pi["x509_url"])
+            _client.verify_key = ("rsa", jwt.x509_rsa_loads(_txt))
+        if "x509_encryption_url" in _pi:
+            _txt = get_page(_pi["x509_encryption_url"])
+            _client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
+        elif "rsa" in _client.verify_key:
+            _client.decrypt_key["rsa"] = _client.verify_key["rsa"]
+                
+# ===========================================================================
 
 PHASES= {
-    "login": (AUTHZREQ_CODE, AUTHZRESP),
-    "oic-login": (OPENID_REQUEST_CODE, AUTHZRESP),
-    "oic-login+profile": (OPENID_REQUEST_CODE_PROFILE, AUTHZRESP),
-    "oic-login+email": (OPENID_REQUEST_CODE_EMAIL, AUTHZRESP),
-    "oic-login+phone": (OPENID_REQUEST_CODE_PHONE, AUTHZRESP),
-    "oic-login+address": (OPENID_REQUEST_CODE_ADDRESS, AUTHZRESP),
-    "oic-login+all": (OPENID_REQUEST_CODE_ALL, AUTHZRESP),
-    "oic-login+spec1": (OPENID_REQUEST_CODE_SPEC1, AUTHZRESP),
-    "oic-login+spec2": (OPENID_REQUEST_CODE_SPEC2, AUTHZRESP),
-    "oic-login+spec3": (OPENID_REQUEST_CODE_SPEC3, AUTHZRESP),
+    "login": (AuthorizationRequestCode, AuthzResponse),
+    "oic-login": (OpenIDRequestCode, AuthzResponse),
+    "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
+    "oic-login+email": (OpenIDRequestCodeScopeEMail, AuthzResponse),
+    "oic-login+phone": (OpenIDRequestCodeScopePhone, AuthzResponse),
+    "oic-login+address": (OpenIDRequestCodeScopeAddress, AuthzResponse),
+    "oic-login+all": (OpenIDRequestCodeScopeAll, AuthzResponse),
+    "oic-login+spec1": (OpenIDRequestCodeUIClaim1, AuthzResponse),
+    "oic-login+spec2": (OpenIDRequestCodeUIClaim2, AuthzResponse),
+    "oic-login+spec3": (OpenIDRequestCodeUIClaim3, AuthzResponse),
 
-    "oic-login+idtc1": (OPENID_REQUEST_CODE_IDTC1, AUTHZRESP),
-    "oic-login+idtc2": (OPENID_REQUEST_CODE_IDTC2, AUTHZRESP),
-    "oic-login+idtc3": (OPENID_REQUEST_CODE_IDTC3, AUTHZRESP),
-    "oic-login+idtc4": (OPENID_REQUEST_CODE_IDTC4, AUTHZRESP),
+    "oic-login+idtc1": (OpenIDRequestCodeIDTClaim1, AuthzResponse),
+    "oic-login+idtc2": (OpenIDRequestCodeIDTClaim2, AuthzResponse),
+    "oic-login+idtc3": (OpenIDRequestCodeIDTClaim3, AuthzResponse),
+    "oic-login+idtc4": (OpenIDRequestCodeIDTClaim4, AuthzResponse),
 
-    "oic-login+disp_page": (OPENID_REQUEST_CODE_DISPLAY_PAGE, AUTHZRESP),
-    "oic-login+disp_popup": (OPENID_REQUEST_CODE_DISPLAY_POPUP, AUTHZRESP),
+    "oic-login+disp_page": (OpenIDRequestCodeDisplayPage, AuthzResponse),
+    "oic-login+disp_popup": (OpenIDRequestCodeDisplayPopUp, AuthzResponse),
 
-    "oic-login+prompt_none": (OPENID_REQUEST_CODE_PROMPT_NONE, None),
-    "oic-login+prompt_login": (OPENID_REQUEST_CODE_PROMPT_LOGIN, AUTHZRESP),
+    "oic-login+prompt_none": (OpenIDRequestCodePromptNone, None),
+    "oic-login+prompt_login": (OpenIDRequestCodePromptLogin, AuthzResponse),
 
-    "oic-login-token": (OPENID_REQUEST_TOKEN, AUTHZRESP),
-    "oic-login-idtoken": (OPENID_REQUEST_IDTOKEN, AUTHZRESP),
-    "oic-login-code+token": (OPENID_REQUEST_CODE_TOKEN, AUTHZRESP),
-    "oic-login-code+idtoken": (OPENID_REQUEST_CODE_IDTOKEN, AUTHZRESP),
-    "oic-login-idtoken+token": (OPENID_REQUEST_TOKEN_IDTOKEN, AUTHZRESP),
-    "oic-login-code+idtoken+token": (OPENID_REQUEST_CODE_TOKEN_IDTOKEN,
-                                     AUTHZRESP),
+    "oic-login-token": (OpenIDRequestToken, AuthzResponse),
+    "oic-login-idtoken": (OpenIDRequestIDToken, AuthzResponse),
+    "oic-login-code+token": (OpenIDRequestCodeToken, AuthzResponse),
+    "oic-login-code+idtoken": (OpenIDRequestCodeIDToken, AuthzResponse),
+    "oic-login-idtoken+token": (OpenIDRequestIDTokenToken, AuthzResponse),
+    "oic-login-code+idtoken+token": (OpenIDRequestCodeIDTokenToken,
+                                     AuthzResponse),
 #
-    "access-token-request":(ACCESS_TOKEN_REQUEST_CLI_SECRET,
-                            ACCESS_TOKEN_RESPONSE),
-    "check-id-request_gbh":(CHECK_ID_REQUEST_GET_BH, CHECK_ID_RESPONSE),
-    "check-id-request_pbh":(CHECK_ID_REQUEST_POST_BH, CHECK_ID_RESPONSE),
-    "check-id-request_pbb":(CHECK_ID_REQUEST_POST_BB, CHECK_ID_RESPONSE),
-    "user-info-request":(USER_INFO_REQUEST, USER_INFO_RESPONSE),
-    "user-info-request_pbh":(USER_INFO_REQUEST_POST_BH, USER_INFO_RESPONSE),
-    "user-info-request_pbb":(USER_INFO_REQUEST_POST_BB, USER_INFO_RESPONSE),
-    "oic-registration": (OPENID_REGISTRATION_REQUEST,
-                         OPENID_REGISTRATION_RESPONSE)
+    "access-token-request_basic":(AccessTokenRequestCSBasic,
+                                AccessTokenResponse),
+    "access-token-request":(AccessTokenRequestCSPost, AccessTokenResponse),
+    "check-id-request_gbh":(CheckIDRequestGetBearerHeader, CheckIdResponse),
+    "check-id-request_pbh":(CheckIDRequestPostBearerHeader, CheckIdResponse),
+    "check-id-request_pbb":(CheckIDRequestPostBearerBody, CheckIdResponse),
+    "user-info-request":(UserInfoRequestGetBearerHeader, UserinfoResponse),
+    "user-info-request_pbh":(UserInfoRequestPostBearerHeader, UserinfoResponse),
+    "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
+    "oic-registration": (RegistrationRequest, RegistrationResponse),
+    "provider-discovery": (Discover, ProviderConfigurationResponse)
 }
 
 
