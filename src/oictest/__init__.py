@@ -143,9 +143,18 @@ class OAuth2(object):
             item = {"id": key,
                     "name": val["name"],}
             try:
-                item["descr"] = "".join(val["descr"])
+                _desc = val["descr"]
+                if isinstance(_desc, basestring):
+                    item["descr"] = _desc
+                else:
+                    item["descr"] = " ".join(_desc)
             except KeyError:
                 pass
+            try:
+                item["depends"] = val["depends"]
+            except KeyError:
+                pass
+
             lista.append(item)
 
         print json.dumps(lista)
