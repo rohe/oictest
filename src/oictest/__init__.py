@@ -150,10 +150,12 @@ class OAuth2(object):
                     item["descr"] = " ".join(_desc)
             except KeyError:
                 pass
-            try:
-                item["depends"] = val["depends"]
-            except KeyError:
-                pass
+
+            for key in ["depends", "endpoints"]:
+                try:
+                    item[key] = val[key]
+                except KeyError:
+                    pass
 
             lista.append(item)
 

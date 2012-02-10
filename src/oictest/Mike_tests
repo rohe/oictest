@@ -1,0 +1,48 @@
+Request with response_type=code
+Request with response_type=token
+Request with response_type=id_token
+Request with response_type=code id_token
+Request with response_type=token id_token
+Request with response_type=code token id_token
+Check ID Endpoint Access with Header Method
+Check ID Endpoint Access with Form-Encoded Body Method
+UserInfo Endpoint Access with Header Method
+UserInfo Endpoint Access with Form-Encoded Body Method
+CheckID Endpoint Signature Validation
+Scope Requesting No Specific Claims
+    Request with scope=openid
+Scope Requesting profile Claims
+    Request with scope=openid profile
+Scope Requesting email Claims
+    Request with scope=openid email
+Scope Requesting address Claims
+    Request with scope=openid address
+Scope Requesting phone Claims
+    Request with scope=openid phone
+Scope Requesting All Basic Claims
+    Request with scope=openid profile email address phone
+Requesting Specific Required Claims
+    Use OpenID Request Object with Required name Claim
+Requesting Specific Optional Claims
+    OpenID Request Object with Optional email and picture Claims
+Requesting Specific Required and Optional Claims
+    OpenID Request Object with Required name and Optional email and picture Claims
+Requesting ID Token with auth_time Claim
+Requesting ID Token with Required acr Claim
+    Request two specific acr claim values (values TBD)
+Requesting ID Token with Optional acr Claim
+    Request two specific optional acr claim values (values TBD)
+Requesting ID Token with max_age Restriction
+    Use max_age request value of 10 seconds
+Request with display=page
+Request with display=popup
+Request with prompt=none
+Request with prompt=login
+Uses Symmetric ID Token Signatures
+Uses Asymmetric ID Token Signatures
+Enables Discovery
+Enables Dymamic Registration
+Can Provide Distributed Claims
+Can Provide public user_id Values
+Can Provide pairwise user_id Values
+Request with request_uri
