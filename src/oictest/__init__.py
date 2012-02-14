@@ -147,7 +147,7 @@ class OAuth2(object):
                 if isinstance(_desc, basestring):
                     item["descr"] = _desc
                 else:
-                    item["descr"] = " ".join(_desc)
+                    item["descr"] = "\n".join(_desc)
             except KeyError:
                 pass
 

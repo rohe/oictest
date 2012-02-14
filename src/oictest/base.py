@@ -242,9 +242,16 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 except KeyError:
                     if endpoint(client, _base):
                         break
-                    chk = factory("interaction-needed")()
-                    chk(environ, test_output)
-                    raise FatalError()
+                    else:
+                        _check = getattr(req, "interaction_check")
+                        if _check in req:
+                            chk = factory("interaction-check")()
+                            chk(environ, test_output)
+                            raise FatalError()
+                        else:
+                            chk = factory("interaction-needed")()
+                            chk(environ, test_output)
+                            raise FatalError()
 
                 _op = Operation(message_mod, function=_spec[0], args=_spec[1])
 
@@ -270,9 +277,15 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 try:
                     info = response["location"]
                 except KeyError:
-                    chk = factory("missing-redirect")()
-                    stat = chk(environ, test_output)
-                    check_severity(stat)
+                    _check = getattr(req, "interaction_check", None)
+                    if _check:
+                        chk = factory("interaction-check")()
+                        chk(environ, test_output)
+                        raise FatalError()
+                    else:
+                        chk = factory("missing-redirect")()
+                        stat = chk(environ, test_output)
+                        check_severity(stat)
             else:
                 check = factory("check_content_type_header")()
                 stat = check(environ, test_output)

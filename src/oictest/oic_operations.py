@@ -114,6 +114,12 @@ class OpenIDRequestCode(GetRequest):
     request_args = {"response_type": ["code"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
 
+class ConnectionVerify(GetRequest):
+    request = "OpenIDRequest"
+    request_args = {"response_type": ["code"], "scope": ["openid"]}
+    tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
+    interaction_check = True
+
 class OpenIDRequestCodeDisplayPage(OpenIDRequestCode):
 
     def __init__(self, message_mod):
@@ -427,11 +433,12 @@ class Discover(Operation):
             _client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
         elif "rsa" in _client.verify_key:
             _client.decrypt_key["rsa"] = _client.verify_key["rsa"]
-                
+
 # ===========================================================================
 
 PHASES= {
     "login": (AuthorizationRequestCode, AuthzResponse),
+    "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (OpenIDRequestCodeScopeEMail, AuthzResponse),
@@ -476,6 +483,12 @@ PHASES= {
 
 
 FLOWS = {
+    'oic-verify': {
+        "name": 'Special flow used to find necessary user interactions',
+        "descr": ('Request with response_type=code'),
+        "sequence": ["verify"],
+        "endpoints": ["authorization_endpoint"]
+    },
     'oic-code': {
         "name": 'Request with response_type=code',
         "descr": ('Request with response_type=code'),

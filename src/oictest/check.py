@@ -16,8 +16,10 @@ OK = 1
 WARNING = 2
 ERROR = 3
 CRITICAL = 4
+INTERACTION = 5
 
-STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL"]
+STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
+              "INTERACTION"]
 
 
 class Check():
@@ -322,6 +324,17 @@ class InteractionNeeded(CriticalError):
         self._message = None
         return {"url": environ["url"]}
 
+class InteractionCheck(CriticalError):
+    """
+    A Webpage was displayed for which no known interaction is defined.
+    """
+    id = "interaction-check"
+
+    def _func(self, environ=None):
+        self._status = INTERACTION
+        self._message = environ["content"]
+        return {"url": environ["url"]}
+
 class MissingRedirect(CriticalError):
     """ At this point in the flow a redirect back to the client was expected.
     """
@@ -492,7 +505,7 @@ class ResponseInfo(Information):
         if isinstance(_msg, basestring):
             self._message = _msg
         else:
-            self._message = _msg.get_json()
+            self._message = _msg.dictionary()
 
         return {}
 
