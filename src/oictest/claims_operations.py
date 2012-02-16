@@ -1,0 +1,26 @@
+__author__ = 'rohe0002'
+
+from oictest.oic_operations import PostRequest
+from oictest.oic_operations import BodyResponse
+
+class UserClaimsRequest(PostRequest):
+    request = "UserClaimsRequest"
+    request_args = {"user_id": ["diana"], "claims_names": ["address",
+                                                           "gender"]}
+
+class UserClaimsResponse(BodyResponse):
+    response = "UserClaimsResponse"
+
+
+PHASES= {
+    "claims_request": (UserClaimsRequest, UserClaimsResponse)
+    }
+
+
+FLOWS = {
+    'x-1': {
+        "name": 'First claims provider test',
+        "sequence": ["claims_request"],
+        "endpoints": ["userclaims_endpoint"]
+    },
+}

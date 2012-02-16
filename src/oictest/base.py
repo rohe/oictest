@@ -240,7 +240,9 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 try:
                     _spec = interaction[_base]
                 except KeyError:
-                    if endpoint(client, _base):
+                    if creq.method == "POST":
+                        break
+                    elif endpoint(client, _base):
                         break
                     else:
                         _check = getattr(req, "interaction_check")

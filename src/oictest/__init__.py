@@ -14,7 +14,7 @@ from oic.utils import jwt
 from oictest import httplib2cookie
 from oictest.base import *
 
-from oictest.oic_operations import Discover
+#from oictest.oic_operations import Discover
 
 #from oictest.check import WrapException
 
@@ -83,11 +83,17 @@ class OAuth2(object):
             if item["status"] > status:
                 status = item["status"]
 
-        return {
+        sum = {
             "id": id,
             "status": status,
             "tests": self.test_log
         }
+
+        if status == 5:
+            sum["url"] = self.test_log[-1]["url"]
+            sum["htmlbody"] = self.test_log[-1]["message"]
+
+        return sum
 
     def run(self):
         self.args = self._parser.parse_args()
@@ -102,7 +108,7 @@ class OAuth2(object):
             self.parse_args()
             _seq = self.make_sequence()
             interact = self.get_interactions()
-            if self.cconf["register"]:
+            if "register" in self.cconf and self.cconf["register"]:
                 _ext = self.operations_mod.PHASES["oic-registration"]
                 if _ext not in _seq:
                     _seq.insert(0, _ext)

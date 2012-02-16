@@ -390,7 +390,7 @@ class ProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfigurationResponse"
 
 # ----------------------------------------------------------------------------
-class Response(object):
+class DResponse(object):
     def __init__(self, status, type):
         self.content_type = type
         self.status = status
@@ -404,7 +404,7 @@ class Response(object):
 def discover(self, environ, orig_response, content, issuer, location, _trace_):
     c = Consumer(None, None)
     pcr = c.provider_config(issuer)
-    return "", Response(200, "application/json"), pcr
+    return "", DResponse(200, "application/json"), pcr
 
 
 class Discover(Operation):
