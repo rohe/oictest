@@ -293,14 +293,19 @@ class OIC(OAuth2):
     def parse_args(self):
         OAuth2.parse_args(self)
 
+        _keystore = self.client.keystore
         if "x509_url" in self.pinfo:
-            _txt = get_page(self.pinfo["x509_url"])
-            self.client.verify_key = ("rsa", jwt.x509_rsa_loads(_txt))
+            _verkey = jwt.x509_rsa_loads(get_page(self.pinfo["x509_url"]))
+            _keystore.set_verify_key(_verkey, "rsa", self.pinfo["issuer"])
+        else:
+            _verkey = None
+
         if "x509_encryption_url" in self.pinfo:
             _txt = get_page(self.pinfo["x509_encryption_url"])
-            self.client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
-        elif "rsa" in self.client.verify_key:
-            self.client.decrypt_key["rsa"] = self.client.verify_key["rsa"]
+            _keystore.set_dec_key(jwt.x509_rsa_loads(_txt), "rsa",
+                                     self.pinfo["issuer"])
+        elif _verkey:
+            _keystore.set_dec_key(_verkey, "rsa", self.pinfo["issuer"])
 
         #        if "jwk_url" in self.pinfo:
         #            self.signing_key = http.request(self.pinfo["jwk_url"])

@@ -133,6 +133,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     content = None
     url = ""
     test_output = []
+    _keystore = client.keystore
 
     try:
         for creq, cresp in sequence:
@@ -265,6 +266,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                     check = factory("check-http-response")()
                     stat = check(environ, test_output)
                     check_severity(stat)
+                except FatalError:
+                    raise
                 except Exception, err:
                     environ["exception"] = err
                     chk = factory("exception")()
@@ -304,12 +307,11 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
                 chk = factory("response-parse")()
                 environ["response_type"] = respcls.__name__
+                keys = _keystore.get_keys("verify", owner=None)
                 try:
-                    qresp = client.parse_response(respcls, info,
-                                                resp.type,
-                                                client.state, True,
-                                                key=client.verify_key,
-                                                client_id=client.client_id)
+                    qresp = client.parse_response(respcls, info, resp.type,
+                                                  client.state, True, key=keys,
+                                                  client_id=client.client_id)
                     if trace and qresp:
                         trace.info("[%s]: %s" % (qresp.__class__.__name__,
                                                  qresp.dictionary()))

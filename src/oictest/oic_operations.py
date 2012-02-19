@@ -425,14 +425,19 @@ class Discover(Operation):
             if key.endswith("_endpoint"):
                 setattr(_client, key, val)
 
+        _keystore = _client.keystore
+
         if "x509_url" in _pi:
-            _txt = get_page(_pi["x509_url"])
-            _client.verify_key = ("rsa", jwt.x509_rsa_loads(_txt))
+            _verkey = jwt.x509_rsa_loads(get_page(_pi["x509_url"]))
+            _keystore.set_verify_key(_verkey, "rsa", _pi["issuer"])
+        else:
+            _verkey = None
+
         if "x509_encryption_url" in _pi:
             _txt = get_page(_pi["x509_encryption_url"])
             _client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
-        elif "rsa" in _client.verify_key:
-            _client.decrypt_key["rsa"] = _client.verify_key["rsa"]
+        elif _verkey:
+            _keystore.set_verify_key(_verkey, "rsa", _pi["issuer"])
 
 # ===========================================================================
 

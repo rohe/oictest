@@ -437,7 +437,7 @@ class verifyIDToken(CriticalError):
 
     def _func(self, environ):
         done = False
-        _vkeys = environ["client"].recv_keys["verify"]
+        _vkeys = environ["client"].keystore.get_keys("verify", owner=None)
         for item in environ["item"]:
             if self._status == self.status or done:
                 break
@@ -470,7 +470,11 @@ class verifyIDToken(CriticalError):
                     pass
                 elif "values" in val:
                     _val = getattr(idtoken, key)
-                    if isinstance(_val, basestring):
+                    if not _val:
+                        self._status = self.status
+                        self._message = "Missing value on '%s'" % key
+                        break
+                    elif isinstance(_val, basestring):
                         if _val not in val["values"]:
                             self._status = self.status
                             self._message = "Wrong value on '%s'" % key
