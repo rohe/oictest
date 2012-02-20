@@ -39,5 +39,6 @@ setup(
         ],
 
     zip_safe=False,
-    scripts=["script/oauth2c.py", "script/oicc.py"],
+    scripts=["script/oauth2c.py", "script/oicc.py",
+             "script/oic_flow_tests.py"],
     )

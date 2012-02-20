@@ -17,7 +17,7 @@ Contents:
    :maxdepth: 1
 
    install
-   testsetup/index
+   howto
 
 Indices and tables
 ==================
