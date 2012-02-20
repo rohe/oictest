@@ -310,7 +310,7 @@ First the configuration of the script as a Python script::
 
         "interaction": {
             "https://www.kodtest.se:8088/authorization": ["select_form",
-                                {"login":"diana", "password": "krall"}],
+                                {"login":"diana", "password": "krall"}]
         }
     }
 
