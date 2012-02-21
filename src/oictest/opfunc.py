@@ -147,31 +147,35 @@ def pick_form(response, content, url=None, **kwargs):
     if len(forms) == 1:
         _form = forms[0]
     else:
-        _dict = kwargs["_form_pick_"]
-        for form in forms:
-            if _form:
-                break
-            _keys = form.attrs.keys()
-            for key,val in _dict.items():
-                if key in _keys:
-                    if val == form.attrs[key]:
-                        _form = form
-                elif key == "control":
-                    prop, _default = val
-                    try:
-                        orig_val = form[prop]
-                        if isinstance(orig_val, basestring):
-                            if orig_val == _default:
-                                _form = form
-                        elif _default in orig_val:
-                            _form = form
-                    except KeyError:
-                        pass
-                else:
-                    _form = None
-
-                if not _form:
+        if "_form_pick_" in kwargs:
+            _dict = kwargs["_form_pick_"]
+            for form in forms:
+                if _form:
                     break
+                _keys = form.attrs.keys()
+                for key,val in _dict.items():
+                    if key in _keys:
+                        if val == form.attrs[key]:
+                            _form = form
+                    elif key == "control":
+                        prop, _default = val
+                        try:
+                            orig_val = form[prop]
+                            if isinstance(orig_val, basestring):
+                                if orig_val == _default:
+                                    _form = form
+                            elif _default in orig_val:
+                                _form = form
+                        except KeyError:
+                            pass
+                    else:
+                        _form = None
+
+                    if not _form:
+                        break
+        else:
+            _form = forms[kwargs["_form_nr_"]]
+
     return _form
 
 def do_click(client, form, **kwargs):
