@@ -12,7 +12,7 @@ info = {
         },
     "provider": {
         "version": { "oauth": "2.0", "openid": "3.0"},
-        "conf_url": "https://www.kodtest.se:8088/",
+        "dynamic": "https://www.kodtest.se:8088/",
         },
 
     "interaction": {

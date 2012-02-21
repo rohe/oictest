@@ -14,10 +14,6 @@ from oic.utils import jwt
 from oictest import httplib2cookie
 from oictest.base import *
 
-#from oictest.oic_operations import Discover
-
-#from oictest.check import WrapException
-
 QUERY2RESPONSE = {
     "AuthorizationRequest": "AuthorizationResponse",
     "OpenIDRequest": "OpenIDResponse",

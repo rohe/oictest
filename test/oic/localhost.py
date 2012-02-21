@@ -16,12 +16,8 @@ info = {
         },
 
     "interaction": {
-        "https://localhost:8088/authorization": ["select_form",
-                {"login":"diana", "password": "krall"}],
-#        "https://connect-op.heroku.com/authorizations/new": ["select_form",
-#                {"_form_pick_": {"action": "/authorizations",
-#                                 "class": "approve"}}],
-        #        "https://connect-op.heroku.com/authorizations",
+#        "https://localhost:8088/authorization": ["select_form",
+#                {"login":"diana", "password": "krall"}],
     }
 }
 

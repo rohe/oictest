@@ -1,102 +1,48 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd" >
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
-    <title>Consent</title>
-    <style type="text/css">body{margin:0 5px;padding:0;color:#333;background:#fff;font:normal 75% Arial,Helvetica,sans-serif}h1,h2,h3,h4,h5,h6{margin:.1em 0;line-height:normal!important}h1{color:#c88039;font-size:1.33em}h2{color:#c88039;font-size:1.167em}h3{color:#333;font-size:1.167em}h4{color:#333;font-size:1em}h5,h6{font-size:1em}a{color:#084482;text-decoration:underline}a img{border:0}p{margin:1em 0}ul,ol,dl{margin:1.6em 0;padding:0}ul li,ol li,ol ul li{margin-bottom:.8em;margin-left:1.25em;padding-left:.2em}li ul,li ol{margin:1.25em 0}ul ul,ol ul{list-style:disc}ol{margin-left:1.2em}ol li{padding-left:.4em}ol ol{list-style:lower-alpha}li ol{margin-left:.7em}ol ol ol{list-style:lower-roman}ol ol ol ol{list-style:decimal}dt{margin:0;padding:0}dd{margin:0 0 0 1.8em}blockquote{margin:1em}em{font-style:italic}strong{font-weight:bold}dfn,var{font-style:normal}code,kbd,samp{font:1em "Courier New",Courier,monospace}q::before,q::after{content:""}cite{font-style:normal}cite span{display:block}abbr,acronym{border-style:none;color:#084482;text-decoration:underline;cursor:pointer}form{margin:0;padding:0}fieldset{margin:1em 0;border:0;padding:0}legend{position:relative;padding:0;color:#333;font-weight:bold}label{display:block}input,select,textarea{border:1px solid #adc2d6}input,textarea{padding:2px;font:1em Arial,Helvetica,sans-serif}textarea{vertical-align:top}input.checkbox,input.radio,input.hidden,label.checkbox input,label.radio input{border-style:none;padding:0}table{width:auto;margin:1em 0;border-style:none;border-collapse:collapse}table caption{margin:1em 0 -1em 0;font-weight:bold;text-align:left}table th{padding:.2em .4em;background-color:#fff;font-weight:bold;line-height:normal;text-align:center;vertical-align:top}table td{padding:.2em .4em;background-color:#fff;font-weight:normal;line-height:1.2em;text-align:left;vertical-align:top}hr{display:none}.accessAid{display:block!important;left:-500em!important;line-height:0!important;overflow:hidden!important;position:absolute!important;text-indent:-9999em!important;top:0!important}form{margin:0;padding:0}fieldset{margin:1em 0;border:0;padding:0}legend{position:relative;padding:0;color:#333;font-weight:bold}label{display:block}input,select,textarea{border:1px solid #adc2d6}input,textarea{padding:2px;font:1em Arial,Helvetica,sans-serif}textarea{vertical-align:top}input.checkbox,input.radio,input.hidden,label.checkbox input,label.radio input{border-style:none;padding:0}input.xsmall{width:2em}input.small{width:3.35em}input.medium{width:7em}input.large{width:14em}input.xlarge{width:20em}p.group span.label{display:block;margin:.1em 0}span.optional{color:#757575;font-size:.9em}span.autoTooltip{margin-left:5px;color:#084482;font-size:.9em;text-decoration:underline;cursor:help}span.help{display:block;margin:.1em 0;color:#757575;font-size:.9em}span.description{display:block;margin:.1em 0 0 1.6em}form fieldset.multi p{float:left;margin:0 .5em 0 0}form fieldset.multi legend,form fieldset.group legend{font-weight:normal}form div.collapse{overflow:auto;margin:1em 0}form div.collapse p,form div.collapse fieldset{float:left;margin-top:0;margin-right:1em;margin-bottom:0}form .subform{margin:.4em 0}form .subform .cont{clear:left;position:relative;overflow:auto}form .subform .cont .multi span.label{position:relative;text-align:left}form .subform .cont .multi p.group{float:left;margin:0 .2em 1em}form .subform .cont p.group{float:none;margin:0 0 1em}form .subform .cont p.group label{float:none;text-align:left;width:auto}form .subform .cont p.group span.help,form .subform .cont p.group span.field{margin-left:0;padding-left:0}form .subform .group legend span.label{position:relative;display:block;width:auto;margin-bottom:1em;text-align:left}form .subform .group .cont{margin-left:21px}form.edit .subform{margin-left:200px}form.edit .group .subform,form.edit .group .subform div,form.edit .subform fieldset.group div{margin-left:0}form.edit .subform .buttons{padding-left:0}form.edit .group .subform .cont{margin-left:21px}form .subform .multi{margin-top:.5em}form .subform .multi .group{margin-left:0}form.edit .group{position:relative}form.edit p.group{min-height:2em}form.edit p.group.textbox{min-height:5em}form.edit p.group.help.textbox{min-height:6.5em}form.edit p.group label,form.edit p.group span.label{float:left;clear:left;width:180px;margin:0;text-align:right}form.edit p.group span.optional{display:block}form.edit p.group span.autoTooltip{float:right}form.edit p.group span.help{display:block;padding-left:20px;margin-left:181px}form.edit p.group span.field{display:block;margin-left:200px}form.edit legend{position:relative;width:180px}form.edit legend span.label,form.edit legend span.optional,form.edit legend span.autoTooltip{position:absolute;width:180px;text-align:right}form.edit legend span.optional{top:1.4em}form.edit legend span.autoTooltip{top:2.8em;margin-left:0}form.edit fieldset.multi{position:relative}form.edit fieldset.multi p *,form.edit fieldset.multi p.group span.field{margin-left:0}form.edit fieldset.multi .first{margin-left:200px}form.edit fieldset.multi span.help,form.edit fieldset.group span.help{padding-left:20px;margin-left:181px}form.edit fieldset.multi p.group label{text-align:left;width:auto;float:none}form.edit fieldset.multi p.group span.help{padding-left:0;margin-left:0}form.edit fieldset.group div{margin-left:200px}form.edit fieldset.group ul{margin:0 0 0 200px}form.edit fieldset.group ul li{margin-left:0;list-style:none}form.edit fieldset.group ul li label{display:inline}form.edit fieldset.group .subform p.first{margin-left:0}form.edit fieldset.group .subform p.group label{display:inline;width:auto}form.edit fieldset.group .subform span.field{display:inline;margin-left:10px}form.edit fieldset.group .subform span.label{position:relative}form.edit div.collapse p,form.edit div.collapse fieldset{float:none;margin-top:1em;margin-right:1em;margin-bottom:0}form.edit p.buttons{padding-left:201px}form.error p,form.error fieldset.multi{margin-left:20px}form.error .error,form.error fieldset.error{margin-left:0}form.error p.error label,form.error p.error span.help,form.error p.error span.field,form.error fieldset.error span.help,form.error fieldset.error .first label,form.error fieldset.error .first span.field,form.error fieldset.error div{padding-left:20px}form.error .error legend{padding-left:20px}form.error .error span.help{background-image:url(https://www.paypalobjects.com/en_US/i/icon/form_error.png);background-repeat:no-repeat;color:#c00}.legacyErrors label span.error,.legacyErrors p.error label,.legacyErrors fieldset.error span.label,.legacyErrors fieldset span.label.error{color:#c00}form.edit.error p,form.edit.error fieldset{margin-left:0}form.edit.error p.error label,form.edit.error p.error span.field,form.edit.error fieldset.error legend,form.edit.error fieldset.error div,form.edit.error fieldset.error ul{padding-left:0}form.edit.error fieldset.multi span.help{margin-left:181px}form.edit.error fieldset.multi p.group span.field{padding-left:0}form.edit.error fieldset.multi p.first{margin-left:200px}form.edit.error fieldset.multi p.group span.help{margin-left:0}form.edit.error fieldset.multi.error p.group label{padding-left:0}form.edit.error fieldset.error p.group span.help{color:#757575;background-image:none}.jsEnabled .jsHidden{display:none}.secondary{color:#757575}.heavy{font-weight:bold}.small{font-size:.9em}form.error fieldset.error p.group span.help{color:#757575;background-image:none}form.error fieldset.error p.group span.second{padding-left:0}form.edit p.buttons {padding-left:201px}
-    button, input.button {width:auto !important; margin-right:10px; border:1px solid #bfbfbf; border-right-color:#908d8d; border-bottom-color:#908d8d; padding:1px 0.5em; background:#e1e1e1 url(https://www.paypalobjects.com/en_US/i/pui/core/btn_bg_sprite.gif) left 82.5% repeat-x; color:#000}
-    button:active, input.button:active {border:1px solid #908d8d; border-right-color:#afafaf; border-bottom-color:#afafaf}
-    button:hover, input.button:hover {cursor:pointer}
-    button.primary, input.button.primary {border:1px solid #d5bd98; border-right-color:#935e0d; border-bottom-color:#935e0d; background:#ffa822 url(https://www.paypalobjects.com/en_US/i/pui/core/btn_bg_sprite.gif) left 17.5% repeat-x}
-    button.primary:active, input.button.primary:active {border:1px solid #935e0d; border-right-color:#d5bd98; border-bottom-color:#d5bd98}
-    button[disabled="disabled"] {border:1px solid #ccc; background:#eee; color:#b3b3b3}
-    button[disabled="disabled"]:hover {cursor:default}
-    button.disabled, input.button.disabled {border:1px solid #ccc; background:#eee; color:#b3b3b3}
-    button.disabled:hover, input.button.disabled:hover {cursor:default}
-    button.mini, input.button.mini {font-size:0.9em}
-    #rosetta_dropdown {}
-    #rosetta {border:none; position:absolute; top:40px; left:505px; z-index:11; width:250px; text-align:right}
-    #rosetta legend {display:block; position:absolute; top:0; left:-500em; width:1px; height:1px; overflow:hidden; text-indent:-9999em; line-height:0}
-    #rosetta label {display:none}
-    #rosetta button {border:none; padding:0; background:none; vertical-align:top}
-    #html-rosetta-container {position:relative; z-index:11; width:11em}
-    #html-rosetta {background:#fff; position:relative; font-size:0.9em; z-index:11}
-    #html-rosetta p {cursor:pointer; color:#084482; margin:0; padding-right:1.1em}
-    #html-rosetta p span:first-child {text-decoration:underline; width:auto}
-    #html-rosetta p span#ArrowBackground {background:url(https://www.paypalobjects.com/en_US/i/icon/icon_dropdown.gif) center center no-repeat; width:15px; padding:10px; text-decoration:none !important}
-    #html-rosetta ul {width:10.8em; border:1px solid #ccc; margin:0.4em 0 0; padding:0.2em 0}
-    #html-rosetta li {list-style-type:none; margin:0; text-align:left}
-    #html-rosetta li a, #html-rosetta li a:visited {display:block; padding:0.2em 0.7em; color:#000; text-decoration:none; zoom:1}
-    #html-rosetta li a:hover {background:#084482; color:#fff}
-    #html-rosetta div {position:relative; height:0; margin-top:0.3em; overflow:auto}
-    #html-rosetta ul {position:absolute; bottom:0}
-    ul.horizontal li {margin-left:0.25em; padding:0em 1em; border-right:1px solid #999; list-style:none; display:inline}
-    ul.horizontal .last {border:none}
-    ul.arrow {margin:1.6em 0; list-style:none}
-    ul.arrow li {margin:0 0 0.8em; padding-left:0.8em; background:url(https://www.paypalobjects.com/en_US/i/pui/core/icon_content_arrow.gif) 0 0.5em no-repeat}
-    ul.arrow ul {list-style:none}
-    #miniHead {min-height:40px; margin:5px 0; clear:both}
-    #miniHead div.logo {float:right; margin:3px}
-    #miniHead div.traditionalLogo {text-align:right}
-    #miniHead p.headerText {font:italic bold 1.17em verdana; color:#333; padding-top:8px; margin-top:0}
-    #miniHead p.userName {font:normal 1em arial; color:#333; width:150px; padding:0; margin:0}
-    #usrlinks {padding:5px 0 0; width:160px}
-    #usrlinks ul {margin:0}
-    #usrlinks ul li:first-child {padding-left:0px; margin-left:0}
-    #usrlinks ul li {padding:0 0.4em}
-    #html-rosetta-container {position:absolute; z-index:11; width:11em; top:60%}
-    #messageBox {}
-    div.messageBox {width:auto; min-height:44px; margin:1em 0; border:1px solid #fc0; padding:0 12px; background-color:#ffc; background-position:20px 10px; background-repeat:no-repeat}
-    div.messageBox p {margin:10px 0}
-    div.messageBox.notification {border-color:#81a4c6; padding-left:55px; background-color:#f0f6fd; background-image:url(https://www.paypalobjects.com/en_US/i/icon/icon_info_24wx24h.gif)}
-    div.messageBox.confirmation {border-color:#c4de95; padding-left:55px; background-color:#f8feee; background-image:url(https://www.paypalobjects.com/en_US/i/icon/icon_success_24wx24h.gif)}
-    div.messageBox.error, div.messageBox.alert {padding-left:55px; background-image:url(https://www.paypalobjects.com/en_US/i/icon/icon_alert_24wx24h.gif)}
-    #messageBoxMini {background-color:#f00}
-    div.messageBoxMini {width:auto; min-height:20px; margin:1em 0; font-weight:bold}
-    div.messageBoxMini p {margin:0}
-    div.messageBoxMini.notification {color:#c60}
-    div.messageBoxMini.confirmation {color:#c60}
-    div.messageBoxMini.error, div.messageBoxMini.alert {background-position:5px 0px; background-repeat:no-repeat; color:#c00; padding:0 28px; background-image:url(https://www.paypalobjects.com/en_US/i/icon/icon_dg_error_16x16.gif)}
-    #footer {clear:both; padding:2em 9em 1em 9em; color:#999; font-size:0.9em; text-align:center}
-    #footer img {vertical-align:middle}
-    #footer div.legalwrapper {margin:0pt auto}
-    #footer div p.copyrightwrapper {margin:1em 0em 0em 0em}
-    #footer div p.legalcontentwrapper {text-align:center; margin:0em 0em 1em 0em}
-    #footer div span.legalcontent {margin:0pt auto; display:block; width:400px}
-    #footer ul {margin:0.7em 0; list-style-type:none}
-    #footer ul.horizontal li {margin-left:0em !important; padding:0em 0.7em !important}
-    #siteFeedback a {margin-right:0.5em}
-    #legal {}
-    #siteFeedback {bottom:-3px; margin:5px; position:absolute; right:-13px; z-index:4}
-    #siteFeedback a span {display:none}
-    #siteFeedback:hover {position:absolute; right:-13px; bottom:-10px; float:left; background:transparent url(https://www.paypalobjects.com/en_US/i/scr/scr_dg_feedback_bdr_sprite.gif) no-repeat 0 -2px; height:21px; z-index:4}
-    #siteFeedback:hover a {position:relative; float:left; height:21px; margin-right:-5px; margin-left:7px; padding-top:4px; padding-right:7px; background:transparent url(https://www.paypalobjects.com/en_US/i/scr/scr_dg_feedback_bdr_sprite.gif) no-repeat right -27px; text-decoration:none}
-    #siteFeedback:hover a span {display:inline; padding:3px}
-    #siteFeedback:hover a img {border:none}
-    #miniFooter {bottom:0; color:#757575; font-size:0.9em; left:12px; padding:0; position:absolute; width:100%; z-index:1}
-    #miniFooter p {border-top:1px dotted #999; margin:5px 15px 3px 5px; padding:7px 7px 0; position:relative; z-index:10}
-    html body {background-color:transparent; padding:5px 0; margin:0}
-    html.popup body {background-color:#ebf2fa; margin:0 auto}
-    #outer {margin:0 auto; max-width:640px; padding-left:10px; padding-right:35px}
-    #headline {background:url(https://www.paypalobjects.com/en_US/i/scr/scr_mb_blue_header_320x70.gif) no-repeat scroll left 3px transparent; margin-right:15px}
-    #headline h1 {background:url(https://www.paypalobjects.com/en_US/i/scr/scr_mb_blue_header_320x70.gif) no-repeat scroll right bottom transparent; color:#fff; font:italic bold 1.17em Verdana; padding:9px 10px 7px 0; position:relative; right:-10px; height:17px}
-    #headline.tall {background-image:url(https://www.paypalobjects.com/en_US/i/scr/scr_mb_blue_header_320x100.gif)}
-    #headline.tall h1 {background-image:url(https://www.paypalobjects.com/en_US/i/scr/scr_mb_blue_header_320x100.gif); padding-bottom:5px; height:34px}
-    #page {background:url(https://www.paypalobjects.com/en_US/i/scr/scr_dg_sliding_door_bdr_wf.png) top left no-repeat; position:relative; margin-top:15px}
-    #page.alternate {max-height:none}
-    #wrapper {background:url(https://www.paypalobjects.com/en_US/i/scr/scr_dg_sliding_door_bdr_wf.png) no-repeat scroll right top transparent; margin:0 15px 15px 15px; padding:10px 10px 0 0; width:100%; height:478px}
-    html.popup #wrapper {height:auto; min-height:478px; max-height:990px}
-    .buttons {padding-bottom:10px; margin-bottom:0px}
-    #wrapper .miniCloser {position:absolute; width:26px; height:26px; top:-10px; right:-30px; overflow:hidden; z-index:10}
-    #wrapper .miniCloser a {padding:0; border:0; position:relative; display:block}
-    #wrapper .miniCloser a:hover {margin-left:-26px}
-    #wrapper .miniCloser a img {position:relative}
-    .popup .miniCloser a {display:none}
-    html #wrapper.alternate {height:314px; max-height:none; min-height:260px}
-    html #content {overflow:auto; margin:0 5px 10px 0; max-height:360px; min-height:130px}
-    html #wrapper.hasButtons #content {max-height:324px}
-    html #wrapper.alternate #content {height:auto}
-    html #content.decorate {border:1px solid #ccc; margin-right:5px}
-    html.popup #wrapper {height:auto; padding-bottom:15px}
-    html.popup #wrapper.alternate {min-height:300px}
-    html.popup #content, html.popup #wrapper.hasButtons #content {height:auto; max-height:800px}
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>oxAuth</title>
+    <script src="/a4j/g/3_3_3.Final/org/ajax4jsf/framework.pack.js" type="text/javascript"></script><script src="/a4j/g/3_3_3.Final/org/richfaces/ui.pack.js" type="text/javascript"></script><link class="component" href="/a4j/s/3_3_3.Final/org/richfaces/skin.xcss/DATB/eAGTcz60MXT5DGkAD2IDhA__" rel="stylesheet" type="text/css" /><link class="component" href="/a4j/s/3_3_3.FinalMETA-INF/skins/glassX.xcss/DATB/eAGTcz60MXT5DGkAD2IDhA__" rel="stylesheet" type="text/css" /><link class="component" href="/a4j/s/3_3_3.FinalMETA-INF/skins/glassXExt.xcss/DATB/eAGTcz60MXT5DGkAD2IDhA__" media="rich-extended-skinning" rel="stylesheet" type="text/css" /><script type="text/javascript">window.RICH_FACES_EXTENDED_SKINNING_ON=true;</script><link class="user" href="/a4j/s/3_3_3.Final/stylesheet/theme.xcss/DATB/eAGTcz60MXT5DGkAD2IDhA__" rel="stylesheet" type="text/css" /><link class="user" href="/stylesheet/theme.css" rel="stylesheet" type="text/css" /><link class="user" href="/stylesheet/site.css" rel="stylesheet" type="text/css" /></head>
+<body>
+<div class="body"><ul id="messages" class="message"><li class="warnmsg">	Please log in first </li></ul>
+    <form id="loginForm" name="loginForm" method="post" action="/login.seam" enctype="application/x-www-form-urlencoded">
+        <input type="hidden" name="loginForm" value="loginForm" />
+        <div class="rich-panel " id="loginForm:j_id7"><div class="rich-panel-header " id="loginForm:j_id7_header">Login</div><div class="rich-panel-body " id="loginForm:j_id7_body">
+
+            <p class="info">Please login here</p>
+
+            <div class="dialog"><table width="500">
+                <tbody>
+                <tr class="prop">
+                    <td class="name"><label for="loginForm:username">
+                        Username</label></td>
+                    <td class="value"><input id="loginForm:username" type="text" name="loginForm:username" /></td>
+                </tr>
+                <tr class="prop">
+                    <td class="name"><label for="loginForm:password">
+                        Password</label></td>
+                    <td class="value"><input id="loginForm:password" type="password" name="loginForm:password" value="" /></td>
+                </tr>
+                <tr class="prop">
+                    <td class="name"><label for="loginForm:rememberMe">
+                        Remember me</label></td>
+                    <td class="value"><input id="loginForm:rememberMe" type="checkbox" name="loginForm:rememberMe" /></td>
+                </tr>
+                </tbody>
+            </table>
+
+            </div>
+
+            <div class="actionButtons"><input id="loginForm:submit" type="submit" name="loginForm:submit" value="Login" />
+            </div></div></div><input type="hidden" name="javax.faces.ViewState" id="javax.faces.ViewState" value="j_id1" />
+    </form>
+</div>
+<!--div align="center">
+    <s:link view="/logout.xhtml" value="Logout" rendered="false"/>
+</div-->
+<div class="footer">
+    <p>Copyright <a href="http://www.gluu.org">Gluu</a> All rights reserved.</p>
+</div>
+</body>
+</html>

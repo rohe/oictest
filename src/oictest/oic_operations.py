@@ -412,11 +412,16 @@ class Discover(Operation):
     function = discover
     environ_param = "provider_info"
 
-    def post_op(self, result, environ):
+    def post_op(self, result, environ, args):
         # Update the environ with the provider information
         # This overwrites what's there before. In some cases this might not
         # be preferable.
         _pi = result[2].dictionary()
+
+        try:
+            assert args["issuer"] == _pi["issuer"]
+        except KeyError:
+            pass
 
         environ[self.environ_param].update(_pi)
 
@@ -429,15 +434,15 @@ class Discover(Operation):
 
         if "x509_url" in _pi:
             _verkey = jwt.x509_rsa_loads(get_page(_pi["x509_url"]))
-            _keystore.set_verify_key(_verkey, "rsa", _pi["issuer"])
+            _keystore.set_verify_key(_verkey, "rsa", args["issuer"])
         else:
             _verkey = None
 
         if "x509_encryption_url" in _pi:
-            _txt = get_page(_pi["x509_encryption_url"])
-            _client.decrypt_key = ("rsa", jwt.x509_rsa_loads(_txt))
+            _enckey = jwt.x509_rsa_loads(get_page(_pi["x509_encryption_url"]))
+            _keystore.set_decrypt_key(_enckey, "rsa", args["issuer"])
         elif _verkey:
-            _keystore.set_verify_key(_verkey, "rsa", _pi["issuer"])
+            _keystore.set_decrypt_key(_verkey, "rsa", args["issuer"])
 
 # ===========================================================================
 

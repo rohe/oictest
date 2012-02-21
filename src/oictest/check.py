@@ -1,9 +1,9 @@
-
 __author__ = 'rohe0002'
 
 import inspect
 import sys
 import traceback
+import urlparse
 
 from oic.oauth2.message import ErrorResponse
 from oic.oic.message import IdToken
@@ -322,7 +322,8 @@ class InteractionNeeded(CriticalError):
     def _func(self, environ=None):
         self._status = self.status
         self._message = None
-        return {"url": environ["url"]}
+        parts = urlparse.urlsplit(environ["url"])
+        return {"url": "%s://%s/%s" % parts[:3]}
 
 class InteractionCheck(CriticalError):
     """

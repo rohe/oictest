@@ -1,50 +1,93 @@
-{"status":0, "tests":[
+{
+    "status":1,
+    "tests":[
     {
-        "status":200,
-        "message":"OK",
-        "id":"check-registration-response",
-        "name":"Verifies an Registration response. This is additional constrains besides     what is optional or required."
+        "status":0,
+        "message":{
+            "registration_endpoint":"https://connect-op.heroku.com/connect/client",
+            "userinfo_endpoint":"https://connect-op.heroku.com/user_info",
+            "user_id_types_supported":["public", "pairwise"],
+            "scopes_supported":["openid", "profile", "email", "address", "PPID"],
+            "token_endpoint":"https://connect-op.heroku.com/access_tokens",
+            "version":"3.0",
+            "response_types_supported":["code", "token", "id_token", "code token", "code id_token", "id_token token"],
+            "authorization_endpoint":"https://connect-op.heroku.com/authorizations/new",
+            "check_id_endpoint":"https://connect-op.heroku.com/id_token",
+            "x509_url":"https://connect-op.heroku.com/cert.pem",
+            "issuer":"https://connect-op.heroku.com"
+        },
+        "id":"check",
+        "name":"Provider Configuration Response"
     },
     {
-        "status":200,
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/connect/client",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":0,
+        "message":"{\"client_id\":\"1c48d3ca42a5b8784a48bbe15501a074\",\"expires_in\":3599,\"client_secret\":\"64ef9c5679c7f96e39ba875c97b8a2d24cf644050aa82390b3b6e238d661639d\"}",
+        "id":"check",
+        "name":"Registration Response"
+    },
+    {
+        "status":1,
+        "id":"check_content_type_header",
+        "name":"Verify that the content-type header is what it should be."
+    },
+    {
+        "status":1,
+        "url":"https://connect-op.heroku.com/connect/client",
+        "response_type":"RegistrationResponse",
+        "id":"response-parse",
+        "name":"Parsing the response"
+    },
+    {
+        "status":1,
         "id":"check-response-type",
         "name":"Checks that the asked for response type are among the supported"
     },
     {
-        "status":200,
-        "url":"https://openidconnect.info/connect/authorize?nonce=EmoHWkJbtgix&state=STATE0&redirect_uri=https%3A%2F%2Fsmultron.catalogix.se%2Fauthz_cb&response_type=token&client_id=a3001e208ec89182817777d234b27363c4e4a07f&scope=openid",
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/authorizations/new?nonce=8AEN93zNp003&state=STATE0&redirect_uri=https%3A%2F%2Fsmultron.catalogix.se%2Fauthz_cb&response_type=code&client_id=1c48d3ca42a5b8784a48bbe15501a074&scope=openid",
         "id":"check-http-response",
         "name":"Checks that the HTTP response status is within the 200 or 300 range"
     },
     {
-        "status":200,
-        "url":"https://openidconnect.info/connect/consent?data_id=1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/",
         "id":"check-http-response",
         "name":"Checks that the HTTP response status is within the 200 or 300 range"
     },
     {
-        "status":200,
-        "url":"https://openidconnect.info/account/login?done=https%3A%2F%2Fopenidconnect.info%2Fconnect%2Fconsent%3Fdata_id%3D1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/connect/fake",
         "id":"check-http-response",
         "name":"Checks that the HTTP response status is within the 200 or 300 range"
     },
     {
-        "status":200,
-        "url":"https://openidconnect.info/connect/consent?data_id=1328204255.51af87a2b8e6da2cf95f46accac69d68e3",
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/authorizations/new?nonce=8AEN93zNp003&state=STATE0&redirect_uri=https%3A%2F%2Fsmultron.catalogix.se%2Fauthz_cb&response_type=code&client_id=1c48d3ca42a5b8784a48bbe15501a074&scope=openid",
         "id":"check-http-response",
         "name":"Checks that the HTTP response status is within the 200 or 300 range"
     },
     {
-        "status":200,
-        "name":"",
-        "url":"https://openidconnect.info/connect/consent",
-        "message":"OK",
+        "status":1,
+        "url":"https://connect-op.heroku.com/authorizations",
+        "id":"check-http-response",
+        "name":"Checks that the HTTP response status is within the 200 or 300 range"
+    },
+    {
+        "status":1,
+        "url":"https://connect-op.heroku.com/authorizations",
+        "response_type":"AuthorizationResponse",
         "id":"response-parse",
-        "response_type":"AuthorizationResponse"
+        "name":"Parsing the response"
+    },
+    {
+        "status":1,
+        "id":"check-authorization-response",
+        "name":"Verifies an Authorization response. This is additional constrains besides what is optional or required."
     }
-], "id":"oic-token"}
+], "id":"mj-01"}

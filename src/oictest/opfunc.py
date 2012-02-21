@@ -334,7 +334,7 @@ class Operation(object):
     def update(self, dic):
         self.args.update(dic)
 
-    def post_op(self, result, environ):
+    def post_op(self, result, environ, args):
         pass
 
     def __call__(self, environ, trace, location, response, content):
@@ -351,6 +351,6 @@ class Operation(object):
             trace.reply("ARGS: %s" % _args)
 
         result = self.function(environ["client"], response, content, **_args)
-        self.post_op(result, environ)
+        self.post_op(result, environ, _args)
         return result
 
