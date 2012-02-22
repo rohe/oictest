@@ -317,13 +317,12 @@ class InteractionNeeded(CriticalError):
     A Webpage was displayed for which no known interaction is defined.
     """
     id = "interaction-needed"
-    msg = "Unknown error"
+    msg = "Unexpected page"
 
     def _func(self, environ=None):
         self._status = self.status
         self._message = None
-        parts = urlparse.urlsplit(environ["url"])
-        return {"url": "%s://%s/%s" % parts[:3]}
+        return {"url": environ["url"]}
 
 class InteractionCheck(CriticalError):
     """
@@ -334,7 +333,8 @@ class InteractionCheck(CriticalError):
     def _func(self, environ=None):
         self._status = INTERACTION
         self._message = environ["content"]
-        return {"url": environ["url"]}
+        parts = urlparse.urlsplit(environ["url"])
+        return {"url": "%s://%s/%s" % parts[:3]}
 
 class MissingRedirect(CriticalError):
     """ At this point in the flow a redirect back to the client was expected.
@@ -378,8 +378,17 @@ class ScopeWithClaims(Error):
 
     def _func(self, environ=None):
         userinfo_claims = {}
+        req_args = None
+        for resp, req in environ["sequence"]:
+            try:
+                if resp.request == "OpenIDRequest":
+                    req_args = resp.request_args
+                    break
+            except AttributeError:
+                pass
+
         try:
-            _scopes = environ["request_args"]["scope"]
+            _scopes = req_args["scope"]
         except KeyError:
             return {}
 
@@ -391,8 +400,8 @@ class ScopeWithClaims(Error):
             except KeyError:
                 pass
 
-        if "userinfo_claims" in environ["request_args"]:
-            _uic = environ["request_args"]["userinfo_claims"]
+        if "userinfo_claims" in req_args:
+            _uic = req_args["userinfo_claims"]
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
 
@@ -407,8 +416,15 @@ class ScopeWithClaims(Error):
                         pass
                     else:
                         self._status = self.status
-                        self._message = self.errmsg
-                        return {"claims": resp.keys()}
+                        self._message = "required attribute '%s' missing" % (
+                                                                            key)
+                        return {"returned claims": resp.keys()}
+
+        for key in resp.keys():
+            if key not in userinfo_claims:
+                self._status = ERROR
+                self._message = "Unexpected %s claim in response" % key
+                return {"returned claims": resp.keys()}
 
         return {}
 

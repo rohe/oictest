@@ -135,6 +135,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     test_output = []
     _keystore = client.keystore
 
+    environ["sequence"] = sequence
+
     try:
         for creq, cresp in sequence:
             environ["request_spec"] = req = creq(message_mod)
@@ -246,8 +248,12 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                     elif endpoint(client, _base):
                         break
                     else:
-                        _check = getattr(req, "interaction_check")
-                        if _check in req:
+                        try:
+                            _check = getattr(req, "interaction_check")
+                        except AttributeError:
+                            _check = None
+
+                        if _check:
                             chk = factory("interaction-check")()
                             chk(environ, test_output)
                             raise FatalError()
@@ -282,7 +288,11 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 try:
                     info = response["location"]
                 except KeyError:
-                    _check = getattr(req, "interaction_check", None)
+                    try:
+                        _check = getattr(req, "interaction_check", None)
+                    except AttributeError:
+                        _check = None
+
                     if _check:
                         chk = factory("interaction-check")()
                         chk(environ, test_output)
