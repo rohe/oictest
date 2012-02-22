@@ -378,7 +378,12 @@ class ScopeWithClaims(Error):
 
     def _func(self, environ=None):
         userinfo_claims = {}
-        for scope in environ["request_args"]["scope"]:
+        try:
+            _scopes = environ["request_args"]["scope"]
+        except KeyError:
+            return {}
+
+        for scope in _scopes:
             try:
                 claims = dict([(name, {"optional":True}) for name in
                                                          SCOPE2CLAIMS[scope]])
@@ -519,6 +524,21 @@ class RegistrationInfo(ResponseInfo):
 
 class ProviderConfigurationInfo(ResponseInfo):
     """Provider Configuration Response"""
+
+class UnpackAggregatedClaims(Error):
+    id = "unpack-aggregated-claims"
+
+    def _func(self, environ=None):
+        resp = environ["response"]
+        _client = environ["client"]
+
+        try:
+            _client.unpack_aggregated_claims(resp)
+        except Exception, err:
+            self._message = "Unable to unpack aggregated Claims: %s" % err
+            self._status = self.status
+
+        return {}
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

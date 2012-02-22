@@ -116,8 +116,9 @@ class OAuth2(object):
                     _seq.insert(0, op_spec)
                 interact[op_spec[0].__name__] = {"issuer":
                                         self.json_config["provider"]["dynamic"]}
+            else:
+                self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
 
-            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
             tests = self.get_test()
             self.client.state = "STATE0"
 

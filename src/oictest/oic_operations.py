@@ -6,8 +6,6 @@ __author__ = 'rohe0002'
 
 from importlib import import_module
 
-from oic.utils import jwt
-
 from oictest.check import *
 # Used upstream not in this module so don't remove
 from oictest.opfunc import *
@@ -401,9 +399,8 @@ class DResponse(object):
 
 
 #noinspection PyUnusedLocal
-def discover(self, environ, orig_response, content, issuer, location, _trace_):
-    c = Consumer(None, None)
-    pcr = c.provider_config(issuer)
+def discover(self, client, orig_response, content, issuer, location, _trace_):
+    pcr = client.provider_config(issuer)
     return "", DResponse(200, "application/json"), pcr
 
 
@@ -416,33 +413,8 @@ class Discover(Operation):
         # Update the environ with the provider information
         # This overwrites what's there before. In some cases this might not
         # be preferable.
-        _pi = result[2].dictionary()
 
-        try:
-            assert args["issuer"] == _pi["issuer"]
-        except KeyError:
-            pass
-
-        environ[self.environ_param].update(_pi)
-
-        _client = environ["client"]
-        for key, val in _pi.items():
-            if key.endswith("_endpoint"):
-                setattr(_client, key, val)
-
-        _keystore = _client.keystore
-
-        if "x509_url" in _pi:
-            _verkey = jwt.x509_rsa_loads(get_page(_pi["x509_url"]))
-            _keystore.set_verify_key(_verkey, "rsa", args["issuer"])
-        else:
-            _verkey = None
-
-        if "x509_encryption_url" in _pi:
-            _enckey = jwt.x509_rsa_loads(get_page(_pi["x509_encryption_url"]))
-            _keystore.set_decrypt_key(_enckey, "rsa", args["issuer"])
-        elif _verkey:
-            _keystore.set_decrypt_key(_verkey, "rsa", args["issuer"])
+        environ[self.environ_param].update(result[2].dictionary(True))
 
 # ===========================================================================
 
@@ -954,69 +926,80 @@ FLOWS = {
         "name": 'Scope Requesting profile Claims',
         "sequence": ["oic-login+profile", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-15': {
         "name": 'Scope Requesting email Claims',
         "sequence": ["oic-login+email", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-16': {
         "name": 'Scope Requesting address Claims',
         "sequence": ["oic-login+address", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-17': {
         "name": 'Scope Requesting phone Claims',
         "sequence": ["oic-login+phone", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-18': {
         "name": 'Scope Requesting all Claims',
         "sequence": ["oic-login+all", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-19': {
         "name": 'OpenID Request Object with Required name Claim',
         "sequence": ["oic-login+spec1", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-20': {
         "name": 'OpenID Request Object with Optional email and picture Claim',
         "sequence": ["oic-login+spec2", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-21': {
         "name": ('OpenID Request Object with Required name and Optional email and picture Claim'),
         "sequence": ["oic-login+spec3", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
     'mj-22': {
         "name": 'Requesting ID Token with auth_time Claim',
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         "tests": [("verify-id-token", {"claims":{"auth_time": None}})]
         },
     'mj-23': {
         "name": 'Requesting ID Token with Required acr Claim',
         "sequence": ["oic-login+idtc2", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         "tests": [("verify-id-token", {"claims":{"acr": {"values": ["2"]}}})]
         },
     'mj-24': {
         "name": 'Requesting ID Token with Optional acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         "tests": [("verify-id-token", {"claims":{"acr": None}})]
         },
     'mj-25': {
@@ -1051,6 +1034,16 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # ---------------------------------------------------------------------
+    'mj-30': {
+        "name": 'Scope Requesting profile Claims with aggregated Claims',
+        "sequence": ["oic-login+profile", "access-token-request",
+                     "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("unpack-aggregated-claims", {})]
+
+        },
+
 }
 
 if __name__ == "__main__":
