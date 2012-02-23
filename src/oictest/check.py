@@ -368,6 +368,15 @@ class Parse(CriticalError):
             "url": environ["url"]
         }
 
+def get_authz_request(environ):
+    for req, resp in environ["sequence"]:
+        try:
+            if resp.request == "OpenIDRequest":
+                return req
+        except AttributeError:
+            pass
+    return None
+
 class ScopeWithClaims(Error):
     """
     Verifies that the user information returned is consistent with
@@ -378,14 +387,7 @@ class ScopeWithClaims(Error):
 
     def _func(self, environ=None):
         userinfo_claims = {}
-        req_args = None
-        for resp, req in environ["sequence"]:
-            try:
-                if resp.request == "OpenIDRequest":
-                    req_args = resp.request_args
-                    break
-            except AttributeError:
-                pass
+        req_args = get_authz_request(environ).request_args
 
         try:
             _scopes = req_args["scope"]
@@ -555,6 +557,31 @@ class UnpackAggregatedClaims(Error):
             self._status = self.status
 
         return {}
+
+class VerifyAccessTokenResponse(Error):
+    id = "verify-access-token-response"
+    section = "http://openid.bitbucket.org/openid-connect-messages-1_0.html#access_token_response"
+
+    def _func(self, environ=None):
+        resp = environ["response"]
+
+        #This specification further constrains that only Bearer Tokens [OAuth
+        # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
+        # parameter "token_type" MUST be set to "Bearer".
+        if resp.token_type != "Bearer":
+            raise Exception("token_type has to be 'Bearer'")
+
+        #In addition to the OAuth 2.0 response parameters, the following
+        # parameters MUST be included in the response if the grant_type is
+        # authorization_code and the Authorization Request scope parameter
+        # contained openid: id_token
+        req_args = environ["request_args"]
+        if req_args.authorization_code == "grant_type":
+            req = get_authz_request(environ)
+            if "openid" in req.scope:
+                if not resp.id_token:
+                    raise Exception("IdToken has to be present")
+
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

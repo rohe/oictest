@@ -374,6 +374,10 @@ class RegistrationResponse(BodyResponse):
 class AccessTokenResponse(BodyResponse):
     response = "AccessTokenResponse"
 
+    def __init__(self):
+        BodyResponse.__init__(self)
+        self.tests = {"post": [VerifyAccessTokenResponse]}
+
 class UserinfoResponse(BodyResponse):
     response = "OpenIDSchema"
 
