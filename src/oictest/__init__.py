@@ -65,7 +65,10 @@ class OAuth2(object):
     def parse_args(self):
         self.json_config= self.json_config_file()
 
-        self.features = self.json_config["features"]
+        try:
+            self.features = self.json_config["features"]
+        except KeyError:
+            self.features = {}
 
         self.pinfo = self.provider_info()
         self.client_conf(self.client_args)
