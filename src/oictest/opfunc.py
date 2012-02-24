@@ -283,11 +283,6 @@ def chose(client, orig_response, content, path, **kwargs):
     :param path: The relative path to add to the base URL
     :return: The response do_click() returns
     """
-    try:
-        _url = orig_response["content-location"]
-    except KeyError:
-        _url = kwargs["location"]
-    part = urlparse(_url)
     #resp = Response({"status":"302"})
 
     try:
@@ -295,7 +290,17 @@ def chose(client, orig_response, content, path, **kwargs):
     except KeyError:
         _trace = False
 
-    url = "%s://%s%s" %  (part[0], part[1], path)
+    if not path.startswith("http"):
+        try:
+            _url = orig_response["content-location"]
+        except KeyError:
+            _url = kwargs["location"]
+
+        part = urlparse(_url)
+        url = "%s://%s%s" %  (part[0], part[1], path)
+    else:
+        url = path
+
     return do_request(client, url, "GET", trace=_trace)
     #return resp, ""
 
