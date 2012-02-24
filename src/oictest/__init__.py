@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from oic.oic.message import ProviderConfigurationResponse
 from oictest.check import CheckRegistrationResponse
 
 __author__ = 'rohe0002'
@@ -64,6 +65,8 @@ class OAuth2(object):
     def parse_args(self):
         self.json_config= self.json_config_file()
 
+        self.features = self.json_config["features"]
+
         self.pinfo = self.provider_info()
         self.client_conf(self.client_args)
 
@@ -104,13 +107,29 @@ class OAuth2(object):
             self.parse_args()
             _seq = self.make_sequence()
             interact = self.get_interactions()
-            if "register" in self.cconf and self.cconf["register"]:
+
+            if "registration" in self.features and self.features["registration"]:
+                _register = True
+            elif "register" in self.cconf and self.cconf["register"]:
+                _register = True
+            else:
+                _register = False
+
+            if _register:
                 _ext = self.operations_mod.PHASES["oic-registration"]
                 if _ext not in _seq:
                     _seq.insert(0, _ext)
                 interact["RegistrationRequest"] = {"request":
                                                        self.register_args()}
-            if "dynamic" in self.json_config["provider"]:
+
+            if "discovery" in self.features and self.features["discovery"]:
+                _discover = True
+            elif "dynamic" in self.json_config["provider"]:
+                _discover = True
+            else:
+                _discover = False
+
+            if _discover:
                 op_spec = self.operations_mod.PHASES["provider-discovery"]
                 if op_spec not in _seq:
                     _seq.insert(0, op_spec)
@@ -168,23 +187,20 @@ class OAuth2(object):
         # Should provide a Metadata class
         res = {}
         _jc = self.json_config["provider"]
-        for key in ["version", "issuer", "endpoints", "scopes_supported",
-                    "schema", "user_id_types_supported",
-                    "userinfo_algs_supported",
-                    "id_token_algs_supported",
-                    "request_object_algs_supported",
-                    "provider_trust"]:
-            if key == "endpoints":
-                try:
-                    for endp, url in _jc[key].items():
-                        res[endp] = url
-                except KeyError:
-                    pass
-            else:
-                try:
-                    res[key] = _jc[key]
-                except KeyError:
-                    pass
+
+        # Backward compatible
+        if "endpoints" in _jc:
+            try:
+                for endp, url in _jc["endpoints"].items():
+                    res[endp] = url
+            except KeyError:
+                pass
+
+        for key in ProviderConfigurationResponse.c_attributes:
+            try:
+                res[key] = _jc[key]
+            except KeyError:
+                pass
 
         return res
 

@@ -1039,7 +1039,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # ---------------------------------------------------------------------
-    'mj-30': {
+    'mjx-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
                      "user-info-request"],
