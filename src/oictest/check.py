@@ -371,7 +371,7 @@ class Parse(CriticalError):
 def get_authz_request(environ):
     for req, resp in environ["sequence"]:
         try:
-            if resp.request == "OpenIDRequest":
+            if req.request in ["OpenIDRequest", "AuthorizationRequest"]:
                 return req
         except AttributeError:
             pass
@@ -575,13 +575,14 @@ class VerifyAccessTokenResponse(Error):
         # parameters MUST be included in the response if the grant_type is
         # authorization_code and the Authorization Request scope parameter
         # contained openid: id_token
-        req_args = environ["request_args"]
-        if req_args.authorization_code == "grant_type":
+        cis = environ["cis"][-1]
+        if cis.grant_type == "authorization_code":
             req = get_authz_request(environ)
-            if "openid" in req.scope:
+            if "openid" in req.request_args["scope"]:
                 if not resp.id_token:
                     raise Exception("IdToken has to be present")
 
+        return {}
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

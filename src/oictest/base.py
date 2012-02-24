@@ -136,7 +136,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     _keystore = client.keystore
 
     environ["sequence"] = sequence
-
+    environ["cis"] = []
     try:
         for creq, cresp in sequence:
             environ["request_spec"] = req = creq(message_mod)

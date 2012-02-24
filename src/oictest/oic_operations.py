@@ -57,6 +57,7 @@ class Request():
                                                       method=self.method,
                                                       request_args=_req)
 
+        environ["cis"].append(cis)
         if h_arg:
             ht_args.update(h_arg)
         if ht_add:
