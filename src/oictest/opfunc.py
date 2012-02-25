@@ -283,7 +283,6 @@ def chose(client, orig_response, content, path, **kwargs):
     :param path: The relative path to add to the base URL
     :return: The response do_click() returns
     """
-    #resp = Response({"status":"302"})
 
     try:
         _trace = kwargs["trace"]
