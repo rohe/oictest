@@ -16,8 +16,8 @@ info = {
         },
 
     "interaction": {
-#        "https://localhost:8088/authorization": ["select_form",
-#                {"login":"diana", "password": "krall"}],
+        "https://localhost:8088/authorization": ["select_form",
+                {"login":"diana", "password": "krall"}],
     }
 }
 

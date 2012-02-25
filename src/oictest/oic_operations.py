@@ -455,9 +455,9 @@ PHASES= {
     "oic-login-code+idtoken+token": (OpenIDRequestCodeIDTokenToken,
                                      AuthzResponse),
 #
-    "access-token-request_basic":(AccessTokenRequestCSBasic,
-                                AccessTokenResponse),
-    "access-token-request":(AccessTokenRequestCSPost, AccessTokenResponse),
+    "access-token-request_basic":(AccessTokenRequestCSPost,
+                                  AccessTokenResponse),
+    "access-token-request":(AccessTokenRequestCSBasic, AccessTokenResponse),
     "check-id-request_gbh":(CheckIDRequestGetBearerHeader, CheckIdResponse),
     "check-id-request_pbh":(CheckIDRequestPostBearerHeader, CheckIdResponse),
     "check-id-request_pbb":(CheckIDRequestPostBearerBody, CheckIdResponse),

@@ -185,7 +185,15 @@ class CheckTokenEndpointAuthType(CriticalError):
         try:
             _met = environ["args"]["authn_method"]
             _pi = environ["provider_info"]
-            if _met not in _pi["token_endpoint_auth_types_supported"]:
+            try:
+                _sup = _pi["token_endpoint_auth_types_supported"]
+            except KeyError:
+                _sup = None
+
+            if not _sup:
+                _sup = ["client_secret_basic"]
+
+            if _met not in _sup:
                 self._message = self.msg
                 self._status = self.status
         except KeyError:
