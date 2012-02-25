@@ -568,7 +568,7 @@ class VerifyAccessTokenResponse(Error):
         #This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
         # parameter "token_type" MUST be set to "Bearer".
-        if resp.token_type != "Bearer":
+        if resp.token_type and resp.token_type.lower() != "bearer":
             raise Exception("token_type has to be 'Bearer'")
 
         #In addition to the OAuth 2.0 response parameters, the following
