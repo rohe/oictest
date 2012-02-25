@@ -334,7 +334,7 @@ class InteractionCheck(CriticalError):
         self._status = INTERACTION
         self._message = environ["content"]
         parts = urlparse.urlsplit(environ["url"])
-        return {"url": "%s://%s/%s" % parts[:3]}
+        return {"url": "%s://%s%s" % parts[:3]}
 
 class MissingRedirect(CriticalError):
     """ At this point in the flow a redirect back to the client was expected.
