@@ -318,10 +318,10 @@ class OIC(OAuth2):
 
         if "x509_encryption_url" in self.pinfo:
             _txt = get_page(self.pinfo["x509_encryption_url"])
-            _keystore.set_dec_key(jwt.x509_rsa_loads(_txt), "rsa",
+            _keystore.set_decrypt_key(jwt.x509_rsa_loads(_txt), "rsa",
                                      self.pinfo["issuer"])
         elif _verkey:
-            _keystore.set_dec_key(_verkey, "rsa", self.pinfo["issuer"])
+            _keystore.set_decrypt_key(_verkey, "rsa", self.pinfo["issuer"])
 
         #        if "jwk_url" in self.pinfo:
         #            self.signing_key = http.request(self.pinfo["jwk_url"])
