@@ -448,15 +448,27 @@ class verifyErrResponse(CriticalError):
     def _func(self, environ):
         _content = environ["content"]
 
-        res = {}
-        try:
-            err = ErrorResponse.set_json(_content, extended=True)
-            err.verify()
-        except Exception:
-            self._message = self.msg
-            self._status = self.status
+        if _content:
+            try:
+                err = ErrorResponse.set_json(_content, extended=True)
+                err.verify()
+            except Exception:
+                self._message = self.msg
+                self._status = self.status
+        else:
+            # might be a redirect with query parts
+            _resp = environ["response"]
+            if _resp.status == 302:
+                _content = _resp["location"].split("?")[1]
 
-        res["url"] = environ["url"]
+            try:
+                err = ErrorResponse.set_urlencoded(_content, extended=True)
+                err.verify()
+            except Exception:
+                self._message = self.msg
+                self._status = self.status
+
+        res = {"url": environ["url"]}
 
         return res
 
@@ -577,7 +589,8 @@ class VerifyAccessTokenResponse(Error):
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
         # parameter "token_type" MUST be set to "Bearer".
         if resp.token_type and resp.token_type.lower() != "bearer":
-            raise Exception("token_type has to be 'Bearer'")
+            self._message = "token_type has to be 'Bearer'"
+            self._status = self.status
 
         #In addition to the OAuth 2.0 response parameters, the following
         # parameters MUST be included in the response if the grant_type is
@@ -588,7 +601,44 @@ class VerifyAccessTokenResponse(Error):
             req = get_authz_request(environ)
             if "openid" in req.request_args["scope"]:
                 if not resp.id_token:
-                    raise Exception("IdToken has to be present")
+                    self._message = "IdToken has to be present"
+                    self._status = self.status
+
+        return {}
+
+class SingleSignOn(Error):
+    """ Verifies that Single-Sign-On actually works """
+    id = "single-sign-on"
+
+    def _func(self, environ):
+        logins = 0
+
+        for line in environ["trace"]:
+            if ">> login <<" in line:
+                logins += 1
+
+        if logins > 1:
+            self._message = " ".join(["Multiple authentications when only one",
+                                      "was expected"])
+            self._status = self.status
+
+        return {}
+
+class MultipleSignOn(Error):
+    """ Verifies that multiple authentication was used in the flow """
+    id = "multiple-sign-on"
+
+    def _func(self, environ):
+        logins = 0
+
+        for line in environ["trace"]:
+            if ">> login <<" in line:
+                logins += 1
+
+        if logins == 1:
+            self._message = " ".join(["Only one authentication when more than",
+                                      "one was expected"])
+            self._status = self.status
 
         return {}
 

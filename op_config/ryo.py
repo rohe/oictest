@@ -17,10 +17,26 @@ info = {
     },
     "dynamic": "https://openidconnect.info/"
   },
-  "interaction": {
-    "https://openidconnect.info/account/login": ["chose", {"path": "/account/fake"}],
-    "https://openidconnect.info/connect/consent": ["select_form", {}]
-  }
+  "interaction": [
+      {
+          "matches" : {
+              "url": "https://openidconnect.info/account/login"
+          },
+          "page-type": "login",
+          "control": {
+              "type": "link",
+              "path": "/account/fake"
+          }
+      },{
+          "matches" : {
+              "url": "https://openidconnect.info/connect/consent"
+          },
+          "page-type": "user-consent",
+          "control": {
+              "type": "form"
+          }
+      }
+  ]
 }
 
 print json.dumps(info)

@@ -17,15 +17,28 @@ info = {
     },
     "dynamic": "https://connect.openid4.us/"
   },
-
-  "interaction": {
-    "https://connect.openid4.us/abop/op.php/auth": ["select_form", None],
-    "https://connect.openid4.us/abop/op.php/login": ["select_form", {
-      "_form_pick_": {
-        "control": ("persona", "Default")
+  "interaction": [
+          {
+          "matches" : {
+              "title": "connect.openid4.us OP"
+          },
+          "control": {
+              "type": "form"
+          },
+          "page-type": "login"
+      },{
+          "matches" : {
+              "title": "connect.openid4.us AX Confirm"
+          },
+          "control": {
+              "type": "form",
+              "pick": {
+                  "control": {"id":"persona", "value":"Default"}
+              }
+          },
+          "page-type":"user-consent"
       }
-    }]
-  }
+  ]
 }
 
 print json.dumps(info)

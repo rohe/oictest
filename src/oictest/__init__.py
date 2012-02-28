@@ -122,8 +122,8 @@ class OAuth2(object):
                 _ext = self.operations_mod.PHASES["oic-registration"]
                 if _ext not in _seq:
                     _seq.insert(0, _ext)
-                interact["RegistrationRequest"] = {"request":
-                                                       self.register_args()}
+                interact.append({"matches": {"class":"RegistrationRequest"},
+                                 "args":{"request":self.register_args()}})
 
             if "discovery" in self.features and self.features["discovery"]:
                 _discover = True
@@ -136,8 +136,10 @@ class OAuth2(object):
                 op_spec = self.operations_mod.PHASES["provider-discovery"]
                 if op_spec not in _seq:
                     _seq.insert(0, op_spec)
-                interact[op_spec[0].__name__] = {"issuer":
-                                        self.json_config["provider"]["dynamic"]}
+                interact.append({"matches": {"class": op_spec[0].__name__},
+                                 "args":{"issuer":
+                                    self.json_config["provider"]["dynamic"]}})
+
             else:
                 self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
 
@@ -267,13 +269,18 @@ class OAuth2(object):
             else:
                 interactions = json.loads(_int)
 
-        for url, spec in interactions.items():
-            try:
-                func_name, args = spec
-                func = getattr(self.operations_mod, func_name)
-                interactions[url] = (func, args)
-            except ValueError:
-                interactions[url] = spec
+#        res = {}
+#        for var in ["title", "url", "class"]:
+#            if var not in interactions:
+#                continue
+#            res[var] = {}
+#            for url, spec in interactions[var].items():
+#                try:
+#                    func_name, args, typ = spec
+#                    func = getattr(self.operations_mod, func_name)
+#                    res[var][url] = (func, args, typ)
+#                except ValueError:
+#                    res[var][url] = spec
 
         return interactions
 

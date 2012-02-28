@@ -24,24 +24,33 @@ info = {
     "id_token_algs_supported": ["RS256"],
     "x509_url": "https://connect-op.heroku.com/cert.pem"
   },
-  "interaction": {
-    "https://connect-op.heroku.com/": [
-      "select_form", {
-        "_form_pick_": {
-          "action": "/connect/fake"
-        }
+  "interaction":[
+          {
+          "matches" : {
+              "url": "https://connect-op.heroku.com/authorizations/new"
+          },
+          "page-type": "user-consent",
+          "control": {
+              "type": "form",
+              "pick": {
+                  "form": {"action": "/authorizations",
+                           "class": "approve"}
+              }
+
+          }
+      },{
+          "matches" : {
+              "url": "https://connect-op.heroku.com/"
+          },
+          "page-type": "login",
+          "control": {
+              "type": "form",
+              "pick":{
+                  "form":{"action": "/connect/fake"}
+              }
+          }
       }
-    ],
-    "https://connect-op.heroku.com/authorizations/new": [
-      "select_form",
-      {
-        "_form_pick_": {
-          "action": "/authorizations",
-          "class": "approve"
-        }
-      }
-    ]
-  }
+  ]
 }
 
 print json.dumps(info)

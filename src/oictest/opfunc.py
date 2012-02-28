@@ -1,7 +1,6 @@
 __author__ = 'rohe0002'
 
 import json
-import httplib2
 
 from urlparse import urlparse
 
@@ -145,18 +144,20 @@ def pick_form(response, content, url=None, **kwargs):
     if len(forms) == 1:
         _form = forms[0]
     else:
-        if "_form_pick_" in kwargs:
-            _dict = kwargs["_form_pick_"]
+        if "pick" in kwargs:
+            _dict = kwargs["pick"]
             for form in forms:
                 if _form:
                     break
-                _keys = form.attrs.keys()
-                for key,val in _dict.items():
-                    if key in _keys:
-                        if val == form.attrs[key]:
-                            _form = form
+                for key, _ava in _dict.items():
+                    if key == "form":
+                        _keys = form.attrs.keys()
+                        for attr, val in _ava.items():
+                            if attr in _keys and val == form.attrs[attr]:
+                                _form = form
                     elif key == "control":
-                        prop, _default = val
+                        prop = _ava["id"]
+                        _default = _ava["value"]
                         try:
                             orig_val = form[prop]
                             if isinstance(orig_val, basestring):
@@ -171,8 +172,8 @@ def pick_form(response, content, url=None, **kwargs):
 
                     if not _form:
                         break
-        else:
-            _form = forms[kwargs["_form_nr_"]]
+        elif "index" in kwargs:
+            _form = forms[kwargs["index"]]
 
     return _form
 
@@ -201,46 +202,6 @@ def do_click(client, form, **kwargs):
     else:
         return do_request(client, url, "GET", headers=headers, trace=_trace)
 
-#noinspection PyUnusedLocal
-#def login_form(client, orig_response, content, **kwargs):
-#    try:
-#        _url = orig_response["content-location"]
-#    except KeyError:
-#        _url = kwargs["location"]
-#    # content is a form to be filled in and returned
-#    response = DResponse(status=orig_response["status"], url=_url)
-#    response.write(content)
-#
-#    form = pick_form(response, content, _url, **kwargs)
-#
-#    try:
-#        form[kwargs["user_label"]] = kwargs["user"]
-#    except KeyError:
-#        pass
-#
-#    try:
-#        form[kwargs["password_label"]] = kwargs["password"]
-#    except KeyError:
-#        pass
-#
-#    return do_click(client, form, **kwargs)
-
-##noinspection PyUnusedLocal
-#def approve_form(client, orig_response, content, **kwargs):
-#    # content is a form to be filled in and returned
-#    response = DResponse(status=orig_response["status"])
-#    if orig_response["status"] == 302:
-#        response.url = orig_response["content-location"]
-#    else:
-#        response.url = client.authorization_endpoint
-#    response.write(content)
-#
-#    form = pick_form(response, content, **kwargs)
-#
-#    # do something with args
-#
-#    return do_click(client, form, **kwargs)
-
 def select_form(client, orig_response, content, **kwargs):
     """
     Pick a form on a web page, possibly enter some information and submit
@@ -261,14 +222,15 @@ def select_form(client, orig_response, content, **kwargs):
 
     form = pick_form(response, content, _url, **kwargs)
 
-    for key, val in kwargs.items():
-        if key.startswith("_"):
-            continue
+    if "set" in kwargs:
+        for key, val in kwargs["set"].items():
+            if key.startswith("_"):
+                continue
 
-        try:
-            form[key] = val
-        except ControlNotFoundError:
-            pass
+            try:
+                form[key] = val
+            except ControlNotFoundError:
+                pass
 
     return do_click(client, form, **kwargs)
 
@@ -322,12 +284,22 @@ def post_form(client, orig_response, content, **kwargs):
 
     return do_click(client, form, **kwargs)
 
+#noinspection PyUnusedLocal
+def interaction(args):
+    _type = args["type"]
+    if _type == "form":
+        return select_form
+    elif _type == "link":
+        return chose
+    else:
+        return None
+
 # ========================================================================
 
 class Operation(object):
-    def __init__(self, message_mod, function=None, args=None):
-        if function:
-            self.function = function
+    def __init__(self, message_mod, args=None):
+        if args:
+            self.function = interaction(args)
 
         self.message_mod = message_mod
         self.args = args or {}
@@ -336,6 +308,7 @@ class Operation(object):
     def update(self, dic):
         self.args.update(dic)
 
+    #noinspection PyUnusedLocal
     def post_op(self, result, environ, args):
         pass
 

@@ -2,6 +2,10 @@
 
 __author__ = 'rohe0002'
 
+import time
+
+from bs4 import BeautifulSoup
+
 from importlib import import_module
 from oictest.opfunc import do_request
 from oictest.opfunc import Operation
@@ -13,27 +17,40 @@ class FatalError(Exception):
 class Trace(object):
     def __init__(self):
         self.trace = []
+        self.start = time.time()
 
     def request(self, msg):
-        self.trace.append("--> %s" % msg)
+        delta = time.time() - self.start
+        self.trace.append("%f --> %s" % (delta, msg))
 
     def reply(self, msg):
-        self.trace.append("<-- %s" % msg)
+        delta = time.time() - self.start
+        self.trace.append("%f <-- %s" % (delta, msg))
 
     def info(self, msg):
-        self.trace.append("%s" % msg)
+        delta = time.time() - self.start
+        self.trace.append("%f %s" % (delta, msg))
 
     def error(self, msg):
-        self.trace.append("[ERROR] %s" % msg)
+        delta = time.time() - self.start
+        self.trace.append("%f [ERROR] %s" % (delta, msg))
 
     def warning(self, msg):
-        self.trace.append("[WARNING] %s" % msg)
+        delta = time.time() - self.start
+        self.trace.append("%f [WARNING] %s" % (delta, msg))
 
     def __str__(self):
         return "\n". join([t.encode("utf-8") for t in self.trace])
 
     def clear(self):
         self.trace = []
+
+    def __getitem__(self, item):
+        return self.trace[item]
+
+    def next(self):
+        for line in self.trace:
+            yield line
 
 def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
@@ -123,6 +140,35 @@ def check_severity(stat):
 #
 #    return url, response, content
 
+def pick_interaction(interactions, _base="", content="", req=None):
+    if content:
+        _bs = BeautifulSoup(content)
+    else:
+        _bs = None
+
+    for interaction in interactions:
+        _match = 0
+        for attr, val in interaction["matches"].items():
+            if attr == "url":
+                if val == _base:
+                    _match += 1
+            elif attr == "title":
+                if _bs is None:
+                    break
+                if _bs.title is None:
+                    break
+                if val in _bs.title.contents:
+                    _match += 1
+            elif attr == "content" and val in content:
+                _match += 1
+            elif attr == "class":
+                if req and val == req:
+                    _match += 1
+
+        if _match == len(interaction["matches"]):
+            return interaction
+
+    raise KeyError("No interaction matched")
 
 ORDER = ["url","response","content"]
 
@@ -137,6 +183,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
     environ["sequence"] = sequence
     environ["cis"] = []
+    environ["trace"] = trace
+
     try:
         for creq, cresp in sequence:
             environ["request_spec"] = req = creq(message_mod)
@@ -150,12 +198,14 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
             if isinstance(req, Operation):
                 try:
-                    req.update(interaction[creq.__name__])
+                    req.update(pick_interaction(interaction,
+                                                req=creq.__name__)["args"])
                 except KeyError:
                     pass
             else:
                 try:
-                    req.update(interaction[req.request])
+                    req.update(pick_interaction(interaction,
+                                                req=req.request)["args"])
                 except KeyError:
                     pass
                 try:
@@ -241,7 +291,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 _base = url.split("?")[0]
 
                 try:
-                    _spec = interaction[_base]
+                    _spec = pick_interaction(interaction, _base, content)
                 except KeyError:
                     if creq.method == "POST":
                         break
@@ -262,7 +312,9 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                             chk(environ, test_output)
                             raise FatalError()
 
-                _op = Operation(message_mod, function=_spec[0], args=_spec[1])
+                if len(_spec) > 2:
+                    trace.info(">> %s <<" % _spec["page-type"])
+                _op = Operation(message_mod, _spec["control"])
 
                 try:
                     part = _op(environ, trace, url, response, content)

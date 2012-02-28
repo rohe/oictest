@@ -14,15 +14,18 @@ info = {
         "version": { "oauth": "2.0", "openid": "3.0"},
         "dynamic": "https://www.kodtest.se:8088/",
     },
-    "interaction": {
-        "https://www.kodtest.se:8088/authorization": [
-            "select_form",
-            {
-                "login":"diana",
-                "password": "krall"
+    "interaction": [
+        {
+            "matches": {
+                "url": "https://www.kodtest.se:8088/authorization",
+            },
+            "page-type": "login",
+            "control": {
+                "type": "form",
+                "set": {"login":"diana","password": "krall"}
             }
-        ],
-    }
+        }
+    ]
 }
 
 print json.dumps(info)

@@ -4,6 +4,7 @@ __author__ = 'rohe0002'
 
 # ========================================================================
 
+import time
 from importlib import import_module
 
 from oictest.check import *
@@ -219,12 +220,18 @@ class OpenIDRequestCodeIDTClaim3(OpenIDRequestCode):
         OpenIDRequestCode.__init__(self, message_mod)
         self.request_args["idtoken_claims"] = {"claims": {"acr": None}}
 
-class OpenIDRequestCodeIDTClaim4(OpenIDRequestCode):
+class OpenIDRequestCodeIDTMaxAge1(OpenIDRequestCode):
+
+    def __init__(self, message_mod):
+        time.sleep(2)
+        OpenIDRequestCode.__init__(self, message_mod)
+        self.request_args["idtoken_claims"] = {"max_age": 1}
+
+class OpenIDRequestCodeIDTMaxAge10(OpenIDRequestCode):
 
     def __init__(self, message_mod):
         OpenIDRequestCode.__init__(self, message_mod)
         self.request_args["idtoken_claims"] = {"max_age": 10}
-
 
 class OpenIDRequestToken(GetRequest):
     request = "OpenIDRequest"
@@ -439,7 +446,8 @@ PHASES= {
     "oic-login+idtc1": (OpenIDRequestCodeIDTClaim1, AuthzResponse),
     "oic-login+idtc2": (OpenIDRequestCodeIDTClaim2, AuthzResponse),
     "oic-login+idtc3": (OpenIDRequestCodeIDTClaim3, AuthzResponse),
-    "oic-login+idtc4": (OpenIDRequestCodeIDTClaim4, AuthzResponse),
+    "oic-login+idtc4": (OpenIDRequestCodeIDTMaxAge1, AuthzResponse),
+    "oic-login+idtc5": (OpenIDRequestCodeIDTMaxAge10, AuthzResponse),
 
     "oic-login+disp_page": (OpenIDRequestCodeDisplayPage, AuthzResponse),
     "oic-login+disp_popup": (OpenIDRequestCodeDisplayPopUp, AuthzResponse),
@@ -1007,13 +1015,24 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"claims":{"acr": None}})]
         },
-    'mj-25': {
-        "name": 'Requesting ID Token with max_age=10 seconds Restriction',
-        "sequence": ["oic-login+idtc4", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "tests": [("verify-id-token", {"claims":{"max_age": 10}})]
+    'mj-25a': {
+        "name": 'Requesting ID Token with max_age=1 seconds Restriction',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request", "oic-login+idtc4",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("multiple-sign-on", {})]
         },
+    'mj-25b': {
+        "name": 'Requesting ID Token with max_age=10 seconds Restriction',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request", "oic-login+idtc5",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("single-sign-on", {})]
+    },
     # ---------------------------------------------------------------------
     'mj-26': {
         "name": 'Request with display=page',
@@ -1039,7 +1058,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # ---------------------------------------------------------------------
-    'mjx-30': {
+    'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
                      "user-info-request"],
