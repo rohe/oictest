@@ -21,7 +21,7 @@ __author__ = 'rohe0002'
 
 setup(
     name="oictest",
-    version="0.1.0",
+    version="0.1.1",
     description="Tools to test OAuth2 and/or OpenID Connect implementations",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
@@ -35,6 +35,7 @@ setup(
         "oic",
         "mechanize",
         "argparse",
+        "beautifulsoup4",
         #"importlib" only needed for 2.6
         ],
 
