@@ -1,0 +1,122 @@
+[
+    {
+        "interaction": [
+                {
+                "matches" : {
+                    "title": "connect.openid4.us OP"
+                },
+                "control": {
+                    "type": "form"
+                },
+                "page-type": "login"
+            },
+            {
+                "matches" : {
+                    "title": "connect.openid4.us AX Confirm"
+                },
+                "control": {
+                    "type": "form",
+                    "pick": {
+                        "control": {"id":"persona", "value":"Default"}
+                    }
+                },
+                "page-type":"user-consent"
+            }
+        ]
+    },
+    {
+        "interaction":[
+            {
+                "matches" : {
+                    "url": "https://openidconnect.info/account/login"
+                },
+                "page-type": "login",
+                "control": {
+                    "type": "link",
+                    "path": "/account/fake"
+                }
+            },
+            {
+                "matches" : {
+                    "url": "https://openidconnect.info/account/consent"
+                },
+                "page-type": "user-consent",
+                "control": {
+                    "type": "form"
+                }
+            }
+        ]
+    },
+    {
+        "interaction":[
+            {
+                "matches" : {
+                    "url": "https://connect-op.heroku.com/authorizations/new"
+                },
+                "page-type": "user-consent",
+                "control": {
+                    "type": "form",
+                    "pick": {
+                        "form": {"action": "/authorizations", "class": "approve"}
+                    }
+                }
+            },
+            {
+                "matches" : {
+                    "url": "https://connect-op.heroku.com/"
+                },
+                "page-type": "login",
+                "control": {
+                    "type": "form",
+                    "pick":{"form": {"action": "/connect/fake"}}
+                }
+            }
+        ]
+    },
+    {
+        "interaction": [
+            {
+                "matches": {
+                    "url":"https://openidconnect.ebay.com/oreo/primary-auth/dummy-signin.jsp"
+                },
+                "page-type": "login",
+                "control":{
+                    "type":"form",
+                    "set": {"username": "test", "password": "password"}
+                }
+            },
+            {
+                "matches": {
+                    "url": "https://openidconnect.ebay.com/oreo/consent/consent-pp-like.jsp"
+                },
+                "page-type": "user-consent",
+                "control": {
+                    "type":"form"
+                }
+            },
+            {
+                "matches": {
+                    "url": "https://openidconnect.ebay.com/oreo/consent/consent-plain.jsp"
+                },
+                "page-type": "user-consent",
+                "control": {
+                    "type":"form"
+                }
+            }
+        ]
+    },
+    {
+        "interaction": [
+            {
+                "matches": {
+                    "url": "https://www.kodtest.se:8088/authorization"
+                },
+                "page-type": "login",
+                "control": {
+                    "type": "form",
+                    "set": {"login":"diana","password": "krall"}
+                }
+            }
+        ]
+    }
+]

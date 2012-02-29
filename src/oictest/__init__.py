@@ -254,7 +254,7 @@ class OAuth2(object):
         return sequence
 
     def get_interactions(self):
-        interactions = {}
+        interactions = []
 
         if self.json_config:
             try:
