@@ -36,47 +36,90 @@ The tool has to be taught how to do this and what is used is something
 called interactions.
 This is part of the configuration of the tool and this is an example::
 
-    "interaction": {
-        "https://www.kodtest.se:8088/authorization": ["select_form",
-                {"login":"diana", "password": "krall"}],
-    }
+    "interaction": [
+        {
+            "matches": {
+                "url": "https://www.kodtest.se:8088/authorization"
+            },
+            "page-type": "login",
+            "control": {
+                "type": "form",
+                "set": {"login":"diana","password": "krall"}
+            }
+        }
+    ]
 
 What this means is that when the tool gets to the page with the URL above,
 what is on the page is among other things a form. Two things should be added
 to the form. An input field with the id=login should be given the value "diana"
 and another input field (id=password) should have the value "krall".
 After that the form will be submitted.
+The 'page-type' parameter is used by the test tool to keep tracks on what
+type of interactions that are happening between the user and the service.
 
 Another example::
 
-    "interaction": {
-        "https://openidconnect.info/account/login": ["chose",
-                            {"path": "/account/fake"}],
-        "https://openidconnect.info/connect/consent": ["select_form", {}],
-    }
+    "interaction":[
+        {
+            "matches" : {
+                "url": "https://openidconnect.info/account/login"
+            },
+            "page-type": "login",
+            "control": {
+                "type": "link",
+                "path": "/account/fake"
+            }
+        },
+        {
+            "matches" : {
+                "url": "https://openidconnect.info/account/consent"
+            },
+            "page-type": "user-consent",
+            "control": {
+                "type": "form"
+            }
+        }
+    ]
 
 Here there are two pages where user action are expected. On the first one
-the user should click on a link with the path "/account/fake".
-The second is again a form, but this form is pre-filled with the necessary
-information so a submit is all that is needed.
+(the login page) the user should click on a link with the path "/account/fake".
+The second is again a user consent form, but this form is pre-filled with
+the necessary information so a submit is all that is needed.
 
 The third example deals with the case where one page contains more than one
 form, so the tools has to chose which one to deal with::
 
-    "interaction": {
-        "https://connect-op.heroku.com/": ["select_form",
-                        {"_form_pick_": {"action": "/connect/fake"}}],
-        "https://connect-op.heroku.com/authorizations/new": ["select_form",
-                {"_form_pick_": {"action": "/authorizations",
-                                 "class": "approve"}}],
-    }
+    "interaction":[
+        {
+            "matches" : {
+                "url": "https://connect-op.heroku.com/authorizations/new"
+            },
+            "page-type": "user-consent",
+            "control": {
+                "type": "form",
+                "pick": {
+                    "form": {"action": "/authorizations", "class": "approve"}
+                }
+            }
+        },
+        {
+            "matches" : {
+                "url": "https://connect-op.heroku.com/"
+            },
+            "page-type": "login",
+            "control": {
+                "type": "form",
+                "pick":{"form": {"action": "/connect/fake"}}
+            }
+        }
+    ]
 
 On the first page the form is pick solely on the action defined for the form.::
 
     <form accept-charset="UTF-8" action="/connect/fake" method="post">
 
 On the second page the action is not enough to distinguish between the forms so
-another attribute is used in this case the 'class'.
+another attribute is used, in this case the 'class'.
 
 The relevant part of the HTML::
 
@@ -85,13 +128,38 @@ The relevant part of the HTML::
 
 And a last example::
 
-    "interaction": {
-        "https://connect.openid4.us/abop/op.php/auth": ["select_form", None],
-        "https://connect.openid4.us/abop/op.php/login": ["select_form",
-                        {"_form_pick_": {"control": ("persona", "Default")}}]
-    }
+    "interaction": [
+            {
+            "matches" : {
+                "title": "connect.openid4.us OP"
+            },
+            "control": {
+                "type": "form"
+            },
+            "page-type": "login"
+        },
+        {
+            "matches" : {
+                "title": "connect.openid4.us AX Confirm"
+            },
+            "control": {
+                "type": "form",
+                "pick": {
+                    "control": {"id":"persona", "value":"Default"}
+                }
+            },
+            "page-type":"user-consent"
+        }
+    ]
 
-The first one is straightforward the second a bit more complicated.
+Here one problem was that the url was not unique, dependent on where in the
+process a user might be the URL was the same but the page returned was
+different. So I had to use something else that was unique for the page.
+The *title* of the page turned out to be useful.
+
+Once that was done the handling of the login page is straightforward
+while the consent page was a bit more complicated.
+
 In this case there are more then one form on the page and arguments on
 the <form> tag are not enough to distinguish between the forms.
 So I have had to resort to use information within the form. ::
@@ -100,22 +168,31 @@ So I have had to resort to use information within the form. ::
   <input type="hidden" name="mode" value="ax_confirm">
   <input type="hidden" name="persona" value="Default">
 
-It turn out that there is a hidden control which can used to distinguish
+It turn out that there was a hidden control which could be used to distinguish
 between the forms.
 
-I you want to test someone else's OP this part has to be done by trial and
+If you want to test someone else's OP this part has to be done by trial and
 error.
 
 Server information
 ==================
 
 How much information that has to be added to the configuration depends on
-whether the OP supports dynamic discovery or not.
-If it does, something similar to this is enough::
+whether the OP supports dynamic discovery and client registration or not.
+The first part of the configuration deals with this::
+
+    "features": {
+        "registration": True,
+        "discovery": True,
+        "sessionmangement": False
+    },
+
+If the OP supports discovery, then you don't have to add so much
+information about the OP, something similar to this is should be enough::
 
     "provider": {
-        "version": "openid": "3.0",
-        "dynamic": "https://openidconnect.ebay.com/",
+        "version": { "oauth": "2.0", "openid": "3.0"},
+        "dynamic": "https://www.kodtest.se:8088/",
         },
 
 The *dynamic* parameter specifies where you expect to find the provider
@@ -127,26 +204,22 @@ http://openid.net/specs/openid-connect-discovery-1_0-07.html
 with one exception and that is that all the endpoints are collected in
 a dictionary, like this::
 
-    {
-    "endpoints": {
-        "authorization_endpoint": "https://server.example.com/connect/authorize",
-        "token_endpoint": "https://server.example.com/connect/token",
-        "userinfo_endpoint": "https://server.example.com/connect/user",
-        "check_id_endpoint": "https://server.example.com/connect/check_id",
-        "registration_endpoint": "https://server.example.com/connect/register",
-    }
-    "issuer" : "https://server.example.com",
-    "token_endpoint_auth_types_supported": ["client_secret_basic",
-                                            "private_key_jwt"],
-    "jwk_url": "https://server.example.com/jwk.json",
-    "scopes_supported": ["openid", "profile", "email", "address", "phone"],
-    "response_types_supported": ["code", "code id_token", "token id_token"],
-    "acrs_supported": ["1","2","http://id.incommon.org/assurance/bronze"],
-    "user_id_types_supported": ["public", "pairwise"],
-    "userinfo_algs_supported": ["HS256", "RS256"],
-    "id_token_algs_supported": ["HS256", "RS256"],
-    "request_object_algs_supported": ["HS256", "RS256"]
-    }
+    "provider": {
+        "version": "3.0",
+        "issuer": "https://connect-op.heroku.com",
+        "authorization_endpoint": "https://connect-op.heroku.com/authorizations/new",
+        "token_endpoint": "https://connect-op.heroku.com/access_tokens",
+        "userinfo_endpoint": "https://connect-op.heroku.com/user_info",
+        "check_id_endpoint": "https://connect-op.heroku.com/id_token",
+        "registration_endpoint": "https://connect-op.heroku.com/connect/client",
+        "scopes_supported": ["openid", "profile", "email", "address", "phone"],
+        "response_types_supported": ["code", "token", "id_token", "code token",
+                                    "code id_token", "id_token token",
+                                    "code id_token token"],
+        "user_id_types_supported": ["public", "pairwise"],
+        "id_token_algs_supported": ["RS256"],
+        "x509_url": "https://connect-op.heroku.com/cert.pem"
+    },
 
 Client information
 ==================
@@ -164,7 +237,8 @@ information used in the Client Registration Request::
 
 The *register* parameter specifies whether dynamic registration should be
 used or not.
-If not you should only have to specify the *client_id* and *client_secret*.
+If not you should only have to specify *client_id*, *client_secret* and
+*redirect_uris*.
 
 
 Running tests
@@ -346,7 +420,8 @@ Now I can run the whole test suit::
     * (mj-22)Requesting ID Token with auth_time Claim - OK
     * (mj-23)Requesting ID Token with Required acr Claim - OK
     * (mj-24)Requesting ID Token with Optional acr Claim - OK
-    * (mj-25)Requesting ID Token with max_age=10 seconds Restriction - OK
+    * (mj-25a)Requesting ID Token with max_age=1 seconds Restriction - OK
+    * (mj-25b)Requesting ID Token with max_age=10 seconds Restriction - OK
     * (mj-26)Request with display=page - OK
     * (mj-27)Request with display=popup - OK
     * (mj-28)Request with prompt=none - OK
