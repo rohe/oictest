@@ -231,6 +231,12 @@ def select_form(client, orig_response, content, **kwargs):
                 form[key] = val
             except ControlNotFoundError:
                 pass
+            except TypeError:
+                try:
+                    form[key] = [val]
+                except Exception, err:
+                    do = "something"
+                    raise
 
     return do_click(client, form, **kwargs)
 
