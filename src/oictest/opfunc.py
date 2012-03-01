@@ -176,7 +176,7 @@ def pick_form(response, content, url=None, **kwargs):
                     if not _form:
                         break
         elif "index" in kwargs:
-            _form = forms[kwargs["index"]]
+            _form = forms[int(kwargs["index"])]
 
     return _form
 
