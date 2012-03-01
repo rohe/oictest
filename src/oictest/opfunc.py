@@ -4,8 +4,9 @@ import json
 
 from urlparse import urlparse
 
-from mechanize import ParseResponse
-from mechanize._form import ControlNotFoundError
+from mechanize import ParseResponseEx
+from mechanize._form import ControlNotFoundError, AmbiguityError
+from mechanize._form import ListControl
 
 
 #def get_page(url):
@@ -136,11 +137,13 @@ def pick_form(response, content, url=None, **kwargs):
     :param url: The url the request was sent to
     :return: The picked form or None of no form matched the criteria.
     """
-    forms = ParseResponse(response)
+    forms = ParseResponseEx(response)
     if not forms:
         raise FlowException(content=content, url=url)
 
     _form = None
+    # ignore the first form for now
+    forms = forms[1:]
     if len(forms) == 1:
         _form = forms[0]
     else:
@@ -185,7 +188,31 @@ def do_click(client, form, **kwargs):
     :param form: The form that should be submitted
     :return: What do_request() returns
     """
-    request = form.click()
+
+    if "click" in kwargs:
+        request=None
+        _name = kwargs["click"]
+        try:
+            _ = form.find_control(name=_name)
+            request = form.click(name=_name)
+        except AmbiguityError:
+            # more than one control with that name
+            _val = kwargs["set"][_name]
+            _nr = 0
+            while True:
+                try:
+                    cntrl = form.find_control(name=_name, nr=_nr)
+                    if cntrl.value == _val:
+                        request = form.click(name=_name, nr=_nr)
+                        break
+                    else:
+                        _nr += 1
+                except ControlNotFoundError:
+                    raise Exception("No submit control with the name='%s' and "
+                                    "value='%s' could be found" % (_name,
+                                                                   _val))
+    else:
+        request = form.click()
 
     headers = {}
     for key, val in request.unredirected_hdrs.items():
@@ -221,10 +248,13 @@ def select_form(client, orig_response, content, **kwargs):
     response.write(content)
 
     form = pick_form(response, content, _url, **kwargs)
+    #form.backwards_compatible = False
 
     if "set" in kwargs:
         for key, val in kwargs["set"].items():
             if key.startswith("_"):
+                continue
+            if "click" in kwargs and kwargs["click"] == key:
                 continue
 
             try:
@@ -232,10 +262,10 @@ def select_form(client, orig_response, content, **kwargs):
             except ControlNotFoundError:
                 pass
             except TypeError:
-                try:
+                cntrl = form.find_control(key)
+                if isinstance(cntrl, ListControl):
                     form[key] = [val]
-                except Exception, err:
-                    do = "something"
+                else:
                     raise
 
     return do_click(client, form, **kwargs)
