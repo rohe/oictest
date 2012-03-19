@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+from oic.oic.message import SCHEMA
 
 __author__ = 'rohe0002'
 
 # ========================================================================
 
 import time
-from importlib import import_module
 
 from oictest.check import *
 # Used upstream not in this module so don't remove
@@ -27,12 +27,10 @@ class Request():
     #noinspection PyUnusedLocal
     def __call__(self, environ, trace, location, response, content):
         _client = environ["client"]
-        if isinstance(self.request, tuple):
-            (mod, klass) = self.request
-            imod = import_module(mod)
-            cls = getattr(imod, klass)
+        if isinstance(self.request, basestring):
+            schema = SCHEMA[self.request]
         else:
-            cls = getattr(self.message_mod, self.request)
+            schema = self.request
 
         try:
             kwargs = self.kw_args.copy()
@@ -45,7 +43,8 @@ class Request():
         except KeyError:
             _req = {}
 
-        cis = getattr(_client, "construct_%s" % cls.__name__)(cls, **kwargs)
+        cis = getattr(_client, "construct_%s" % schema["name"])(schema,
+                                                                **kwargs)
 
         ht_add = None
 
@@ -54,7 +53,7 @@ class Request():
         else:
             h_arg = None
 
-        url, body, ht_args, cis = _client.uri_and_body(cls, cis,
+        url, body, ht_args, cis = _client.uri_and_body(schema["name"], cis,
                                                       method=self.method,
                                                       request_args=_req)
 
@@ -297,6 +296,18 @@ class AccessTokenRequestCSPost(AccessTokenRequestCSBasic):
         PostRequest.__init__(self, message_mod)
         self.kw_args = {"authn_method": "client_secret_post"}
 
+class AccessTokenRequestCSJWT(AccessTokenRequestCSBasic):
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "client_secret_jwt"}
+
+class AccessTokenRequestPKJWT(AccessTokenRequestCSBasic):
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+        self.kw_args = {"authn_method": "private_key_jwt"}
+
 class UserInfoRequestGetBearerHeader(GetRequest):
     request = "UserInfoRequest"
 
@@ -374,8 +385,7 @@ class RegistrationResponse(BodyResponse):
         _client = environ["client"]
         for prop in ["client_id", "client_secret"]:
             try:
-                _val = getattr(response, prop)
-                setattr(_client, prop, _val)
+                setattr(_client, prop, response[prop])
             except KeyError:
                 pass
 
@@ -426,7 +436,7 @@ class Discover(Operation):
         # This overwrites what's there before. In some cases this might not
         # be preferable.
 
-        environ[self.environ_param].update(result[2].dictionary(True))
+        environ[self.environ_param].update(result[2].to_dict())
 
 # ===========================================================================
 
@@ -463,9 +473,13 @@ PHASES= {
     "oic-login-code+idtoken+token": (OpenIDRequestCodeIDTokenToken,
                                      AuthzResponse),
 #
-    "access-token-request_basic":(AccessTokenRequestCSPost,
+    "access-token-request_csp":(AccessTokenRequestCSPost,
                                   AccessTokenResponse),
     "access-token-request":(AccessTokenRequestCSBasic, AccessTokenResponse),
+    "access-token-request_csj":(AccessTokenRequestCSJWT,
+                                  AccessTokenResponse),
+    "access-token-request_pkj":(AccessTokenRequestPKJWT,
+                                AccessTokenResponse),
     "check-id-request_gbh":(CheckIDRequestGetBearerHeader, CheckIdResponse),
     "check-id-request_pbh":(CheckIDRequestPostBearerHeader, CheckIdResponse),
     "check-id-request_pbb":(CheckIDRequestPostBearerBody, CheckIdResponse),
@@ -484,48 +498,48 @@ FLOWS = {
         "sequence": ["verify"],
         "endpoints": ["authorization_endpoint"]
     },
-    'oic-code': {
-        "name": 'Request with response_type=code',
-        "descr": ('Request with response_type=code'),
-        "sequence": ["oic-login"],
-        "endpoints": ["authorization_endpoint"]
-    },
-    'oic-token': {
-        "name": 'Request with response_type=token',
-        "descr": ('Request with response_type=token'),
-        "sequence": ["oic-login-token"],
-        "endpoints": ["authorization_endpoint"]
-    },
-    'oic-idtoken': {
-        "name": 'Request with response_type=id_token',
-        "descr": ('Request with response_type=id_token'),
-        "sequence": ["oic-login-idtoken"],
-        "endpoints": ["authorization_endpoint"]
-    },
-    'oic-code+token': {
-        "name": 'Request with response_type=code token',
-        "descr": ("Request with response_type=code token"),
-        "sequence": ["oic-login-code+token"],
-        "endpoints": ["authorization_endpoint"],
-        },
-    'oic-code+idtoken': {
-        "name": 'Request with response_type=code id_token',
-        "descr": ("Request with response_type=code id_token"),
-        "sequence": ['oic-login-code+idtoken'],
-        "endpoints": ["authorization_endpoint"],
-        },
-    'oic-idtoken+token': {
-        "name": 'Request with response_type=id_token token',
-        "descr": ("Request with response_type=id_token token"),
-        "sequence": ['oic-login-idtoken+token'],
-        "endpoints": ["authorization_endpoint"],
-        },
-    'oic-code+idtoken+token': {
-        "name": 'Request with response_type=code id_token token',
-        "descr": ("Request with response_type=code id_token token"),
-        "sequence": ['oic-login-code+idtoken+token'],
-        "endpoints": ["authorization_endpoint",],
-        },
+#    'oic-code': {
+#        "name": 'Request with response_type=code',
+#        "descr": ('Request with response_type=code'),
+#        "sequence": ["oic-login"],
+#        "endpoints": ["authorization_endpoint"]
+#    },
+#    'oic-token': {
+#        "name": 'Request with response_type=token',
+#        "descr": ('Request with response_type=token'),
+#        "sequence": ["oic-login-token"],
+#        "endpoints": ["authorization_endpoint"]
+#    },
+#    'oic-idtoken': {
+#        "name": 'Request with response_type=id_token',
+#        "descr": ('Request with response_type=id_token'),
+#        "sequence": ["oic-login-idtoken"],
+#        "endpoints": ["authorization_endpoint"]
+#    },
+#    'oic-code+token': {
+#        "name": 'Request with response_type=code token',
+#        "descr": ("Request with response_type=code token"),
+#        "sequence": ["oic-login-code+token"],
+#        "endpoints": ["authorization_endpoint"],
+#        },
+#    'oic-code+idtoken': {
+#        "name": 'Request with response_type=code id_token',
+#        "descr": ("Request with response_type=code id_token"),
+#        "sequence": ['oic-login-code+idtoken'],
+#        "endpoints": ["authorization_endpoint"],
+#        },
+#    'oic-idtoken+token': {
+#        "name": 'Request with response_type=id_token token',
+#        "descr": ("Request with response_type=id_token token"),
+#        "sequence": ['oic-login-idtoken+token'],
+#        "endpoints": ["authorization_endpoint"],
+#        },
+#    'oic-code+idtoken+token': {
+#        "name": 'Request with response_type=code id_token token',
+#        "descr": ("Request with response_type=code id_token token"),
+#        "sequence": ['oic-login-code+idtoken+token'],
+#        "endpoints": ["authorization_endpoint",],
+#        },
     # -------------------------------------------------------------------------
     'oic-code-token': {
         "name": '',
@@ -533,7 +547,7 @@ FLOWS = {
                   "scope = ['openid']",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code'],
+        "depends": ['mj-01'],
         "sequence": ["oic-login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
@@ -542,7 +556,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='code token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code+token'],
+        "depends": ['mj-04'],
         "sequence": ["oic-login-code+token", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
@@ -551,7 +565,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='code id_token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code+idtoken'],
+        "depends": ['mj-05'],
         "sequence": ["oic-login-code+idtoken", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
@@ -560,151 +574,151 @@ FLOWS = {
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code+idtoken+token'],
+        "depends": ['mj-07'],
         "sequence": ["oic-login-code+idtoken+token", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # -------------------------------------------------------------------------
-    'oic-code-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type='code'",
-                  "2) AccessTokenRequest",
-                  "  Authentication method used is 'client_secret_post'",
-                  "3) UserinfoRequest",
-                  "  'bearer_body' authentication used"),
-        "depends": ['oic-code-token'],
-        "sequence": ["oic-login", "access-token-request", "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "userinfo_endpoint"],
-        },
-    'oic-code+profile-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid', 'profile']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+profile", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+email-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid', 'email']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+email", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+address-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid', 'address']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+address", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+phone-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid', 'phone']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+phone", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+all-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid', 'email', 'phone', 'address', 'profile']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+all", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+spec1-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+spec1", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+spec2-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+spec2", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+spec3-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+spec3", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+idtc1-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+idtc1", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "tests": [("verifyIDToken", {"claims":{"auth_time": None}})]
-        },
-    'oic-code+idtc2-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+idtc2", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'oic-code+idtc3-token-userinfo': {
-        "name": '',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid'], claims={'name':None}",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['oic-code-token-userinfo'],
-        "sequence": ["oic-login+idtc3", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
+#    'oic-code-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type='code'",
+#                  "2) AccessTokenRequest",
+#                  "  Authentication method used is 'client_secret_post'",
+#                  "3) UserinfoRequest",
+#                  "  'bearer_body' authentication used"),
+#        "depends": ['oic-code-token'],
+#        "sequence": ["oic-login", "access-token-request", "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "userinfo_endpoint"],
+#        },
+##    'oic-code+profile-token-userinfo': {
+##        "name": '',
+##        "descr": ("1) Request with response_type=code",
+##                  "scope = ['openid', 'profile']",
+##                  "2) AccessTokenRequest",
+##                  "Authentication method used is 'client_secret_post'"),
+##        "depends": ['oic-code-token-userinfo'],
+##        "sequence": ["oic-login+profile", "access-token-request",
+##                     "user-info-request"],
+##        "endpoints": ["authorization_endpoint", "token_endpoint"],
+##        },
+#    'oic-code+email-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid', 'email']",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+email", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+address-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid', 'address']",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+address", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+phone-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid', 'phone']",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+phone", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+all-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid', 'email', 'phone', 'address', 'profile']",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+all", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+spec1-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+spec1", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+spec2-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+spec2", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+spec3-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+spec3", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+idtc1-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+idtc1", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        "tests": [("verifyIDToken", {"claims":{"auth_time": None}})]
+#        },
+#    'oic-code+idtc2-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+idtc2", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
+#    'oic-code+idtc3-token-userinfo': {
+#        "name": '',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid'], claims={'name':None}",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['oic-code-token-userinfo'],
+#        "sequence": ["oic-login+idtc3", "access-token-request",
+#                     "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
     'oic-token-userinfo': {
         "name": '',
         "descr": ("1) Request with response_type='token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
-        "depends": ['oic-token'],
+        "depends": ['mj-02'],
         "sequence": ['oic-login-token', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
@@ -713,7 +727,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='code token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
-        "depends": ['oic-code+token'],
+        "depends": ['mj-04'],
         "sequence": ['oic-login-code+token', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
@@ -733,7 +747,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='id_token token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
-        "depends": ['oic-idtoken+token'],
+        "depends": ['mj-06'],
         "sequence": ['oic-login-idtoken+token', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
@@ -742,13 +756,13 @@ FLOWS = {
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
-        "depends":["oic-code+idtoken+token"],
+        "depends":["mj-07"],
         "sequence": ['oic-login-code+idtoken+token', "user-info-request"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
     'oic-code+idtoken+token-token-userinfo': {
-        "name": ("Get an accesstoken using access code with 'token' and ",
-                 "'idtoken' in response type"),
+        "name": """Get an accesstoken using access code with 'token' and
+    'idtoken' in response type""",
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
@@ -805,7 +819,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='id_token token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
-        "depends": ['oic-idtoken+token'],
+        "depends": ['mj-06'],
         "sequence": ['oic-login-idtoken+token', "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
     },
@@ -814,20 +828,20 @@ FLOWS = {
         "descr": ("1) Request with response_type='code id_token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
-        "depends":["oic-code+idtoken"],
+        "depends":["mj-05"],
         "sequence": ['oic-login-code+idtoken', "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-        "tests": ["compare-idoken-received-with-check_id-response"]
+        "tests": [("compare-idoken-received-with-check_id-response", {})]
     },
     'oic-code+idtoken+token-check_id': {
         "name": 'Implicit flow with Code+Token+IDToken ',
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
-        "depends":["oic-code+idtoken+token"],
+        "depends":["mj-07"],
         "sequence": ['oic-login-code+idtoken+token', "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-        "tests": ["compare-idoken-received-with-check_id-response"]
+        "tests": [("compare-idoken-received-with-check_id-response", {})]
     },
     # beared body authentication
     'oic-code-token-userinfo_bb': {
@@ -848,7 +862,7 @@ FLOWS = {
         "descr": ("1) Request with response_type='token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
-        "depends": ['oic-token'],
+        "depends": ['mj-02'],
         "sequence": ['oic-login-token', "user-info-request_pbb"],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
@@ -1058,6 +1072,25 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # ---------------------------------------------------------------------
+    'mj-30': {
+        "name": 'Access token request with client_secret_basic authentication',
+        "sequence": ["oic-login", "access-token-request_csp"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+
+}
+
+NEW = {
+    'mj-31': {
+        "name": 'Access token request with client_secret_jwt authentication',
+        "sequence": ["oic-login", "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-32': {
+        "name": 'Access token request with public_key_jwt authentication',
+        "sequence": ["oic-login", "access-token-request_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
@@ -1066,8 +1099,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("unpack-aggregated-claims", {})]
 
-        },
-
+    },
 }
 
 if __name__ == "__main__":

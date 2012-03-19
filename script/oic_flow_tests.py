@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+import os
+import urlparse
+
 __author__ = 'rohe0002'
 
 import sys
@@ -8,7 +11,6 @@ from subprocess import PIPE
 
 from oictest.check import STATUSCODE
 
-STATE = ["untested", "succeeded", "failed"]
 OICC = "oicc.py"
 
 class Node():
@@ -17,7 +19,7 @@ class Node():
         self.desc = desc
         self.children = {}
         self.parent = []
-        self.state = STATE[0]
+        self.state = STATUSCODE[0]
 
 def add_to_tree(root, parents, cnode):
     to_place = parents[:]
@@ -43,7 +45,7 @@ def in_tree(root, item):
     elif item in root:
         return True
     else:
-        for branch in root.values():
+        for key, branch in root.items():
             if in_tree(branch.children, item):
                 return True
     return False
@@ -134,11 +136,13 @@ def test(node, who):
                     except KeyError:
                         print test
             node.err = p_err
+        #print output["status"]
         _sc = STATUSCODE[output["status"]]
     else:
-        _sc = STATUSCODE[4]
+        _sc = STATUSCODE[1]
         node.err = p_err
 
+    node.state = _sc
     if reason:
         print "* (%s)%s - %s (%s)" % (node.name, node.desc, _sc, reason)
     else:
@@ -146,13 +150,15 @@ def test(node, who):
 
 def recursively_test(node, who):
     for parent in node.parent:
-        if parent.state == STATE[0]: # untested, don't go further
+        if parent.state == STATUSCODE[0]: # untested, don't go further
             print "SKIP %s Parent untested: %s" % (node.name, parent.name)
             return
 
     test(node, who)
 
-    if node.state == STATE[1]:
+    #print "node.state: %s" % node.state
+
+    if node.state == STATUSCODE[1]:
         test_all(node.children, who)
 
 def test_all(graph, who):
@@ -161,18 +167,42 @@ def test_all(graph, who):
     for key in skeys:
         recursively_test(graph[key], who)
 
+def run_script(_ke):
+    part = urlparse.urlsplit(_ke["server"])
+
+    try:
+        (host, port) = part.netloc.split(":")
+    except ValueError:
+        host = part.netloc
+        port = 80
+
+    popen_args = [_ke["script"]]
+    popen_args.extend([host, port])
+    return Popen(popen_args, stdout=PIPE, stderr=PIPE)
 
 if __name__ == "__main__":
     from oictest.oic_operations import FLOWS
 
     try:
         test_group = sys.argv[2]
-    except KeyError:
+    except IndexError:
         test_group = None
 
     who = sys.argv[1]
+
+    p1 = Popen(["./%s.py" % who], stdout=PIPE)
+    _cnf = json.loads(p1.stdout.read())
+    if "key_export" in _cnf["features"]:
+        _pop = run_script(_cnf["features"]["key_export"])
+    else:
+        _pop = None
 
     flow_graph = sort_flows_into_graph(FLOWS, test_group)
     #print_graph(flow_graph)
     #print
     test_all(flow_graph, who)
+
+    if _pop:
+        _pop.kill()
+
+    os.wait()

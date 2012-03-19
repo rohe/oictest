@@ -1,3 +1,4 @@
+
 __author__ = 'rohe0002'
 
 import inspect
@@ -5,10 +6,10 @@ import sys
 import traceback
 import urlparse
 
-from oic.oauth2.message import ErrorResponse
-from oic.oic.message import IdToken
+from oic.oauth2.message import SCHEMA as OA2_SCHEMA
+
 from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import AuthorizationErrorResponse
+from oic.oic.message import msg_deser
 from oic.utils import time_util
 
 INFORMATION = 0
@@ -82,9 +83,14 @@ class CmpIdtoken(Other):
 
     def _func(self, environ):
         res = {}
-        idt = IdToken.from_jwt(environ["item"][0].id_token,
-                               key=environ["client"].verify_key)
-        if idt.dictionary() == environ["item"][-1].dictionary():
+        msg = None
+        for msg in environ["item"]:
+            if msg.type() == "AuthorizationResponse":
+                break
+
+        keys = environ["client"].keystore.get_keys("verify", owner=None)
+        idt = msg_deser(msg["id_token"], "jwt", "IdToken", key=keys)
+        if idt.to_dict() == environ["item"][-1].to_dict():
             pass
         else:
             self._status = self.status
@@ -110,7 +116,7 @@ class CheckHTTPResponse(CriticalError):
             self._message = self.msg
             if "application/json" in _response["content-type"]:
                 try:
-                    err = ErrorResponse.set_json(_content, extended=True)
+                    err = msg_deser(_content, "json", "ErrorResponse")
                     self._message = err.get_json(extended=True)
                 except Exception:
                     res["content"] = _content
@@ -121,7 +127,7 @@ class CheckHTTPResponse(CriticalError):
         else:
             # might still be an error message
             try:
-                err = ErrorResponse.set_json(_content, extended=True)
+                err = msg_deser(_content, "json", "ErrorResponse")
                 err.verify()
                 self._message = err.get_json(extended=True)
                 self._status = self.status
@@ -286,18 +292,18 @@ class LoginRequired(Error):
         #self._status = self.status
         resp = environ["response"]
         try:
-            assert isinstance(resp, AuthorizationErrorResponse)
+            assert resp.type() == "AuthorizationErrorResponse"
         except AssertionError:
             self._status = self.status
             self._message = "Expected authorization error response got %s" %(
-                                                        resp.__class__.__name__)
+                                                                    resp.type())
 
             try:
-                assert isinstance(resp, ErrorResponse)
+                assert resp.type() == "ErrorResponse"
             except AssertionError:
                 self.status = CRITICAL
                 self._message = "Expected an Error Response got %s" % (
-                                                        resp.__class__.__name__)
+                                                                    resp.type())
                 return {}
 
         try:
@@ -365,7 +371,7 @@ class Parse(CriticalError):
             err = environ["exception"]
             self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
-            cname = environ["response"].__class__.__name__
+            cname = environ["response"].type()
             if environ["response_type"] != cname:
                 self._status = self.status
                 self._message = ("Didn't get a response of the type I expected:",
@@ -450,7 +456,8 @@ class verifyErrResponse(CriticalError):
 
         if _content:
             try:
-                err = ErrorResponse.set_json(_content, extended=True)
+                err = msg_deser(_content, "json",
+                                schema=OA2_SCHEMA["ErrorResponse"])
                 err.verify()
             except Exception:
                 self._message = self.msg
@@ -462,7 +469,7 @@ class verifyErrResponse(CriticalError):
                 _content = _resp["location"].split("?")[1]
 
             try:
-                err = ErrorResponse.set_urlencoded(_content, extended=True)
+                err = msg_deser(_content, "urlencoded", "ErrorResponse")
                 err.verify()
             except Exception:
                 self._message = self.msg
@@ -487,54 +494,54 @@ class verifyIDToken(CriticalError):
                 break
 
             try:
-                _jwt = item.id_token
+                _jwt = item["id_token"]
                 if _jwt is None:
                     continue
             except KeyError:
                 continue
 
-            idtoken = IdToken.set_jwt(str(_jwt), _vkeys)
+            idtoken = msg_deser(str(_jwt), "jwt", "IdToken", key=_vkeys)
             for key, val in self._kwargs["claims"].items():
                 if key == "max_age":
-                    if idtoken.exp > (time_util.utc_time_sans_frac() + val):
+                    if idtoken["exp"] > (time_util.utc_time_sans_frac() + val):
                         self._status = self.status
-                        diff = idtoken.exp - time_util.utc_time_sans_frac()
+                        diff = idtoken["exp"] - time_util.utc_time_sans_frac()
                         self._message = "exp to far in the future [%d]" % diff
                         break
                     else:
                         continue
 
                 if val is None:
-                    _val = getattr(idtoken, key)
-                    if _val is None:
+                    if key not in idtoken:
                         self._status = self.status
                         self._message = "'%s' was supposed to be there" % key
                         break
                 elif val == {"optional":True}:
                     pass
                 elif "values" in val:
-                    _val = getattr(idtoken, key)
-                    if not _val:
+                    if key not in idtoken:
                         self._status = self.status
                         self._message = "Missing value on '%s'" % key
                         break
-                    elif isinstance(_val, basestring):
-                        if _val not in val["values"]:
-                            self._status = self.status
-                            self._message = "Wrong value on '%s'" % key
-                            break
-                    elif isinstance(_val, int):
-                        if _val not in val["values"]:
-                            self._status = self.status
-                            self._message = "Wrong value on '%s'" % key
-                            break
                     else:
-                        for sval in _val:
-                            if sval in val["values"]:
-                                continue
-                        self._status = self.status
-                        self._message = "Wrong value on '%s'" % key
-                        break
+                        _val = idtoken[key]
+                        if isinstance(_val, basestring):
+                            if _val not in val["values"]:
+                                self._status = self.status
+                                self._message = "Wrong value on '%s'" % key
+                                break
+                        elif isinstance(_val, int):
+                            if _val not in val["values"]:
+                                self._status = self.status
+                                self._message = "Wrong value on '%s'" % key
+                                break
+                        else:
+                            for sval in _val:
+                                if sval in val["values"]:
+                                    continue
+                            self._status = self.status
+                            self._message = "Wrong value on '%s'" % key
+                            break
 
             done = True
 
@@ -553,7 +560,7 @@ class ResponseInfo(Information):
         if isinstance(_msg, basestring):
             self._message = _msg
         else:
-            self._message = _msg.dictionary()
+            self._message = _msg.to_dict()
 
         return {}
 
@@ -588,7 +595,7 @@ class VerifyAccessTokenResponse(Error):
         #This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
         # parameter "token_type" MUST be set to "Bearer".
-        if resp.token_type and resp.token_type.lower() != "bearer":
+        if "token_type" in resp and resp["token_type"].lower() != "bearer":
             self._message = "token_type has to be 'Bearer'"
             self._status = self.status
 
@@ -597,10 +604,10 @@ class VerifyAccessTokenResponse(Error):
         # authorization_code and the Authorization Request scope parameter
         # contained openid: id_token
         cis = environ["cis"][-1]
-        if cis.grant_type == "authorization_code":
+        if cis["grant_type"] == "authorization_code":
             req = get_authz_request(environ)
             if "openid" in req.request_args["scope"]:
-                if not resp.id_token:
+                if "id_token" not in resp:
                     self._message = "IdToken has to be present"
                     self._status = self.status
 

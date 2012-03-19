@@ -8,15 +8,6 @@ from mechanize import ParseResponseEx
 from mechanize._form import ControlNotFoundError, AmbiguityError
 from mechanize._form import ListControl
 
-
-#def get_page(url):
-#    http = httplib2.Http()
-#    resp, content = http.request(url)
-#    if resp.status == 200:
-#        return content
-#    else:
-#        raise HTTP_ERROR(resp.status)
-
 class FlowException(Exception):
     def __init__(self, function="", content="", url=""):
         Exception.__init__(self)

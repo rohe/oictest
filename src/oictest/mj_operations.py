@@ -52,56 +52,61 @@ Request with request_uri
 """
 
 FLOWS = {
-    '1': {
+    'mj-00': {
+        "name": 'Client registration Request',
+        "sequence": ["oic-registration"],
+        "endpoints": ["registration_endpoint"]
+    },
+    'mj-01': {
         "name": 'Request with response_type=code',
         "sequence": ["oic-login"],
         "endpoints": ["authorization_endpoint"]
     },
-    '2': {
+    'mj-02': {
         "name": 'Request with response_type=token',
         "sequence": ["oic-login-token"],
         "endpoints": ["authorization_endpoint"]
     },
-    '3': {
+    'mj-03': {
         "name": 'Request with response_type=id_token',
         "sequence": ["oic-login-idtoken"],
         "endpoints": ["authorization_endpoint"]
     },
-    '4': {
+    'mj-04': {
         "name": 'Request with response_type=code token',
         "sequence": ["oic-login-code+token"],
         "endpoints": ["authorization_endpoint"],
         },
-    '5': {
+    'mj-05': {
         "name": 'Request with response_type=code id_token',
         "sequence": ['oic-login-code+idtoken'],
         "endpoints": ["authorization_endpoint"],
         },
-    '6': {
+    'mj-06': {
         "name": 'Request with response_type=id_token token',
         "sequence": ['oic-login-idtoken+token'],
         "endpoints": ["authorization_endpoint"],
         },
-    '7': {
+    'mj-07': {
         "name": 'Request with response_type=code id_token token',
         "sequence": ['oic-login-code+idtoken+token'],
         "endpoints": ["authorization_endpoint",],
         },
     # -------------------------------------------------------------------------
-    '8': {
+    'mj-08': {
         "name": 'Check ID Endpoint Access with GET and bearer_header',
         "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "check_id_endpoint"],
         },
-    '9': {
+    'mj-09': {
         "name": 'Check ID Endpoint Access with POST and bearer_header',
         "sequence": ["oic-login", "access-token-request",
                      "check-id-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "check_id_endpoint"],
         },
-    '10': {
+    'mj-10': {
         "name": 'Check ID Endpoint Access with POST and bearer_body',
         "sequence": ["oic-login", "access-token-request",
                      "check-id-request_pbb"],
@@ -109,124 +114,165 @@ FLOWS = {
                       "check_id_endpoint"],
         },
     # -------------------------------------------------------------------------
-    '11': {
+    'mj-11': {
         "name": 'UserInfo Endpoint Access with GET and bearer_header',
         "sequence": ["oic-login", "access-token-request", "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         },
-    '12': {
+    'mj-12': {
         "name": 'UserInfo Endpoint Access with POST and bearer_header',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_bb"],
+                     "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         },
-    '13': {
+    'mj-13': {
         "name": 'UserInfo Endpoint Access with POST and bearer_body',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_bb"],
+                     "user-info-request_pbb"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         },
     # -------------------------------------------------------------------------
-    '14': {
+    'mj-14': {
         "name": 'Scope Requesting profile Claims',
         "sequence": ["oic-login+profile", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '15': {
+    'mj-15': {
         "name": 'Scope Requesting email Claims',
         "sequence": ["oic-login+email", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '16': {
+    'mj-16': {
         "name": 'Scope Requesting address Claims',
         "sequence": ["oic-login+address", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '17': {
+    'mj-17': {
         "name": 'Scope Requesting phone Claims',
         "sequence": ["oic-login+phone", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '18': {
+    'mj-18': {
         "name": 'Scope Requesting all Claims',
         "sequence": ["oic-login+all", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '19': {
+    'mj-19': {
         "name": 'OpenID Request Object with Required name Claim',
         "sequence": ["oic-login+spec1", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '20': {
+    'mj-20': {
         "name": 'OpenID Request Object with Optional email and picture Claim',
         "sequence": ["oic-login+spec2", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '21': {
-        "name": ('OpenID Request Object with Required name and Optional ',
-                 'email and picture Claim'),
+    'mj-21': {
+        "name": ('OpenID Request Object with Required name and Optional email and picture Claim'),
         "sequence": ["oic-login+spec3", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         },
-    '22': {
+    'mj-22': {
         "name": 'Requesting ID Token with auth_time Claim',
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    '23': {
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"auth_time": None}})]
+    },
+    'mj-23': {
         "name": 'Requesting ID Token with Required acr Claim',
         "sequence": ["oic-login+idtc2", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    '24': {
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"acr": {"values": ["2"]}}})]
+    },
+    'mj-24': {
         "name": 'Requesting ID Token with Optional acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
                      "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    '25': {
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-id-token", {"claims":{"acr": None}})]
+    },
+    'mj-25a': {
+        "name": 'Requesting ID Token with max_age=1 seconds Restriction',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request", "oic-login+idtc4",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("multiple-sign-on", {})]
+    },
+    'mj-25b': {
         "name": 'Requesting ID Token with max_age=10 seconds Restriction',
-        "sequence": ["oic-login+idtc4", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request", "oic-login+idtc5",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("single-sign-on", {})]
+    },
     # ---------------------------------------------------------------------
-    '26': {
+    'mj-26': {
         "name": 'Request with display=page',
         "sequence": ["oic-login+disp_page", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-    '27': {
+    'mj-27': {
         "name": 'Request with display=popup',
         "sequence": ["oic-login+disp_popup", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-    '28': {
+    'mj-28': {
         "name": 'Request with prompt=none',
-        "sequence": ["oic-login+prompt_none", "access-token-request",
-                     "user-info-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "sequence": ["oic-login+prompt_none"],
+        "endpoints": ["authorization_endpoint"],
         },
-    '29': {
+    'mj-29': {
         "name": 'Request with prompt=login',
         "sequence": ["oic-login+prompt_login", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
+    # ---------------------------------------------------------------------
+    'mj-30': {
+        "name": 'Access token request with client_secret_basic authentication',
+        "sequence": ["oic-login", "access-token-request_csp"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-31': {
+        "name": 'Access token request with client_secret_jwt authentication',
+        "sequence": ["oic-login", "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-32': {
+        "name": 'Access token request with public_key_jwt authentication',
+        "sequence": ["oic-login", "access-token-request_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+
     # ---------------------------------------------------------------------
 }

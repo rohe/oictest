@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from oic.oic.message import ProviderConfigurationResponse
-from oictest.check import CheckRegistrationResponse
 
 __author__ = 'rohe0002'
 
@@ -8,10 +6,18 @@ import argparse
 import sys
 import json
 import httplib2
+import os
+import os.path
 
-from oic.utils import exception_trace
+from subprocess import Popen, PIPE
+import urlparse
+
 from oic.utils import jwt
+from oic.utils import exception_trace
+from oic.utils.jwt import construct_rsa_jwk
+from oic.oic.message import message
 
+from oictest.check import CheckRegistrationResponse
 from oictest import httplib2cookie
 from oictest.base import *
 
@@ -26,6 +32,27 @@ QUERY2RESPONSE = {
 class HTTP_ERROR(Exception):
     pass
 
+def start_script(path, *args):
+    popen_args = [path]
+    popen_args.extend(args)
+    return Popen(popen_args, stdout=PIPE, stderr=PIPE)
+
+def stop_script_by_name(name):
+    import subprocess, signal, os
+
+    p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+    out, err = p.communicate()
+
+    for line in out.splitlines():
+        if name in line:
+            pid = int(line.split(None, 1)[0])
+            os.kill(pid, signal.SIGKILL)
+
+def stop_script_by_pid(pid):
+    import signal, os
+
+    os.kill(pid, signal.SIGKILL)
+
 def get_page(url):
     http = httplib2.Http()
     resp, content = http.request(url)
@@ -35,7 +62,8 @@ def get_page(url):
         raise HTTP_ERROR(resp.status)
 
 class OAuth2(object):
-    client_args = ["client_id", "redirect_uri", "password"]
+    client_args = ["client_id", "redirect_uris", "password"]
+
     def __init__(self, operations_mod, message_mod, client_class):
         self.operations_mod = operations_mod
         self.message_mod = message_mod
@@ -50,7 +78,6 @@ class OAuth2(object):
         self._parser.add_argument('-J', dest="json_config_file")
         self._parser.add_argument('-I', dest="interactions")
         self._parser.add_argument("-l", dest="list", action="store_true")
-        self._parser.add_argument("-T", dest="traceback", action="store_true")
         self._parser.add_argument("flow", nargs="?")
 
         self.args = None
@@ -61,6 +88,7 @@ class OAuth2(object):
         self.encryption_key = None
         self.test_log = []
         self.environ = {}
+        self._pop = None
 
     def parse_args(self):
         self.json_config= self.json_config_file()
@@ -111,37 +139,7 @@ class OAuth2(object):
             _seq = self.make_sequence()
             interact = self.get_interactions()
 
-            if "registration" in self.features and self.features["registration"]:
-                _register = True
-            elif "register" in self.cconf and self.cconf["register"]:
-                _register = True
-            else:
-                _register = False
-
-            if _register:
-                _ext = self.operations_mod.PHASES["oic-registration"]
-                if _ext not in _seq:
-                    _seq.insert(0, _ext)
-                interact.append({"matches": {"class":"RegistrationRequest"},
-                                 "args":{"request":self.register_args()}})
-
-            if "discovery" in self.features and self.features["discovery"]:
-                _discover = True
-            elif "dynamic" in self.json_config["provider"]:
-                _discover = True
-            else:
-                _discover = False
-
-            if _discover:
-                op_spec = self.operations_mod.PHASES["provider-discovery"]
-                if op_spec not in _seq:
-                    _seq.insert(0, op_spec)
-                interact.append({"matches": {"class": op_spec[0].__name__},
-                                 "args":{"issuer":
-                                    self.json_config["provider"]["dynamic"]}})
-
-            else:
-                self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
+            self.do_features(interact, _seq)
 
             tests = self.get_test()
             self.client.state = "STATE0"
@@ -161,8 +159,14 @@ class OAuth2(object):
             except Exception, err:
                 print >> sys.stderr, self.trace
                 print err
-                if self.args.traceback:
-                    exception_trace("RUN", err)
+                exception_trace("RUN", err)
+
+            if self._pop is not None:
+                #sout,serr = self._pop.communicate()
+                self._pop.kill()
+                print "SOUT", self._pop.stdout.read()
+                print "SERR", self._pop.stderr.read()
+                print self._pop.returncode
 
     def operations(self):
         lista = []
@@ -201,13 +205,19 @@ class OAuth2(object):
             except KeyError:
                 pass
 
-        for key in ProviderConfigurationResponse.c_attributes:
+        for key in SCHEMA["ProviderConfigurationResponse"]["param"].keys():
             try:
                 res[key] = _jc[key]
             except KeyError:
                 pass
 
         return res
+
+    def do_features(self, *args):
+        pass
+
+    def export(self, **kwargs):
+        pass
 
     def client_conf(self, cprop):
         _htclass = httplib2cookie.CookiefulHttp
@@ -227,6 +237,7 @@ class OAuth2(object):
         self.client.http_request = self.client.http.crequest
 
         # set the endpoints in the Client from the provider information
+        # If they are statically configured, if dynamic it happens elsewhere
         for key, val in self.pinfo.items():
             if key.endswith("_endpoint"):
                 setattr(self.client, key, val)
@@ -307,9 +318,12 @@ class OIC(OAuth2):
                  consumer_class):
         OAuth2.__init__(self, operations_mod, message_mod, client_class)
 
-        self._parser.add_argument('-P', dest="provider_conf_url")
-        self._parser.add_argument('-p', dest="principal")
-        self._parser.add_argument('-R', dest="register", action="store_true")
+        #self._parser.add_argument('-P', dest="provider_conf_url")
+        #self._parser.add_argument('-p', dest="principal")
+        self._parser.add_argument('-R', dest="rsakey")
+        self._parser.add_argument('-i', dest="internal_server",
+                                  action='store_true')
+        #self._parser.add_argument('-w', dest="webserverport")
 
         self.consumer_class = consumer_class
 
@@ -317,25 +331,15 @@ class OIC(OAuth2):
         OAuth2.parse_args(self)
 
         _keystore = self.client.keystore
-        if "x509_url" in self.pinfo:
-            _verkey = jwt.x509_rsa_loads(get_page(self.pinfo["x509_url"]))
-            _keystore.set_verify_key(_verkey, "rsa", self.pinfo["issuer"])
-        else:
-            _verkey = None
+        pcr = message("ProviderConfigurationResponse")
+        n = 0
+        for param in _keystore.url_types:
+            if param in self.pinfo:
+                n += 1
+                pcr[param] = self.pinfo[param]
 
-        if "x509_encryption_url" in self.pinfo:
-            _txt = get_page(self.pinfo["x509_encryption_url"])
-            _keystore.set_decrypt_key(jwt.x509_rsa_loads(_txt), "rsa",
-                                     self.pinfo["issuer"])
-        elif _verkey:
-            _keystore.set_decrypt_key(_verkey, "rsa", self.pinfo["issuer"])
-
-        #        if "jwk_url" in self.pinfo:
-        #            self.signing_key = http.request(self.pinfo["jwk_url"])
-        #        if "jwk_encryption_url" in self.pinfo:
-        #            self.encryption_key = http.request(self.pinfo["jwk_encryption_url"])
-        #        elif self.signing_key:
-        #            self.encryption_key = self.signing_key
+        if n:
+            _keystore.load_keys(pcr, self.pinfo["issuer"])
 
         #self.register()
 
@@ -343,24 +347,13 @@ class OIC(OAuth2):
         c = self.consumer_class(None, None)
         return c.discover(principal)
 
-#    def provider_config(self, issuer):
-#        c = self.consumer_class(None, None)
-#        return c.provider_config(issuer)
-
     def _register(self, endpoint, info):
         c = self.consumer_class(None, None)
         return c.register(endpoint, **info)
 
-#    def provider_info(self):
-#        if "conf_url" in self.json_config["provider"]:
-#            _url = self.json_config["provider"]["conf_url"]
-#            return self.provider_config(_url).dictionary()
-#        else:
-#            return OAuth2.provider_info(self)
-
     def register_args(self):
         info = {}
-        for prop in self.message_mod.RegistrationRequest.c_attributes.keys():
+        for prop in SCHEMA["RegistrationRequest"]["param"].keys():
             try:
                 info[prop] = self.cconf[prop]
             except KeyError:
@@ -369,9 +362,9 @@ class OIC(OAuth2):
 
     def register(self):
         # should I register the client ?
-        if self.args.register or "register" in self.json_config["client"]:
+        if "register" in self.json_config["client"]:
             info = {}
-            for prop in self.message_mod.RegistrationRequest.c_attributes.keys():
+            for prop in SCHEMA["RegistrationRequest"]["param"].keys():
                 try:
                     info[prop] = self.cconf[prop]
                 except KeyError:
@@ -392,6 +385,117 @@ class OIC(OAuth2):
             chk(self.environ, self.test_log)
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
+
+    def do_features(self, interact, _seq):
+        if "key_export" in self.features:
+            self.export(**self.features["key_export"])
+
+        if "registration" in self.features and self.features["registration"]:
+            _register = True
+        elif "register" in self.cconf and self.cconf["register"]:
+            _register = True
+        else:
+            _register = False
+
+        if _register:
+            _ext = self.operations_mod.PHASES["oic-registration"]
+            if _ext not in _seq:
+                _seq.insert(0, _ext)
+            interact.append({"matches": {"class":"RegistrationRequest"},
+                             "args":{"request":self.register_args()}})
+
+        if "discovery" in self.features and self.features["discovery"]:
+            _discover = True
+        elif "dynamic" in self.json_config["provider"]:
+            _discover = True
+        else:
+            _discover = False
+
+        if _discover:
+            op_spec = self.operations_mod.PHASES["provider-discovery"]
+            if op_spec not in _seq:
+                _seq.insert(0, op_spec)
+            interact.append({"matches": {"class": op_spec[0].__name__},
+                             "args":{"issuer":
+                                         self.json_config["provider"]["dynamic"]}})
+
+        else:
+            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
+
+    def export(self, **kwargs):
+        # has to be there
+        part = urlparse.urlsplit(kwargs["server"])
+
+        # deal with the export directory
+        if part.path.endswith("/"):
+            _path = part.path[:-1]
+        else:
+            _path = part.path[:]
+
+        # Check if the dir is there
+        if not os.path.exists(".%s" % _path):
+            # otherwise create it
+            os.makedirs(".%s" % _path)
+
+        local_path = kwargs["local_path"]
+        if not os.path.exists(local_path):
+            os.makedirs(local_path)
+
+        # For each usage type
+        for usage in ["sign", "enc"]:
+            if usage in kwargs:
+                _keys = {}
+
+                if kwargs[usage]["format"] == "jwk":
+                    if usage == "sign":
+                        _name = ("jwk.json", "jwk_url")
+                    else:
+                        _name = ("jwk_enc.json", "jwk_encryption_url")
+                else: # must be 'x509'
+                    if usage == "sign":
+                        _name = ("x509.pub", "x509_url")
+                    else:
+                        _name = ("x509_enc.pub", "x509_encryption_url")
+
+                _new_path = ".%s/%s" % (_path, _name[0])
+
+                if os.path.exists(_new_path): # If it's already there ..
+                    _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path,
+                                                          "pyoidc"))
+                else:
+                    if kwargs[usage]["alg"] == "rsa":
+                        _keys["rsa"] = jwt.create_rsa_key_pair(path=local_path)
+
+                    if kwargs[usage]["format"] == "jwk":
+                        _jwk = []
+                        for typ, key in _keys.items():
+                            if typ == "rsa":
+                                _jwk.append(construct_rsa_jwk(key))
+
+                        _jwk = {"jwk": _jwk}
+
+                        f = open(_new_path, "w")
+                        f.write(json.dumps(_jwk))
+                        f.close()
+
+                for typ, key in _keys.items():
+                    self.client.keystore.add_key(key, typ, usage)
+
+                self.cconf[_name[1]] = "%s://%s%s" % (part.scheme,
+                                                      part.netloc,
+                                                      _new_path[1:])
+
+        if self.args.internal_server:
+            # start the server
+            try:
+                (host, port) = part.netloc.split(":")
+            except ValueError:
+                host = part.netloc
+                port = 80
+
+            self._pop = start_script(kwargs["script"], host, port)
+            # just to let it get started
+            #time.sleep(1)
 
 if __name__ == "__main__":
     from oictest import OAuth2

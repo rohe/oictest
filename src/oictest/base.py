@@ -6,7 +6,8 @@ import time
 
 from bs4 import BeautifulSoup
 
-from importlib import import_module
+from oic.oic.message import SCHEMA
+
 from oictest.opfunc import do_request
 from oictest.opfunc import Operation
 from oictest.check import factory
@@ -67,78 +68,6 @@ def check_severity(stat):
     if stat["status"] >= 4:
         raise FatalError
 
-#noinspection PyUnusedLocal
-#def do_operation(client, opdef, message_mod, response=None, content=None,
-#                 trace=None, location=""):
-#    op = opdef
-#    qresp = None
-#
-#    if op.request:
-#        if isinstance(op.request, tuple):
-#            (mod, klass) = op.request
-#            imod = import_module(mod)
-#            cls = getattr(imod, klass)
-#        else:
-#            cls = getattr(message_mod, op.request)
-#
-#        try:
-#            kwargs = op.kw_args.copy()
-#        except KeyError:
-#            kwargs = {}
-#
-#        try:
-#            kwargs["request_args"] = op.request_args.copy()
-#            _req = kwargs["request_args"]
-#        except KeyError:
-#            _req = {}
-#
-#        cis = getattr(client, "construct_%s" % cls.__name__)(cls, **kwargs)
-#
-#        ht_add = None
-#
-#        if "authn_method" in kwargs:
-#            h_arg = client.init_authentication_method(cis, **kwargs)
-#        else:
-#            h_arg = None
-#
-#        url, body, ht_args, cis = client.uri_and_body(cls, cis,
-#                                                      method=op.method,
-#                                                      request_args=_req)
-#
-#        if h_arg:
-#            ht_args.update(h_arg)
-#        if ht_add:
-#            ht_args.update({"headers": ht_add})
-#
-#        if trace:
-#            trace.request("URL: %s" % url)
-#            trace.request("BODY: %s" % body)
-#
-#        response, content = client.http_request(url, method=op.method,
-#                                                body=body, trace=trace,
-#                                                **ht_args)
-#
-#        if trace:
-#            trace.reply("RESPONSE: %s" % response)
-#            trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
-#
-#    else:
-#        func = op.function
-#        try:
-#            _args = op.args.copy()
-#        except (KeyError, AttributeError):
-#            _args = {}
-#
-#        _args["_trace_"] = trace
-#        _args["location"] = location
-#
-#        if trace:
-#            trace.reply("FUNCTION: %s" % func.__name__)
-#            trace.reply("ARGS: %s" % _args)
-#
-#        url, response, content = func(client, response, content, **_args)
-#
-#    return url, response, content
 
 def pick_interaction(interactions, _base="", content="", req=None):
     if content:
@@ -360,23 +289,21 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 info = content
 
             if info:
-                if isinstance(resp.response, tuple):
-                    (mod, klass) = resp.response
-                    imod = import_module(mod)
-                    respcls = getattr(imod, klass)
+                if isinstance(resp.response, basestring):
+                    schema = SCHEMA[resp.response]
                 else:
-                    respcls = getattr(message_mod, resp.response)
+                    schema = resp.response
 
                 chk = factory("response-parse")()
-                environ["response_type"] = respcls.__name__
+                environ["response_type"] = schema["name"]
                 keys = _keystore.get_keys("verify", owner=None)
                 try:
-                    qresp = client.parse_response(respcls, info, resp.type,
-                                                  client.state, True, key=keys,
+                    qresp = client.parse_response(schema, info, resp.type,
+                                                  client.state, key=keys,
                                                   client_id=client.client_id)
                     if trace and qresp:
-                        trace.info("[%s]: %s" % (qresp.__class__.__name__,
-                                                 qresp.dictionary()))
+                        trace.info("[%s]: %s" % (qresp.type(),
+                                                 qresp.to_dict()))
                     item.append(qresp)
                     environ["response"] = qresp
                 except Exception, err:
