@@ -398,11 +398,14 @@ class OIC(OAuth2):
             _register = False
 
         if _register:
-            _ext = self.operations_mod.PHASES["oic-registration"]
-            if _ext not in _seq:
+            for sq in _seq:
+                if sq[0].request == "RegistrationRequest":
+                    _register = False
+            if _register:
+                _ext = self.operations_mod.PHASES["oic-registration"]
                 _seq.insert(0, _ext)
-            interact.append({"matches": {"class":"RegistrationRequest"},
-                             "args":{"request":self.register_args()}})
+                interact.append({"matches": {"class":"RegistrationRequest"},
+                                 "args":{"request":self.register_args()}})
 
         if "discovery" in self.features and self.features["discovery"]:
             _discover = True

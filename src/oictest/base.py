@@ -11,6 +11,7 @@ from oic.oic.message import SCHEMA
 from oictest.opfunc import do_request
 from oictest.opfunc import Operation
 from oictest.check import factory
+from oictest.check import ExpectedError
 
 class FatalError(Exception):
     pass
@@ -170,6 +171,9 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                         chk = test(**kwargs)
                         stat = chk(environ, test_output)
                         check_severity(stat)
+                        if isinstance(chk, ExpectedError):
+                            url = None
+                            break
                 except KeyError:
                     pass
 

@@ -17,6 +17,7 @@ from oic.oic.consumer import Consumer
 class Request():
     request = ""
     method = ""
+    lax = False
     request_args= {}
     kw_args = {}
     tests = {"post": [CheckHTTPResponse], "pre":[]}
@@ -45,6 +46,11 @@ class Request():
 
         cis = getattr(_client, "construct_%s" % schema["name"])(schema,
                                                                 **kwargs)
+
+        try:
+            cis.lax = self.lax
+        except AttributeError:
+            pass
 
         ht_add = None
 
@@ -104,9 +110,29 @@ class Request():
 class GetRequest(Request):
     method = "GET"
 
+class MissingResponseType(GetRequest):
+    request = "AuthorizationRequest"
+    request_args = {"response_type": []}
+    lax = True
+    tests = {"post": [CheckErrorResponse]}
+
 class AuthorizationRequestCode(GetRequest):
     request = "AuthorizationRequest"
     request_args= {"response_type": ["code"]}
+
+class AuthorizationRequestCode_WQC(GetRequest):
+    request = "AuthorizationRequest"
+    request_args= {"response_type": ["code"],
+                   "query": "component"}
+    tests = {"pre": [CheckResponseType],
+             "post": [CheckHTTPResponse]}
+
+class AuthorizationRequestCode_RUWQC(GetRequest):
+    request = "AuthorizationRequest"
+    request_args= {"response_type": ["code"],
+            "redirect_uri": "https://smultron.catalogix.se/authz_cb?foo=bar"}
+    tests = {"pre": [CheckResponseType],
+             "post": [CheckHTTPResponse]}
 
 class OpenIDRequestCode(GetRequest):
     request = "OpenIDRequest"
@@ -283,6 +309,33 @@ class RegistrationRequest(PostRequest):
 
         self.tests["post"].append(RegistrationInfo)
 
+class RegistrationRequest_WQC(PostRequest):
+    request = "RegistrationRequest"
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+
+        self.request_args = {"type": "client_associate",
+                    "redirect_uris": ["https://example.com/authz_cb?foo=bar"],
+                    "contact": ["roland@example.com"],
+                    "application_type": "web",
+                    "application_name": "OIC test tool"}
+
+        self.tests["post"].append(RegistrationInfo)
+
+class RegistrationRequest_WF(PostRequest):
+    request = "RegistrationRequest"
+    tests = {"post": [CheckErrorResponse]}
+
+    def __init__(self, message_mod):
+        PostRequest.__init__(self, message_mod)
+
+        self.request_args = {"type": "client_associate",
+                     "redirect_uris": ["https://example.com/authz_cb#foobar"],
+                     "contact": ["roland@example.com"],
+                     "application_type": "web",
+                     "application_name": "OIC test tool"}
+
 class AccessTokenRequestCSBasic(PostRequest):
     request = "AccessTokenRequest"
 
@@ -409,6 +462,9 @@ class CheckIdResponse(BodyResponse):
 class ProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfigurationResponse"
 
+class ClientRegistrationErrorResponse(BodyResponse):
+    response = "ClientRegistrationErrorResponse"
+
 # ----------------------------------------------------------------------------
 class DResponse(object):
     def __init__(self, status, type):
@@ -442,6 +498,8 @@ class Discover(Operation):
 
 PHASES= {
     "login": (AuthorizationRequestCode, AuthzResponse),
+    "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
+    "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
@@ -487,7 +545,11 @@ PHASES= {
     "user-info-request_pbh":(UserInfoRequestPostBearerHeader, UserinfoResponse),
     "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
     "oic-registration": (RegistrationRequest, RegistrationResponse),
-    "provider-discovery": (Discover, ProviderConfigurationResponse)
+    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponse),
+    "oic-registration-wf": (RegistrationRequest_WF,
+                            ClientRegistrationErrorResponse),
+    "provider-discovery": (Discover, ProviderConfigurationResponse),
+    "oic-missing_response_type": (MissingResponseType, AuthzResponse)
 }
 
 
@@ -498,49 +560,13 @@ FLOWS = {
         "sequence": ["verify"],
         "endpoints": ["authorization_endpoint"]
     },
-#    'oic-code': {
-#        "name": 'Request with response_type=code',
-#        "descr": ('Request with response_type=code'),
-#        "sequence": ["oic-login"],
-#        "endpoints": ["authorization_endpoint"]
-#    },
-#    'oic-token': {
-#        "name": 'Request with response_type=token',
-#        "descr": ('Request with response_type=token'),
-#        "sequence": ["oic-login-token"],
-#        "endpoints": ["authorization_endpoint"]
-#    },
-#    'oic-idtoken': {
-#        "name": 'Request with response_type=id_token',
-#        "descr": ('Request with response_type=id_token'),
-#        "sequence": ["oic-login-idtoken"],
-#        "endpoints": ["authorization_endpoint"]
-#    },
-#    'oic-code+token': {
-#        "name": 'Request with response_type=code token',
-#        "descr": ("Request with response_type=code token"),
-#        "sequence": ["oic-login-code+token"],
-#        "endpoints": ["authorization_endpoint"],
-#        },
-#    'oic-code+idtoken': {
-#        "name": 'Request with response_type=code id_token',
-#        "descr": ("Request with response_type=code id_token"),
-#        "sequence": ['oic-login-code+idtoken'],
-#        "endpoints": ["authorization_endpoint"],
-#        },
-#    'oic-idtoken+token': {
-#        "name": 'Request with response_type=id_token token',
-#        "descr": ("Request with response_type=id_token token"),
-#        "sequence": ['oic-login-idtoken+token'],
-#        "endpoints": ["authorization_endpoint"],
-#        },
-#    'oic-code+idtoken+token': {
-#        "name": 'Request with response_type=code id_token token',
-#        "descr": ("Request with response_type=code id_token token"),
-#        "sequence": ['oic-login-code+idtoken+token'],
-#        "endpoints": ["authorization_endpoint",],
-#        },
+
     # -------------------------------------------------------------------------
+    'oic-missing-response_type': {
+        "name": "Authorization request missing the 'response_type' parameter",
+        "sequence": ["oic-missing_response_type"],
+        "endpoints": ["authorization_endpoint"]
+    },
     'oic-code-token': {
         "name": '',
         "descr": ("1) Request with response_type=code",
@@ -579,140 +605,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     # -------------------------------------------------------------------------
-#    'oic-code-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type='code'",
-#                  "2) AccessTokenRequest",
-#                  "  Authentication method used is 'client_secret_post'",
-#                  "3) UserinfoRequest",
-#                  "  'bearer_body' authentication used"),
-#        "depends": ['oic-code-token'],
-#        "sequence": ["oic-login", "access-token-request", "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "userinfo_endpoint"],
-#        },
-##    'oic-code+profile-token-userinfo': {
-##        "name": '',
-##        "descr": ("1) Request with response_type=code",
-##                  "scope = ['openid', 'profile']",
-##                  "2) AccessTokenRequest",
-##                  "Authentication method used is 'client_secret_post'"),
-##        "depends": ['oic-code-token-userinfo'],
-##        "sequence": ["oic-login+profile", "access-token-request",
-##                     "user-info-request"],
-##        "endpoints": ["authorization_endpoint", "token_endpoint"],
-##        },
-#    'oic-code+email-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid', 'email']",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+email", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+address-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid', 'address']",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+address", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+phone-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid', 'phone']",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+phone", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+all-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid', 'email', 'phone', 'address', 'profile']",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+all", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+spec1-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+spec1", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+spec2-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+spec2", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+spec3-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+spec3", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+idtc1-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+idtc1", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        "tests": [("verifyIDToken", {"claims":{"auth_time": None}})]
-#        },
-#    'oic-code+idtc2-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+idtc2", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
-#    'oic-code+idtc3-token-userinfo': {
-#        "name": '',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid'], claims={'name':None}",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['oic-code-token-userinfo'],
-#        "sequence": ["oic-login+idtc3", "access-token-request",
-#                     "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
+
     'oic-token-userinfo': {
         "name": '',
         "descr": ("1) Request with response_type='token'",
@@ -1077,7 +970,29 @@ FLOWS = {
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-
+    'mj-31': {
+        "name": 'Request with response_type=code and extra query component',
+        "sequence": ["login-wqc"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-32': {
+        "name": 'Request with redirect_uri with query component',
+        "sequence": ["login-ruwqc"],
+        "endpoints": ["authorization_endpoint"],
+        "tests": [("verify-redirect_uri-query_component",
+                {"redirect_uri":
+                     PHASES["login-ruwqc"][0].request_args["redirect_uri"]})]
+    },
+    'mj-33': {
+        "name": 'Registration where a redirect_uri has a query component',
+        "sequence": ["oic-registration-wqc"],
+        "endpoints": ["registration_endpoint"],
+    },
+    'mj-34': {
+        "name": 'Registration where a redirect_uri has a fragment',
+        "sequence": ["oic-registration-wf"],
+        "endpoints": ["registration_endpoint"],
+        },
 }
 
 NEW = {

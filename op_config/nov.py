@@ -3,12 +3,16 @@
 import json
 
 info = {
+  "features": {
+    "registration":True,
+    "discovery": True,
+    "sessionmangement": False,
+  },
   "client": {
     "redirect_uris": ["https://connect-rp.heroku.com"],
     "contact": ["nov@matake.jp"],
     "application_type": "web",
     "application_name": "Nov RP",
-    "register": True
   },
   "provider": {
     "version": "3.0",

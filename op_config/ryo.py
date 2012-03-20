@@ -3,12 +3,16 @@
 import json
 
 info = {
+  "features": {
+    "registration":True,
+    "discovery": True,
+    "sessionmangement": False,
+  },
   "client": {
     "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
     "contact": ["roland.hedberg@adm.umu.se"],
     "application_type": "web",
     "application_name": "OIC test tool",
-    "register": True
   },
   "provider": {
     "version": {

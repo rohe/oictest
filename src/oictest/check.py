@@ -64,6 +64,9 @@ class Check():
 
         return res
 
+class ExpectedError(Check):
+    pass
+
 class CriticalError(Check):
     status = CRITICAL
 
@@ -117,7 +120,7 @@ class CheckHTTPResponse(CriticalError):
             if "application/json" in _response["content-type"]:
                 try:
                     err = msg_deser(_content, "json", "ErrorResponse")
-                    self._message = err.get_json(extended=True)
+                    self._message = err.to_json()
                 except Exception:
                     res["content"] = _content
             else:
@@ -129,10 +132,47 @@ class CheckHTTPResponse(CriticalError):
             try:
                 err = msg_deser(_content, "json", "ErrorResponse")
                 err.verify()
-                self._message = err.get_json(extended=True)
+                self._message = err.to_json()
                 self._status = self.status
             except Exception:
                 pass
+
+            res["url"] = environ["url"]
+
+        return res
+
+class CheckErrorResponse(ExpectedError):
+    """
+    Checks that the HTTP response status is outside the 200 or 300 range
+    or that an JSON encoded error message has been received
+    """
+    id = "check-error-response"
+    msg = "OP error"
+
+    def _func(self, environ):
+        _response = environ["response"]
+        _content = environ["content"]
+
+        res = {}
+        if _response.status >= 400 :
+            if "application/json" in _response["content-type"]:
+                try:
+                    err = msg_deser(_content, "json", "ErrorResponse")
+                    err.verify()
+                    res["content"] = err.to_json()
+                except Exception:
+                    res["content"] = _content
+            else:
+                res["content"] = _content
+        else:
+            # might still be an error message
+            try:
+                err = msg_deser(_content, "json", "ErrorResponse")
+                err.verify()
+                res["content"] = err.to_json()
+            except Exception:
+                self._message = "Expected error message"
+                self._status = CRITICAL
 
             res["url"] = environ["url"]
 
@@ -645,6 +685,25 @@ class MultipleSignOn(Error):
         if logins == 1:
             self._message = " ".join(["Only one authentication when more than",
                                       "one was expected"])
+            self._status = self.status
+
+        return {}
+
+class VerifyRedirect_uriQueryComponent(Error):
+    id = "verify-redirect_uri-query_component"
+
+    def _func(self, environ):
+        ruri = self._kwargs["redirect_uri"]
+        part = urlparse.urlparse(ruri)
+        qdict = urlparse.parse_qs(part.query)
+        msg = environ["item"][-1]
+        try:
+            for key, vals in qdict.items():
+                if len(vals) == 1:
+                    assert msg[key] == vals[0]
+        except AssertionError:
+            self._message = "Query component that was part of the " \
+                            "redirect_uri is missing"
             self._status = self.status
 
         return {}
