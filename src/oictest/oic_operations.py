@@ -134,6 +134,14 @@ class AuthorizationRequestCode_RUWQC(GetRequest):
     tests = {"pre": [CheckResponseType],
              "post": [CheckHTTPResponse]}
 
+
+class AuthorizationRequest_Mismatching_Redirect_uri(GetRequest):
+    request = "AuthorizationRequest"
+    request_args= {"response_type": ["code"],
+                   "redirect_uri": "https://hallon.catalogix.se/authz_cb"}
+    tests = {"pre": [CheckResponseType],
+             "post": [CheckErrorResponse]}
+
 class OpenIDRequestCode(GetRequest):
     request = "OpenIDRequest"
     request_args = {"response_type": ["code"], "scope": ["openid"]}
@@ -465,6 +473,9 @@ class ProviderConfigurationResponse(BodyResponse):
 class ClientRegistrationErrorResponse(BodyResponse):
     response = "ClientRegistrationErrorResponse"
 
+class ErrorResponse(BodyResponse):
+    response = "AuthorizationErrorResponse"
+
 # ----------------------------------------------------------------------------
 class DResponse(object):
     def __init__(self, status, type):
@@ -500,6 +511,8 @@ PHASES= {
     "login": (AuthorizationRequestCode, AuthzResponse),
     "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
     "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
+    "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
+                             ErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
@@ -567,6 +580,12 @@ FLOWS = {
         "sequence": ["oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"]
     },
+    'oic-mismatching-redirect_uri': {
+        "name": "Authorization request missing the 'response_type' parameter",
+        "sequence": ["login-redirect-fault"],
+        "endpoints": ["authorization_endpoint"]
+    },
+
     'oic-code-token': {
         "name": '',
         "descr": ("1) Request with response_type=code",

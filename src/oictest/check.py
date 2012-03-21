@@ -119,7 +119,8 @@ class CheckHTTPResponse(CriticalError):
             self._message = self.msg
             if "application/json" in _response["content-type"]:
                 try:
-                    err = msg_deser(_content, "json", "ErrorResponse")
+                    err = msg_deser(_content, "json",
+                                    schema=OA2_SCHEMA["ErrorResponse"])
                     self._message = err.to_json()
                 except Exception:
                     res["content"] = _content
@@ -130,7 +131,8 @@ class CheckHTTPResponse(CriticalError):
         else:
             # might still be an error message
             try:
-                err = msg_deser(_content, "json", "ErrorResponse")
+                err = msg_deser(_content, "json",
+                                schema=OA2_SCHEMA["ErrorResponse"])
                 err.verify()
                 self._message = err.to_json()
                 self._status = self.status
@@ -157,7 +159,8 @@ class CheckErrorResponse(ExpectedError):
         if _response.status >= 400 :
             if "application/json" in _response["content-type"]:
                 try:
-                    err = msg_deser(_content, "json", "ErrorResponse")
+                    err = msg_deser(_content, "json",
+                                    schema=OA2_SCHEMA["ErrorResponse"])
                     err.verify()
                     res["content"] = err.to_json()
                 except Exception:
@@ -167,7 +170,8 @@ class CheckErrorResponse(ExpectedError):
         else:
             # might still be an error message
             try:
-                err = msg_deser(_content, "json", "ErrorResponse")
+                err = msg_deser(_content, "json",
+                                schema=OA2_SCHEMA["ErrorResponse"])
                 err.verify()
                 res["content"] = err.to_json()
             except Exception:
@@ -509,7 +513,8 @@ class verifyErrResponse(CriticalError):
                 _content = _resp["location"].split("?")[1]
 
             try:
-                err = msg_deser(_content, "urlencoded", "ErrorResponse")
+                err = msg_deser(_content, "urlencoded",
+                                schema=OA2_SCHEMA["ErrorResponse"])
                 err.verify()
             except Exception:
                 self._message = self.msg
