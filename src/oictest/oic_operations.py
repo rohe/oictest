@@ -134,6 +134,12 @@ class AuthorizationRequestCode_RUWQC(GetRequest):
     tests = {"pre": [CheckResponseType],
              "post": [CheckHTTPResponse]}
 
+    def __call__(self, environ, trace, location, response, content):
+        _client = environ["client"]
+        base_url = _client.redirect_uris[0]
+        self.request_args["redirect_uri"] = base_url + "?foo=bar"
+        return Request.__call__(self, environ, trace, location, response,
+                                content)
 
 class AuthorizationRequest_Mismatching_Redirect_uri(GetRequest):
     request = "AuthorizationRequest"
