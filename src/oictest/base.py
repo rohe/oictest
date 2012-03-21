@@ -73,8 +73,10 @@ def check_severity(stat):
 def pick_interaction(interactions, _base="", content="", req=None):
     if content:
         _bs = BeautifulSoup(content)
+        unic = unicode(content, "utf-8")
     else:
         _bs = None
+        unic = u''
 
     for interaction in interactions:
         _match = 0
@@ -89,8 +91,9 @@ def pick_interaction(interactions, _base="", content="", req=None):
                     break
                 if val in _bs.title.contents:
                     _match += 1
-            elif attr == "content" and val in content:
-                _match += 1
+            elif attr == "content":
+                if unic and val in unic:
+                    _match += 1
             elif attr == "class":
                 if req and val == req:
                     _match += 1

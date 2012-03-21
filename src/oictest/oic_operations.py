@@ -444,6 +444,7 @@ class RegistrationResponse(BodyResponse):
 
     def __call__(self, environ, response):
         _client = environ["client"]
+        _client.keystore.remove_key_type("hmac")
         for prop in ["client_id", "client_secret"]:
             try:
                 setattr(_client, prop, response[prop])
@@ -575,17 +576,6 @@ FLOWS = {
     },
 
     # -------------------------------------------------------------------------
-    'oic-missing-response_type': {
-        "name": "Authorization request missing the 'response_type' parameter",
-        "sequence": ["oic-missing_response_type"],
-        "endpoints": ["authorization_endpoint"]
-    },
-    'oic-mismatching-redirect_uri': {
-        "name": "Authorization request missing the 'response_type' parameter",
-        "sequence": ["login-redirect-fault"],
-        "endpoints": ["authorization_endpoint"]
-    },
-
     'oic-code-token': {
         "name": '',
         "descr": ("1) Request with response_type=code",
@@ -1012,6 +1002,16 @@ FLOWS = {
         "sequence": ["oic-registration-wf"],
         "endpoints": ["registration_endpoint"],
         },
+    'mj-35': {
+        "name": "Authorization request missing the 'response_type' parameter",
+        "sequence": ["oic-missing_response_type"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-36': {
+        "name": "The sent redirect_uri does not match the registered",
+        "sequence": ["login-redirect-fault"],
+        "endpoints": ["authorization_endpoint"]
+    },
 }
 
 NEW = {
