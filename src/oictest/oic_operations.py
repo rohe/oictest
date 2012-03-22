@@ -114,7 +114,7 @@ class MissingResponseType(GetRequest):
     request = "AuthorizationRequest"
     request_args = {"response_type": []}
     lax = True
-    tests = {"post": [CheckErrorResponse]}
+    tests = {"post": [CheckRedirectErrorResponse]}
 
 class AuthorizationRequestCode(GetRequest):
     request = "AuthorizationRequest"
@@ -176,7 +176,7 @@ class OpenIDRequestCodePromptNone(OpenIDRequestCode):
     def __init__(self, message_mod):
         OpenIDRequestCode.__init__(self, message_mod)
         self.request_args["prompt"] = "none"
-        self.tests["post"] = [verifyErrResponse]
+        self.tests["post"] = [VerifyErrResponse]
 
 class OpenIDRequestCodePromptLogin(OpenIDRequestCode):
 
@@ -439,7 +439,11 @@ class AuthzResponse(UrlResponse):
 
 class AuthzErrResponse(UrlResponse):
     response = "AuthorizationErrorResponse"
-    tests = {"post": [LoginRequired]}
+    #tests = {"post": [LoginRequired]}
+
+#class RedirectedErrorResponse(UrlResponse):
+#    response = "AuthorizationErrorResponse"
+#    tests = {"post": [InvalidRequest]}
 
 class BodyResponse(Response):
     where = "body"
@@ -540,7 +544,7 @@ PHASES= {
     "oic-login+disp_page": (OpenIDRequestCodeDisplayPage, AuthzResponse),
     "oic-login+disp_popup": (OpenIDRequestCodeDisplayPopUp, AuthzResponse),
 
-    "oic-login+prompt_none": (OpenIDRequestCodePromptNone, None),
+    "oic-login+prompt_none": (OpenIDRequestCodePromptNone, AuthzErrResponse),
     "oic-login+prompt_login": (OpenIDRequestCodePromptLogin, AuthzResponse),
 
     "oic-login-token": (OpenIDRequestToken, AuthzResponse),
@@ -569,7 +573,7 @@ PHASES= {
     "oic-registration-wf": (RegistrationRequest_WF,
                             ClientRegistrationErrorResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
-    "oic-missing_response_type": (MissingResponseType, AuthzResponse)
+    "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
 
 
@@ -972,6 +976,7 @@ FLOWS = {
         "name": 'Request with prompt=none',
         "sequence": ["oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
+        "tests":[("verify-error", {"error":"login_required"})]
         },
     'mj-29': {
         "name": 'Request with prompt=login',
@@ -1011,7 +1016,8 @@ FLOWS = {
     'mj-35': {
         "name": "Authorization request missing the 'response_type' parameter",
         "sequence": ["oic-missing_response_type"],
-        "endpoints": ["authorization_endpoint"]
+        "endpoints": ["authorization_endpoint"],
+        "tests":[("verify-error", {"error":"invalid_request"})]
     },
     'mj-36': {
         "name": "The sent redirect_uri does not match the registered",

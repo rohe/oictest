@@ -163,6 +163,7 @@ class CheckErrorResponse(ExpectedError):
                                     schema=OA2_SCHEMA["ErrorResponse"])
                     err.verify()
                     res["content"] = err.to_json()
+                    res["temp"] = err
                 except Exception:
                     res["content"] = _content
             else:
@@ -179,6 +180,31 @@ class CheckErrorResponse(ExpectedError):
                 self._status = CRITICAL
 
             res["url"] = environ["url"]
+
+        return res
+
+class CheckRedirectErrorResponse(ExpectedError):
+    """
+    Checks that the HTTP response status is outside the 200 or 300 range
+    or that an JSON encoded error message has been received
+    """
+    id = "check-redirect-error-response"
+    msg = "OP error"
+
+    def _func(self, environ):
+        _response = environ["response"]
+
+        res = {}
+        query = _response["location"].split("?")[1]
+        if _response.status == 302 :
+            err = msg_deser(query, "urlencoded",
+                            schema=OA2_SCHEMA["ErrorResponse"])
+            err.verify()
+            res["content"] = err.to_json()
+            environ["item"].append(err)
+        else:
+            self._message = "Expected error message"
+            self._status = CRITICAL
 
         return res
 
@@ -488,7 +514,7 @@ class ScopeWithClaims(Error):
 
         return {}
 
-class verifyErrResponse(CriticalError):
+class VerifyErrResponse(ExpectedError):
     """
     Verifies that the response received was an Error response
     """
@@ -496,31 +522,23 @@ class verifyErrResponse(CriticalError):
     msg = "OP error"
 
     def _func(self, environ):
-        _content = environ["content"]
+        res = {}
 
-        if _content:
+        response = environ["response"]
+        if response.status == 302:
+            _query = response["location"].split("?")[1]
             try:
-                err = msg_deser(_content, "json",
+                err = msg_deser(_query, "urlencoded",
                                 schema=OA2_SCHEMA["ErrorResponse"])
                 err.verify()
+                res["temp"] = err
+                res["message"] = err.to_dict()
             except Exception:
-                self._message = self.msg
-                self._status = self.status
+                self._message = "Faulty error message"
+                self._status = ERROR
         else:
-            # might be a redirect with query parts
-            _resp = environ["response"]
-            if _resp.status == 302:
-                _content = _resp["location"].split("?")[1]
-
-            try:
-                err = msg_deser(_content, "urlencoded",
-                                schema=OA2_SCHEMA["ErrorResponse"])
-                err.verify()
-            except Exception:
-                self._message = self.msg
-                self._status = self.status
-
-        res = {"url": environ["url"]}
+            self._message = "Expected a redirect with an error message"
+            self._status = ERROR
 
         return res
 
@@ -712,6 +730,27 @@ class VerifyRedirect_uriQueryComponent(Error):
             self._status = self.status
 
         return {}
+
+class VerifyError(Error):
+    id = "verify-error"
+
+    def _func(self, environ):
+        msg = environ["item"][-1]
+        try:
+            assert msg.type().endswith("ErrorResponse")
+        except AssertionError:
+            self._message = "Expected an error response"
+            self._status = self.status
+            return {}
+
+        try:
+            assert msg["error"] == self._kwargs["error"]
+        except AssertionError:
+            self._message = "Wrong type of error, got %s" % msg.error
+            self._status = self.status
+
+        return {}
+
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

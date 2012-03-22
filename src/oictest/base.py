@@ -175,6 +175,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                         stat = chk(environ, test_output)
                         check_severity(stat)
                         if isinstance(chk, ExpectedError):
+                            item.append(stat["temp"])
+                            del stat["temp"]
                             url = None
                             break
                 except KeyError:
