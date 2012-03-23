@@ -309,7 +309,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 try:
                     qresp = client.parse_response(schema, info, resp.type,
                                                   client.state, key=keys,
-                                                  client_id=client.client_id)
+                                                  client_id=client.client_id,
+                                                  scope="openid")
                     if trace and qresp:
                         trace.info("[%s]: %s" % (qresp.type(),
                                                  qresp.to_dict()))

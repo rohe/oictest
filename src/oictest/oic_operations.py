@@ -645,7 +645,7 @@ FLOWS = {
         },
     'oic-code+idtoken-token-userinfo': {
         "name": 'Implicit flow with Code+IDToken ',
-        "descr": ("1) Request with response_type='code id_token token'",
+        "descr": ("1) Request with response_type='code id_token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
         "depends": ['oic-code+idtoken-token'],
