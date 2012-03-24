@@ -6,10 +6,9 @@ from oictest import OIC
 from oictest import oic_operations
 
 from oic.oic import Client
-from oic.oic import message
 
 from oic.oic.consumer import Consumer
 
-cli = OIC(oic_operations, message, Client, Consumer)
+cli = OIC(oic_operations, Client, Consumer)
 
 cli.run()
