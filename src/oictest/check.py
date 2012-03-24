@@ -114,10 +114,10 @@ class CheckHTTPResponse(CriticalError):
         _content = environ["content"]
 
         res = {}
-        if _response.status >= 400 :
+        if _response.status_code >= 400 :
             self._status = self.status
             self._message = self.msg
-            if "application/json" in _response["content-type"]:
+            if "application/json" in _response.headers["content-type"]:
                 try:
                     err = msg_deser(_content, "json",
                                     schema=OA2_SCHEMA["ErrorResponse"])
@@ -127,7 +127,7 @@ class CheckHTTPResponse(CriticalError):
             else:
                 res["content"] = _content
             res["url"] = environ["url"]
-            res["http_status"] = _response.status
+            res["http_status"] = _response.status_code
         else:
             # might still be an error message
             try:
@@ -156,8 +156,8 @@ class CheckErrorResponse(ExpectedError):
         _content = environ["content"]
 
         res = {}
-        if _response.status >= 400 :
-            if "application/json" in _response["content-type"]:
+        if _response.status_code >= 400 :
+            if "application/json" in _response.headers["content-type"]:
                 try:
                     err = msg_deser(_content, "json",
                                     schema=OA2_SCHEMA["ErrorResponse"])
@@ -195,8 +195,8 @@ class CheckRedirectErrorResponse(ExpectedError):
         _response = environ["response"]
 
         res = {}
-        query = _response["location"].split("?")[1]
-        if _response.status == 302 :
+        query = _response.headers["location"].split("?")[1]
+        if _response.status_code == 302 :
             err = msg_deser(query, "urlencoded",
                             schema=OA2_SCHEMA["ErrorResponse"])
             err.verify()
@@ -287,7 +287,7 @@ class CheckContentTypeHeader(Error):
         res = {}
         _response = environ["response"]
         try:
-            ctype = _response["content-type"]
+            ctype = _response.headers["content-type"]
             if environ["response_spec"].type == "json":
                 if not "application/json" in ctype:
                     self._status = self.status
@@ -525,8 +525,8 @@ class VerifyErrResponse(ExpectedError):
         res = {}
 
         response = environ["response"]
-        if response.status == 302:
-            _query = response["location"].split("?")[1]
+        if response.status_code == 302:
+            _query = response.headers["location"].split("?")[1]
             try:
                 err = msg_deser(_query, "urlencoded",
                                 schema=OA2_SCHEMA["ErrorResponse"])

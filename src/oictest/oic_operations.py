@@ -22,8 +22,8 @@ class Request():
     kw_args = {}
     tests = {"post": [CheckHTTPResponse], "pre":[]}
 
-    def __init__(self, message_mod):
-        self.message_mod = message_mod
+    def __init__(self):
+        pass
 
     #noinspection PyUnusedLocal
     def __call__(self, environ, trace, location, response, content):
@@ -73,15 +73,14 @@ class Request():
             trace.request("URL: %s" % url)
             trace.request("BODY: %s" % body)
 
-        response, content = _client.http_request(url, method=self.method,
-                                                body=body, trace=trace,
-                                                **ht_args)
+        response = _client.http_request(url, method=self.method,
+                                            data=body, **ht_args)
 
         if trace:
             trace.reply("RESPONSE: %s" % response)
-            trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
+            trace.reply("CONTENT: %s" % response.text)
 
-        return url, response, content
+        return url, response, response.text
 
     def update(self, dic):
         _tmp = {"request": self.request_args, "kw": self.kw_args}
@@ -161,80 +160,80 @@ class ConnectionVerify(GetRequest):
 
 class OpenIDRequestCodeDisplayPage(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["display"] = "page"
 
 class OpenIDRequestCodeDisplayPopUp(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["display"] = "popup"
 
 class OpenIDRequestCodePromptNone(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyErrResponse]
 
 class OpenIDRequestCodePromptLogin(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["prompt"] = "login"
 
 
 class OpenIDRequestCodeScopeProfile(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["scope"].append("profile")
 
 class OpenIDRequestCodeScopeEMail(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["scope"].append("email")
 
 class OpenIDRequestCodeScopeAddress(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["scope"].append("address")
 
 class OpenIDRequestCodeScopePhone(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["scope"].append("phone")
 
 class OpenIDRequestCodeScopeAll(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["scope"].extend(["phone", "address", "email",
                                            "profile"])
 
 class OpenIDRequestCodeUIClaim1(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["userinfo_claims"] = {"claims": {"name": None}}
 
 
 class OpenIDRequestCodeUIClaim2(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["userinfo_claims"] = {"claims": {
                                                 "picture": {"optional":True},
                                                 "email": {"optional": True}}}
 
 class OpenIDRequestCodeUIClaim3(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["userinfo_claims"] = {"claims": {
                                                 "name": None,
                                                 "picture": {"optional":True},
@@ -242,34 +241,34 @@ class OpenIDRequestCodeUIClaim3(OpenIDRequestCode):
 
 class OpenIDRequestCodeIDTClaim1(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["idtoken_claims"] = {"claims": {"auth_time": None}}
 
 class OpenIDRequestCodeIDTClaim2(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["idtoken_claims"] = {"claims": {"acr": {"values":
                                                                       ["2"]}}}
 
 class OpenIDRequestCodeIDTClaim3(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["idtoken_claims"] = {"claims": {"acr": None}}
 
 class OpenIDRequestCodeIDTMaxAge1(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
+    def __init__(self):
         time.sleep(2)
-        OpenIDRequestCode.__init__(self, message_mod)
+        OpenIDRequestCode.__init__(self)
         self.request_args["idtoken_claims"] = {"max_age": 1}
 
 class OpenIDRequestCodeIDTMaxAge10(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["idtoken_claims"] = {"max_age": 10}
 
 class OpenIDRequestToken(GetRequest):
@@ -284,26 +283,26 @@ class OpenIDRequestIDToken(GetRequest):
 
 class OpenIDRequestCodeToken(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["response_type"].append("token")
 
 class OpenIDRequestCodeIDToken(OpenIDRequestCode):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCode.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
         self.request_args["response_type"].append("id_token")
 
 class OpenIDRequestIDTokenToken(OpenIDRequestIDToken):
 
-    def __init__(self, message_mod):
-        OpenIDRequestIDToken.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestIDToken.__init__(self)
         self.request_args["response_type"].append("token")
 
 class OpenIDRequestCodeIDTokenToken(OpenIDRequestCodeIDToken):
 
-    def __init__(self, message_mod):
-        OpenIDRequestCodeIDToken.__init__(self, message_mod)
+    def __init__(self):
+        OpenIDRequestCodeIDToken.__init__(self)
         self.request_args["response_type"].append("token")
 
 class PostRequest(Request):
@@ -312,8 +311,8 @@ class PostRequest(Request):
 class RegistrationRequest(PostRequest):
     request = "RegistrationRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
 
         self.request_args = {"type": "client_associate",
                              "redirect_uris": ["https://example.com/authz_cb"],
@@ -326,8 +325,8 @@ class RegistrationRequest(PostRequest):
 class RegistrationRequest_WQC(PostRequest):
     request = "RegistrationRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
 
         self.request_args = {"type": "client_associate",
                     "redirect_uris": ["https://example.com/authz_cb?foo=bar"],
@@ -341,8 +340,8 @@ class RegistrationRequest_WF(PostRequest):
     request = "RegistrationRequest"
     tests = {"post": [CheckErrorResponse]}
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
 
         self.request_args = {"type": "client_associate",
                      "redirect_uris": ["https://example.com/authz_cb#foobar"],
@@ -350,71 +349,86 @@ class RegistrationRequest_WF(PostRequest):
                      "application_type": "web",
                      "application_name": "OIC test tool"}
 
-class AccessTokenRequestCSBasic(PostRequest):
+class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
-        self.kw_args = {"authn_method": "client_secret_basic"}
+    def __init__(self):
+        PostRequest.__init__(self)
+        #self.kw_args = {"authn_method": "client_secret_basic"}
 
-class AccessTokenRequestCSPost(AccessTokenRequestCSBasic):
+    def __call__(self, environ, trace, location, response, content):
+        if "authn_method" not in self.kw_args:
+            _pinfo = environ["provider_info"]
+            if "token_endpoint_auth_types_supported" in _pinfo:
+                for meth in ["client_secret_basic", "client_secret_post",
+                             "client_secret_jwt", "private_key_jwt"]:
+                    if meth in _pinfo["token_endpoint_auth_types_supported"]:
+                        self.kw_args = {"authn_method": meth}
+                        break
+            else:
+                self.kw_args = {"authn_method": "client_secret_basic"}
+        return Request.__call__(self, environ, trace, location, response,
+                              content)
+        
+        
+class AccessTokenRequestCSPost(AccessTokenRequest):
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "client_secret_post"}
 
-class AccessTokenRequestCSJWT(AccessTokenRequestCSBasic):
+class AccessTokenRequestCSJWT(AccessTokenRequest):
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "client_secret_jwt"}
 
-class AccessTokenRequestPKJWT(AccessTokenRequestCSBasic):
+class AccessTokenRequestPKJWT(AccessTokenRequest):
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "private_key_jwt"}
 
 class UserInfoRequestGetBearerHeader(GetRequest):
     request = "UserInfoRequest"
 
-    def __init__(self, message_mod):
-        GetRequest.__init__(self, message_mod)
+    def __init__(self):
+        GetRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_header"}
 
 class UserInfoRequestPostBearerHeader(PostRequest):
     request = "UserInfoRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_header"}
 
 class UserInfoRequestPostBearerBody(PostRequest):
     request = "UserInfoRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_body"}
 
 class CheckIDRequestGetBearerHeader(GetRequest):
     request = "CheckIDRequest"
 
-    def __init__(self, message_mod):
-        GetRequest.__init__(self, message_mod)
+    def __init__(self):
+        GetRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_header"}
 
 class CheckIDRequestPostBearerHeader(PostRequest):
     request = "CheckIDRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_header"}
 
 class CheckIDRequestPostBearerBody(PostRequest):
     request = "CheckIDRequest"
 
-    def __init__(self, message_mod):
-        PostRequest.__init__(self, message_mod)
+    def __init__(self):
+        PostRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_body"}
 
 # -----------------------------------------------------------------------------
@@ -557,7 +571,7 @@ PHASES= {
 #
     "access-token-request_csp":(AccessTokenRequestCSPost,
                                   AccessTokenResponse),
-    "access-token-request":(AccessTokenRequestCSBasic, AccessTokenResponse),
+    "access-token-request":(AccessTokenRequest, AccessTokenResponse),
     "access-token-request_csj":(AccessTokenRequestCSJWT,
                                   AccessTokenResponse),
     "access-token-request_pkj":(AccessTokenRequestPKJWT,

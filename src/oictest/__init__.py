@@ -64,9 +64,8 @@ def get_page(url):
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password"]
 
-    def __init__(self, operations_mod, message_mod, client_class):
+    def __init__(self, operations_mod, client_class):
         self.operations_mod = operations_mod
-        self.message_mod = message_mod
         self.client_class = client_class
         self.client = None
         self.trace = Trace()
@@ -149,8 +148,7 @@ class OAuth2(object):
 
             try:
                 testres, trace = run_sequence(self.client, _seq, self.trace,
-                                              interact, self.message_mod,
-                                              self.environ, tests)
+                                              interact, self.environ, tests)
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
@@ -220,21 +218,16 @@ class OAuth2(object):
         pass
 
     def client_conf(self, cprop):
-        _htclass = httplib2cookie.CookiefulHttp
         if self.args.ca_certs:
-            self.client = self.client_class(ca_certs=self.args.ca_certs,
-                                            httpclass=_htclass)
+            self.client = self.client_class(ca_certs=self.args.ca_certs)
         else:
             try:
                 self.client = self.client_class(
-                    ca_certs=self.json_config["ca_certs"],
-                    httpclass=_htclass)
+                                        ca_certs=self.json_config["ca_certs"])
             except (KeyError, TypeError):
-                self.client = self.client_class(
-                    disable_ssl_certificate_validation=True,
-                    httpclass=_htclass)
+                self.client = self.client_class()
 
-        self.client.http_request = self.client.http.crequest
+        #self.client.http_request = self.client.http.crequest
 
         # set the endpoints in the Client from the provider information
         # If they are statically configured, if dynamic it happens elsewhere
@@ -314,9 +307,9 @@ class OAuth2(object):
 class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
-    def __init__(self, operations_mod, message_mod, client_class,
+    def __init__(self, operations_mod, client_class,
                  consumer_class):
-        OAuth2.__init__(self, operations_mod, message_mod, client_class)
+        OAuth2.__init__(self, operations_mod, client_class)
 
         #self._parser.add_argument('-P', dest="provider_conf_url")
         #self._parser.add_argument('-p', dest="principal")

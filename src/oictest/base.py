@@ -71,12 +71,11 @@ def check_severity(stat):
 
 
 def pick_interaction(interactions, _base="", content="", req=None):
+    unic = content
     if content:
         _bs = BeautifulSoup(content)
-        unic = unicode(content, "utf-8")
     else:
         _bs = None
-        unic = u''
 
     for interaction in interactions:
         _match = 0
@@ -105,8 +104,8 @@ def pick_interaction(interactions, _base="", content="", req=None):
 
 ORDER = ["url","response","content"]
 
-def run_sequence(client, sequence, trace, interaction, message_mod,
-                 environ=None, tests=None):
+def run_sequence(client, sequence, trace, interaction, environ=None,
+                 tests=None):
     item = []
     response = None
     content = None
@@ -120,7 +119,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
     try:
         for creq, cresp in sequence:
-            environ["request_spec"] = req = creq(message_mod)
+            environ["request_spec"] = req = creq()
             try:
                 environ["response_spec"] = resp = cresp()
             except TypeError:
@@ -199,11 +198,8 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 done = True
 
             while not done:
-                while response.status in [302, 301, 303]:
-                    try:
-                        url = response.url
-                    except AttributeError:
-                        url = response["location"]
+                while response.status_code in [302, 301, 303]:
+                    url = response.headers["location"]
 
                     # If back to me
                     for_me = False
@@ -252,7 +248,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
 
                 if len(_spec) > 2:
                     trace.info(">> %s <<" % _spec["page-type"])
-                _op = Operation(message_mod, _spec["control"])
+                _op = Operation(_spec["control"])
 
                 try:
                     part = _op(environ, trace, url, response, content)
@@ -276,7 +272,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
                 environ["response"] = qresp = content
             elif resp.where == "url":
                 try:
-                    info = response["location"]
+                    info = response.headers["location"]
                 except KeyError:
                     try:
                         _check = getattr(req, "interaction_check", None)
@@ -353,7 +349,7 @@ def run_sequence(client, sequence, trace, interaction, message_mod,
     return test_output, "%s" % trace
 
 
-def run_sequences(client, sequences, trace, interaction, message_mod,
+def run_sequences(client, sequences, trace, interaction,
                   verbose=False):
     for sequence, endpoints, fid in sequences:
         # clear cookie cache
@@ -363,8 +359,7 @@ def run_sequences(client, sequences, trace, interaction, message_mod,
         except AttributeError:
             pass
 
-        err = run_sequence(client, sequence, trace, interaction, message_mod,
-                           verbose)
+        err = run_sequence(client, sequence, trace, interaction, verbose)
 
         if err:
             print "%s - FAIL" % fid

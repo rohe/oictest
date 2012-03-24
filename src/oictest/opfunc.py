@@ -108,16 +108,16 @@ def do_request(client, url, method, body="", headers=None, trace=False):
     if trace:
         trace.request("URL: %s" % url)
         trace.request("BODY: %s" % body)
+        trace.request("Headers: %s" % (headers,))
 
-    response, content = client.http_request(url, method=method,
-                                            body=body, headers=headers,
-                                            trace=trace)
+    response = client.http_request(url, method=method,
+                                            data=body, headers=headers)
 
     if trace:
         trace.reply("RESPONSE: %s" % response)
-        trace.reply("CONTENT: %s" % unicode(content, encoding="utf-8"))
+        trace.reply("CONTENT: %s" % response.text)
 
-    return url, response, content
+    return url, response, response.text
 
 def pick_form(response, content, url=None, **kwargs):
     """
@@ -128,6 +128,7 @@ def pick_form(response, content, url=None, **kwargs):
     :param url: The url the request was sent to
     :return: The picked form or None of no form matched the criteria.
     """
+
     forms = ParseResponseEx(response)
     if not forms:
         raise FlowException(content=content, url=url)
@@ -231,11 +232,14 @@ def select_form(client, orig_response, content, **kwargs):
     :return: The response do_click() returns
     """
     try:
-        _url = orig_response["content-location"]
+        _url = orig_response.url
     except KeyError:
         _url = kwargs["location"]
     # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"], url=_url)
+    if isinstance(content, unicode):
+       content = content.encode("utf-8")
+
+    response = DResponse(status=orig_response.status_code, url=_url)
     response.write(content)
 
     form = pick_form(response, content, _url, **kwargs)
@@ -324,11 +328,10 @@ def interaction(args):
 # ========================================================================
 
 class Operation(object):
-    def __init__(self, message_mod, args=None):
+    def __init__(self, args=None):
         if args:
             self.function = interaction(args)
 
-        self.message_mod = message_mod
         self.args = args or {}
         self.request = None
 
