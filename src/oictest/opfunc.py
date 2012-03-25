@@ -306,7 +306,7 @@ def post_form(client, orig_response, content, **kwargs):
     :param content: The content of the response
     :return: The response do_click() returns
     """
-    _url = orig_response.headers["content-location"]
+    _url = orig_response.url
     # content is a form to be filled in and returned
     response = DResponse(status=orig_response.status_code, url=_url)
     response.write(content)
