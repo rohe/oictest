@@ -284,7 +284,7 @@ def chose(client, orig_response, content, path, **kwargs):
 
     if not path.startswith("http"):
         try:
-            _url = orig_response["content-location"]
+            _url = orig_response.url
         except KeyError:
             _url = kwargs["location"]
 
@@ -306,9 +306,9 @@ def post_form(client, orig_response, content, **kwargs):
     :param content: The content of the response
     :return: The response do_click() returns
     """
-    _url = orig_response["content-location"]
+    _url = orig_response.headers["content-location"]
     # content is a form to be filled in and returned
-    response = DResponse(status=orig_response["status"], url=_url)
+    response = DResponse(status=orig_response.status_code, url=_url)
     response.write(content)
 
     form = pick_form(response, content, _url, **kwargs)
