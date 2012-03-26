@@ -746,7 +746,7 @@ class VerifyError(Error):
         try:
             assert msg["error"] == self._kwargs["error"]
         except AssertionError:
-            self._message = "Wrong type of error, got %s" % msg.error
+            self._message = "Wrong type of error, got %s" % msg["error"]
             self._status = self.status
 
         return {}
