@@ -336,6 +336,9 @@ class RegistrationRequest_WQC(PostRequest):
 
         self.tests["post"].append(RegistrationInfo)
 
+from oictest import key_export
+from oictest import start_script
+
 class RegistrationRequest_WF(PostRequest):
     request = "RegistrationRequest"
     tests = {"post": [CheckErrorResponse]}
@@ -348,6 +351,56 @@ class RegistrationRequest_WF(PostRequest):
                      "contact": ["roland@example.com"],
                      "application_type": "web",
                      "application_name": "OIC test tool"}
+
+
+
+class RegistrationRequest_KeyExp(PostRequest):
+    request = "RegistrationRequest"
+
+    def __init__(self):
+        PostRequest.__init__(self)
+
+        self.request_args = {"type": "client_associate",
+                             "redirect_uris": ["https://example.com/authz_cb"],
+                             "contact": ["roland@example.com"],
+                             "application_type": "web",
+                             "application_name": "OIC test tool"}
+
+        self.export_info = {
+            "script": "../../script/static_provider.py",
+            "server": "http://localhost:8090/export",
+            "local_path": "./keys",
+            "sign": {
+                "alg":"rsa",
+                "create_if_missing": True,
+                "format": "jwk",
+            }}
+
+    def __call__(self, environ, trace, location, response, content):
+        _client = environ["client"]
+        part, res = key_export(**self.export_info)
+
+        # Do the redirect_uris dynamically
+        self.request_args["redirect_uris"] = _client.redirect_uris
+
+        for name, (url, keyspecs) in res.items():
+            self.request_args[name] = url
+            for key, typ, usage in keyspecs:
+                _client.keystore.add_key(key, typ, usage)
+
+        try:
+            (host, port) = part.netloc.split(":")
+        except ValueError:
+            host = part.netloc
+            port = 80
+
+        _pop = start_script(self.export_info["script"], host, port)
+        environ["keyprovider"] = _pop
+        trace.info("Started key provider")
+        time.sleep(1)
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                              content)
 
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
@@ -586,6 +639,7 @@ PHASES= {
     "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponse),
     "oic-registration-wf": (RegistrationRequest_WF,
                             ClientRegistrationErrorResponse),
+    "oic-registration-ke": (RegistrationRequest_KeyExp, RegistrationResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
@@ -1038,19 +1092,21 @@ FLOWS = {
         "sequence": ["login-redirect-fault"],
         "endpoints": ["authorization_endpoint"]
     },
+    'mj-37': {
+        "name": 'Access token request with client_secret_jwt authentication',
+        "sequence": ["oic-registration-ke", "oic-login",
+                     "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-38': {
+        "name": 'Access token request with public_key_jwt authentication',
+        "sequence": ["oic-registration-ke", "oic-login",
+                     "access-token-request_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
 }
 
 NEW = {
-    'mj-31': {
-        "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-login", "access-token-request_csj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'mj-32': {
-        "name": 'Access token request with public_key_jwt authentication',
-        "sequence": ["oic-login", "access-token-request_pkj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",

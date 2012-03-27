@@ -5,8 +5,8 @@ __author__ = 'rohe0002'
 import argparse
 import sys
 import json
-import httplib2
 import os
+import requests
 import os.path
 
 from subprocess import Popen, PIPE
@@ -18,7 +18,6 @@ from oic.utils.jwt import construct_rsa_jwk
 from oic.oic.message import message
 
 from oictest.check import CheckRegistrationResponse
-from oictest import httplib2cookie
 from oictest.base import *
 
 QUERY2RESPONSE = {
@@ -54,12 +53,76 @@ def stop_script_by_pid(pid):
     os.kill(pid, signal.SIGKILL)
 
 def get_page(url):
-    http = httplib2.Http()
-    resp, content = http.request(url)
-    if resp.status == 200:
-        return content
+    resp = requests.get(url)
+    if resp.status_code == 200:
+        return resp.text
     else:
         raise HTTP_ERROR(resp.status)
+
+def key_export(**kwargs):
+    part = urlparse.urlsplit(kwargs["server"])
+
+    # deal with the export directory
+    if part.path.endswith("/"):
+        _path = part.path[:-1]
+    else:
+        _path = part.path[:]
+
+        # Check if the dir is there
+    if not os.path.exists(".%s" % _path):
+        # otherwise create it
+        os.makedirs(".%s" % _path)
+
+    local_path = kwargs["local_path"]
+    if not os.path.exists(local_path):
+        os.makedirs(local_path)
+
+    res = {}
+    # For each usage type
+    for usage in ["sign", "enc"]:
+        if usage in kwargs:
+            _keys = {}
+
+            if kwargs[usage]["format"] == "jwk":
+                if usage == "sign":
+                    _name = ("jwk.json", "jwk_url")
+                else:
+                    _name = ("jwk_enc.json", "jwk_encryption_url")
+            else: # must be 'x509'
+                if usage == "sign":
+                    _name = ("x509.pub", "x509_url")
+                else:
+                    _name = ("x509_enc.pub", "x509_encryption_url")
+
+            _new_path = ".%s/%s" % (_path, _name[0])
+
+            if os.path.exists(_new_path): # If it's already there ..
+                _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path, "pyoidc"))
+            else:
+                if kwargs[usage]["alg"] == "rsa":
+                    _keys["rsa"] = jwt.create_rsa_key_pair(path=local_path)
+
+                if kwargs[usage]["format"] == "jwk":
+                    _jwk = []
+                    for typ, key in _keys.items():
+                        if typ == "rsa":
+                            _jwk.append(construct_rsa_jwk(key))
+
+                    _jwk = {"jwk": _jwk}
+
+                    f = open(_new_path, "w")
+                    f.write(json.dumps(_jwk))
+                    f.close()
+
+            keyspec = []
+            for typ, key in _keys.items():
+                keyspec.append([key, typ, usage])
+
+            _url = "%s://%s%s" % (part.scheme, part.netloc, _new_path[1:])
+            res[_name[1]] = (_url, keyspec)
+
+        return part, res
+
 
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password"]
@@ -160,11 +223,9 @@ class OAuth2(object):
                 exception_trace("RUN", err)
 
             if self._pop is not None:
-                #sout,serr = self._pop.communicate()
-                self._pop.kill()
-                print "SOUT", self._pop.stdout.read()
-                print "SERR", self._pop.stderr.read()
-                print self._pop.returncode
+                self._pop.terminate()
+            elif "keyprovider" in self.environ:
+                self.environ["keyprovider"].terminate()
 
     def operations(self):
         lista = []
@@ -311,12 +372,9 @@ class OIC(OAuth2):
                  consumer_class):
         OAuth2.__init__(self, operations_mod, client_class)
 
-        #self._parser.add_argument('-P', dest="provider_conf_url")
-        #self._parser.add_argument('-p', dest="principal")
         self._parser.add_argument('-R', dest="rsakey")
         self._parser.add_argument('-i', dest="internal_server",
                                   action='store_true')
-        #self._parser.add_argument('-w', dest="webserverport")
 
         self.consumer_class = consumer_class
 
@@ -420,66 +478,14 @@ class OIC(OAuth2):
 
     def export(self, **kwargs):
         # has to be there
-        part = urlparse.urlsplit(kwargs["server"])
+        self.trace.info("EXPORT")
 
-        # deal with the export directory
-        if part.path.endswith("/"):
-            _path = part.path[:-1]
-        else:
-            _path = part.path[:]
+        part, res = key_export(**kwargs)
 
-        # Check if the dir is there
-        if not os.path.exists(".%s" % _path):
-            # otherwise create it
-            os.makedirs(".%s" % _path)
-
-        local_path = kwargs["local_path"]
-        if not os.path.exists(local_path):
-            os.makedirs(local_path)
-
-        # For each usage type
-        for usage in ["sign", "enc"]:
-            if usage in kwargs:
-                _keys = {}
-
-                if kwargs[usage]["format"] == "jwk":
-                    if usage == "sign":
-                        _name = ("jwk.json", "jwk_url")
-                    else:
-                        _name = ("jwk_enc.json", "jwk_encryption_url")
-                else: # must be 'x509'
-                    if usage == "sign":
-                        _name = ("x509.pub", "x509_url")
-                    else:
-                        _name = ("x509_enc.pub", "x509_encryption_url")
-
-                _new_path = ".%s/%s" % (_path, _name[0])
-
-                if os.path.exists(_new_path): # If it's already there ..
-                    _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path,
-                                                          "pyoidc"))
-                else:
-                    if kwargs[usage]["alg"] == "rsa":
-                        _keys["rsa"] = jwt.create_rsa_key_pair(path=local_path)
-
-                    if kwargs[usage]["format"] == "jwk":
-                        _jwk = []
-                        for typ, key in _keys.items():
-                            if typ == "rsa":
-                                _jwk.append(construct_rsa_jwk(key))
-
-                        _jwk = {"jwk": _jwk}
-
-                        f = open(_new_path, "w")
-                        f.write(json.dumps(_jwk))
-                        f.close()
-
-                for typ, key in _keys.items():
-                    self.client.keystore.add_key(key, typ, usage)
-
-                self.cconf[_name[1]] = "%s://%s%s" % (part.scheme,
-                                                      part.netloc,
-                                                      _new_path[1:])
+        for name, (url, keyspecs) in res.items():
+            self.cconf[name] = url
+            for key, typ, usage in keyspecs:
+                self.client.keystore.add_key(key, typ, usage)
 
         if self.args.internal_server:
             # start the server
@@ -490,8 +496,8 @@ class OIC(OAuth2):
                 port = 80
 
             self._pop = start_script(kwargs["script"], host, port)
-            # just to let it get started
-            #time.sleep(1)
+            self.trace.info("Started key provider")
+            time.sleep(1)
 
 if __name__ == "__main__":
     from oictest import OAuth2
@@ -499,6 +505,6 @@ if __name__ == "__main__":
     from oic.oauth2 import Client
     from oic.oauth2 import message
 
-    cli = OAuth2(oauth2_operations, message, Client)
+    cli = OAuth2(oauth2_operations, Client)
 
     cli.run()
