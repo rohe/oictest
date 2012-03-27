@@ -388,16 +388,17 @@ class RegistrationRequest_KeyExp(PostRequest):
             for key, typ, usage in keyspecs:
                 _client.keystore.add_key(key, typ, usage)
 
-        try:
-            (host, port) = part.netloc.split(":")
-        except ValueError:
-            host = part.netloc
-            port = 80
+        if "keyprovider" not in environ:
+            try:
+                (host, port) = part.netloc.split(":")
+            except ValueError:
+                host = part.netloc
+                port = 80
 
-        _pop = start_script(self.export_info["script"], host, port)
-        environ["keyprovider"] = _pop
-        trace.info("Started key provider")
-        time.sleep(1)
+            _pop = start_script(self.export_info["script"], host, port)
+            environ["keyprovider"] = _pop
+            trace.info("Started key provider")
+            time.sleep(1)
 
         return PostRequest.__call__(self, environ, trace, location, response,
                               content)
@@ -1092,13 +1093,13 @@ FLOWS = {
         "sequence": ["login-redirect-fault"],
         "endpoints": ["authorization_endpoint"]
     },
-    'mj-37': {
+    'mj-37*': {
         "name": 'Access token request with client_secret_jwt authentication',
         "sequence": ["oic-registration-ke", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-    'mj-38': {
+    'mj-38*': {
         "name": 'Access token request with public_key_jwt authentication',
         "sequence": ["oic-registration-ke", "oic-login",
                      "access-token-request_pkj"],

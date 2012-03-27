@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import os
-import urlparse
-
 __author__ = 'rohe0002'
 
+import os
+import urlparse
+import time
 import sys
 import json
 from subprocess import Popen
@@ -147,6 +147,9 @@ def test(node, who):
         print "* (%s)%s - %s (%s)" % (node.name, node.desc, _sc, reason)
     else:
         print "* (%s)%s - %s" % (node.name, node.desc, _sc)
+
+    if node.name.endswith("*"):
+        time.sleep(5)
 
 def recursively_test(node, who):
     for parent in node.parent:

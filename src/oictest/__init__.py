@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import signal
 
 __author__ = 'rohe0002'
 
@@ -225,7 +226,8 @@ class OAuth2(object):
             if self._pop is not None:
                 self._pop.terminate()
             elif "keyprovider" in self.environ:
-                self.environ["keyprovider"].terminate()
+                os.kill(self.environ["keyprovider"].pid, signal.SIGTERM)
+                #self.environ["keyprovider"].terminate()
 
     def operations(self):
         lista = []
