@@ -1,10 +1,17 @@
 #!/usr/bin/env python
 # Just for serving static files
+import socket
 
 __author__ = 'rohe0002'
 
 import SimpleHTTPServer
 import SocketServer
+
+class MyTCPServer(SocketServer.TCPServer):
+    def __init__(self, server_address, RequestHandlerClass):
+        self.allow_reuse_address = True
+        SocketServer.TCPServer.__init__(self, server_address,
+                                        RequestHandlerClass)
 
 def main(arg):
     Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
@@ -14,7 +21,11 @@ def main(arg):
     else:
         hostname = arg[0]
 
-    httpd = SocketServer.TCPServer((hostname, int(arg[1])), Handler)
+    port = int(arg[1])
+#    s = socket.socket()
+#    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+#    s.bind((hostname, port))
+    httpd = MyTCPServer((hostname, port), Handler)
     print "Starting request handler on %s:%s" % (hostname, arg[1])
     httpd.serve_forever()
 

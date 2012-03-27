@@ -148,9 +148,6 @@ def test(node, who):
     else:
         print "* (%s)%s - %s" % (node.name, node.desc, _sc)
 
-    if node.name.endswith("*"):
-        time.sleep(5)
-
 def recursively_test(node, who):
     for parent in node.parent:
         if parent.state == STATUSCODE[0]: # untested, don't go further
