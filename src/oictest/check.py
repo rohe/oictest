@@ -208,6 +208,30 @@ class CheckRedirectErrorResponse(ExpectedError):
 
         return res
 
+class VerifyBadRequestResponse(ExpectedError):
+    """
+    Verifies that the OP returned a 400 Bad Request response containing a
+    Error message.
+    """
+    id = "verify-bad-request-response"
+    msg = "OP error"
+
+    def _func(self, environ):
+        _response = environ["response"]
+        _content = environ["content"]
+        res = {}
+        if _response.status_code == 400 :
+            err = msg_deser(_content, "json",
+                            schema=OA2_SCHEMA["ErrorResponse"])
+            err.verify()
+            res["content"] = err.to_json()
+            environ["item"].append(err)
+        else:
+            self._message = "Expected a 400 error message"
+            self._status = CRITICAL
+
+        return res
+
 class CheckResponseType(CriticalError):
     """
     Checks that the asked for response type are among the supported
@@ -360,7 +384,7 @@ class LoginRequired(Error):
 
     def _func(self, environ=None):
         #self._status = self.status
-        resp = environ["response"]
+        resp = environ["content"]
         try:
             assert resp.type() == "AuthorizationErrorResponse"
         except AssertionError:
@@ -441,7 +465,7 @@ class Parse(CriticalError):
             err = environ["exception"]
             self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
-            cname = environ["response"].type()
+            cname = environ["response_message"].type()
             if environ["response_type"] != cname:
                 self._status = self.status
                 self._message = ("Didn't get a response of the type I expected:",
@@ -492,7 +516,7 @@ class ScopeWithClaims(Error):
                 userinfo_claims[key] = val
 
         # last item should be the UserInfoResponse
-        resp = environ["response"]
+        resp = environ["response_message"]
         if userinfo_claims:
             for key, restr in userinfo_claims.items():
                 if key in resp:
@@ -637,7 +661,7 @@ class UnpackAggregatedClaims(Error):
     id = "unpack-aggregated-claims"
 
     def _func(self, environ=None):
-        resp = environ["response"]
+        resp = environ["response_message"]
         _client = environ["client"]
 
         try:
@@ -653,7 +677,7 @@ class VerifyAccessTokenResponse(Error):
     section = "http://openid.bitbucket.org/openid-connect-messages-1_0.html#access_token_response"
 
     def _func(self, environ=None):
-        resp = environ["response"]
+        resp = environ["response_message"]
 
         #This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response

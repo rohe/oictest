@@ -443,6 +443,12 @@ class AccessTokenRequestPKJWT(AccessTokenRequest):
         PostRequest.__init__(self)
         self.kw_args = {"authn_method": "private_key_jwt"}
 
+class AccessTokenRequest_err(AccessTokenRequest):
+
+    def __init__(self):
+        PostRequest.__init__(self)
+        self.tests["post"]=[]
+
 class UserInfoRequestGetBearerHeader(GetRequest):
     request = "UserInfoRequest"
 
@@ -552,8 +558,11 @@ class ProviderConfigurationResponse(BodyResponse):
 class ClientRegistrationErrorResponse(BodyResponse):
     response = "ClientRegistrationErrorResponse"
 
-class ErrorResponse(BodyResponse):
+class AuthorizationErrorResponse(BodyResponse):
     response = "AuthorizationErrorResponse"
+
+class ErrorResponse(BodyResponse):
+    response = "ErrorResponse"
 
 # ----------------------------------------------------------------------------
 class DResponse(object):
@@ -591,7 +600,7 @@ PHASES= {
     "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
     "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
     "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
-                             ErrorResponse),
+                             AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
@@ -630,6 +639,7 @@ PHASES= {
                                   AccessTokenResponse),
     "access-token-request_pkj":(AccessTokenRequestPKJWT,
                                 AccessTokenResponse),
+    "access-token-request_err" : (AccessTokenRequest_err, ErrorResponse),
     "check-id-request_gbh":(CheckIDRequestGetBearerHeader, CheckIdResponse),
     "check-id-request_pbh":(CheckIDRequestPostBearerHeader, CheckIdResponse),
     "check-id-request_pbb":(CheckIDRequestPostBearerBody, CheckIdResponse),
@@ -1105,9 +1115,25 @@ FLOWS = {
                      "access-token-request_pkj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
+    'mj-39': {
+        "name": 'Trying to use access code twice should result in an error',
+        "sequence": ["oic-login", "access-token-request",
+                     "access-token-request_err"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("verify-bad-request-response", {})]
+    },
 }
 
 NEW = {
+    'mj-40': {
+        "name": 'Trying to use access code twice should result in '
+                'revoking previous issued tokens',
+        "sequence": ["oic-login", "access-token-request",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-bad-request-response", {})]
+    },
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",

@@ -7,6 +7,7 @@ import time
 from bs4 import BeautifulSoup
 
 from oic.oic.message import SCHEMA
+from oic.oauth2.message import Message
 
 from oictest.opfunc import do_request
 from oictest.opfunc import Operation
@@ -192,7 +193,9 @@ def run_sequence(client, sequence, trace, interaction, environ=None,
             if not resp:
                 continue
 
-            if url:
+            if response.status_code >= 400:
+                done = True
+            elif url:
                 done = False
             else:
                 done = True
@@ -266,10 +269,18 @@ def run_sequence(client, sequence, trace, interaction, environ=None,
                     chk(environ, test_output)
                     raise FatalError
 
+#            if done:
+#                break
+
             info = None
             qresp = None
-            if not url:
-                environ["response"] = qresp = content
+            if response.status_code >= 400:
+                pass
+            elif not url:
+                if isinstance(content, Message):
+                    qresp = content
+                elif response.status_code == 200:
+                    info = content
             elif resp.where == "url":
                 try:
                     info = response.headers["location"]
@@ -311,7 +322,7 @@ def run_sequence(client, sequence, trace, interaction, environ=None,
                         trace.info("[%s]: %s" % (qresp.type(),
                                                  qresp.to_dict()))
                     item.append(qresp)
-                    environ["response"] = qresp
+                    environ["response_message"] = qresp
                 except Exception, err:
                     environ["exception"] = "%s" % err
                     qresp = None
