@@ -456,6 +456,14 @@ class UserInfoRequestGetBearerHeader(GetRequest):
         GetRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_header"}
 
+class UserInfoRequestGetBearerHeader_err(GetRequest):
+    request = "UserInfoRequest"
+
+    def __init__(self):
+        GetRequest.__init__(self)
+        self.kw_args = {"authn_method": "bearer_header"}
+        self.tests["post"]=[CheckErrorResponse]
+
 class UserInfoRequestPostBearerHeader(PostRequest):
     request = "UserInfoRequest"
 
@@ -646,6 +654,8 @@ PHASES= {
     "user-info-request":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh":(UserInfoRequestPostBearerHeader, UserinfoResponse),
     "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
+    "user-info-request_err":(UserInfoRequestGetBearerHeader_err,
+                             ErrorResponse),
     "oic-registration": (RegistrationRequest, RegistrationResponse),
     "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponse),
     "oic-registration-wf": (RegistrationRequest_WF,
@@ -1120,20 +1130,22 @@ FLOWS = {
         "sequence": ["oic-login", "access-token-request",
                      "access-token-request_err"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "tests": [("verify-bad-request-response", {})]
+        "tests": [("verify-bad-request-response", {})],
+        "depends":["oic-code-token"],
     },
-}
-
-NEW = {
     'mj-40': {
         "name": 'Trying to use access code twice should result in '
                 'revoking previous issued tokens',
         "sequence": ["oic-login", "access-token-request",
-                     "access-token-request", "user-info-request"],
+                     "access-token-request_err", "user-info-request_err"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("verify-bad-request-response", {})]
+        "tests": [("verify-bad-request-response", {})],
+        "depends":["mj-39"],
     },
+}
+
+NEW = {
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
