@@ -1113,18 +1113,6 @@ FLOWS = {
         "sequence": ["login-redirect-fault"],
         "endpoints": ["authorization_endpoint"]
     },
-    'mj-37': {
-        "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-registration-ke", "oic-login",
-                     "access-token-request_csj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
-    'mj-38': {
-        "name": 'Access token request with public_key_jwt authentication',
-        "sequence": ["oic-registration-ke", "oic-login",
-                     "access-token-request_pkj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
     'mj-39': {
         "name": 'Trying to use access code twice should result in an error',
         "sequence": ["oic-login", "access-token-request",
@@ -1146,6 +1134,18 @@ FLOWS = {
 }
 
 NEW = {
+    'mj-37': {
+        "name": 'Access token request with client_secret_jwt authentication',
+        "sequence": ["oic-registration-ke", "oic-login",
+                     "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'mj-38': {
+        "name": 'Access token request with public_key_jwt authentication',
+        "sequence": ["oic-registration-ke", "oic-login",
+                     "access-token-request_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
