@@ -232,7 +232,8 @@ def run_sequence(client, sequence, trace, interaction, environ=None,
                 except KeyError:
                     if creq.method == "POST":
                         break
-                    elif endpoint(client, _base):
+                    elif not req.request in ["AuthorizationRequest",
+                                             "OpenIDRequest"]:
                         break
                     else:
                         try:
