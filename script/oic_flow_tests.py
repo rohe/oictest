@@ -3,7 +3,6 @@ __author__ = 'rohe0002'
 
 import os
 import urlparse
-import time
 import sys
 import json
 from subprocess import Popen

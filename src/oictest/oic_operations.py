@@ -73,6 +73,10 @@ class Request():
         if trace:
             trace.request("URL: %s" % url)
             trace.request("BODY: %s" % body)
+            try:
+                trace.request("HEADERS: %s" % ht_args["headers"])
+            except KeyError:
+                pass
 
         response = _client.http_request(url, method=self.method,
                                             data=body, **ht_args)
