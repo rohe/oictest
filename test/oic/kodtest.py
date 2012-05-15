@@ -6,23 +6,23 @@ info = {
     "features": {
         "registration":True,
         "discovery": True,
-        "sessionmangement": False
-        },
+        "sessionmangement": False,
+    },
     "client": {
         "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
-        },
+    },
     "provider": {
         "version": { "oauth": "2.0", "openid": "3.0"},
         "dynamic": "https://www.kodtest.se:8088/",
-        },
+    },
     "interaction": [
-            {
+        {
             "matches": {
                 "url": "https://www.kodtest.se:8088/authorization",
-                },
+            },
             "page-type": "login",
             "control": {
                 "type": "form",

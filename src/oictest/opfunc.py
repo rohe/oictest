@@ -162,6 +162,9 @@ def pick_form(response, content, url=None, **kwargs):
                                 _form = form
                         except KeyError:
                             pass
+                    elif key == "method":
+                        if form.method == _ava:
+                            _form = form
                     else:
                         _form = None
 

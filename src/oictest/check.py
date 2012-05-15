@@ -1,3 +1,4 @@
+from oic.oauth2.message import ErrorResponse
 
 __author__ = 'rohe0002'
 
@@ -6,10 +7,8 @@ import sys
 import traceback
 import urlparse
 
-from oic.oauth2.message import SCHEMA as OA2_SCHEMA
-
-from oic.oic.message import SCOPE2CLAIMS
-from oic.oic.message import msg_deser
+from oic.oic.message import SCOPE2CLAIMS, IdToken
+#from oic.oic.message import
 from oic.utils import time_util
 
 INFORMATION = 0
@@ -92,7 +91,7 @@ class CmpIdtoken(Other):
                 break
 
         keys = environ["client"].keystore.get_keys("verify", owner=None)
-        idt = msg_deser(msg["id_token"], "jwt", "IdToken", key=keys)
+        idt = IdToken().deserialize(msg["id_token"], "jwt", key=keys)
         if idt.to_dict() == environ["item"][-1].to_dict():
             pass
         else:
@@ -119,8 +118,7 @@ class CheckHTTPResponse(CriticalError):
             self._message = self.msg
             if "application/json" in _response.headers["content-type"]:
                 try:
-                    err = msg_deser(_content, "json",
-                                    schema=OA2_SCHEMA["ErrorResponse"])
+                    err = ErrorResponse().deserialize(_content, "json")
                     self._message = err.to_json()
                 except Exception:
                     res["content"] = _content
@@ -131,8 +129,7 @@ class CheckHTTPResponse(CriticalError):
         else:
             # might still be an error message
             try:
-                err = msg_deser(_content, "json",
-                                schema=OA2_SCHEMA["ErrorResponse"])
+                err = ErrorResponse().deserialize(_content, "json")
                 err.verify()
                 self._message = err.to_json()
                 self._status = self.status
@@ -159,8 +156,7 @@ class CheckErrorResponse(ExpectedError):
         if _response.status_code >= 400 :
             if "application/json" in _response.headers["content-type"]:
                 try:
-                    err = msg_deser(_content, "json",
-                                    schema=OA2_SCHEMA["ErrorResponse"])
+                    err = ErrorResponse().deserialize(_content, "json")
                     err.verify()
                     res["content"] = err.to_json()
                     res["temp"] = err
@@ -171,8 +167,7 @@ class CheckErrorResponse(ExpectedError):
         else:
             # might still be an error message
             try:
-                err = msg_deser(_content, "json",
-                                schema=OA2_SCHEMA["ErrorResponse"])
+                err = ErrorResponse().deserialize(_content, "json")
                 err.verify()
                 res["content"] = err.to_json()
             except Exception:
@@ -197,8 +192,7 @@ class CheckRedirectErrorResponse(ExpectedError):
         res = {}
         query = _response.headers["location"].split("?")[1]
         if _response.status_code == 302 :
-            err = msg_deser(query, "urlencoded",
-                            schema=OA2_SCHEMA["ErrorResponse"])
+            err = ErrorResponse().deserialize(query, "urlencoded")
             err.verify()
             res["content"] = err.to_json()
             environ["item"].append(err)
@@ -221,8 +215,7 @@ class VerifyBadRequestResponse(ExpectedError):
         _content = environ["content"]
         res = {}
         if _response.status_code == 400 :
-            err = msg_deser(_content, "json",
-                            schema=OA2_SCHEMA["ErrorResponse"])
+            err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
             environ["item"].append(err)
@@ -552,8 +545,7 @@ class VerifyErrResponse(ExpectedError):
         if response.status_code == 302:
             _query = response.headers["location"].split("?")[1]
             try:
-                err = msg_deser(_query, "urlencoded",
-                                schema=OA2_SCHEMA["ErrorResponse"])
+                err = ErrorResponse().deserialize(_query, "urlencoded")
                 err.verify()
                 res["temp"] = err
                 res["message"] = err.to_dict()
@@ -587,7 +579,7 @@ class verifyIDToken(CriticalError):
             except KeyError:
                 continue
 
-            idtoken = msg_deser(str(_jwt), "jwt", "IdToken", key=_vkeys)
+            idtoken = IdToken().deserialize(str(_jwt), "jwt", key=_vkeys)
             for key, val in self._kwargs["claims"].items():
                 if key == "max_age":
                     if idtoken["exp"] > (time_util.utc_time_sans_frac() + val):
@@ -768,7 +760,7 @@ class VerifyError(Error):
             return {}
 
         try:
-            assert msg["error"] == self._kwargs["error"]
+            assert msg["error"] in self._kwargs["error"]
         except AssertionError:
             self._message = "Wrong type of error, got %s" % msg["error"]
             self._status = self.status

@@ -6,7 +6,6 @@ import time
 
 from bs4 import BeautifulSoup
 
-from oic.oic.message import SCHEMA
 from oic.oauth2.message import Message
 
 from oictest.opfunc import do_request
@@ -105,8 +104,8 @@ def pick_interaction(interactions, _base="", content="", req=None):
 
 ORDER = ["url","response","content"]
 
-def run_sequence(client, sequence, trace, interaction, environ=None,
-                 tests=None):
+def run_sequence(client, sequence, trace, interaction, msgfactory,
+                 environ=None, tests=None):
     item = []
     response = None
     content = None
@@ -307,15 +306,15 @@ def run_sequence(client, sequence, trace, interaction, environ=None,
 
             if info:
                 if isinstance(resp.response, basestring):
-                    schema = SCHEMA[resp.response]
+                    response = msgfactory(resp.response)
                 else:
-                    schema = resp.response
+                    response = resp.response
 
                 chk = factory("response-parse")()
-                environ["response_type"] = schema["name"]
+                environ["response_type"] = response.__name__
                 keys = _keystore.get_keys("verify", owner=None)
                 try:
-                    qresp = client.parse_response(schema, info, resp.type,
+                    qresp = client.parse_response(response, info, resp.type,
                                                   client.state, key=keys,
                                                   client_id=client.client_id,
                                                   scope="openid")

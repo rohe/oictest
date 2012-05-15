@@ -8,7 +8,6 @@ import sys
 import json
 import os
 import requests
-import os.path
 
 from subprocess import Popen, PIPE
 import urlparse
@@ -16,7 +15,8 @@ import urlparse
 from oic.utils import jwt
 from oic.utils import exception_trace
 from oic.utils.jwt import construct_rsa_jwk
-from oic.oic.message import message
+from oic.oic.message import ProviderConfigurationResponse
+from oic.oic.message import RegistrationRequest
 
 from oictest.check import CheckRegistrationResponse
 from oictest.base import *
@@ -128,11 +128,12 @@ def key_export(**kwargs):
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password"]
 
-    def __init__(self, operations_mod, client_class):
+    def __init__(self, operations_mod, client_class, msgfactory):
         self.operations_mod = operations_mod
         self.client_class = client_class
         self.client = None
         self.trace = Trace()
+        self.msgfactory = msgfactory
 
         self._parser = argparse.ArgumentParser()
         self._parser.add_argument('-v', dest='verbose', action='store_true')
@@ -212,7 +213,8 @@ class OAuth2(object):
 
             try:
                 testres, trace = run_sequence(self.client, _seq, self.trace,
-                                              interact, self.environ, tests)
+                                              interact, self.msgfactory,
+                                              self.environ, tests)
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
@@ -266,7 +268,7 @@ class OAuth2(object):
             except KeyError:
                 pass
 
-        for key in SCHEMA["ProviderConfigurationResponse"]["param"].keys():
+        for key in ProviderConfigurationResponse.c_param.keys():
             try:
                 res[key] = _jc[key]
             except KeyError:
@@ -371,8 +373,8 @@ class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
     def __init__(self, operations_mod, client_class,
-                 consumer_class):
-        OAuth2.__init__(self, operations_mod, client_class)
+                 consumer_class, msgfactory):
+        OAuth2.__init__(self, operations_mod, client_class, msgfactory)
 
         self._parser.add_argument('-R', dest="rsakey")
         self._parser.add_argument('-i', dest="internal_server",
@@ -384,7 +386,7 @@ class OIC(OAuth2):
         OAuth2.parse_args(self)
 
         _keystore = self.client.keystore
-        pcr = message("ProviderConfigurationResponse")
+        pcr = ProviderConfigurationResponse()
         n = 0
         for param in _keystore.url_types:
             if param in self.pinfo:
@@ -406,7 +408,7 @@ class OIC(OAuth2):
 
     def register_args(self):
         info = {}
-        for prop in SCHEMA["RegistrationRequest"]["param"].keys():
+        for prop in RegistrationRequest.c_param.keys():
             try:
                 info[prop] = self.cconf[prop]
             except KeyError:
@@ -417,7 +419,7 @@ class OIC(OAuth2):
         # should I register the client ?
         if "register" in self.json_config["client"]:
             info = {}
-            for prop in SCHEMA["RegistrationRequest"]["param"].keys():
+            for prop in RegistrationRequest.c_param.keys():
                 try:
                     info[prop] = self.cconf[prop]
                 except KeyError:
@@ -505,8 +507,8 @@ if __name__ == "__main__":
     from oictest import OAuth2
     from oictest import oauth2_operations
     from oic.oauth2 import Client
-    from oic.oauth2 import message
+    from oic.oauth2 import factory
 
-    cli = OAuth2(oauth2_operations, Client)
+    cli = OAuth2(oauth2_operations, Client, factory)
 
     cli.run()

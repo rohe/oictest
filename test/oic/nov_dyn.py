@@ -17,14 +17,16 @@ info = {
         },
         "dynamic": "https://connect-op.heroku.com/"
     },
-    "interaction": {
-        "https://connect-op.heroku.com/": [
-            "select_form", {
-                "_form_pick_": {
-                    "action": "/connect/fake"
-                }
-            }
-        ],
+    "interaction": [{
+        "matched":{
+            "url": "https://connect-op.heroku.com/"
+        },
+        "page-type":"login",
+        "control": {
+            "type": "form",
+            "action": "/connect/fake"
+        }
+        },{
         "https://connect-op.heroku.com/authorizations/new": [
             "select_form",
                 {
@@ -33,8 +35,8 @@ info = {
                     "class": "approve"
                 }
             }
-        ]
-    }
+        ]}
+    ]
 }
 
 print json.dumps(info)

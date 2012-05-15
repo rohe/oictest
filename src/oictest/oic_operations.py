@@ -7,7 +7,7 @@ __author__ = 'rohe0002'
 import time
 import socket
 
-from oic.oic.message import SCHEMA
+from oic.oic.message import factory as msgfactory
 from oictest.check import *
 # Used upstream not in this module so don't remove
 from oictest.opfunc import *
@@ -30,9 +30,9 @@ class Request():
     def __call__(self, environ, trace, location, response, content):
         _client = environ["client"]
         if isinstance(self.request, basestring):
-            schema = SCHEMA[self.request]
+            request = msgfactory(self.request)
         else:
-            schema = self.request
+            request = self.request
 
         try:
             kwargs = self.kw_args.copy()
@@ -41,12 +41,12 @@ class Request():
 
         try:
             kwargs["request_args"] = self.request_args.copy()
-            _req = kwargs["request_args"]
+            _req = kwargs["request_args"].copy()
         except KeyError:
             _req = {}
 
-        cis = getattr(_client, "construct_%s" % schema["name"])(schema,
-                                                                **kwargs)
+        cis = getattr(_client, "construct_%s" % request.__name__)(request,
+                                                                  **kwargs)
 
         try:
             cis.lax = self.lax
@@ -60,7 +60,7 @@ class Request():
         else:
             h_arg = None
 
-        url, body, ht_args, cis = _client.uri_and_body(schema["name"], cis,
+        url, body, ht_args, cis = _client.uri_and_body(request, cis,
                                                       method=self.method,
                                                       request_args=_req)
 
@@ -682,7 +682,7 @@ FLOWS = {
 
     # -------------------------------------------------------------------------
     'oic-code-token': {
-        "name": '',
+        "name": 'Simple authorization grant flow',
         "descr": ("1) Request with response_type=code",
                   "scope = ['openid']",
                   "2) AccessTokenRequest",
@@ -692,7 +692,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'oic-code+token-token': {
-        "name": "",
+        "name": "Flow with response_type='code token'",
         "descr": ("1) Request with response_type='code token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
@@ -701,7 +701,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'oic-code+idtoken-token': {
-        "name": "",
+        "name": "Flow with response_type='code idtoken'",
         "descr": ("1) Request with response_type='code id_token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
@@ -710,7 +710,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'oic-code+idtoken+token-token': {
-        "name": "",
+        "name": "Flow with response_type='code token idtoken'",
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) AccessTokenRequest",
                   "Authentication method used is 'client_secret_post'"),
@@ -721,7 +721,7 @@ FLOWS = {
     # -------------------------------------------------------------------------
 
     'oic-token-userinfo': {
-        "name": '',
+        "name": 'Implicit flow and Userinfo request',
         "descr": ("1) Request with response_type='token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -730,7 +730,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
     'oic-code+token-userinfo': {
-        "name": '',
+        "name": "Flow with response_type='code token' and Userinfo request",
         "descr": ("1) Request with response_type='code token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -739,7 +739,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
     'oic-code+idtoken-token-userinfo': {
-        "name": 'Implicit flow with Code+IDToken ',
+        "name": "Flow with response_type='code idtoken' and Userinfo request",
         "descr": ("1) Request with response_type='code id_token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -750,7 +750,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         },
     'oic-idtoken+token-userinfo': {
-        "name": 'Implicit flow with Token+IDToken ',
+        "name": "Flow with response_type='token idtoken' and Userinfo request",
         "descr": ("1) Request with response_type='id_token token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -759,7 +759,8 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
     'oic-code+idtoken+token-userinfo': {
-        "name": 'Implicit flow with Code+Token+IDToken ',
+        "name": """Flow with response_type='code idtoken token' and Userinfo
+    request""",
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -768,8 +769,9 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
         },
     'oic-code+idtoken+token-token-userinfo': {
-        "name": """Get an accesstoken using access code with 'token' and
-    'idtoken' in response type""",
+        "name": """Flow with response_type='code idtoken token'
+    grab a second token using the code and then do a Userinfo
+    request""",
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
@@ -784,24 +786,26 @@ FLOWS = {
 
     # -------------------------------------------------------------------------
     'oic-code-token-check_id': {
-        "name": '',
+        "name": """Authorization grant flow  and CheckID request
+    using GET and bearer header authentication""",
         "descr": ("1) Request with response_type='code'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
                   "3) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
+                  "  'bearer_header' authentication used"),
         "depends": ['oic-code-token'],
         "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "check_id_endpoint"],
         },
     'oic-code-token-check_id_pbh': {
-        "name": '',
+        "name": """Authorization grant flow  and CheckID request
+    using POST and bearer header authentication""",
         "descr": ("1) Request with response_type='code'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
                   "3) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
+                  "  'bearer_header' authentication used"),
         "depends": ['oic-code-token'],
         "sequence": ["oic-login", "access-token-request",
                      "check-id-request_pbh"],
@@ -809,7 +813,8 @@ FLOWS = {
                       "check_id_endpoint"],
         },
     'oic-code-token-check_id_pbb': {
-        "name": '',
+        "name": """Authorization grant flow  and CheckID request
+    using POST and bearer body authentication""",
         "descr": ("1) Request with response_type='code'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
@@ -822,7 +827,8 @@ FLOWS = {
                       "check_id_endpoint"],
         },
     'oic-idtoken+token-check_id': {
-        "name": '',
+        "name": """Implicit flow response_type='token id_token' and CheckID
+    request, GET and bearer header authentication used""",
         "descr": ("1) Request with response_type='id_token token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
@@ -831,7 +837,8 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "check_id_endpoint"],
     },
     'oic-code+idtoken-check_id': {
-        "name": '',
+        "name": """Authorization grant flow response_type='token id_token'
+    and CheckID request using GET and bearer header authentication""",
         "descr": ("1) Request with response_type='code id_token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
@@ -841,7 +848,8 @@ FLOWS = {
         "tests": [("compare-idoken-received-with-check_id-response", {})]
     },
     'oic-code+idtoken+token-check_id': {
-        "name": 'Implicit flow with Code+Token+IDToken ',
+        "name": """Authorization grant flow response_type='code token
+    id_token'and CheckID request using GET and bearer header authentication""",
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) CheckIDRequest",
                   "  'bearer_body' authentication used"),
@@ -852,7 +860,8 @@ FLOWS = {
     },
     # beared body authentication
     'oic-code-token-userinfo_bb': {
-        "name": '',
+        "name": """Authorization grant flow response_type='code token',
+    UserInfo request using POST and bearer body authentication""",
         "descr": ("1) Request with response_type='code'",
                   "2) AccessTokenRequest",
                   "  Authentication method used is 'client_secret_post'",
@@ -865,7 +874,8 @@ FLOWS = {
                       "userinfo_endpoint"],
         },
     'oic-token-userinfo_bb': {
-        "name": '',
+        "name": """Implicit flow, UserInfo request using POST and bearer body
+    authentication""",
         "descr": ("1) Request with response_type='token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
@@ -1071,7 +1081,10 @@ FLOWS = {
         "name": 'Request with prompt=none',
         "sequence": ["oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
-        "tests":[("verify-error", {"error":"login_required"})]
+        "tests":[("verify-error", {"error":["login_required",
+                                            "interaction_required",
+                                            "session_selection_required",
+                                            "consent_required"]})]
         },
     'mj-29': {
         "name": 'Request with prompt=login',
@@ -1112,7 +1125,7 @@ FLOWS = {
         "name": "Authorization request missing the 'response_type' parameter",
         "sequence": ["oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
-        "tests":[("verify-error", {"error":"invalid_request"})]
+        "tests":[("verify-error", {"error":["invalid_request"]})]
     },
     'mj-36': {
         "name": "The sent redirect_uri does not match the registered",
