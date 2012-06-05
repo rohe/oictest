@@ -497,8 +497,7 @@ class ScopeWithClaims(Error):
 
         for scope in _scopes:
             try:
-                claims = dict([(name, {"optional":True}) for name in
-                                                         SCOPE2CLAIMS[scope]])
+                claims = dict([(name, None) for name in SCOPE2CLAIMS[scope]])
                 userinfo_claims.update(claims)
             except KeyError:
                 pass
@@ -515,9 +514,7 @@ class ScopeWithClaims(Error):
                 if key in resp:
                     pass
                 else:
-                    if restr == {"optional": True}:
-                        pass
-                    else:
+                    if restr == {"essential": True}:
                         self._status = self.status
                         self._message = "required attribute '%s' missing" % (
                                                                             key)
@@ -595,7 +592,7 @@ class verifyIDToken(CriticalError):
                         self._status = self.status
                         self._message = "'%s' was supposed to be there" % key
                         break
-                elif val == {"optional":True}:
+                elif val == {"essential":True}:
                     pass
                 elif "values" in val:
                     if key not in idtoken:

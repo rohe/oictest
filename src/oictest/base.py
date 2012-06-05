@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import cookielib
 
 __author__ = 'rohe0002'
 
@@ -113,6 +114,8 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
     test_output = []
     _keystore = client.keystore
 
+    cjar = {"owner": cookielib.CookieJar(), "client": cookielib.CookieJar()}
+
     environ["sequence"] = sequence
     environ["cis"] = []
     environ["trace"] = trace
@@ -158,7 +161,12 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
             except KeyError:
                 pass
 
+            if req.request in ["AuthorizationRequest", "OpenIDRequest"]:
+                role = "owner"
+            else:
+                role = "client"
 
+            environ["client"].cookiejar = cjar[role]
             try:
                 part = req(environ, trace, url, response, content)
                 environ.update(dict(zip(ORDER, part)))

@@ -84,6 +84,11 @@ class Request():
         if trace:
             trace.reply("RESPONSE: %s" % response)
             trace.reply("CONTENT: %s" % response.text)
+            trace.reply("COOKIES: %s" % response.cookies)
+            try:
+                trace.reply("HeaderCookies: %s" % response.headers["set-cookie"])
+            except KeyError:
+                pass
 
         return url, response, response.text
 
@@ -231,24 +236,27 @@ class OpenIDRequestCodeUIClaim2(OpenIDRequestCode):
 
     def __init__(self):
         OpenIDRequestCode.__init__(self)
-        self.request_args["userinfo_claims"] = {"claims": {
-                                                "picture": {"optional":True},
-                                                "email": {"optional": True}}}
+        # Picture and email optional
+        self.request_args["userinfo_claims"] = {"claims": {"picture": None,
+                                                           "email": None}}
 
 class OpenIDRequestCodeUIClaim3(OpenIDRequestCode):
 
     def __init__(self):
         OpenIDRequestCode.__init__(self)
+        # Must name, may picture and email
         self.request_args["userinfo_claims"] = {"claims": {
-                                                "name": None,
-                                                "picture": {"optional":True},
-                                                "email": {"optional": True}}}
+                                                "name": {"essential": True},
+                                                "picture": None,
+                                                "email": None}}
 
 class OpenIDRequestCodeIDTClaim1(OpenIDRequestCode):
 
     def __init__(self):
         OpenIDRequestCode.__init__(self)
-        self.request_args["idtoken_claims"] = {"claims": {"auth_time": None}}
+        # Must auth_time
+        self.request_args["idtoken_claims"] = {"claims": {
+                                                "auth_time": {"essential": True}}}
 
 class OpenIDRequestCodeIDTClaim2(OpenIDRequestCode):
 
@@ -261,7 +269,9 @@ class OpenIDRequestCodeIDTClaim3(OpenIDRequestCode):
 
     def __init__(self):
         OpenIDRequestCode.__init__(self)
-        self.request_args["idtoken_claims"] = {"claims": {"acr": None}}
+        # Must acr
+        self.request_args["idtoken_claims"] = {"claims": {
+                                                    "acr": {"essential": True}}}
 
 class OpenIDRequestCodeIDTMaxAge1(OpenIDRequestCode):
 
@@ -484,27 +494,6 @@ class UserInfoRequestPostBearerBody(PostRequest):
         PostRequest.__init__(self)
         self.kw_args = {"authn_method": "bearer_body"}
 
-class CheckIDRequestGetBearerHeader(GetRequest):
-    request = "CheckIDRequest"
-
-    def __init__(self):
-        GetRequest.__init__(self)
-        self.kw_args = {"authn_method": "bearer_header"}
-
-class CheckIDRequestPostBearerHeader(PostRequest):
-    request = "CheckIDRequest"
-
-    def __init__(self):
-        PostRequest.__init__(self)
-        self.kw_args = {"authn_method": "bearer_header"}
-
-class CheckIDRequestPostBearerBody(PostRequest):
-    request = "CheckIDRequest"
-
-    def __init__(self):
-        PostRequest.__init__(self)
-        self.kw_args = {"authn_method": "bearer_body"}
-
 # -----------------------------------------------------------------------------
 
 class Response():
@@ -654,9 +643,6 @@ PHASES= {
     "access-token-request_pkj":(AccessTokenRequestPKJWT,
                                 AccessTokenResponse),
     "access-token-request_err" : (AccessTokenRequest_err, ErrorResponse),
-    "check-id-request_gbh":(CheckIDRequestGetBearerHeader, CheckIdResponse),
-    "check-id-request_pbh":(CheckIDRequestPostBearerHeader, CheckIdResponse),
-    "check-id-request_pbb":(CheckIDRequestPostBearerBody, CheckIdResponse),
     "user-info-request":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh":(UserInfoRequestPostBearerHeader, UserinfoResponse),
     "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
@@ -671,6 +657,7 @@ PHASES= {
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
 
+OWNER_OPS = []
 
 FLOWS = {
     'oic-verify': {
@@ -785,79 +772,6 @@ FLOWS = {
         },
 
     # -------------------------------------------------------------------------
-    'oic-code-token-check_id': {
-        "name": """Authorization grant flow  and CheckID request
-    using GET and bearer header authentication""",
-        "descr": ("1) Request with response_type='code'",
-                  "2) AccessTokenRequest",
-                  "  Authentication method used is 'client_secret_post'",
-                  "3) CheckIDRequest",
-                  "  'bearer_header' authentication used"),
-        "depends": ['oic-code-token'],
-        "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
-    'oic-code-token-check_id_pbh': {
-        "name": """Authorization grant flow  and CheckID request
-    using POST and bearer header authentication""",
-        "descr": ("1) Request with response_type='code'",
-                  "2) AccessTokenRequest",
-                  "  Authentication method used is 'client_secret_post'",
-                  "3) CheckIDRequest",
-                  "  'bearer_header' authentication used"),
-        "depends": ['oic-code-token'],
-        "sequence": ["oic-login", "access-token-request",
-                     "check-id-request_pbh"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
-    'oic-code-token-check_id_pbb': {
-        "name": """Authorization grant flow  and CheckID request
-    using POST and bearer body authentication""",
-        "descr": ("1) Request with response_type='code'",
-                  "2) AccessTokenRequest",
-                  "  Authentication method used is 'client_secret_post'",
-                  "3) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
-        "depends": ['oic-code-token'],
-        "sequence": ["oic-login", "access-token-request",
-                     "check-id-request_pbb"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
-    'oic-idtoken+token-check_id': {
-        "name": """Implicit flow response_type='token id_token' and CheckID
-    request, GET and bearer header authentication used""",
-        "descr": ("1) Request with response_type='id_token token'",
-                  "2) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
-        "depends": ['mj-06'],
-        "sequence": ['oic-login-idtoken+token', "check-id-request_gbh"],
-        "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-    },
-    'oic-code+idtoken-check_id': {
-        "name": """Authorization grant flow response_type='token id_token'
-    and CheckID request using GET and bearer header authentication""",
-        "descr": ("1) Request with response_type='code id_token'",
-                  "2) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
-        "depends":["mj-05"],
-        "sequence": ['oic-login-code+idtoken', "check-id-request_gbh"],
-        "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-        "tests": [("compare-idoken-received-with-check_id-response", {})]
-    },
-    'oic-code+idtoken+token-check_id': {
-        "name": """Authorization grant flow response_type='code token
-    id_token'and CheckID request using GET and bearer header authentication""",
-        "descr": ("1) Request with response_type='code id_token token'",
-                  "2) CheckIDRequest",
-                  "  'bearer_body' authentication used"),
-        "depends":["mj-07"],
-        "sequence": ['oic-login-code+idtoken+token', "check-id-request_gbh"],
-        "endpoints": ["authorization_endpoint", "check_id_endpoint"],
-        "tests": [("compare-idoken-received-with-check_id-response", {})]
-    },
     # beared body authentication
     'oic-code-token-userinfo_bb': {
         "name": """Authorization grant flow response_type='code token',

@@ -116,6 +116,8 @@ def do_request(client, url, method, body="", headers=None, trace=False):
     if trace:
         trace.reply("RESPONSE: %s" % response)
         trace.reply("CONTENT: %s" % response.text)
+        if response.cookies:
+            trace.reply("COOKIES: %s" % response.cookies)
 
     return url, response, response.text
 

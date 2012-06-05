@@ -6,7 +6,7 @@ info = {
   "features": {
     "registration":True,
     "discovery": True,
-    "sessionmangement": False,
+    "session_management": False,
   },
   "client": {
     "redirect_uris": ["https://connect-rp.heroku.com"],

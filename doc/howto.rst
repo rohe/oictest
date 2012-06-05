@@ -184,7 +184,7 @@ The first part of the configuration deals with this::
     "features": {
         "registration": True,
         "discovery": True,
-        "sessionmangement": False
+        "session_management": False
     },
 
 If the OP supports discovery, then you don't have to add so much

@@ -6,7 +6,7 @@ info = {
     "features": {
         "registration":True,
         "discovery": True,
-        "sessionmangement": False,
+        "session_management": False,
 #        "key_export": {
 #            "script": "../../script/static_provider.py",
 #            "server": "http://localhost:8090/export",

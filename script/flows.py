@@ -53,10 +53,6 @@ from oictest.oic_operations import FLOWS
 #        "openid-token-idtoken-userdata",
 #        "{'OpenIDRequest':{'request':{'scope':['openid','address']}}}"
 #    ),
-#    (
-#        "openid-token-idtoken-userdata",
-#        "{'OpenIDRequest':{'kw':{'userinfo_claims':{'name':null,'nickname':{'optional':true},'email':null,'verified':null,'picture':{'optional': true}}}}}"
-#    )
 
 who = sys.argv[1]
 

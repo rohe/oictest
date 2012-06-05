@@ -3,7 +3,7 @@ from oictest.opfunc import DResponse
 
 __author__ = 'rohe0002'
 
-from oictest.oic_operations import OpenIDRequestCode
+from oictest.oic_operations import OpenIDRequestCode, OpenIDRequestIDTokenToken
 from oictest.oic_operations import UserinfoResponse
 from oictest.oic_operations import UserInfoRequestGetBearerHeader
 from oictest.oic_operations import Response
@@ -77,7 +77,8 @@ PHASES = {
     "token" : (AccessTokenRequest, AccessTokenResponse),
     "info" : (TraceLogRequest, DataResponse),
     "user-info-request":(UserInfoRequestGetBearerHeader, UserinfoResponse),
-    "claims_request": (UserInfoClaims, UserinfoResponse)
+    "claims_request": (UserInfoClaims, UserinfoResponse),
+    "oic-login-idtoken+token": (OpenIDRequestIDTokenToken, AuthzResponse),
 }
 
 FLOWS = {
@@ -95,5 +96,11 @@ FLOWS = {
                      "claims_request", "info"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        }
-}
+        },
+    'mj-06': {
+        "name": 'Request with response_type=id_token token',
+        "sequence": ['oic-login-idtoken+token', "info"],
+        "endpoints": ["authorization_endpoint"],
+        },
+
+    }
