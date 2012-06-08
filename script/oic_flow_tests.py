@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+from oictest import key_export, start_key_server
+import time
+
 __author__ = 'rohe0002'
 
 import os
-import urlparse
-import sys
 import json
+import argparse
 from subprocess import Popen
 from subprocess import PIPE
 
@@ -107,13 +109,13 @@ def print_graph(root, inx=""):
         print "%s%s" % (inx, key)
         print_graph(branch.children, next_inx)
 
-def test(node, who):
+def test(node, who, host):
     global OICC
 
     #print ">> %s" % node.name
 
     p1 = Popen(["./%s.py" % who], stdout=PIPE)
-    cmd2 = [OICC, "-J", "-", node.name]
+    cmd2 = [OICC, "-J", "-", "-H", host, node.name]
 
     p2 = Popen(cmd2, stdin=p1.stdout, stdout=PIPE, stderr=PIPE)
     p1.stdout.close()
@@ -147,59 +149,54 @@ def test(node, who):
     else:
         print "* (%s)%s - %s" % (node.name, node.desc, _sc)
 
-def recursively_test(node, who):
+def recursively_test(node, who, host):
     for parent in node.parent:
         if parent.state == STATUSCODE[0]: # untested, don't go further
             print "SKIP %s Parent untested: %s" % (node.name, parent.name)
             return
 
-    test(node, who)
+    test(node, who, host)
 
     #print "node.state: %s" % node.state
 
     if node.state == STATUSCODE[1]:
-        test_all(node.children, who)
+        test_all(node.children, who, host)
 
-def test_all(graph, who):
+def test_all(graph, who, host):
     skeys = graph.keys()
     skeys.sort()
     for key in skeys:
-        recursively_test(graph[key], who)
+        recursively_test(graph[key], who, host)
 
-def run_script(_ke):
-    part = urlparse.urlsplit(_ke["server"])
-
-    try:
-        (host, port) = part.netloc.split(":")
-    except ValueError:
-        host = part.netloc
-        port = 80
-
-    popen_args = [_ke["script"]]
-    popen_args.extend([host, port])
-    return Popen(popen_args, stdout=PIPE, stderr=PIPE)
+def run_key_server(server_url_pattern, host):
+    part, res = key_export(server_url_pattern % host)
+    return start_key_server(part)
 
 if __name__ == "__main__":
     from oictest.oic_operations import FLOWS
 
-    try:
-        test_group = sys.argv[2]
-    except IndexError:
-        test_group = None
+    _parser = argparse.ArgumentParser()
+    _parser.add_argument('-H', dest='host', default="example.org")
+    _parser.add_argument('-g', dest='group')
+    _parser.add_argument('server', nargs=1)
+    args = _parser.parse_args()
 
-    who = sys.argv[1]
+    args.server = args.server[0].strip("'")
+    args.server = args.server.strip('"')
 
-    p1 = Popen(["./%s.py" % who], stdout=PIPE)
+    p1 = Popen(["./%s.py" % args.server], stdout=PIPE)
     _cnf = json.loads(p1.stdout.read())
+
     if "key_export" in _cnf["features"]:
-        _pop = run_script(_cnf["features"]["key_export"])
+        _pop = run_key_server(_cnf["features"]["key_export"], args.host)
+        time.sleep(1)
     else:
         _pop = None
 
-    flow_graph = sort_flows_into_graph(FLOWS, test_group)
+    flow_graph = sort_flows_into_graph(FLOWS, args.group)
     #print_graph(flow_graph)
     #print
-    test_all(flow_graph, who)
+    test_all(flow_graph, args.server, args.host)
 
     if _pop:
         _pop.kill()

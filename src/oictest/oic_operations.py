@@ -351,8 +351,7 @@ class RegistrationRequest_WQC(PostRequest):
 
         self.tests["post"].append(RegistrationInfo)
 
-from oictest import key_export
-from oictest import start_script
+from oictest import key_export, start_key_server
 
 class RegistrationRequest_WF(PostRequest):
     request = "RegistrationRequest"
@@ -381,20 +380,11 @@ class RegistrationRequest_KeyExp(PostRequest):
                              "application_type": "web",
                              "application_name": "OIC test tool"}
 
-        self.export_info = {
-            "script": "../../script/static_provider.py",
-            "server": "http://%s:8090/export" % socket.gethostname(),
-            "local_path": "./keys",
-            "sign": {
-                "alg":"rsa",
-                "create_if_missing": True,
-                "format": "jwk",
-            }}
-
+        self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, environ, trace, location, response, content):
         _client = environ["client"]
-        part, res = key_export(**self.export_info)
+        part, res = key_export(self.export_server)
 
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -405,13 +395,7 @@ class RegistrationRequest_KeyExp(PostRequest):
                 _client.keystore.add_key(key, typ, usage)
 
         if "keyprovider" not in environ:
-            try:
-                (host, port) = part.netloc.split(":")
-            except ValueError:
-                host = part.netloc
-                port = 80
-
-            _pop = start_script(self.export_info["script"], host, port)
+            _pop = start_key_server(part)
             environ["keyprovider"] = _pop
             trace.info("Started key provider")
             time.sleep(1)

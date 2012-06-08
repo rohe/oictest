@@ -60,8 +60,20 @@ def get_page(url):
     else:
         raise HTTP_ERROR(resp.status)
 
-def key_export(**kwargs):
-    part = urlparse.urlsplit(kwargs["server"])
+KEY_EXPORT_ARGS = {
+    "script": "../../script/static_provider.py",
+#    "server": "http://%s:8090/export" % HOST,
+    "local_path": "./keys",
+    "sign": {
+        "alg":"rsa",
+        "create_if_missing": True,
+        "format": "jwk",
+        #"name": "jwk.json",
+    }
+}
+
+def key_export(server_url):
+    part = urlparse.urlsplit(server_url)
 
     # deal with the export directory
     if part.path.endswith("/"):
@@ -74,17 +86,17 @@ def key_export(**kwargs):
         # otherwise create it
         os.makedirs(".%s" % _path)
 
-    local_path = kwargs["local_path"]
+    local_path = KEY_EXPORT_ARGS["local_path"]
     if not os.path.exists(local_path):
         os.makedirs(local_path)
 
     res = {}
     # For each usage type
     for usage in ["sign", "enc"]:
-        if usage in kwargs:
+        if usage in KEY_EXPORT_ARGS:
             _keys = {}
 
-            if kwargs[usage]["format"] == "jwk":
+            if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
                 if usage == "sign":
                     _name = ("jwk.json", "jwk_url")
                 else:
@@ -100,10 +112,10 @@ def key_export(**kwargs):
             if os.path.exists(_new_path): # If it's already there ..
                 _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path, "pyoidc"))
             else:
-                if kwargs[usage]["alg"] == "rsa":
+                if KEY_EXPORT_ARGS[usage]["alg"] == "rsa":
                     _keys["rsa"] = jwt.create_rsa_key_pair(path=local_path)
 
-                if kwargs[usage]["format"] == "jwk":
+                if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
                     _jwk = []
                     for typ, key in _keys.items():
                         if typ == "rsa":
@@ -124,6 +136,15 @@ def key_export(**kwargs):
 
         return part, res
 
+def start_key_server(part):
+    # start the server
+    try:
+        (host, port) = part.netloc.split(":")
+    except ValueError:
+        host = part.netloc
+        port = 80
+
+    return start_script(KEY_EXPORT_ARGS["script"], host, port)
 
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password"]
@@ -142,6 +163,7 @@ class OAuth2(object):
         self._parser.add_argument('-J', dest="json_config_file")
         self._parser.add_argument('-I', dest="interactions")
         self._parser.add_argument("-l", dest="list", action="store_true")
+        self._parser.add_argument("-H", dest="host", default="example.com")
         self._parser.add_argument("flow", nargs="?")
 
         self.args = None
@@ -279,7 +301,7 @@ class OAuth2(object):
     def do_features(self, *args):
         pass
 
-    def export(self, **kwargs):
+    def export(self, url):
         pass
 
     def client_conf(self, cprop):
@@ -302,6 +324,9 @@ class OAuth2(object):
 
         # Client configuration
         self.cconf = self.json_config["client"]
+        # replace pattern with real value
+        _h = self.args.host
+        self.cconf["redirect_uris"] = [p % _h for p in self.cconf["redirect_uris"]]
 
         # set necessary information in the Client
         for prop in cprop:
@@ -443,7 +468,7 @@ class OIC(OAuth2):
 
     def do_features(self, interact, _seq):
         if "key_export" in self.features:
-            self.export(**self.features["key_export"])
+            self.export(self.features["key_export"])
 
         if "registration" in self.features and self.features["registration"]:
             _register = True
@@ -480,26 +505,19 @@ class OIC(OAuth2):
         else:
             self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
 
-    def export(self, **kwargs):
+    def export(self, server_url_pattern):
         # has to be there
         self.trace.info("EXPORT")
 
-        part, res = key_export(**kwargs)
+        part, res = key_export(server_url_pattern % self.args.host)
 
-        for name, (url, keyspecs) in res.items():
+        for name, (url, key_specs) in res.items():
             self.cconf[name] = url
-            for key, typ, usage in keyspecs:
+            for key, typ, usage in key_specs:
                 self.client.keystore.add_key(key, typ, usage)
 
         if self.args.internal_server:
-            # start the server
-            try:
-                (host, port) = part.netloc.split(":")
-            except ValueError:
-                host = part.netloc
-                port = 80
-
-            self._pop = start_script(kwargs["script"], host, port)
+            self._pop = start_key_server(part)
             self.trace.info("Started key provider")
             time.sleep(1)
 

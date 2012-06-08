@@ -7,20 +7,10 @@ info = {
         "registration":True,
         "discovery": True,
         "session_management": False,
-#        "key_export": {
-#            "script": "../../script/static_provider.py",
-#            "server": "http://localhost:8090/export",
-#            "local_path": "./keys",
-#            "sign": {
-#                "alg":"rsa",
-#                "create_if_missing": True,
-#                "format": "jwk",
-#                #"name": "jwk.json",
-#            }
-#        }
+        "key_export": "http://%s:8090/export",
     },
     "client": {
-        "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
+        "redirect_uris": ["https://%s/authz_cb"],
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
