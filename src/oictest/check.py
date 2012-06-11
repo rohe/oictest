@@ -764,6 +764,23 @@ class VerifyError(Error):
 
         return {}
 
+class CheckKeys(CriticalError):
+    """ Checks that the necessary keys are defined """
+    id = "check-keys"
+    msg = "Missing keys"
+
+    def _func(self, environ=None):
+        cls = environ["request_spec"].request
+        client = environ["client"]
+        # key type
+        keys = client.keystore.get_sign_key("rsa")
+        try:
+            assert keys
+        except AssertionError:
+            self._status = self.status
+            self._message = "No rsa key for signing registered"
+
+        return {}
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):

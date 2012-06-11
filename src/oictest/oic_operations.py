@@ -432,12 +432,14 @@ class AccessTokenRequestCSPost(AccessTokenRequest):
         self.kw_args = {"authn_method": "client_secret_post"}
 
 class AccessTokenRequestCSJWT(AccessTokenRequest):
+    tests = {"pre": [CheckKeys]}
 
     def __init__(self):
         PostRequest.__init__(self)
         self.kw_args = {"authn_method": "client_secret_jwt"}
 
 class AccessTokenRequestPKJWT(AccessTokenRequest):
+    tests = {"pre": [CheckKeys]}
 
     def __init__(self):
         PostRequest.__init__(self)
@@ -1032,7 +1034,7 @@ FLOWS = {
     },
     'mj-37': {
         "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-registration-ke", "oic-login",
+        "sequence": ["oic-registration", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
