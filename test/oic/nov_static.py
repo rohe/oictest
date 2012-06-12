@@ -3,15 +3,20 @@
 import json
 
 info = {
+    "features": {
+        "registration":True,
+        "discovery": True,
+        "session_management": False,
+        #"key_export": "http://%s:8090/export",
+    },
     "client": {
-        "redirect_uris": ["https://connect-rp.heroku.com"],
-        "contact": ["nov@matake.jp"],
+        "redirect_uris": ["https://%s/authz_cb"],
+        "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
-        "application_name": "Nov RP",
-        "register": True
+        "application_name": "OIC test tool",
     },
     "provider": {
-        "version": "3.0",
+        "version": { "oauth": "2.0", "openid": "3.0"},
         "issuer": "https://connect-op.heroku.com",
         "authorization_endpoint": "https://connect-op.heroku.com/authorizations/new",
         "token_endpoint": "https://connect-op.heroku.com/access_tokens",

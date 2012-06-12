@@ -157,6 +157,11 @@ class AuthorizationRequest_Mismatching_Redirect_uri(GetRequest):
     tests = {"pre": [CheckResponseType],
              "post": [CheckErrorResponse]}
 
+class AuthorizationRequest_with_nonce(GetRequest):
+    request = "AuthorizationRequest"
+    request_args= {"response_type": ["code"],
+                   "nonce": "12nonce34"}
+
 class OpenIDRequestCode(GetRequest):
     request = "OpenIDRequest"
     request_args = {"response_type": ["code"], "scope": ["openid"]}
@@ -167,6 +172,12 @@ class ConnectionVerify(GetRequest):
     request_args = {"response_type": ["code"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
     interaction_check = True
+
+class OpenIDRequestCodeWithNonce(GetRequest):
+    request = "OpenIDRequest"
+    request_args = {"response_type": ["code"], "scope": ["openid"],
+                    "nonce": "12nonce34"}
+    tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
 
 class OpenIDRequestCodeDisplayPage(OpenIDRequestCode):
 
@@ -586,12 +597,14 @@ class Discover(Operation):
 
 PHASES= {
     "login": (AuthorizationRequestCode, AuthzResponse),
+    "login-nonce": (AuthorizationRequest_with_nonce, AuthzResponse),
     "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
     "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
     "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
                              AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
+    "oic-login-nonce": (OpenIDRequestCodeWithNonce, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (OpenIDRequestCodeScopeEMail, AuthzResponse),
     "oic-login+phone": (OpenIDRequestCodeScopePhone, AuthzResponse),
@@ -662,6 +675,16 @@ FLOWS = {
                   "Authentication method used is 'client_secret_post'"),
         "depends": ['mj-01'],
         "sequence": ["oic-login", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        },
+    'oic-code+nonce-token': {
+        "name": 'Simple authorization grant flow',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['mj-01'],
+        "sequence": ["oic-login-nonce", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
     'oic-code+token-token': {
@@ -791,6 +814,11 @@ FLOWS = {
     'mj-01': {
         "name": 'Request with response_type=code',
         "sequence": ["oic-login"],
+        "endpoints": ["authorization_endpoint"]
+    },
+    'mj-01n': {
+        "name": 'Request with response_type=code',
+        "sequence": ["oic-login-nonce"],
         "endpoints": ["authorization_endpoint"]
     },
     'mj-02': {
@@ -1034,7 +1062,7 @@ FLOWS = {
     },
     'mj-37': {
         "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-registration", "oic-login",
+        "sequence": ["oic-registration-ke", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
