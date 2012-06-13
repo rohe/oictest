@@ -10,7 +10,7 @@ info = {
         "key_export": True
     },
     "client": {
-        "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
+        "redirect_uris": ["https://%s/authz_cb"],
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
