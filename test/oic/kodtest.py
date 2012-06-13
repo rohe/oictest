@@ -7,12 +7,14 @@ info = {
         "registration":True,
         "discovery": True,
         "session_management": False,
+        "key_export": True
     },
     "client": {
         "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
+        "key_export_url": "http://%s:8090/export"
     },
     "provider": {
         "version": { "oauth": "2.0", "openid": "3.0"},

@@ -467,8 +467,8 @@ class OIC(OAuth2):
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
     def do_features(self, interact, _seq):
-        if "key_export" in self.features:
-            self.export(self.features["key_export"])
+        if "key_export" in self.features and self.features["key_export"]:
+            self.export(self.cconf["key_export_url"])
 
         if "registration" in self.features and self.features["registration"]:
             _register = True
