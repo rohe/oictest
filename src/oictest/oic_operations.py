@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from oic.oauth2.message import AuthorizationRequest
 
 __author__ = 'rohe0002'
 
@@ -7,7 +8,7 @@ __author__ = 'rohe0002'
 import time
 import socket
 
-from oic.oic.message import factory as msgfactory
+from oic.oic.message import factory as msgfactory, OpenIDRequest
 from oictest.check import *
 # Used upstream not in this module so don't remove
 from oictest.opfunc import *
@@ -27,7 +28,7 @@ class Request():
         pass
 
     #noinspection PyUnusedLocal
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
         if isinstance(self.request, basestring):
             request = msgfactory(self.request)
@@ -44,6 +45,17 @@ class Request():
             _req = kwargs["request_args"].copy()
         except KeyError:
             _req = {}
+
+        if request in [OpenIDRequest, AuthorizationRequest]:
+            if "use_nonce" in features and features["use_nonce"]:
+                if not "nonce" in kwargs:
+                    _nonce = "dummy_nonce"
+                    try:
+                        kwargs["request_args"]["nonce"] = _nonce
+                    except KeyError:
+                        kwargs["request_args"] = {"nonce": _nonce}
+
+                    _client.nonce = _nonce
 
         cis = getattr(_client, "construct_%s" % request.__name__)(request,
                                                                   **kwargs)
@@ -143,12 +155,12 @@ class AuthorizationRequestCode_RUWQC(GetRequest):
     tests = {"pre": [CheckResponseType],
              "post": [CheckHTTPResponse]}
 
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
         base_url = _client.redirect_uris[0]
         self.request_args["redirect_uri"] = base_url + "?foo=bar"
         return Request.__call__(self, environ, trace, location, response,
-                                content)
+                                content, features)
 
 class AuthorizationRequest_Mismatching_Redirect_uri(GetRequest):
     request = "AuthorizationRequest"
@@ -393,7 +405,7 @@ class RegistrationRequest_KeyExp(PostRequest):
 
         self.export_server = "http://%s:8090/export" % socket.gethostname()
 
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
         part, res = key_export(self.export_server)
 
@@ -412,7 +424,7 @@ class RegistrationRequest_KeyExp(PostRequest):
             time.sleep(1)
 
         return PostRequest.__call__(self, environ, trace, location, response,
-                              content)
+                              content, features)
 
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
@@ -421,7 +433,7 @@ class AccessTokenRequest(PostRequest):
         PostRequest.__init__(self)
         #self.kw_args = {"authn_method": "client_secret_basic"}
 
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         if "authn_method" not in self.kw_args:
             _pinfo = environ["provider_info"]
             if "token_endpoint_auth_types_supported" in _pinfo:
@@ -433,7 +445,7 @@ class AccessTokenRequest(PostRequest):
             else:
                 self.kw_args = {"authn_method": "client_secret_basic"}
         return Request.__call__(self, environ, trace, location, response,
-                              content)
+                              content, features)
         
         
 class AccessTokenRequestCSPost(AccessTokenRequest):

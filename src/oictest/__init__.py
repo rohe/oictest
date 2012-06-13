@@ -113,7 +113,7 @@ def key_export(server_url):
                 _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path, "pyoidc"))
             else:
                 if KEY_EXPORT_ARGS[usage]["alg"] == "rsa":
-                    _keys["rsa"] = jwt.create_rsa_key_pair(path=local_path)
+                    _keys["rsa"] = jwt.create_and_store_rsa_key_pair(path=local_path)
 
                 if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
                     _jwk = []
@@ -157,14 +157,20 @@ class OAuth2(object):
         self.msgfactory = msgfactory
 
         self._parser = argparse.ArgumentParser()
-        self._parser.add_argument('-v', dest='verbose', action='store_true')
-        self._parser.add_argument('-d', dest='debug', action='store_true')
-        self._parser.add_argument('-C', dest="ca_certs")
-        self._parser.add_argument('-J', dest="json_config_file")
-        self._parser.add_argument('-I', dest="interactions")
-        self._parser.add_argument("-l", dest="list", action="store_true")
-        self._parser.add_argument("-H", dest="host", default="example.com")
-        self._parser.add_argument("flow", nargs="?")
+        #self._parser.add_argument('-v', dest='verbose', action='store_true')
+        self._parser.add_argument('-d', dest='debug', action='store_true',
+                                  help="Print debug information")
+        self._parser.add_argument('-C', dest="ca_certs",
+                                  help="CA certs to use to verify HTTPS server certificates, if HTTPS is used and no server CA certs are defined then no cert verification is done")
+        self._parser.add_argument('-J', dest="json_config_file",
+                                  help="Script configuration")
+        self._parser.add_argument('-I', dest="interactions",
+                                  help="Extra interactions not defined in the script configuration file")
+        self._parser.add_argument("-l", dest="list", action="store_true",
+                                  help="List all the test flows as a JSON object")
+        self._parser.add_argument("-H", dest="host", default="example.com",
+                                  help="Which host the script is running on, used to construct the key export URL")
+        self._parser.add_argument("flow", nargs="?", help="Which test flow to run")
 
         self.args = None
         self.pinfo = None
@@ -236,7 +242,8 @@ class OAuth2(object):
             try:
                 testres, trace = run_sequence(self.client, _seq, self.trace,
                                               interact, self.msgfactory,
-                                              self.environ, tests)
+                                              self.environ, tests,
+                                              self.json_config["features"])
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
@@ -401,9 +408,10 @@ class OIC(OAuth2):
                  consumer_class, msgfactory):
         OAuth2.__init__(self, operations_mod, client_class, msgfactory)
 
-        self._parser.add_argument('-R', dest="rsakey")
+        #self._parser.add_argument('-R', dest="rsakey")
         self._parser.add_argument('-i', dest="internal_server",
-                                  action='store_true')
+                                  action='store_true',
+                                  help="Whether or not an internal web server to handle key export should be forked")
 
         self.consumer_class = consumer_class
 

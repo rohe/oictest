@@ -106,13 +106,14 @@ def pick_interaction(interactions, _base="", content="", req=None):
 ORDER = ["url","response","content"]
 
 def run_sequence(client, sequence, trace, interaction, msgfactory,
-                 environ=None, tests=None):
+                 environ=None, tests=None, features=None):
     item = []
     response = None
     content = None
     url = ""
     test_output = []
     _keystore = client.keystore
+    features = features or {}
 
     cjar = {"owner": cookielib.CookieJar(), "client": cookielib.CookieJar()}
 
@@ -168,7 +169,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
             environ["client"].cookiejar = cjar[role]
             try:
-                part = req(environ, trace, url, response, content)
+                part = req(environ, trace, url, response, content, features)
                 environ.update(dict(zip(ORDER, part)))
                 (url, response, content) = part
 
