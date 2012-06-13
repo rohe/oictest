@@ -227,12 +227,19 @@ class OAuth2(object):
                 raise Exception("Missing flow specification")
             self.args.flow = self.args.flow.strip("'")
             self.args.flow = self.args.flow.strip('"')
+
+            flow_spec = self.operations_mod.FLOWS[self.args.flow]
+            if "block" in flow_spec and flow_spec["block"] == "key_export":
+                allow_key_export = False
+            else:
+                allow_key_export = True
+
             self.parse_args()
             _seq = self.make_sequence()
             interact = self.get_interactions()
 
             try:
-                self.do_features(interact, _seq)
+                self.do_features(interact, _seq, allow_key_export)
             except Exception,exc:
                 _output = {"status": 4,
                            "tests": [{"status": 4,
@@ -483,9 +490,10 @@ class OIC(OAuth2):
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
-    def do_features(self, interact, _seq):
-        if "key_export" in self.features and self.features["key_export"]:
-            self.export(self.cconf["key_export_url"])
+    def do_features(self, interact, _seq, allow_key_export=True):
+        if allow_key_export:
+            if "key_export" in self.features and self.features["key_export"]:
+                self.export(self.cconf["key_export_url"])
 
         if "registration" in self.features and self.features["registration"]:
             _register = True

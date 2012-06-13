@@ -181,7 +181,8 @@ class OpenIDRequestCode(GetRequest):
 
 class ConnectionVerify(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["code"], "scope": ["openid"]}
+    request_args = {"response_type": ["code"],
+                    "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
     interaction_check = True
 
@@ -676,7 +677,8 @@ FLOWS = {
         "name": 'Special flow used to find necessary user interactions',
         "descr": ('Request with response_type=code'),
         "sequence": ["verify"],
-        "endpoints": ["authorization_endpoint"]
+        "endpoints": ["authorization_endpoint"],
+        "block": "key_export"
     },
 
     # -------------------------------------------------------------------------
