@@ -347,7 +347,7 @@ class Operation(object):
     def post_op(self, result, environ, args):
         pass
 
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         try:
             _args = self.args.copy()
         except (KeyError, AttributeError):
@@ -355,6 +355,7 @@ class Operation(object):
 
         _args["_trace_"] = trace
         _args["location"] = location
+        _args["features"] = features
 
         if trace:
             trace.reply("FUNCTION: %s" % self.function.__name__)

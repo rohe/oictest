@@ -22,7 +22,7 @@ class TraceLogRequest(GetRequest):
     def __init__(self):
         GetRequest.__init__(self)
 
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         _pinfo = environ["provider_info"]
         part = urlparse.urlparse(_pinfo["authorization_endpoint"])
         _client = environ["client"]
@@ -30,7 +30,7 @@ class TraceLogRequest(GetRequest):
                                                           part.netloc)
         self.kw_args = {"authn_method": "bearer_header"}
         return GetRequest.__call__(self, environ, trace, location, response,
-                                   content)
+                                   content, features)
 
 
 class DataResponse(Response):
@@ -44,7 +44,7 @@ class OpenIDRequestCodeGeo(OpenIDRequestCode):
         self.request_args["userinfo_claims"] = {"claims": {"geolocation": None}}
 
 class UserInfoClaims(UserInfoRequestGetBearerHeader):
-    def __call__(self, environ, trace, location, response, content):
+    def __call__(self, environ, trace, location, response, content, features):
         info = environ["response_message"]
         # {'_claims_sources': {
         #   'https://localhost:8089/': {

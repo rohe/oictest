@@ -188,7 +188,7 @@ if __name__ == "__main__":
     _cnf = json.loads(p1.stdout.read())
 
     if "key_export" in _cnf["features"]:
-        _pop = run_key_server(_cnf["features"]["key_export"], args.host)
+        _pop = run_key_server(_cnf["client"]["key_export_url"], args.host)
         time.sleep(1)
     else:
         _pop = None

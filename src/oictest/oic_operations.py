@@ -588,7 +588,8 @@ class DResponse(object):
 
 
 #noinspection PyUnusedLocal
-def discover(self, client, orig_response, content, issuer, location, _trace_):
+def discover(self, client, orig_response, content, issuer, location,
+             features, _trace_):
     pcr = client.provider_config(issuer)
     return "", DResponse(200, "application/json"), pcr
 

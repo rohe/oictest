@@ -263,7 +263,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 _op = Operation(_spec["control"])
 
                 try:
-                    part = _op(environ, trace, url, response, content)
+                    part = _op(environ, trace, url, response, content, features)
                     environ.update(dict(zip(ORDER, part)))
                     (url, response, content) = part
 
