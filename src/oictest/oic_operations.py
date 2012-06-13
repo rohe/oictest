@@ -610,14 +610,14 @@ class Discover(Operation):
 
 PHASES= {
     "login": (AuthorizationRequestCode, AuthzResponse),
-    "login-nonce": (AuthorizationRequest_with_nonce, AuthzResponse),
+    #"login-nonce": (AuthorizationRequest_with_nonce, AuthzResponse),
     "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
     "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
     "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
                              AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (OpenIDRequestCode, AuthzResponse),
-    "oic-login-nonce": (OpenIDRequestCodeWithNonce, AuthzResponse),
+    #"oic-login-nonce": (OpenIDRequestCodeWithNonce, AuthzResponse),
     "oic-login+profile": (OpenIDRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (OpenIDRequestCodeScopeEMail, AuthzResponse),
     "oic-login+phone": (OpenIDRequestCodeScopePhone, AuthzResponse),
@@ -690,16 +690,16 @@ FLOWS = {
         "sequence": ["oic-login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         },
-    'oic-code+nonce-token': {
-        "name": 'Simple authorization grant flow',
-        "descr": ("1) Request with response_type=code",
-                  "scope = ['openid']",
-                  "2) AccessTokenRequest",
-                  "Authentication method used is 'client_secret_post'"),
-        "depends": ['mj-01'],
-        "sequence": ["oic-login-nonce", "access-token-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        },
+#    'oic-code+nonce-token': {
+#        "name": 'Simple authorization grant flow',
+#        "descr": ("1) Request with response_type=code",
+#                  "scope = ['openid']",
+#                  "2) AccessTokenRequest",
+#                  "Authentication method used is 'client_secret_post'"),
+#        "depends": ['mj-01'],
+#        "sequence": ["oic-login-nonce", "access-token-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint"],
+#        },
     'oic-code+token-token': {
         "name": "Flow with response_type='code token'",
         "descr": ("1) Request with response_type='code token'",
@@ -829,11 +829,11 @@ FLOWS = {
         "sequence": ["oic-login"],
         "endpoints": ["authorization_endpoint"]
     },
-    'mj-01n': {
-        "name": 'Request with response_type=code',
-        "sequence": ["oic-login-nonce"],
-        "endpoints": ["authorization_endpoint"]
-    },
+#    'mj-01n': {
+#        "name": 'Request with response_type=code',
+#        "sequence": ["oic-login-nonce"],
+#        "endpoints": ["authorization_endpoint"]
+#    },
     'mj-02': {
         "name": 'Request with response_type=token',
         "sequence": ["oic-login-token"],

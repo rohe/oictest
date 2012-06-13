@@ -231,7 +231,16 @@ class OAuth2(object):
             _seq = self.make_sequence()
             interact = self.get_interactions()
 
-            self.do_features(interact, _seq)
+            try:
+                self.do_features(interact, _seq)
+            except Exception,exc:
+                _output = {"status": 4,
+                           "tests": [{"status": 4,
+                                      "message":"Couldn't run testflow: %s" % exc,
+                                      "id": "verify_features",
+                                      "name": "Make sure you don't do things you shouldn't"}]}
+                print >> sys.stdout, json.dumps(_output)
+                return
 
             tests = self.get_test()
             self.client.state = "STATE0"
@@ -494,6 +503,10 @@ class OIC(OAuth2):
                 _seq.insert(0, _ext)
                 interact.append({"matches": {"class":"RegistrationRequest"},
                                  "args":{"request":self.register_args()}})
+        else: # don't try to register
+            for sq in _seq:
+                if sq[0].request == "RegistrationRequest":
+                    raise Exception("RegistrationRequest in the test should not be run")
 
         if "discovery" in self.features and self.features["discovery"]:
             _discover = True
