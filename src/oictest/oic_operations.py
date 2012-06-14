@@ -410,10 +410,7 @@ class RegistrationRequest_KeyExp(PostRequest):
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
-        part, res = jwt.key_export(self.export_server,
-                                   KEY_EXPORT_ARGS["local_path"],
-                                   KEY_EXPORT_ARGS["export_dir"],
-                                   **KEY_EXPORT_ARGS)
+        part, res = jwt.key_export(self.export_server, **KEY_EXPORT_ARGS)
 
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris

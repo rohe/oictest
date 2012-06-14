@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from oictest import key_export, start_key_server
+from oic.utils.jwt import key_export
+from oictest import start_key_server
 import time
 
 __author__ = 'rohe0002'
@@ -168,8 +169,10 @@ def test_all(graph, who, host):
     for key in skeys:
         recursively_test(graph[key], who, host)
 
+from oictest import KEY_EXPORT_ARGS
+
 def run_key_server(server_url_pattern, host):
-    part, res = key_export(server_url_pattern % host)
+    part, res = key_export(server_url_pattern % host, **KEY_EXPORT_ARGS)
     return start_key_server(part)
 
 if __name__ == "__main__":
