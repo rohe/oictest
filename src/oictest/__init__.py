@@ -61,8 +61,8 @@ def get_page(url):
 KEY_EXPORT_ARGS = {
     "script": "../../script/static_provider.py",
 #    "server": "http://%s:8090/export" % HOST,
-    "local_path": "./keys",
-    "vault": "./export",
+    "local_path": "export",
+    "vault": "keys",
     "sign": {
         "alg":"rsa",
         "create_if_missing": True,
