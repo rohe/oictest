@@ -245,6 +245,7 @@ class OAuth2(object):
             try:
                 self.do_features(interact, _seq, allow_key_export)
             except Exception,exc:
+                exception_trace("do_features", exc)
                 _output = {"status": 4,
                            "tests": [{"status": 4,
                                       "message":"Couldn't run testflow: %s" % exc,
