@@ -62,7 +62,7 @@ KEY_EXPORT_ARGS = {
     "script": "../../script/static_provider.py",
 #    "server": "http://%s:8090/export" % HOST,
     "local_path": "./keys",
-    "export_dir": "./export",
+    "vault": "./export",
     "sign": {
         "alg":"rsa",
         "create_if_missing": True,
@@ -543,8 +543,6 @@ class OIC(OAuth2):
         self.trace.info("EXPORT")
 
         part, res = jwt.key_export(server_url_pattern % (self.args.host,),
-                                   KEY_EXPORT_ARGS["local_path"],
-                                   KEY_EXPORT_ARGS["export_dir"],
                                    **KEY_EXPORT_ARGS)
 
         for name, (url, key_specs) in res.items():

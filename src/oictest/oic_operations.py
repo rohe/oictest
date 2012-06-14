@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from oic.oauth2.message import AuthorizationRequest
+from oic.utils import jwt
 
 __author__ = 'rohe0002'
 
@@ -375,7 +376,7 @@ class RegistrationRequest_WQC(PostRequest):
 
         self.tests["post"].append(RegistrationInfo)
 
-from oictest import key_export, start_key_server
+from oictest import start_key_server
 
 class RegistrationRequest_WF(PostRequest):
     request = "RegistrationRequest"
@@ -391,6 +392,7 @@ class RegistrationRequest_WF(PostRequest):
                      "application_name": "OIC test tool"}
 
 
+from oictest import KEY_EXPORT_ARGS
 
 class RegistrationRequest_KeyExp(PostRequest):
     request = "RegistrationRequest"
@@ -408,7 +410,10 @@ class RegistrationRequest_KeyExp(PostRequest):
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
-        part, res = key_export(self.export_server)
+        part, res = jwt.key_export(self.export_server,
+                                   KEY_EXPORT_ARGS["local_path"],
+                                   KEY_EXPORT_ARGS["export_dir"],
+                                   **KEY_EXPORT_ARGS)
 
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
