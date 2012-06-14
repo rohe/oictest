@@ -59,7 +59,7 @@ def get_page(url):
         raise HTTP_ERROR(resp.status)
 
 KEY_EXPORT_ARGS = {
-    "script": "../../script/static_provider.py",
+    "script": "static_provider.py",
 #    "server": "http://%s:8090/export" % HOST,
     "local_path": "export",
     "vault": "keys",
