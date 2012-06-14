@@ -10,11 +10,9 @@ import os
 import requests
 
 from subprocess import Popen, PIPE
-import urlparse
 
 from oic.utils import jwt
 from oic.utils import exception_trace
-from oic.utils.jwt import construct_rsa_jwk
 from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 
@@ -64,6 +62,7 @@ KEY_EXPORT_ARGS = {
     "script": "../../script/static_provider.py",
 #    "server": "http://%s:8090/export" % HOST,
     "local_path": "./keys",
+    "export_dir": "./export",
     "sign": {
         "alg":"rsa",
         "create_if_missing": True,
@@ -72,74 +71,74 @@ KEY_EXPORT_ARGS = {
     }
 }
 
-def key_export(server_url):
-    part = urlparse.urlsplit(server_url)
-
-    # deal with the export directory
-    if part.path.endswith("/"):
-        _path = part.path[:-1]
-    else:
-        _path = part.path[:]
-
-        # Check if the dir is there
-    if not os.path.exists(".%s" % _path):
-        # otherwise create it
-        os.makedirs(".%s" % _path)
-
-    local_path = KEY_EXPORT_ARGS["local_path"]
-    if not os.path.exists(local_path):
-        os.makedirs(local_path)
-
-    res = {}
-    # For each usage type
-    for usage in ["sign", "enc"]:
-        if usage in KEY_EXPORT_ARGS:
-            _keys = {}
-
-            if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
-                if usage == "sign":
-                    _name = ("jwk.json", "jwk_url")
-                else:
-                    _name = ("jwk_enc.json", "jwk_encryption_url")
-            else: # must be 'x509'
-                if usage == "sign":
-                    _name = ("x509.pub", "x509_url")
-                else:
-                    _name = ("x509_enc.pub", "x509_encryption_url")
-
-            _new_path = ".%s/%s" % (_path, _name[0])
-            _rsa_file = "%s/%s" % (local_path, "pyoidc")
-
-            if os.path.exists(_rsa_file): # If it's already there ..
-                try:
-                    _keys["rsa"] = jwt.rsa_load(_rsa_file)
-                except Exception:
-                    pass
-
-            if _keys["rsa"] is None:
-                if KEY_EXPORT_ARGS[usage]["alg"] == "rsa":
-                    _keys["rsa"] = jwt.create_and_store_rsa_key_pair(path=local_path)
-
-                if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
-                    _jwk = []
-                    for typ, key in _keys.items():
-                        if typ == "rsa":
-                            _jwk.append(construct_rsa_jwk(key))
-
-                    _jwk = {"jwk": _jwk}
-
-                    f = open(_new_path, "w")
-                    f.write(json.dumps(_jwk))
-                    f.close()
-
-            keyspec = []
-            for typ, key in _keys.items():
-                keyspec.append([key, typ, usage])
-
-            _url = "%s://%s%s" % (part.scheme, part.netloc, _new_path[1:])
-            res[_name[1]] = (_url, keyspec)
-
-        return part, res
+#def key_export(server_url):
+#    part = urlparse.urlsplit(server_url)
+#
+#    # deal with the export directory
+#    if part.path.endswith("/"):
+#        _path = part.path[:-1]
+#    else:
+#        _path = part.path[:]
+#
+#        # Check if the dir is there
+#    if not os.path.exists(".%s" % _path):
+#        # otherwise create it
+#        os.makedirs(".%s" % _path)
+#
+#    local_path = KEY_EXPORT_ARGS["local_path"]
+#    if not os.path.exists(local_path):
+#        os.makedirs(local_path)
+#
+#    res = {}
+#    # For each usage type
+#    for usage in ["sign", "enc"]:
+#        if usage in KEY_EXPORT_ARGS:
+#            _keys = {}
+#
+#            if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
+#                if usage == "sign":
+#                    _name = ("jwk.json", "jwk_url")
+#                else:
+#                    _name = ("jwk_enc.json", "jwk_encryption_url")
+#            else: # must be 'x509'
+#                if usage == "sign":
+#                    _name = ("x509.pub", "x509_url")
+#                else:
+#                    _name = ("x509_enc.pub", "x509_encryption_url")
+#
+#            _new_path = ".%s/%s" % (_path, _name[0])
+#            _rsa_file = "%s/%s" % (local_path, "pyoidc")
+#
+#            if os.path.exists(_rsa_file): # If it's already there ..
+#                try:
+#                    _keys["rsa"] = jwt.rsa_load(_rsa_file)
+#                except Exception:
+#                    pass
+#
+#            if _keys["rsa"] is None:
+#                if KEY_EXPORT_ARGS[usage]["alg"] == "rsa":
+#                    _keys["rsa"] = jwt.create_and_store_rsa_key_pair(path=local_path)
+#
+#                if KEY_EXPORT_ARGS[usage]["format"] == "jwk":
+#                    _jwk = []
+#                    for typ, key in _keys.items():
+#                        if typ == "rsa":
+#                            _jwk.append(construct_rsa_jwk(key))
+#
+#                    _jwk = {"jwk": _jwk}
+#
+#                    f = open(_new_path, "w")
+#                    f.write(json.dumps(_jwk))
+#                    f.close()
+#
+#            keyspec = []
+#            for typ, key in _keys.items():
+#                keyspec.append([key, typ, usage])
+#
+#            _url = "%s://%s%s" % (part.scheme, part.netloc, _new_path[1:])
+#            res[_name[1]] = (_url, keyspec)
+#
+#        return part, res
 
 def start_key_server(part):
     # start the server
@@ -543,7 +542,10 @@ class OIC(OAuth2):
         # has to be there
         self.trace.info("EXPORT")
 
-        part, res = key_export(server_url_pattern % self.args.host)
+        part, res = jwt.key_export(server_url_pattern % (self.args.host,),
+                                   KEY_EXPORT_ARGS["local_path"],
+                                   KEY_EXPORT_ARGS["export_dir"],
+                                   **KEY_EXPORT_ARGS)
 
         for name, (url, key_specs) in res.items():
             self.cconf[name] = url
