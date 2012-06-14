@@ -592,6 +592,7 @@ class DResponse(object):
 def discover(self, client, orig_response, content, issuer, location,
              features, _trace_):
     pcr = client.provider_config(issuer)
+    _trace_.info("%s" % client.keystore._store)
     return "", DResponse(200, "application/json"), pcr
 
 

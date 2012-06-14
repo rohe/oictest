@@ -108,10 +108,15 @@ def key_export(server_url):
                     _name = ("x509_enc.pub", "x509_encryption_url")
 
             _new_path = ".%s/%s" % (_path, _name[0])
+            _rsa_file = "%s/%s" % (local_path, "pyoidc")
 
-            if os.path.exists(_new_path): # If it's already there ..
-                _keys["rsa"] = jwt.rsa_load("%s/%s" % (local_path, "pyoidc"))
-            else:
+            if os.path.exists(_rsa_file): # If it's already there ..
+                try:
+                    _keys["rsa"] = jwt.rsa_load(_rsa_file)
+                except Exception:
+                    pass
+
+            if _keys["rsa"] is None:
                 if KEY_EXPORT_ARGS[usage]["alg"] == "rsa":
                     _keys["rsa"] = jwt.create_and_store_rsa_key_pair(path=local_path)
 

@@ -3,6 +3,7 @@
 import json
 
 info = {
+    "versions": { "oauth": "2.0", "openid": "3.0"},
     "features": {
         "registration":True,
         "discovery": True,
@@ -17,7 +18,6 @@ info = {
         "key_export_url": "http://%s:8090/export"
     },
     "provider": {
-        "version": { "oauth": "2.0", "openid": "3.0"},
         "dynamic": "https://www.kodtest.se:8088/",
     },
     "interaction": [
