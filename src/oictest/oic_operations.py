@@ -870,26 +870,26 @@ FLOWS = {
         "endpoints": ["authorization_endpoint",],
         },
     # -------------------------------------------------------------------------
-    'mj-08': {
-        "name": 'Check ID Endpoint Access with GET and bearer_header',
-        "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
-    'mj-09': {
-        "name": 'Check ID Endpoint Access with POST and bearer_header',
-        "sequence": ["oic-login", "access-token-request",
-                     "check-id-request_pbh"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
-    'mj-10': {
-        "name": 'Check ID Endpoint Access with POST and bearer_body',
-        "sequence": ["oic-login", "access-token-request",
-                     "check-id-request_pbb"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "check_id_endpoint"],
-        },
+#    'mj-08': {
+#        "name": 'Check ID Endpoint Access with GET and bearer_header',
+#        "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "check_id_endpoint"],
+#        },
+#    'mj-09': {
+#        "name": 'Check ID Endpoint Access with POST and bearer_header',
+#        "sequence": ["oic-login", "access-token-request",
+#                     "check-id-request_pbh"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "check_id_endpoint"],
+#        },
+#    'mj-10': {
+#        "name": 'Check ID Endpoint Access with POST and bearer_body',
+#        "sequence": ["oic-login", "access-token-request",
+#                     "check-id-request_pbb"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "check_id_endpoint"],
+#        },
     # -------------------------------------------------------------------------
     'mj-11': {
         "name": 'UserInfo Endpoint Access with GET and bearer_header',
