@@ -90,7 +90,7 @@ class CmpIdtoken(Other):
             if msg.type() == "AuthorizationResponse":
                 break
 
-        keys = environ["client"].keystore.get_keys("verify", owner=None)
+        keys = environ["client"].keystore.get_keys("ver", owner=None)
         idt = IdToken().deserialize(msg["id_token"], "jwt", key=keys)
         if idt.to_dict() == environ["item"][-1].to_dict():
             pass
@@ -564,7 +564,7 @@ class verifyIDToken(CriticalError):
 
     def _func(self, environ):
         done = False
-        _vkeys = environ["client"].keystore.get_keys("verify", owner=None)
+        _vkeys = environ["client"].keystore.get_keys("ver", owner=None)
         for item in environ["item"]:
             if self._status == self.status or done:
                 break
@@ -657,6 +657,20 @@ class UnpackAggregatedClaims(Error):
             _client.unpack_aggregated_claims(resp)
         except Exception, err:
             self._message = "Unable to unpack aggregated Claims: %s" % err
+            self._status = self.status
+
+        return {}
+
+class ChangedSecret(Error):
+    id = "changed-client-secret"
+
+    def _func(self, environ=None):
+        resp = environ["response_message"]
+        old_sec = environ["request_args"]["client_secret"]
+        _client = environ["client"]
+
+        if old_sec == resp["client_secret"]:
+            self._message = "Client secret was not changed"
             self._status = self.status
 
         return {}

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 from oic.oauth2.message import AuthorizationRequest
-from oic.utils import jwt
 
 __author__ = 'rohe0002'
 
@@ -363,6 +362,7 @@ class RegistrationRequest(PostRequest):
         self.tests["post"].append(RegistrationInfo)
 
 class RegistrationRequest_WQC(PostRequest):
+    """ With query component """
     request = "RegistrationRequest"
 
     def __init__(self):
@@ -379,6 +379,7 @@ class RegistrationRequest_WQC(PostRequest):
 from oictest import start_key_server
 
 class RegistrationRequest_WF(PostRequest):
+    """ With fragment, which is not allowed """
     request = "RegistrationRequest"
     tests = {"post": [CheckErrorResponse]}
 
@@ -395,6 +396,7 @@ class RegistrationRequest_WF(PostRequest):
 from oictest import KEY_EXPORT_ARGS
 
 class RegistrationRequest_KeyExp(PostRequest):
+    """ Registration request with client key export """
     request = "RegistrationRequest"
 
     def __init__(self):
@@ -410,15 +412,14 @@ class RegistrationRequest_KeyExp(PostRequest):
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
-        part, res = jwt.key_export(self.export_server, **KEY_EXPORT_ARGS)
+        part, res = _client.keystore.key_export(self.export_server,
+                                                **KEY_EXPORT_ARGS)
 
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
 
-        for name, (url, keyspecs) in res.items():
+        for name, url in res.items():
             self.request_args[name] = url
-            for key, typ, usage in keyspecs:
-                _client.keystore.add_key(key, typ, usage)
 
         if "keyprovider" not in environ:
             _pop = start_key_server(part)
@@ -428,6 +429,46 @@ class RegistrationRequest_KeyExp(PostRequest):
 
         return PostRequest.__call__(self, environ, trace, location, response,
                               content, features)
+
+class RegistrationRequest_update(PostRequest):
+    """ With query component """
+    request = "RegistrationRequest"
+
+    def __init__(self):
+        PostRequest.__init__(self)
+
+        self.request_args = {"type": "client_update",
+                             "contact": ["roland@example.com",
+                                         "roland@example.org"]}
+
+        self.tests["post"].append(RegistrationInfo)
+
+    def __call__(self, environ, trace, location, response, content, features):
+        _client = environ["client"]
+
+        self.request_args["client_secret"] = _client.get_client_secret()
+        self.request_args["client_id"] = _client.client_id
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                                    content, features)
+
+class RegistrationRequest_rotate_secret(PostRequest):
+    """ With query component """
+    request = "RegistrationRequest"
+
+    def __init__(self):
+        PostRequest.__init__(self)
+
+        self.request_args = {"type": "rotate_secret"}
+
+    def __call__(self, environ, trace, location, response, content, features):
+        _client = environ["client"]
+
+        self.request_args["client_secret"] = _client.get_client_secret()
+        self.request_args["client_id"] = _client.client_id
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                                    content, features)
 
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
@@ -538,13 +579,24 @@ class BodyResponse(Response):
     where = "body"
     type = "json"
 
-class RegistrationResponse(BodyResponse):
-    response = "RegistrationResponse"
+class RegistrationResponseCARS(BodyResponse):
+    response = "RegistrationResponseCARS"
 
     def __call__(self, environ, response):
         _client = environ["client"]
         _client.keystore.remove_key_type("hmac")
         for prop in ["client_id", "client_secret"]:
+            try:
+                setattr(_client, prop, response[prop])
+            except KeyError:
+                pass
+
+class RegistrationResponseCU(BodyResponse):
+    response = "RegistrationResponseCU"
+
+    def __call__(self, environ, response):
+        _client = environ["client"]
+        for prop in ["client_id"]:
             try:
                 setattr(_client, prop, response[prop])
             except KeyError:
@@ -664,11 +716,15 @@ PHASES= {
     "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err":(UserInfoRequestGetBearerHeader_err,
                              ErrorResponse),
-    "oic-registration": (RegistrationRequest, RegistrationResponse),
-    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponse),
+    "oic-registration": (RegistrationRequest, RegistrationResponseCARS),
+    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponseCARS),
     "oic-registration-wf": (RegistrationRequest_WF,
                             ClientRegistrationErrorResponse),
-    "oic-registration-ke": (RegistrationRequest_KeyExp, RegistrationResponse),
+    "oic-registration-ke": (RegistrationRequest_KeyExp, RegistrationResponseCARS),
+    "oic-registration-update": (RegistrationRequest_update,
+                                RegistrationResponseCU),
+    "oic-registration-rotate": (RegistrationRequest_rotate_secret,
+                                RegistrationResponseCARS),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
@@ -869,27 +925,6 @@ FLOWS = {
         "sequence": ['oic-login-code+idtoken+token'],
         "endpoints": ["authorization_endpoint",],
         },
-    # -------------------------------------------------------------------------
-#    'mj-08': {
-#        "name": 'Check ID Endpoint Access with GET and bearer_header',
-#        "sequence": ["oic-login", "access-token-request", "check-id-request_gbh"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "check_id_endpoint"],
-#        },
-#    'mj-09': {
-#        "name": 'Check ID Endpoint Access with POST and bearer_header',
-#        "sequence": ["oic-login", "access-token-request",
-#                     "check-id-request_pbh"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "check_id_endpoint"],
-#        },
-#    'mj-10': {
-#        "name": 'Check ID Endpoint Access with POST and bearer_body',
-#        "sequence": ["oic-login", "access-token-request",
-#                     "check-id-request_pbb"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "check_id_endpoint"],
-#        },
     # -------------------------------------------------------------------------
     'mj-11': {
         "name": 'UserInfo Endpoint Access with GET and bearer_header',
@@ -1108,7 +1143,18 @@ FLOWS = {
         "tests": [("verify-bad-request-response", {})],
         "depends":["mj-39"],
     },
-}
+    'mj-41': {
+        "name": 'Registration and later registration update',
+        "sequence": ["oic-registration", "oic-registration-update"],
+        "endpoints": ["registration_endpoint"],
+        },
+    'mj-42': {
+        "name": 'Registration and later secret rotate',
+        "sequence": ["oic-registration", "oic-registration-rotate"],
+        "endpoints": ["registration_endpoint"],
+        "tests": [("changed-client-secret", {})],
+        },
+    }
 
 NEW = {
     'x-30': {

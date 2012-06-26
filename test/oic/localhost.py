@@ -15,7 +15,7 @@ info = {
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
-        "key_export_url": "http://%s:8090/export"
+        "key_export_url": "http://%s:8090/"
     },
     "provider": {
         "version": { "oauth": "2.0", "openid": "3.0"},

@@ -321,7 +321,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
                 chk = factory("response-parse")()
                 environ["response_type"] = response.__name__
-                keys = _keystore.get_keys("verify", owner=None)
+                keys = _keystore.get_keys("ver", owner=None)
                 try:
                     qresp = client.parse_response(response, info, resp.type,
                                                   client.state, key=keys,
