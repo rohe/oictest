@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from oic.oauth2.message import AuthorizationRequest
+from oic.utils import jwt
 
 __author__ = 'rohe0002'
 
@@ -210,6 +211,35 @@ class OpenIDRequestCodePromptNone(OpenIDRequestCode):
         OpenIDRequestCode.__init__(self)
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyErrResponse]
+
+class OpenIDRequestCodePromptNoneWithIdToken(OpenIDRequestCode):
+
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
+        self.request_args["prompt"] = "none"
+        self.tests["post"] = [VerifyErrResponse]
+
+    def __call__(self, environ, trace, location, response, content, features):
+        _client = environ["client"]
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                                    content, features)
+
+class OpenIDRequestCodePromptNoneWithUserID(OpenIDRequestCode):
+
+    def __init__(self):
+        OpenIDRequestCode.__init__(self)
+        self.request_args["prompt"] = "none"
+        self.tests["post"] = [VerifyErrResponse]
+
+    def __call__(self, environ, trace, location, response, content, features):
+        _id_token = environ["response_message"]["id_token"]
+        jso = json.loads(jwt.unpack(_id_token)[1])
+        user_id = jso["user_id"]
+        self.request_args["idtoken_claims"] = {"user_id": {"value": user_id}}
+
+        return OpenIDRequestCode.__call__(self, environ, trace, location,
+                                          response, content, features)
 
 class OpenIDRequestCodePromptLogin(OpenIDRequestCode):
 
@@ -694,6 +724,10 @@ PHASES= {
 
     "oic-login+prompt_none": (OpenIDRequestCodePromptNone, AuthzErrResponse),
     "oic-login+prompt_login": (OpenIDRequestCodePromptLogin, AuthzResponse),
+    "oic-login+prompt_none+idtoken": (OpenIDRequestCodePromptNoneWithIdToken,
+                                      AuthzErrResponse),
+    "oic-login+prompt_none+request":(OpenIDRequestCodePromptNoneWithUserID,
+                                     AuthzErrResponse),
 
     "oic-login-token": (OpenIDRequestToken, AuthzResponse),
     "oic-login-idtoken": (OpenIDRequestIDToken, AuthzResponse),
@@ -1154,7 +1188,19 @@ FLOWS = {
         "endpoints": ["registration_endpoint"],
         "tests": [("changed-client-secret", {})],
         },
-    }
+#    "mj-43": {
+#        "name": 'using prompt=none with user hint through IdToken',
+#        "sequence": ["oic-login", "access-token-request",
+#                     "oic-login+prompt_none+idtoken"],
+#        "endpoints": ["registration_endpoint"],
+#        },
+#    "mj-44": {
+#        "name": 'using prompt=none with user hint through user_id in request',
+#        "sequence": ["oic-login", "access-token-request",
+#                     "oic-login+prompt_none+request"],
+#        "endpoints": ["registration_endpoint"],
+#        },
+}
 
 NEW = {
     'x-30': {
