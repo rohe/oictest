@@ -570,13 +570,13 @@ class verifyIDToken(CriticalError):
                 break
 
             try:
-                _jwt = item["id_token"]
-                if _jwt is None:
+                _idt = item["id_token"]
+                if _idt is None:
                     continue
             except KeyError:
                 continue
 
-            idtoken = IdToken().deserialize(str(_jwt), "jwt", key=_vkeys)
+            idtoken = _idt
             for key, val in self._kwargs["claims"].items():
                 if key == "max_age":
                     if idtoken["exp"] > (time_util.utc_time_sans_frac() + val):

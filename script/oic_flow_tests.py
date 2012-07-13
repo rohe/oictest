@@ -127,7 +127,7 @@ def test(node, who, host):
         try:
             output = json.loads(p_out)
         except ValueError:
-            print p_out
+            print 40*"="+"\n"+p_out+"\n"+40*"="
             raise
         node.trace = output
         if output["status"] > 1:
