@@ -154,7 +154,10 @@ class CheckErrorResponse(ExpectedError):
 
         res = {}
         if _response.status_code >= 400 :
-            if "application/json" in _response.headers["content-type"]:
+            content_type = _response.headers["content-type"]
+            if content_type == None:
+                res["content"] = _content
+            elif "application/json" in content_type:
                 try:
                     err = ErrorResponse().deserialize(_content, "json")
                     err.verify()
@@ -190,7 +193,13 @@ class CheckRedirectErrorResponse(ExpectedError):
         _response = environ["response"]
 
         res = {}
-        query = _response.headers["location"].split("?")[1]
+        try:
+            query = _response.headers["location"].split("?")[1]
+        except (KeyError, AttributeError):
+            self._message = "Expected redirect"
+            self._status = CRITICAL
+            return res
+
         if _response.status_code == 302 :
             err = ErrorResponse().deserialize(query, "urlencoded")
             err.verify()
