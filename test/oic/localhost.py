@@ -8,7 +8,8 @@ info = {
         "discovery": True,
         "session_management": False,
         "key_export": True,
-        "use_nonce": True
+        "use_nonce": True,
+        "sector_identifier_url": True
     },
     "client": {
         "redirect_uris": ["https://%s/authz_cb"],

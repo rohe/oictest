@@ -8,14 +8,15 @@ info = {
         "registration":True,
         "discovery": True,
         "session_management": False,
-        "key_export": True
+        "key_export": True,
+        "sector_identifier_url": True
     },
     "client": {
         "redirect_uris": ["https://%s/authz_cb"],
         "contact": ["roland.hedberg@adm.umu.se"],
         "application_type": "web",
         "application_name": "OIC test tool",
-        "key_export_url": "http://%s:8090/"
+        "key_export_url": "http://%s:8090/",
     },
     "provider": {
         "dynamic": "https://www.kodtest.se:8088/",
