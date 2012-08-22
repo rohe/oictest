@@ -264,6 +264,8 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
                 if len(_spec) > 2:
                     trace.info(">> %s <<" % _spec["page-type"])
+                    if _spec["page-type"] == "login":
+                        environ["login"] = content
                 _op = Operation(_spec["control"])
 
                 try:
