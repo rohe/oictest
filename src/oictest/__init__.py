@@ -1,12 +1,12 @@
 #!/usr/bin/env python
-import signal
+import urlparse
+from oic.utils.keystore import proper_path
 
 __author__ = 'rohe0002'
 
 import argparse
 import sys
 import json
-import os
 import requests
 
 from subprocess import Popen, PIPE
@@ -65,7 +65,7 @@ KEY_EXPORT_ARGS = {
     "sig": {
         "alg":"rsa",
         "create_if_missing": True,
-        "format": "jwk",
+        "format": ["jwk", "x509"]
         #"name": "jwk.json",
     }
 }
@@ -95,6 +95,8 @@ class OAuth2(object):
         #self._parser.add_argument('-v', dest='verbose', action='store_true')
         self._parser.add_argument('-d', dest='debug', action='store_true',
                                   help="Print debug information")
+        self._parser.add_argument('-v', dest='verbose', action='store_true',
+                                  help="Print runtime information")
         self._parser.add_argument('-C', dest="ca_certs",
                                   help="CA certs to use to verify HTTPS server certificates, if HTTPS is used and no server CA certs are defined then no cert verification is done")
         self._parser.add_argument('-J', dest="json_config_file",
@@ -192,10 +194,13 @@ class OAuth2(object):
                                  "client": self.client})
 
             try:
+                if self.args.verbose:
+                    print >> sys.stderr, "Set up done, running sequence"
                 testres, trace = run_sequence(self.client, _seq, self.trace,
                                               interact, self.msgfactory,
                                               self.environ, tests,
-                                              self.json_config["features"])
+                                              self.json_config["features"],
+                                              self.args.verbose, self.cconf)
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
@@ -206,11 +211,11 @@ class OAuth2(object):
                 print err
                 exception_trace("RUN", err)
 
-            if self._pop is not None:
-                self._pop.terminate()
-            elif "keyprovider" in self.environ:
-                os.kill(self.environ["keyprovider"].pid, signal.SIGTERM)
-                #self.environ["keyprovider"].terminate()
+            #if self._pop is not None:
+            #    self._pop.terminate()
+            if "keyprovider" in self.environ and self.environ["keyprovider"]:
+                # os.kill(self.environ["keyprovider"].pid, signal.SIGTERM)
+                self.environ["keyprovider"].terminate()
 
     def operations(self):
         lista = []
@@ -364,11 +369,17 @@ class OIC(OAuth2):
         self._parser.add_argument('-i', dest="internal_server",
                                   action='store_true',
                                   help="Whether or not an internal web server to handle key export should be forked")
+        self._parser.add_argument('-e', dest="external_server",
+                                  action='store_true',
+                                  help="A external web server are used to handle key export")
 
         self.consumer_class = consumer_class
 
     def parse_args(self):
         OAuth2.parse_args(self)
+
+        if self.args.external_server:
+            self.environ["keyprovider"] = None
 
         _keystore = self.client.keystore
         pcr = ProviderConfigurationResponse()
@@ -431,6 +442,10 @@ class OIC(OAuth2):
             if "key_export" in self.features and self.features["key_export"]:
                 self.export(self.cconf["key_export_url"])
 
+        if "sector_identifier_url" in self.features and \
+            self.features["sector_identifier_url"]:
+            self.do_sector_identifier_url(self.cconf["key_export_url"])
+
         if "registration" in self.features and self.features["registration"]:
             _register = True
         elif "register" in self.cconf and self.cconf["register"]:
@@ -483,8 +498,29 @@ class OIC(OAuth2):
 
         if self.args.internal_server:
             self._pop = start_key_server(part)
+            self.environ["keyprovider"] = self._pop
             self.trace.info("Started key provider")
             time.sleep(1)
+
+    def do_sector_identifier_url(self, server_url_pattern):
+        _url = server_url_pattern % (self.args.host,)
+        part = urlparse.urlsplit(_url)
+
+        if part.path.endswith("/"):
+            _path = part.path[:-1]
+        else:
+            _path = part.path[:]
+
+        _export_filename = "%ssiu.json" % proper_path("%s/%s/" % (_path,
+                                                KEY_EXPORT_ARGS["local_path"]))
+
+        f = open(_export_filename, "w")
+        f.write(json.dumps(self.cconf["redirect_uris"]))
+        f.close()
+
+        self.cconf["sector_identifier_url"] = "%s://%s%s" % (part.scheme,
+                                                             part.netloc,
+                                                             _export_filename[1:])
 
 if __name__ == "__main__":
     from oictest import OAuth2
