@@ -135,6 +135,10 @@ def pick_form(response, content, url=None, **kwargs):
     if not forms:
         raise FlowException(content=content, url=url)
 
+    #if len(forms) == 1:
+    #    return forms[0]
+    #else:
+
     _form = None
     # ignore the first form for now
     forms = forms[1:]
@@ -249,6 +253,8 @@ def select_form(client, orig_response, content, **kwargs):
 
     form = pick_form(response, content, _url, **kwargs)
     #form.backwards_compatible = False
+    if not form:
+        raise Exception("Can't pick a form !!")
 
     if "set" in kwargs:
         for key, val in kwargs["set"].items():
