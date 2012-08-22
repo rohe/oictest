@@ -805,6 +805,36 @@ class CheckKeys(CriticalError):
 
         return {}
 
+class VerifyPolicyURLs(Error):
+    id = "policy_url_on_page"
+    msg = "policy_url not on page"
+
+    def _func(self, environ=None):
+        login_page = environ["login"]
+        regreq = environ["RegistrationRequest"]
+
+        try:
+            assert regreq["policy_url"] in login_page
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+class VerifyLogoURLs(Error):
+    id = "logo_url_on_page"
+    msg = "logo_url not on page"
+
+    def _func(self, environ=None):
+        login_page = environ["login"]
+        regreq = environ["RegistrationRequest"]
+
+        try:
+            assert regreq["logo_url"] in login_page
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj):
