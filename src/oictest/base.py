@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import cookielib
+import sys
 
 __author__ = 'rohe0002'
 
@@ -106,7 +107,8 @@ def pick_interaction(interactions, _base="", content="", req=None):
 ORDER = ["url","response","content"]
 
 def run_sequence(client, sequence, trace, interaction, msgfactory,
-                 environ=None, tests=None, features=None):
+                 environ=None, tests=None, features=None, verbose=False,
+                 cconf=None):
     item = []
     response = None
     content = None
@@ -123,7 +125,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
     try:
         for creq, cresp in sequence:
-            environ["request_spec"] = req = creq()
+            environ["request_spec"] = req = creq(cconf=cconf)
             try:
                 environ["response_spec"] = resp = cresp()
             except TypeError:
@@ -169,6 +171,8 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
             environ["client"].cookiejar = cjar[role]
             try:
+                if verbose:
+                    print >> sys.stderr, "> %s" % req.request
                 part = req(environ, trace, url, response, content, features)
                 environ.update(dict(zip(ORDER, part)))
                 (url, response, content) = part
