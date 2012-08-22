@@ -66,6 +66,7 @@ class Request():
             if val == None:
                 del cis[key]
 
+        environ[request.__name__] = cis
         try:
             cis.lax = self.lax
         except AttributeError:
@@ -184,6 +185,8 @@ class AuthorizationRequest_No_Redirect_uri(GetRequest):
     request = "AuthorizationRequest"
     request_args= {"response_type": ["code"],
                    "redirect_uri": None, "scope": ["openid"]}
+    tests = {"pre": [CheckResponseType],
+             "post": []}
 
 class AuthorizationRequest_with_nonce(GetRequest):
     request = "AuthorizationRequest"
@@ -507,6 +510,19 @@ class RegistrationRequest_rotate_secret(RegistrationRequest):
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
 
+class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
+
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+
+        ruri = self.request_args["redirect_uris"][0]
+        p = urlparse(ruri)
+
+        self.request_args["policy_url"] = "%s://%s/%s" % (p.scheme, p.netloc,
+                                                          "policy.html")
+        self.request_args["logo_url"] = "%s://%s/%s" % (p.scheme, p.netloc,
+                                                        "logo.png")
+
 # =============================================================================
 
 class AccessTokenRequest(PostRequest):
@@ -754,6 +770,8 @@ PHASES= {
 
     "oic-login-no-redirect": (AuthorizationRequest_No_Redirect_uri,
                               AuthzResponse),
+    "oic-login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
+                              AuthzErrResponse),
     #
     "access-token-request_csp":(AccessTokenRequestCSPost,
                                   AccessTokenResponse),
@@ -779,6 +797,8 @@ PHASES= {
                                 RegistrationResponseCU),
     "oic-registration-rotate": (RegistrationRequest_rotate_secret,
                                 RegistrationResponseCARS),
+    "oic-registration-policy+logo": (RegistrationRequest_with_policy_and_logo,
+                                     RegistrationResponseCARS),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
@@ -1221,11 +1241,19 @@ FLOWS = {
     },
     'mj-44': {
         "name": "No redirect_uri in request, multi registered",
-        "sequence": ["oic-registration-multi-redirect", "oic-login-no-redirect"],
+        "sequence": ["oic-registration-multi-redirect",
+                     "oic-login-no-redirect-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "depends": ["oic-code-token"],
-        "tests": [("verify-bad-request-response", {})],
-    }
+        #"tests": [("verify-bad-request-response", {})],
+    },
+    'mj-45': {
+        "name": 'Registration with policy_url and logo_url',
+        "sequence": ["oic-registration-policy+logo", "oic-login"],
+        "endpoints": ["registration_endpoint", "authorization_endpoint"],
+        "tests": [("policy_url_on_page", {}),
+                    ("logo_url_on_page", {})],
+        },
     #    "mj-43": {
 #        "name": 'using prompt=none with user hint through IdToken',
 #        "sequence": ["oic-login", "access-token-request",
