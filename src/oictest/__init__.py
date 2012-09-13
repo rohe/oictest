@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-import urlparse
-from oic.utils.keystore import proper_path
-
 __author__ = 'rohe0002'
 
 import argparse
@@ -142,6 +139,9 @@ class OAuth2(object):
             if item["status"] > status:
                 status = item["status"]
 
+        if status == 0:
+            status = 1
+
         sum = {
             "id": id,
             "status": status,
@@ -166,17 +166,17 @@ class OAuth2(object):
             self.args.flow = self.args.flow.strip('"')
 
             flow_spec = self.operations_mod.FLOWS[self.args.flow]
-            if "block" in flow_spec and flow_spec["block"] == "key_export":
-                allow_key_export = False
-            else:
-                allow_key_export = True
+            try:
+                block = flow_spec["block"]
+            except KeyError:
+                block = {}
 
             self.parse_args()
             _seq = self.make_sequence()
             interact = self.get_interactions()
 
             try:
-                self.do_features(interact, _seq, allow_key_export)
+                self.do_features(interact, _seq, block)
             except Exception,exc:
                 exception_trace("do_features", exc)
                 _output = {"status": 4,
@@ -291,6 +291,11 @@ class OAuth2(object):
         # replace pattern with real value
         _h = self.args.host
         self.cconf["redirect_uris"] = [p % _h for p in self.cconf["redirect_uris"]]
+
+        try:
+            self.client.client_prefs = self.cconf["preferences"]
+        except KeyError:
+            pass
 
         # set necessary information in the Client
         for prop in cprop:
@@ -437,19 +442,22 @@ class OIC(OAuth2):
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
-    def do_features(self, interact, _seq, allow_key_export=True):
-        if allow_key_export:
+    def do_features(self, interact, _seq, block):
+        if "key_export" not in block:
             if "key_export" in self.features and self.features["key_export"]:
                 self.export(self.cconf["key_export_url"])
 
-        if "sector_identifier_url" in self.features and \
-            self.features["sector_identifier_url"]:
-            self.do_sector_identifier_url(self.cconf["key_export_url"])
+#        if "sector_identifier_url" in self.features and \
+#            self.features["sector_identifier_url"]:
+#            self.do_sector_identifier_url(self.cconf["key_export_url"])
 
-        if "registration" in self.features and self.features["registration"]:
-            _register = True
-        elif "register" in self.cconf and self.cconf["register"]:
-            _register = True
+        if "registration" not in block:
+            if "registration" in self.features and self.features["registration"]:
+                _register = True
+            elif "register" in self.cconf and self.cconf["register"]:
+                _register = True
+            else:
+                _register = False
         else:
             _register = False
 
@@ -489,6 +497,7 @@ class OIC(OAuth2):
         # has to be there
         self.trace.info("EXPORT")
 
+        self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
         part, res = self.client.keystore.key_export(
                                         server_url_pattern % (self.args.host,),
                                         **KEY_EXPORT_ARGS)
@@ -501,26 +510,6 @@ class OIC(OAuth2):
             self.environ["keyprovider"] = self._pop
             self.trace.info("Started key provider")
             time.sleep(1)
-
-    def do_sector_identifier_url(self, server_url_pattern):
-        _url = server_url_pattern % (self.args.host,)
-        part = urlparse.urlsplit(_url)
-
-        if part.path.endswith("/"):
-            _path = part.path[:-1]
-        else:
-            _path = part.path[:]
-
-        _export_filename = "%ssiu.json" % proper_path("%s/%s/" % (_path,
-                                                KEY_EXPORT_ARGS["local_path"]))
-
-        f = open(_export_filename, "w")
-        f.write(json.dumps(self.cconf["redirect_uris"]))
-        f.close()
-
-        self.cconf["sector_identifier_url"] = "%s://%s%s" % (part.scheme,
-                                                             part.netloc,
-                                                             _export_filename[1:])
 
 if __name__ == "__main__":
     from oictest import OAuth2
