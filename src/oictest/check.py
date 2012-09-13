@@ -1,3 +1,4 @@
+import json
 from oic.oauth2.message import ErrorResponse
 
 __author__ = 'rohe0002'
@@ -7,7 +8,7 @@ import sys
 import traceback
 import urlparse
 
-from oic.oic.message import SCOPE2CLAIMS, IdToken
+from oic.oic.message import SCOPE2CLAIMS, IdToken, OpenIDSchema
 #from oic.oic.message import
 from oic.utils import time_util
 
@@ -35,7 +36,7 @@ class Check():
         self.url = ""
         self._kwargs = kwargs
 
-    def _func(self, environ=None):
+    def _func(self, environ):
         return {}
 
     def __call__(self, environ=None, output=None):
@@ -234,18 +235,20 @@ class VerifyBadRequestResponse(ExpectedError):
 
         return res
 
-class CheckResponseType(CriticalError):
+class CheckSupported(CriticalError):
     """
-    Checks that the asked for response type are among the supported
+    Checks that something asked for are supported
     """
-    id = "check-response-type"
-    msg = "Response type not supported"
+    id = "check-support"
+    msg = "X not supported"
+    element = "X_supported"
+    parameter = "X"
 
     def _func(self, environ):
         res = {}
         try:
-            _sup = self.response_types_supported(environ["request_args"],
-                                                 environ["provider_info"])
+            _sup = self._supported(environ["request_args"],
+                                   environ["provider_info"])
             if not _sup:
                 self._status = self.status
                 self._message = self.msg
@@ -254,12 +257,42 @@ class CheckResponseType(CriticalError):
 
         return res
 
-    def response_types_supported(self, request_args, provider_info):
+
+    def _supported(self, request_args, provider_info):
         try:
-            rts = [set(s.split(" ")) for s in
+            supported = provider_info[self.element]
+        except KeyError:
+            return True
+
+        try:
+            required = request_args[self.parameter]
+            if isinstance(required, basestring):
+                if required in supported:
+                    return True
+            else:
+                for value in required:
+                    if value in supported:
+                        return True
+            return False
+        except KeyError:
+            pass
+
+        return True
+
+
+class CheckResponseType(CheckSupported):
+    """
+    Checks that the asked for response type are among the supported
+    """
+    id = "check-response-type"
+    msg = "Response type not supported"
+
+    def _supported(self, request_args, provider_info):
+        try:
+            supported = [set(s.split(" ")) for s in
                    provider_info["response_types_supported"]]
         except KeyError:
-            rts = [set(["code"])]
+            supported = [set(["code"])]
 
         try:
             val = request_args["response_type"]
@@ -267,7 +300,7 @@ class CheckResponseType(CriticalError):
                 rt = set([val])
             else:
                 rt = set(val)
-            for sup in rts:
+            for sup in supported:
                 if sup == rt:
                     return True
             return False
@@ -275,6 +308,51 @@ class CheckResponseType(CriticalError):
             pass
 
         return True
+
+class CheckAcrSupport(CheckSupported):
+    """
+    Checks that the asked for acr are among the supported
+    """
+    id = "check-acr-support"
+    msg = "ACR level not supported"
+
+    def _supported(self, request_args, provider_info):
+        try:
+            supported = provider_info["acrs_supported"]
+        except KeyError:
+            return True
+
+        try:
+            # {"claims": {"acr": {"values": ["2"]}}}
+            val = request_args["idtoken_claims"]
+            acrs = val["claims"]["acr"]["values"]
+
+            for acr in acrs:
+                if acr in supported:
+                    return True
+            return False
+        except KeyError:
+            pass
+
+        return True
+
+class CheckScopeSupport(CheckSupported):
+    """
+    Checks that the asked for acr are among the supported
+    """
+    id = "check-acr-support"
+    msg = "ACR level not supported"
+    element = "scopes_supported"
+    parameter = "scope"
+
+class CheckUserIdSupport(CheckSupported):
+    """
+    Checks that the asked for acr are among the supported
+    """
+    id = "check-userid-support"
+    msg = "User_id type not supported"
+    element = "user_id_types_supported"
+    parameter = "user_id_type"
 
 class CheckTokenEndpointAuthType(CriticalError):
     """
@@ -497,8 +575,8 @@ class ScopeWithClaims(Error):
 
     def _func(self, environ=None):
         userinfo_claims = {}
-        req_args = get_authz_request(environ).request_args
 
+        req_args = get_authz_request(environ).request_args
         try:
             _scopes = req_args["scope"]
         except KeyError:
@@ -525,8 +603,7 @@ class ScopeWithClaims(Error):
                 else:
                     if restr == {"essential": True}:
                         self._status = self.status
-                        self._message = "required attribute '%s' missing" % (
-                                                                            key)
+                        self._message = "required attribute '%s' missing" % key
                         return {"returned claims": resp.keys()}
 
         for key in resp.keys():
@@ -564,6 +641,9 @@ class VerifyErrResponse(ExpectedError):
 
         return res
 
+REQUIRED = {"essential": True}
+OPTIONAL = None
+
 class verifyIDToken(CriticalError):
     """
     Verifies that the IDToken contains what it should
@@ -574,6 +654,14 @@ class verifyIDToken(CriticalError):
     def _func(self, environ):
         done = False
         _vkeys = environ["client"].keystore.get_keys("ver", owner=None)
+
+        idtoken_claims = {}
+        req_args = get_authz_request(environ).request_args
+        if "idtoken_claims" in req_args:
+            for key, val in req_args["idtoken_claims"]["claims"].items():
+                idtoken_claims[key] = val
+        #self._kwargs["claims"].items()
+
         for item in environ["item"]:
             if self._status == self.status or done:
                 break
@@ -586,7 +674,7 @@ class verifyIDToken(CriticalError):
                 continue
 
             idtoken = _idt
-            for key, val in self._kwargs["claims"].items():
+            for key, val in idtoken_claims.items():
                 if key == "max_age":
                     if idtoken["exp"] > (time_util.utc_time_sans_frac() + val):
                         self._status = self.status
@@ -596,13 +684,13 @@ class verifyIDToken(CriticalError):
                     else:
                         continue
 
-                if val is None:
+                if val == OPTIONAL:
                     if key not in idtoken:
                         self._status = self.status
                         self._message = "'%s' was supposed to be there" % key
                         break
-                elif val == {"essential":True}:
-                    pass
+                elif val == REQUIRED:
+                    assert key in idtoken
                 elif "values" in val:
                     if key not in idtoken:
                         self._status = self.status
@@ -628,7 +716,8 @@ class verifyIDToken(CriticalError):
                             self._message = "Wrong value on '%s'" % key
                             break
 
-            done = True
+
+                done = True
 
         return {}
 
@@ -830,6 +919,54 @@ class VerifyLogoURLs(Error):
 
         try:
             assert regreq["logo_url"] in login_page
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+class CheckUserID(Error):
+    id = "different_user_id"
+    msg = "user_id not changed between public and pairwise"
+
+    def _func(self, environ=None):
+        user_id = []
+        for cls, msg in environ["responses"]:
+            if cls == OpenIDSchema:
+                _dict = json.loads(msg)
+                user_id.append(_dict["user_id"])
+
+        try:
+            assert len(user_id) == 2
+            assert user_id[0] != user_id[1]
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+class VerifyUserInfo(Error):
+    id = "verify-userinfo"
+    msg = "Essential User info missing"
+
+    def _func(self, environ):
+        req_args = get_authz_request(environ).request_args
+        try:
+            claims = req_args["userinfo_claims"]["claims"]
+        except KeyError:
+            claims = {}
+        for scope in req_args["scope"]:
+            for param in SCOPE2CLAIMS[scope]:
+                claims[param] = REQUIRED
+
+        response = environ["item"][-1]
+        try:
+            for key, val in claims.items():
+                if val == OPTIONAL:
+                    continue
+                elif val == REQUIRED:
+                    assert key in response
+                else:
+                    value = val["value"]
+                    assert response[key] == value
         except AssertionError:
             self._status = self.status
 
