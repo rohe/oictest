@@ -292,6 +292,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
             info = None
             qresp = None
+            resp_type = resp.type
             if response.status_code >= 400:
                 pass
             elif not url:
@@ -299,9 +300,10 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     qresp = content
                 elif response.status_code == 200:
                     info = content
-            elif resp.where == "url":
+            elif resp.where == "url" or response.status_code == 302:
                 try:
                     info = response.headers["location"]
+                    resp_type = "urlencoded"
                 except KeyError:
                     try:
                         _check = getattr(req, "interaction_check", None)
@@ -333,7 +335,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 keys = _keystore.get_keys("ver", owner=None)
                 environ["responses"].append((response, info))
                 try:
-                    qresp = client.parse_response(response, info, resp.type,
+                    qresp = client.parse_response(response, info, resp_type,
                                                   client.state, key=keys,
                                                   client_id=client.client_id,
                                                   scope="openid")
