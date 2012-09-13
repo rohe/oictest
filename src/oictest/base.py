@@ -104,7 +104,7 @@ def pick_interaction(interactions, _base="", content="", req=None):
 
     raise KeyError("No interaction matched")
 
-ORDER = ["url","response","content"]
+ORDER = ["url", "response", "content"]
 
 def run_sequence(client, sequence, trace, interaction, msgfactory,
                  environ=None, tests=None, features=None, verbose=False,
@@ -122,10 +122,12 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
     environ["sequence"] = sequence
     environ["cis"] = []
     environ["trace"] = trace
+    environ["responses"] = []
 
     try:
         for creq, cresp in sequence:
             environ["request_spec"] = req = creq(cconf=cconf)
+
             try:
                 environ["response_spec"] = resp = cresp()
             except TypeError:
@@ -216,6 +218,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 while response.status_code in [302, 301, 303]:
                     url = response.headers["location"]
 
+                    trace.reply("REDIRECT TO: %s" % url)
                     # If back to me
                     for_me = False
                     for redirect_uri in client.redirect_uris:
@@ -328,6 +331,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 chk = factory("response-parse")()
                 environ["response_type"] = response.__name__
                 keys = _keystore.get_keys("ver", owner=None)
+                environ["responses"].append((response, info))
                 try:
                     qresp = client.parse_response(response, info, resp.type,
                                                   client.state, key=keys,
