@@ -23,7 +23,7 @@ class DResponse():
     """ A Response class that behaves in the way that mechanize expects it
     """
     def __init__(self, **kwargs):
-        self.status = 200
+        self.status = 200 # default
         self.index = 0
         self._message = ""
         self.url = ""
@@ -326,6 +326,9 @@ def post_form(client, orig_response, content, **kwargs):
 
     return do_click(client, form, **kwargs)
 
+def NoneFunc():
+    return None
+
 #noinspection PyUnusedLocal
 def interaction(args):
     _type = args["type"]
@@ -334,7 +337,7 @@ def interaction(args):
     elif _type == "link":
         return chose
     else:
-        return None
+        return NoneFunc
 
 # ========================================================================
 
