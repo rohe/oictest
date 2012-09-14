@@ -578,6 +578,7 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
 
     def __call__(self, environ, trace, location, response, content, features):
 
+        _client = environ["client"]
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
 
@@ -585,7 +586,6 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
             self.request_args[name] = url
 
         if "keyprovider" not in environ:
-            _client = environ["client"]
             pat = self.cconf["key_export_url"]
             p = pat.split("%s")
             str = self.cconf["jwk_url"]
