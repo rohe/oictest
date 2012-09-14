@@ -574,12 +574,9 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
 
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
-        self.export_server = "http://%s:8090/export" % socket.gethostname()
+        #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, environ, trace, location, response, content, features):
-        _client = environ["client"]
-        part, res = _client.keystore.key_export(self.export_server,
-                                                **KEY_EXPORT_ARGS)
 
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -588,6 +585,14 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
             self.request_args[name] = url
 
         if "keyprovider" not in environ:
+            _client = environ["client"]
+            pat = self.cconf["key_export_url"]
+            p = pat.split("%s")
+            str = self.cconf["jwk_url"]
+            tmp = str[len(p[0]):]
+            self.export_server = tmp[:tmp.index(p[1])]
+            part, res = _client.keystore.key_export(self.export_server,
+                                                    **KEY_EXPORT_ARGS)
             _pop = start_key_server(part)
             environ["keyprovider"] = _pop
             trace.info("Started key provider")
@@ -669,6 +674,12 @@ class RegistrationRequest_with_public_userid(RegistrationRequest):
         self.request_args["user_id_type"] = "public"
         self.tests["pre"].append(CheckUserIdSupport)
 
+class RegistrationRequest_with_userinfo_signed(RegistrationRequest):
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+        self.request_args["userinfo_signed_response_alg"] = "RS256"
+        self.tests["pre"].append(CheckSignedUserInfoSupport)
+
 class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
@@ -716,7 +727,7 @@ class AccessTokenRequest(PostRequest):
 class AccessTokenRequestCSPost(AccessTokenRequest):
 
     def __init__(self, cconf):
-        PostRequest.__init__(self, cconf)
+        AccessTokenRequest.__init__(self, cconf)
         self.kw_args = {"authn_method": "client_secret_post"}
 
 class AccessTokenRequestCSJWT(AccessTokenRequest):
@@ -983,6 +994,8 @@ PHASES= {
     "oic-registration-pairwise_id": (RegistrationRequest_with_pairwise_userid,
                                      RegistrationResponseCARS),
     "oic-registration-sector_id": (RegistrationRequest_SectorID,
+                                   RegistrationResponseCARS),
+    "oic-registration-signed_userinfo": (RegistrationRequest_with_userinfo_signed,
                                    RegistrationResponseCARS),
     "oic-registration-sector_id-err": (RegistrationRequest_SectorID_Err,
                                        ClientRegistrationErrorResponse),
@@ -1587,7 +1600,16 @@ FLOWS = {
         "tests": [("single-sign-on", {})],
         "depends": ['mj-25'],
         },
-
+#    'mj-60': {
+#        "name": "RP wants signed UserInfo returned",
+#        "sequence": ["oic-registration-signed_userinfo", "oic-login",
+#                     "access-token-request", "user-info-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "userinfo_endpoint"],
+#        "tests": [("signed-userinfo", {})],
+#        "depends": ['mj-01'],
+#
+#        }
     }
 
 NEW = {

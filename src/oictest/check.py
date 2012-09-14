@@ -354,6 +354,16 @@ class CheckUserIdSupport(CheckSupported):
     element = "user_id_types_supported"
     parameter = "user_id_type"
 
+class CheckSignedUserInfoSupport(CheckSupported):
+    """
+    Checks that the asked for acr are among the supported
+    """
+    id = "check-signed-userinfo-support"
+    msg = "Signed UserInfo not supported"
+    element = "userinfo_algs_supported"
+    parameter = "userinfo_signed_response_alg"
+
+
 class CheckTokenEndpointAuthType(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
@@ -971,6 +981,14 @@ class VerifyUserInfo(Error):
             self._status = self.status
 
         return {}
+
+class CheckSignedUserInfo(Error):
+    id = "signed-userinfo"
+    msg = "User info was not signed"
+
+    def _func(self, environ):
+        pass
+
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
