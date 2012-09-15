@@ -332,11 +332,11 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
                 chk = factory("response-parse")()
                 environ["response_type"] = response.__name__
-                keys = _keystore.get_keys("ver", owner=None)
                 environ["responses"].append((response, info))
                 try:
                     qresp = client.parse_response(response, info, resp_type,
-                                                  client.state, key=keys,
+                                                  client.state,
+                                                  keystore=_keystore,
                                                   client_id=client.client_id,
                                                   scope="openid")
                     if trace and qresp:

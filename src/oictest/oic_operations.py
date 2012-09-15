@@ -582,21 +582,21 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
 
-        if "keyprovider" not in environ:
-            pat = self.cconf["key_export_url"]
-            p = pat.split("%s")
-            str = self.cconf["jwk_url"]
-            tmp = str[len(p[0]):]
-            self.export_server = tmp[:tmp.index(p[1])]
-            part, res = _client.keystore.key_export(self.export_server,
-                                                    **KEY_EXPORT_ARGS)
-
-            for name, url in res.items():
-                self.request_args[name] = url
-            _pop = start_key_server(part)
-            environ["keyprovider"] = _pop
-            trace.info("Started key provider")
-            time.sleep(1)
+#        if "keyprovider" not in environ:
+#            pat = self.cconf["key_export_url"]
+#            p = pat.split("%s")
+#            str = self.cconf["jwk_url"]
+#            tmp = str[len(p[0]):]
+#            self.export_server = tmp[:tmp.index(p[1])]
+#            part, res = _client.keystore.key_export(self.export_server,
+#                                                    **KEY_EXPORT_ARGS)
+#
+#            for name, url in res.items():
+#                self.request_args[name] = url
+#            _pop = start_key_server(part)
+#            environ["keyprovider"] = _pop
+#            trace.info("Started key provider")
+#            time.sleep(1)
 
         return PostRequest.__call__(self, environ, trace, location, response,
                               content, features)
@@ -1610,6 +1610,13 @@ FLOWS = {
 #        "depends": ['mj-01'],
 #
 #        }
+    'mj-xx': {
+        "name": 'Requesting ID Token with auth_time Claim',
+        "sequence": ["oic-login+spec2", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "depends": ['mj-01'],
+        },
     }
 
 NEW = {
