@@ -586,7 +586,7 @@ class ScopeWithClaims(Error):
     def _func(self, environ=None):
         userinfo_claims = {}
 
-        req_args = get_authz_request(environ).request_args
+        req_args = get_authz_request(environ)._request_args
         try:
             _scopes = req_args["scope"]
         except KeyError:
@@ -666,7 +666,7 @@ class verifyIDToken(CriticalError):
         _vkeys = environ["client"].keystore.get_keys("ver", owner=None)
 
         idtoken_claims = {}
-        req_args = get_authz_request(environ).request_args
+        req_args = get_authz_request(environ)._request_args
         if "idtoken_claims" in req_args:
             for key, val in req_args["idtoken_claims"]["claims"].items():
                 idtoken_claims[key] = val
@@ -804,7 +804,7 @@ class VerifyAccessTokenResponse(Error):
         cis = environ["cis"][-1]
         if cis["grant_type"] == "authorization_code":
             req = get_authz_request(environ)
-            if "openid" in req.request_args["scope"]:
+            if "openid" in req._request_args["scope"]:
                 if "id_token" not in resp:
                     self._message = "IdToken has to be present"
                     self._status = self.status
@@ -958,7 +958,7 @@ class VerifyUserInfo(Error):
     msg = "Essential User info missing"
 
     def _func(self, environ):
-        req_args = get_authz_request(environ).request_args
+        req_args = get_authz_request(environ)._request_args
         try:
             claims = req_args["userinfo_claims"]["claims"]
         except KeyError:
@@ -988,7 +988,6 @@ class CheckSignedUserInfo(Error):
 
     def _func(self, environ):
         pass
-
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
