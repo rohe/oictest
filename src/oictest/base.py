@@ -293,6 +293,14 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
             info = None
             qresp = None
             resp_type = resp.type
+            if response:
+                try:
+                    ctype = response.headers["content-type"]
+                    if ctype == "application/jwt":
+                        resp_type = "jwt"
+                except (AttributeError, TypeError):
+                    pass
+
             if response.status_code >= 400:
                 pass
             elif not url:
@@ -324,7 +332,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 check_severity(stat)
                 info = content
 
-            if info:
+            if info and resp.response:
                 if isinstance(resp.response, basestring):
                     response = msgfactory(resp.response)
                 else:
@@ -368,7 +376,10 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
         if tests is not None:
             environ["item"] = item
             for test, args in tests:
-                chk = factory(test)(**args)
+                if isinstance(test, basestring):
+                    chk = factory(test)(**args)
+                else:
+                    chk = test(**args)
                 check_severity(chk(environ, test_output))
 
     except FatalError:
