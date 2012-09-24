@@ -475,23 +475,24 @@ class OIC(OAuth2):
                 if sq[0].request == "RegistrationRequest":
                     raise Exception("RegistrationRequest in the test should not be run")
 
-        if "discovery" in self.features and self.features["discovery"]:
-            _discover = True
-        elif "dynamic" in self.json_config["provider"]:
-            _discover = True
-        else:
-            _discover = False
+        if "discovery" not in block:
+            if "discovery" in self.features and self.features["discovery"]:
+                _discover = True
+            elif "dynamic" in self.json_config["provider"]:
+                _discover = True
+            else:
+                _discover = False
 
-        if _discover:
-            op_spec = self.operations_mod.PHASES["provider-discovery"]
-            if op_spec not in _seq:
-                _seq.insert(0, op_spec)
-            interact.append({"matches": {"class": op_spec[0].__name__},
-                             "args":{"issuer":
-                                         self.json_config["provider"]["dynamic"]}})
+            if _discover:
+                op_spec = self.operations_mod.PHASES["provider-discovery"]
+                if op_spec not in _seq:
+                    _seq.insert(0, op_spec)
+                interact.append({"matches": {"class": op_spec[0].__name__},
+                                 "args":{"issuer":
+                                    self.json_config["provider"]["dynamic"]}})
 
-        else:
-            self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
+            else:
+                self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
 
     def export(self, server_url_pattern):
         # has to be there
