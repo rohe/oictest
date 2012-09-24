@@ -3,14 +3,15 @@ from urllib import urlencode, quote
 from oic.oauth2.message import AuthorizationRequest
 from oic import jwt
 from oic.oic import message
-from oic.utils.keystore import proper_path
+#from oic.utils.keystore import proper_path
+#from oictest import KEY_EXPORT_ARGS
 
 __author__ = 'rohe0002'
 
 # ========================================================================
 
 import time
-import socket
+#import socket
 from urlparse import urlparse
 
 from oic.oic.message import factory as msgfactory, OpenIDRequest
@@ -75,12 +76,13 @@ class Request():
     request = ""
     method = ""
     lax = False
-    request_args= {}
+    _request_args= {}
     kw_args = {}
     tests = {"post": [CheckHTTPResponse], "pre":[]}
 
     def __init__(self, cconf=None):
         self.cconf = cconf
+        self.request_args = self._request_args.copy()
 
     #noinspection PyUnusedLocal
     def __call__(self, environ, trace, location, response, content, features):
@@ -170,7 +172,7 @@ class Request():
         return url, response, response.text
 
     def update(self, dic):
-        _tmp = {"request": self.request_args, "kw": self.kw_args}
+        _tmp = {"request": self.request_args.copy(), "kw": self.kw_args}
         for key, val in self.rec_update(_tmp, dic).items():
             setattr(self, "%s_args" % key, val)
 
@@ -198,24 +200,24 @@ class GetRequest(Request):
 
 class MissingResponseType(GetRequest):
     request = "AuthorizationRequest"
-    request_args = {"response_type": [], "scope": ["openid"]}
+    _request_args = {"response_type": [], "scope": ["openid"]}
     lax = True
     tests = {"post": [CheckRedirectErrorResponse]}
 
 class AuthorizationRequestCode(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"], "scope": ["openid"]}
+    _request_args= {"response_type": ["code"], "scope": ["openid"]}
 
 class AuthorizationRequestCode_WQC(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"], "scope": ["openid"],
+    _request_args= {"response_type": ["code"], "scope": ["openid"],
                    "query": "component"}
     tests = {"pre": [CheckResponseType],
              "post": [CheckHTTPResponse]}
 
 class AuthorizationRequestCode_RUWQC(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"], "scope": ["openid"]}
+    _request_args= {"response_type": ["code"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],
              "post": [CheckHTTPResponse]}
 
@@ -234,49 +236,50 @@ class AuthorizationRequestCode_RUWQC_Err(AuthorizationRequestCode_RUWQC):
 
 class AuthorizationRequest_Mismatching_Redirect_uri(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"], "scope": ["openid"],
+    _request_args= {"response_type": ["code"], "scope": ["openid"],
                    "redirect_uri": "https://foo.example.se/authz_cb"}
     tests = {"pre": [CheckResponseType],
              "post": [CheckErrorResponse]}
 
 class AuthorizationRequest_No_Redirect_uri(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"],
+    _request_args= {"response_type": ["code"],
                    "redirect_uri": None, "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],
              "post": []}
 
 class AuthorizationRequest_with_nonce(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["code"], "scope": ["openid"],
+    _request_args= {"response_type": ["code"], "scope": ["openid"],
                    "nonce": "12nonce34"}
 
 class AuthorizationRequest_without_nonce(GetRequest):
     request = "AuthorizationRequest"
-    request_args= {"response_type": ["token"], "scope": ["openid"],
+    _request_args= {"response_type": ["token"], "scope": ["openid"],
                    "nonce": None}
 
 class OpenIDRequestCode(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["code"], "scope": ["openid"]}
+    _request_args = {"response_type": ["code"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
 
 class OpenIDRequestCodeRequestInFile(OpenIDRequestCode):
     kw_args = {"request_method": "file", "local_dir": "export"}
 
     def __init__(self, cconf):
+        OpenIDRequestCode.__init__(self, cconf)
         self.kw_args["base_path"] = _get_base(cconf) + "export/"
 
 class ConnectionVerify(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["code"],
+    _request_args = {"response_type": ["code"],
                     "scope": ["openid"]}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
     interaction_check = True
 
 class OpenIDRequestCodeWithNonce(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["code"], "scope": ["openid"],
+    _request_args = {"response_type": ["code"], "scope": ["openid"],
                     "nonce": "12nonce34"}
     tests = {"pre": [CheckResponseType],"post": [CheckHTTPResponse]}
 
@@ -471,13 +474,13 @@ class OpenIDRequestCodeIDTEmail(OpenIDRequestCode):
 
 class OpenIDRequestToken(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["token"], "scope": ["openid"]}
+    _request_args = {"response_type": ["token"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType, CheckScopeSupport],
              "post": [CheckHTTPResponse]}
 
 class OpenIDRequestIDToken(GetRequest):
     request = "OpenIDRequest"
-    request_args = {"response_type": ["id_token"], "scope": ["openid"]}
+    _request_args = {"response_type": ["id_token"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType, CheckScopeSupport],
              "post": [CheckHTTPResponse]}
 
@@ -553,7 +556,7 @@ class RegistrationRequest_WQC(RegistrationRequest):
             ru += "?foo=bar"
         self.request_args["redirect_uris"][0] = ru
 
-from oictest import start_key_server
+#from oictest import start_key_server
 
 class RegistrationRequest_WF(RegistrationRequest):
     """ With fragment, which is not allowed """
@@ -566,7 +569,6 @@ class RegistrationRequest_WF(RegistrationRequest):
         ru += "#fragment"
         self.request_args["redirect_uris"][0] = ru
 
-from oictest import KEY_EXPORT_ARGS
 
 class RegistrationRequest_KeyExp(RegistrationRequest):
     """ Registration request with client key export """
@@ -707,6 +709,7 @@ class AccessTokenRequest(PostRequest):
 
     def __init__(self, cconf):
         PostRequest.__init__(self, cconf)
+        self.tests["post"] = [CheckHTTPResponse]
         #self.kw_args = {"authn_method": "client_secret_basic"}
 
     def __call__(self, environ, trace, location, response, content, features):
@@ -731,21 +734,16 @@ class AccessTokenRequestCSPost(AccessTokenRequest):
         self.kw_args = {"authn_method": "client_secret_post"}
 
 class AccessTokenRequestCSJWT(AccessTokenRequest):
-    tests = {"pre": [CheckKeys]}
-
     def __init__(self, cconf):
         PostRequest.__init__(self, cconf)
         self.kw_args = {"authn_method": "client_secret_jwt"}
 
 class AccessTokenRequestPKJWT(AccessTokenRequest):
-    tests = {"pre": [CheckKeys]}
-
     def __init__(self, cconf):
         PostRequest.__init__(self, cconf)
         self.kw_args = {"authn_method": "private_key_jwt"}
 
 class AccessTokenRequest_err(AccessTokenRequest):
-
     def __init__(self, cconf):
         PostRequest.__init__(self, cconf)
         self.tests["post"]=[]
@@ -754,16 +752,16 @@ class UserInfoRequestGetBearerHeader(GetRequest):
     request = "UserInfoRequest"
 
     def __init__(self, cconf):
-        self.request_args = {"schema": "openid"}
         GetRequest.__init__(self, cconf)
+        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_header"}
 
 class UserInfoRequestGetBearerHeader_err(GetRequest):
     request = "UserInfoRequest"
 
     def __init__(self, cconf):
-        self.request_args = {"schema": "openid"}
         GetRequest.__init__(self, cconf)
+        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_header"}
         self.tests["post"]=[CheckErrorResponse]
 
@@ -771,16 +769,16 @@ class UserInfoRequestPostBearerHeader(PostRequest):
     request = "UserInfoRequest"
 
     def __init__(self, cconf):
-        self.request_args = {"schema": "openid"}
         PostRequest.__init__(self, cconf)
+        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_header"}
 
 class UserInfoRequestPostBearerBody(PostRequest):
     request = "UserInfoRequest"
 
     def __init__(self, cconf):
-        self.request_args = {"schema": "openid"}
         PostRequest.__init__(self, cconf)
+        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_body"}
 
 # -----------------------------------------------------------------------------
@@ -1600,16 +1598,16 @@ FLOWS = {
         "tests": [("single-sign-on", {})],
         "depends": ['mj-25'],
         },
-#    'mj-60': {
-#        "name": "RP wants signed UserInfo returned",
-#        "sequence": ["oic-registration-signed_userinfo", "oic-login",
-#                     "access-token-request", "user-info-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "userinfo_endpoint"],
-#        "tests": [("signed-userinfo", {})],
-#        "depends": ['mj-01'],
-#
-#        }
+    'mj-60': {
+        "name": "RP wants signed UserInfo returned",
+        "sequence": ["oic-registration-signed_userinfo", "oic-login",
+                     "access-token-request", "user-info-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("signed-userinfo", {})],
+        "depends": ['mj-01'],
+
+        },
     'mj-xx': {
         "name": 'Requesting ID Token with auth_time Claim',
         "sequence": ["oic-login+spec2", "access-token-request"],
