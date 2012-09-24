@@ -1,27 +1,13 @@
 #!/usr/bin/env python
 
 import json
+from default import DEFAULT
 
-info = {
-    "features": {
-        "registration":True,
-        "discovery": True,
-        "session_management": False,
-        "key_export": True,
-        "sector_identifier_url": True
-    },
-    "client": {
-        "redirect_uris": ["https://%s/authz_cb"],
-        "contact": ["roland.hedberg@adm.umu.se"],
-        "application_type": "web",
-        "application_name": "OIC test tool",
-        "key_export_url": "http://%s:8090/",
-    },
-    "provider": {
-        "version": {"oauth": "2.0", "openid": "3.0"},
-        "dynamic": "https://connect-op.heroku.com/"
-    },
-    "interaction":[
+info = DEFAULT.copy()
+
+info["provider"] = {"dynamic": "https://connect-op.heroku.com/"}
+
+info["interaction"] =[
           {
           "matches" : {
               "url": "https://connect-op.heroku.com/authorizations/new"
@@ -48,6 +34,5 @@ info = {
           }
       }
   ]
-}
 
 print json.dumps(info)
