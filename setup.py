@@ -26,7 +26,7 @@ setup(
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
     license="Apache 2.0",
-    packages=["oictest"],
+    packages=["oictest", "rptest"],
     package_dir = {"": "src"},
     classifiers = ["Development Status :: 4 - Beta",
                    "License :: OSI Approved :: Apache Software License",
@@ -40,6 +40,6 @@ setup(
         ],
 
     zip_safe=False,
-    scripts=["script/oauth2c.py", "script/oicc.py",
+    scripts=["script/oauth2c.py", "script/oicc.py", "script/oicrp.py",
              "script/oic_flow_tests.py", "script/static_provider.py"],
     )
