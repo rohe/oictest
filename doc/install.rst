@@ -10,12 +10,12 @@ The code you can get from github:
 
 https://github.com/rohe/pyoidc
 and
-https://github.com/rohe/oictest
+https://github.com/andreassolberg/oictest
 
 If you have git installed you should be able to do::
 
     $ git clone git://github.com/rohe/pyoidc.git
-    $ git clone git://github.com/rohe/oictest.git
+    $ git clone git://github.com/andreassolberg/oictest.git
 
 Given that you have a Python version >= 2.6 and < 3.0 you should
 be able to install by doing::

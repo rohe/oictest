@@ -176,22 +176,26 @@ error.
 
 Server information
 ==================
+The first part of the configuration is just information about which
+specifications that are supported::
+
+    "version": { "oauth": "2.0", "openid": "3.0"},
 
 How much information that has to be added to the configuration depends on
 whether the OP supports dynamic discovery and client registration or not.
-The first part of the configuration deals with this::
+The second part of the configuration deals with this::
 
     "features": {
         "registration": True,
         "discovery": True,
-        "session_management": False
+        "session_management": False,
+        "key_export": True,
     },
 
 If the OP supports discovery, then you don't have to add so much
 information about the OP, something similar to this is should be enough::
 
     "provider": {
-        "version": { "oauth": "2.0", "openid": "3.0"},
         "dynamic": "https://www.kodtest.se:8088/",
         },
 
@@ -199,7 +203,7 @@ The *dynamic* parameter specifies where you expect to find the provider
 information.
 
 If it doesn't, you have enter all the information by hand.
-The format is the same as in
+The format for this is the same as in
 http://openid.net/specs/openid-connect-discovery-1_0-07.html
 with one exception and that is that all the endpoints are collected in
 a dictionary, like this::
@@ -229,16 +233,26 @@ information used in the Client Registration Request::
 
     "client": {
         "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
-        "contact": ["roland.hedberg@adm.umu.se"],
+        "contact": ["roland.hedberg@example.com"],
         "application_type": "web",
         "application_name": "OIC test tool",
-        "register":True,
+        "preferences":{
+            "user_id_type": ["pairwise", "public"],
+            "require_signed_request_object": ["RS256", "RS384", "RS512",
+                                              "HS512", "HS384", "HS256"],
+            "token_endpoint_auth_type": ["client_secret_basic",
+                                         "client_secret_post",
+                                         "client_secret_jwt",
+                                         "private_key_jwt"],
+            #"userinfo_signed_response_algs": ["RS256", "RS384", "RS512"],
+            "id_token_signed_response_alg": ["RS256", "RS384", "RS512",
+                                              "HS512", "HS384", "HS256"],
+            #"token_endpoint_auth_alg": [],
+            "default_max_age": 3600,
+            "require_auth_time": True,
+            "default_acr":["2", "1"]
+        }
     },
-
-The *register* parameter specifies whether dynamic registration should be
-used or not.
-If not you should only have to specify *client_id*, *client_secret* and
-*redirect_uris*.
 
 
 Running tests
@@ -259,10 +273,10 @@ while fiddling with the server until it behaves as it should.
 Running one test is done by doing (provided you have the configuration in a
 python script)::
 
-    ./nov.py | oicc.py -J - 'mj-00'
+    ./nov.py | oicc.py -J - -H <FQDN> -i 'mj-00'
 
 Those of the tests defined by Mike Jones that I have implemented are named
-mj-XX (00 <= XX <= 29).
+mj-XX (00 <= XX <= 60 and increasing).
 
 If you have the configuration as a JSON file running the tests becomes::
 
@@ -270,9 +284,35 @@ If you have the configuration as a JSON file running the tests becomes::
 
 To run all Mike's test you can do::
 
-    oic_flow_tests.py nov mj
+    oic_flow_tests.py -H <FQDN> nov mj
 
 This depends on there being a nov.py file.
+
+This is the documentation of the scripts arguments::
+
+    usage: oicc.py [-h] [-d] [-v] [-C CA_CERTS] [-J JSON_CONFIG_FILE]
+                   [-I INTERACTIONS] [-l] [-H HOST] [-i] [-e]
+                   [flow]
+
+    positional arguments:
+      flow                 Which test flow to run
+
+    optional arguments:
+      -h, --help           show this help message and exit
+      -d                   Print debug information
+      -v                   Print runtime information
+      -C CA_CERTS          CA certs to use to verify HTTPS server certificates, if
+                           HTTPS is used and no server CA certs are defined then
+                           no cert verification is done
+      -J JSON_CONFIG_FILE  Script configuration
+      -I INTERACTIONS      Extra interactions not defined in the script
+                           configuration file
+      -l                   List all the test flows as a JSON object
+      -H HOST              Which host the script is running on, used to construct
+                           the key export URL
+      -i                   Whether or not an internal web server to handle key
+                           export should be forked
+      -e                   A external web server are used to handle key export
 
 Interpreting the test output
 ============================
