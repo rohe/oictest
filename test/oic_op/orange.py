@@ -1,62 +1,23 @@
 #!/usr/bin/env python
 
 import json
+from default import DEFAULT
 
-info = {
-    "features": {
-        "registration":True,
-        "discovery": True,
-        "session_management": False,
-        "key_export": True,
-        "sector_identifier_url": True
-    },
-    "client": {
-        "redirect_uris": ["https://%s/authz_cb"],
-        "contact": ["roland.hedberg@adm.umu.se"],
-        "application_type": "web",
-        "application_name": "OIC test tool",
-        "key_export_url": "http://%s:8090/",
-        },
-    "provider": {
-        "version": {
-            "oauth": "2.0",
-            "openid": "3.0"
-        },
-        #"dynamic": "https://connect.openid4.us/abop/"
-        "dynamic": "http://pub-openid-int.orange.fr/"
-    },
-    "interaction": [
-        {
-            "matches": {
-                "url": "http://id-natnext.orange.fr/auth_user/bin/authNuser.cgi",
-                },
-            "page-type": "login",
-            "control": {
-                "type": "form",
-                "set": {"credential":"0692411424","pwd": "723CBP"}
-            }
+info = DEFAULT.copy()
+
+info["provider"] = {"dynamic": "http://pub-openid-int.orange.fr/"}
+
+info["interaction"] = [
+    {
+        "matches": {
+            "url": "http://id-natnext.orange.fr/auth_user/bin/authNuser.cgi",
+            },
+        "page-type": "login",
+        "control": {
+            "type": "form",
+            "set": {"credential":"0692411424","pwd": "723CBP"}
         }
-#        {
-#            "matches" : {
-#                "title": "connect.openid4.us OP"
-#            },
-#            "control": {
-#                "type": "form"
-#            },
-#            "page-type": "login"
-#        },{
-#            "matches" : {
-#                "title": "connect.openid4.us AX Confirm"
-#            },
-#            "control": {
-#                "type": "form",
-#                "pick": {
-#                    "control": {"id":"persona", "value":"Default"}
-#                }
-#            },
-#            "page-type":"user-consent"
-#        }
-    ]
-}
+    }
+]
 
 print json.dumps(info)
