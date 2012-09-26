@@ -689,6 +689,12 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
         self.tests["pre"].append(CheckUserIdSupport)
         store_sector_redirect_uris(self.request_args, cconf=cconf)
 
+class RegistrationRequest_with_id_token_signed_response_alg(RegistrationRequest):
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+        self.request_args["id_token_signed_response_alg"] = "HS256"
+        self.tests["pre"].append(CheckSignedIdTokenSupport)
+
 class RegistrationRequest_SectorID(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
@@ -999,6 +1005,9 @@ PHASES= {
                                        ClientRegistrationErrorResponse),
     "oic-change-user_id_type": (RegistrationRequest_update_user_id,
                                 RegistrationResponseCU),
+    "oic-registration-signed_idtoken":(
+                        RegistrationRequest_with_id_token_signed_response_alg,
+                        RegistrationResponseCARS),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse)
 }
@@ -1607,6 +1616,14 @@ FLOWS = {
         "tests": [("signed-userinfo", {})],
         "depends": ['mj-01'],
 
+        },
+    'mj-61': {
+        "name": "RP wants symmetric IdToken signature",
+        "sequence": ["oic-registration-signed_idtoken", "oic-login",
+                     "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("sym-signed-idtoken", {})],
+        "depends": ['mj-01'],
         },
     'mj-xx': {
         "name": 'Requesting ID Token with auth_time Claim',

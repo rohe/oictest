@@ -356,13 +356,21 @@ class CheckUserIdSupport(CheckSupported):
 
 class CheckSignedUserInfoSupport(CheckSupported):
     """
-    Checks that the asked for acr are among the supported
+    Checks that the asked for signature algorithms are among the supported
     """
     id = "check-signed-userinfo-support"
     msg = "Signed UserInfo not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_signed_response_alg"
 
+class CheckSignedIdTokenSupport(CheckSupported):
+    """
+    Checks that the asked for signature algorithms are among the supported
+    """
+    id = "check-signed-idtoken-support"
+    msg = "Signed Id Token algorithm not supported"
+    element = "id_token_algs_supported"
+    parameter = "id_token_signed_response_alg"
 
 class CheckTokenEndpointAuthType(CriticalError):
     """
@@ -985,6 +993,13 @@ class VerifyUserInfo(Error):
 class CheckSignedUserInfo(Error):
     id = "signed-userinfo"
     msg = "User info was not signed"
+
+    def _func(self, environ):
+        pass
+
+class CheckSymSignedIdToken(Error):
+    id = "sym-signed-idtoken"
+    msg = "Incorrect signature type"
 
     def _func(self, environ):
         pass
