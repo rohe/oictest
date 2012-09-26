@@ -1613,7 +1613,7 @@ FLOWS = {
                      "access-token-request", "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("signed-userinfo", {})],
+        "tests": [("asym-signed-userinfo", {})],
         "depends": ['mj-01'],
 
         },

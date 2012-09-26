@@ -1,5 +1,7 @@
 import json
+from oic.jwt import b64d
 from oic.oauth2.message import ErrorResponse
+from oic.oic import message
 
 __author__ = 'rohe0002'
 
@@ -990,19 +992,37 @@ class VerifyUserInfo(Error):
 
         return {}
 
-class CheckSignedUserInfo(Error):
-    id = "signed-userinfo"
+class CheckAsymSignedUserInfo(Error):
+    id = "asym-signed-userinfo"
     msg = "User info was not signed"
 
     def _func(self, environ):
-        pass
+        for cls, msg in environ["responses"]:
+            if cls == message.OpenIDSchema:
+                header = json.loads(b64d(str(msg.split(".")[0])))
+                try:
+                    assert header["alg"].startswith("RS")
+                except AssertionError:
+                    self._status = self.status
+                break
 
 class CheckSymSignedIdToken(Error):
     id = "sym-signed-idtoken"
     msg = "Incorrect signature type"
 
     def _func(self, environ):
-        pass
+        for cls, msg in environ["responses"]:
+            if cls == message.AccessTokenResponse:
+                _dict = json.loads(msg)
+                jwt = _dict["id_token"]
+                header = json.loads(b64d(str(jwt.split(".")[0])))
+                try:
+                    assert header["alg"].startswith("HS")
+                except AssertionError:
+                    self._status = self.status
+                break
+
+        return {}
 
 def factory(id):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
