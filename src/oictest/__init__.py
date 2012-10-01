@@ -363,6 +363,8 @@ class OAuth2(object):
     def register_args(self):
         pass
 
+URL_TYPES = ["jwk_url", "jwk_encryption_url", "x509_url", "x509_encryption_url"]
+
 class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
@@ -389,7 +391,7 @@ class OIC(OAuth2):
         _keystore = self.client.keystore
         pcr = ProviderConfigurationResponse()
         n = 0
-        for param in _keystore.url_types:
+        for param in URL_TYPES:
             if param in self.pinfo:
                 n += 1
                 pcr[param] = self.pinfo[param]
