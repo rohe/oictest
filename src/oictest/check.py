@@ -1,5 +1,6 @@
 import json
-from oic.jwt import b64d
+from oic import jwt
+from oic.jwt import b64d, jwe
 from oic.oauth2.message import ErrorResponse
 from oic.oic import message
 
@@ -24,6 +25,8 @@ INTERACTION = 5
 STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
               "INTERACTION"]
 
+CONT_JSON = "application/json"
+CONT_JWT = "application/jwt"
 
 class Check():
     """ General test
@@ -119,7 +122,7 @@ class CheckHTTPResponse(CriticalError):
         if _response.status_code >= 400 :
             self._status = self.status
             self._message = self.msg
-            if "application/json" in _response.headers["content-type"]:
+            if CONT_JSON in _response.headers["content-type"]:
                 try:
                     err = ErrorResponse().deserialize(_content, "json")
                     self._message = err.to_json()
@@ -160,7 +163,7 @@ class CheckErrorResponse(ExpectedError):
             content_type = _response.headers["content-type"]
             if content_type == None:
                 res["content"] = _content
-            elif "application/json" in content_type:
+            elif CONT_JSON in content_type:
                 try:
                     err = ErrorResponse().deserialize(_content, "json")
                     err.verify()
@@ -374,6 +377,33 @@ class CheckSignedIdTokenSupport(CheckSupported):
     element = "id_token_algs_supported"
     parameter = "id_token_signed_response_alg"
 
+class CheckEncryptedUserInfoSupportALG(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-support"
+    msg = "Signed Id Token algorithm not supported"
+    element = "userinfo_algs_supported"
+    parameter = "userinfo_encrypted_response_alg"
+
+class CheckEncryptedUserInfoSupportENC(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-support"
+    msg = "Signed Id Token algorithm not supported"
+    element = "userinfo_algs_supported"
+    parameter = "userinfo_encrypted_response_enc"
+
+class CheckEncryptedUserInfoSupportINT(CheckSupported):
+    """
+    Checks that the asked for integrity algorithm are among the supported
+    """
+    id = "check-signed-idtoken-support"
+    msg = "Signed Id Token algorithm not supported"
+    element = "userinfo_algs_supported"
+    parameter = "userinfo_encrypted_response_int"
+
 class CheckTokenEndpointAuthType(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
@@ -413,7 +443,9 @@ class CheckContentTypeHeader(Error):
         try:
             ctype = _response.headers["content-type"]
             if environ["response_spec"].type == "json":
-                if not "application/json" in ctype:
+                if CONT_JSON in ctype or CONT_JWT in ctype:
+                    pass
+                else:
                     self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
             else: # has to be uuencoded
@@ -577,28 +609,27 @@ class Parse(CriticalError):
         }
 
 def get_authz_request(environ):
-    for req, resp in environ["sequence"]:
+    for req in ["AuthorizationRequest", "OpenIDRequest"]:
         try:
-            if req.request in ["OpenIDRequest", "AuthorizationRequest"]:
-                return req
-        except AttributeError:
+            return environ[req]
+        except KeyError:
             pass
     return None
 
-class ScopeWithClaims(Error):
+class VerifyClaims(Error):
     """
     Verifies that the user information returned is consistent with
     what was asked for
     """
-    id = "scope-claims"
+    id = "verify-claims"
     errmsg= "attributes received not matching claims"
 
     def _func(self, environ=None):
         userinfo_claims = {}
 
-        req_args = get_authz_request(environ)._request_args
+        req = get_authz_request(environ)
         try:
-            _scopes = req_args["scope"]
+            _scopes = req["scope"]
         except KeyError:
             return {}
 
@@ -609,8 +640,9 @@ class ScopeWithClaims(Error):
             except KeyError:
                 pass
 
-        if "userinfo_claims" in req_args:
-            _uic = req_args["userinfo_claims"]
+        if "request" in req:
+            jso = json.loads(jwt.unpack(req["request"])[1])
+            _uic = jso["userinfo"]
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
 
@@ -676,9 +708,9 @@ class verifyIDToken(CriticalError):
         _vkeys = environ["client"].keystore.get_keys("ver", owner=None)
 
         idtoken_claims = {}
-        req_args = get_authz_request(environ)._request_args
-        if "idtoken_claims" in req_args:
-            for key, val in req_args["idtoken_claims"]["claims"].items():
+        req = get_authz_request(environ)
+        if "idtoken_claims" in req:
+            for key, val in req["idtoken_claims"]["claims"].items():
                 idtoken_claims[key] = val
         #self._kwargs["claims"].items()
 
@@ -814,7 +846,7 @@ class VerifyAccessTokenResponse(Error):
         cis = environ["cis"][-1]
         if cis["grant_type"] == "authorization_code":
             req = get_authz_request(environ)
-            if "openid" in req._request_args["scope"]:
+            if "openid" in req["scope"]:
                 if "id_token" not in resp:
                     self._message = "IdToken has to be present"
                     self._status = self.status
@@ -880,6 +912,15 @@ class VerifyError(Error):
     id = "verify-error"
 
     def _func(self, environ):
+        response = environ["response"]
+        if response.status_code == 400:
+            try:
+                resp = json.loads(response.text)
+                if "error" in resp:
+                    return {}
+            except Exception:
+                pass
+
         msg = environ["item"][-1]
         try:
             assert msg.type().endswith("ErrorResponse")
@@ -968,12 +1009,12 @@ class VerifyUserInfo(Error):
     msg = "Essential User info missing"
 
     def _func(self, environ):
-        req_args = get_authz_request(environ)._request_args
+        req = get_authz_request(environ)
         try:
-            claims = req_args["userinfo_claims"]["claims"]
+            claims = req["userinfo_claims"]["claims"]
         except KeyError:
             claims = {}
-        for scope in req_args["scope"]:
+        for scope in req["scope"]:
             for param in SCOPE2CLAIMS[scope]:
                 claims[param] = REQUIRED
 
@@ -1006,6 +1047,8 @@ class CheckAsymSignedUserInfo(Error):
                     self._status = self.status
                 break
 
+        return {}
+
 class CheckSymSignedIdToken(Error):
     id = "sym-signed-idtoken"
     msg = "Incorrect signature type"
@@ -1018,6 +1061,66 @@ class CheckSymSignedIdToken(Error):
                 header = json.loads(b64d(str(jwt.split(".")[0])))
                 try:
                     assert header["alg"].startswith("HS")
+                except AssertionError:
+                    self._status = self.status
+                break
+
+        return {}
+
+class CheckEncryptedUserInfo(Error):
+    id = "encrypted-userinfo"
+    msg = "User info was not encrypted"
+
+    def _func(self, environ):
+        for cls, msg in environ["responses"]:
+            if cls == message.OpenIDSchema:
+                header = json.loads(b64d(str(msg.split(".")[0])))
+                try:
+                    assert header["alg"].startswith("RSA")
+                except AssertionError:
+                    self._status = self.status
+                break
+
+        return {}
+
+class CheckEncryptedIDToken(Error):
+    id = "encrypted-idtoken"
+    msg = "ID Token was not encrypted"
+
+    def _func(self, environ):
+        for cls, msg in environ["responses"]:
+            if cls == message.AccessTokenResponse:
+                _dic = json.loads(msg)
+                header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+                try:
+                    assert header["alg"].startswith("RSA")
+                except AssertionError:
+                    self._status = self.status
+                break
+
+        return {}
+
+class CheckSignedEncryptedIDToken(Error):
+    id = "signed-encrypted-idtoken"
+    msg = "ID Token was not signed and encrypted"
+
+    def _func(self, environ):
+        client = environ["client"]
+        for cls, msg in environ["responses"]:
+            if cls == message.AccessTokenResponse:
+                _dic = json.loads(msg)
+                header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+                try:
+                    assert header["alg"].startswith("RSA")
+                except AssertionError:
+                    self._status = self.status
+                    break
+
+                dkeys = client.keystore.get_decrypt_key(owner=".")
+                txt = jwe.decrypt(_dic["id_token"], dkeys, "private")
+                _tmp = jwt.unpack(txt)[0]
+                try:
+                    assert _tmp["alg"] == "RS256"
                 except AssertionError:
                     self._status = self.status
                 break
