@@ -723,6 +723,13 @@ class RegistrationRequest_SectorID(RegistrationRequest):
         RegistrationRequest.__init__(self, cconf)
         store_sector_redirect_uris(self.request_args, cconf=cconf)
 
+class RegistrationRequest_SectorID_2(RegistrationRequest):
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+        _base = _get_base(cconf)
+        self.request_args["redirect_uris"].append("%s/cb" % _base)
+        store_sector_redirect_uris(self.request_args, cconf=cconf)
+
 class RegistrationRequest_SectorID_Err(RegistrationRequest):
     """Sector Identifier Not Containing Registered redirect_uri Values"""
 
@@ -759,9 +766,9 @@ class RegistrationRequestEncIDtoken(RegistrationRequest):
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
         self.request_args["id_token_encrypted_response_enc"] = "A128CBC"
         self.request_args["id_token_encrypted_response_int"] = "HS256"
-        self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
-                                  CheckEncryptedUserInfoSupportENC,
-                                  CheckEncryptedUserInfoSupportINT])
+        self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
+                                  CheckEncryptedIDTokenSupportENC,
+                                  CheckEncryptedIDTokenSupportINT])
 
 class RegistrationRequestSignEncIDtoken(RegistrationRequest):
     def __init__(self, cconf):
@@ -770,9 +777,9 @@ class RegistrationRequestSignEncIDtoken(RegistrationRequest):
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
         self.request_args["id_token_encrypted_response_enc"] = "A128CBC"
         self.request_args["id_token_encrypted_response_int"] = "HS256"
-        self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
-                                  CheckEncryptedUserInfoSupportENC,
-                                  CheckEncryptedUserInfoSupportINT])
+        self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
+                                  CheckEncryptedIDTokenSupportENC,
+                                  CheckEncryptedIDTokenSupportINT])
 
 # =============================================================================
 
@@ -1763,6 +1770,12 @@ FLOWS = {
         "name": 'User hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+request"],
+        "endpoints": ["registration_endpoint"],
+        "depends": ['mj-01'],
+        },
+    'mj-69': {
+        "name": 'Registration of sector-identifier-uri',
+        "sequence": ["oic-registration-sector_id", "oic-login"],
         "endpoints": ["registration_endpoint"],
         "depends": ['mj-01'],
         },

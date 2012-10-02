@@ -381,7 +381,7 @@ class CheckEncryptedUserInfoSupportALG(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-idtoken-support"
+    id = "check-signed-userinfo-alg-support"
     msg = "Signed Id Token algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_alg"
@@ -390,7 +390,7 @@ class CheckEncryptedUserInfoSupportENC(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-idtoken-support"
+    id = "check-signed-userinfo-enc-support"
     msg = "Signed Id Token algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_enc"
@@ -399,10 +399,37 @@ class CheckEncryptedUserInfoSupportINT(CheckSupported):
     """
     Checks that the asked for integrity algorithm are among the supported
     """
-    id = "check-signed-idtoken-support"
+    id = "check-signed-userinfo-int-support"
     msg = "Signed Id Token algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_int"
+
+class CheckEncryptedIDTokenSupportALG(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-alg-support"
+    msg = "Encrypted Id Token encryption algorithm not supported"
+    element = "id_token_algs_supported"
+    parameter = "id_token_encrypted_response_alg"
+
+class CheckEncryptedIDTokenSupportENC(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-enc-support"
+    msg = "Encrypted Id Token encryption method not supported"
+    element = "id_token_algs_supported"
+    parameter = "id_token_encrypted_response_enc"
+
+class CheckEncryptedIDTokenSupportINT(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-int-support"
+    msg = "Encrypted Id Token integrity algorithm not supported"
+    element = "id_token_algs_supported"
+    parameter = "id_token_encrypted_response_int"
 
 class CheckTokenEndpointAuthType(CriticalError):
     """
