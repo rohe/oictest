@@ -1,10 +1,4 @@
 #!/usr/bin/env python
-from urllib import urlencode, quote
-from oic import jwt
-from oic.oic import message
-#from oic.oic.message import AuthorizationRequest
-#from oic.utils.keystore import proper_path
-#from oictest import KEY_EXPORT_ARGS
 
 __author__ = 'rohe0002'
 
@@ -13,10 +7,14 @@ __author__ = 'rohe0002'
 import time
 #import socket
 from urlparse import urlparse
+from urllib import urlencode, quote
+
+from jwkest import unpack
 
 from oic.oic.message import factory as msgfactory, OpenIDRequest
-from oictest.check import *
+from oic.oic import message
 # Used upstream not in this module so don't remove
+from oictest.check import *
 from oictest.opfunc import *
 
 # ========================================================================
@@ -146,7 +144,7 @@ class Request():
 
         if trace:
             try:
-                oro = jwt.unpack(cis["request"])[1]
+                oro = unpack(cis["request"])[1]
                 trace.request("OpenID Request Object: %s" % oro)
             except KeyError:
                 pass
@@ -339,7 +337,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
                 idt = json.loads(msg)["id_token"]
                 break
 
-        jso = json.loads(jwt.unpack(idt)[1])
+        jso = json.loads(unpack(idt)[1])
         user_id = jso["user_id"]
         self.request_args["idtoken_claims"] = {"claims": {"user_id": {
                                                             "value": user_id}}}
@@ -360,7 +358,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
                 idt = json.loads(msg)["id_token"]
                 break
 
-        jso = json.loads(jwt.unpack(idt)[1])
+        jso = json.loads(unpack(idt)[1])
         user_id = jso["user_id"]
         self.request_args["idtoken_claims"] = {"claims": {"user_id": {
             "value": user_id}}}
@@ -593,7 +591,7 @@ class RegistrationRequest_WF(RegistrationRequest):
         self.request_args["redirect_uris"][0] = ru
 
 
-class RegistrationRequest_KeyExp(RegistrationRequest):
+class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
     """ Registration request with client key export """
     request = "RegistrationRequest"
 
@@ -606,25 +604,45 @@ class RegistrationRequest_KeyExp(RegistrationRequest):
         _client = environ["client"]
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
-
-#        if "keyprovider" not in environ:
-#            pat = self.cconf["key_export_url"]
-#            p = pat.split("%s")
-#            str = self.cconf["jwk_url"]
-#            tmp = str[len(p[0]):]
-#            self.export_server = tmp[:tmp.index(p[1])]
-#            part, res = _client.keystore.key_export(self.export_server,
-#                                                    **KEY_EXPORT_ARGS)
-#
-#            for name, url in res.items():
-#                self.request_args[name] = url
-#            _pop = start_key_server(part)
-#            environ["keyprovider"] = _pop
-#            trace.info("Started key provider")
-#            time.sleep(1)
+        self.request_args["token_endpoint_auth_type"] = "client_secret_jwt"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                               content, features)
+
+class RegistrationRequest_KeyExpCSP(RegistrationRequest):
+    """ Registration request with client key export """
+    request = "RegistrationRequest"
+
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+        #self.export_server = "http://%s:8090/export" % socket.gethostname()
+
+    def __call__(self, environ, trace, location, response, content, features):
+        _client = environ["client"]
+        # Do the redirect_uris dynamically
+        self.request_args["redirect_uris"] = _client.redirect_uris
+        self.request_args["token_endpoint_auth_type"] = "client_secret_post"
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                                    content, features)
+
+class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
+    """ Registration request with client key export """
+    request = "RegistrationRequest"
+
+    def __init__(self, cconf):
+        RegistrationRequest.__init__(self, cconf)
+        #self.export_server = "http://%s:8090/export" % socket.gethostname()
+
+    def __call__(self, environ, trace, location, response, content, features):
+
+        _client = environ["client"]
+        # Do the redirect_uris dynamically
+        self.request_args["redirect_uris"] = _client.redirect_uris
+        self.request_args["token_endpoint_auth_type"] = "private_key_jwt"
+
+        return PostRequest.__call__(self, environ, trace, location, response,
+                                    content, features)
 
 class RegistrationRequest_update(RegistrationRequest):
     """ With query component """
@@ -1062,7 +1080,10 @@ PHASES= {
     "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponseCARS),
     "oic-registration-wf": (RegistrationRequest_WF,
                             ClientRegistrationErrorResponse),
-    "oic-registration-ke": (RegistrationRequest_KeyExp, RegistrationResponseCARS),
+    "oic-registration-ke_csj": (RegistrationRequest_KeyExpCSJ,
+                                RegistrationResponseCARS),
+    "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
+                                RegistrationResponseCARS),
     "oic-registration-update": (RegistrationRequest_update,
                                 RegistrationResponseCU),
     "oic-registration-rotate": (RegistrationRequest_rotate_secret,
@@ -1476,6 +1497,7 @@ FLOWS = {
     # ---------------------------------------------------------------------
     'mj-30': {
         "name": 'Access token request with client_secret_basic authentication',
+        # Should register token_endpoint_auth_type=client_secret_post
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
@@ -1524,14 +1546,14 @@ FLOWS = {
     },
     'mj-37': {
         "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-registration-ke", "oic-login",
+        "sequence": ["oic-registration-ke_csj", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
         },
     'mj-38': {
         "name": 'Access token request with public_key_jwt authentication',
-        "sequence": ["oic-registration-ke", "oic-login",
+        "sequence": ["oic-registration-ke_pkj", "oic-login",
                      "access-token-request_pkj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
