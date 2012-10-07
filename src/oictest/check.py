@@ -1,6 +1,8 @@
 import json
-from oic import jwt
-from oic.jwt import b64d, jwe
+
+from jwkest import b64d
+from jwkest import unpack
+from jwkest.jwe import decrypt
 from oic.oauth2.message import ErrorResponse
 from oic.oic import message
 
@@ -668,7 +670,7 @@ class VerifyClaims(Error):
                 pass
 
         if "request" in req:
-            jso = json.loads(jwt.unpack(req["request"])[1])
+            jso = json.loads(unpack(req["request"])[1])
             _uic = jso["userinfo"]
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
@@ -1144,8 +1146,8 @@ class CheckSignedEncryptedIDToken(Error):
                     break
 
                 dkeys = client.keystore.get_decrypt_key(owner=".")
-                txt = jwe.decrypt(_dic["id_token"], dkeys, "private")
-                _tmp = jwt.unpack(txt)[0]
+                txt = decrypt(_dic["id_token"], dkeys, "private")
+                _tmp = unpack(txt)[0]
                 try:
                     assert _tmp["alg"] == "RS256"
                 except AssertionError:
