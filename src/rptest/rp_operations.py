@@ -1,29 +1,31 @@
 import urlparse
-from oictest.opfunc import DResponse
+from oic.oauth2 import VerificationError
 from oictest.check import Error
 
 __author__ = 'rohe0002'
 
-from oictest.oic_operations import OpenIDRequestCode
+from oictest.oic_operations import AuthorizationRequestCode
+from oictest.oic_operations import RegistrationRequest_KeyExpCSJ
+from oictest.oic_operations import RegistrationRequest_KeyExpPKJ
+from oictest.oic_operations import UserInfoRequestPostBearerHeader
 from oictest.oic_operations import Request
 from oictest.oic_operations import Discover
 from oictest.oic_operations import ProviderConfigurationResponse
 from oictest.oic_operations import AccessTokenRequestCSPost
 from oictest.oic_operations import AccessTokenRequestCSJWT
 from oictest.oic_operations import AccessTokenRequestPKJWT
-from oictest.oic_operations import OpenIDRequestToken
-from oictest.oic_operations import OpenIDRequestIDToken
-from oictest.oic_operations import OpenIDRequestCodeToken
-from oictest.oic_operations import OpenIDRequestCodeIDToken
-from oictest.oic_operations import OpenIDRequestCodeIDTokenToken
-from oictest.oic_operations import OpenIDRequestCodeIDTClaim1
-from oictest.oic_operations import RegistrationRequest_KeyExp
-from oictest.oic_operations import OpenIDRequestCodeScopeEMail
-from oictest.oic_operations import OpenIDRequestCodeUIClaim1
+from oictest.oic_operations import AuthorizationRequestToken
+from oictest.oic_operations import AuthorizationRequestIDToken
+from oictest.oic_operations import AuthorizationRequestCodeToken
+from oictest.oic_operations import AuthorizationRequestCodeIDToken
+from oictest.oic_operations import AuthorizationRequestCodeIDTokenToken
+from oictest.oic_operations import AuthorizationRequestCodeIDTClaim1
+from oictest.oic_operations import AuthorizationRequestCodeScopeEMail
+from oictest.oic_operations import AuthorizationRequestCodeUIClaim1
 from oictest.oic_operations import UserinfoResponse
-from oictest.oic_operations import OpenIDRequestIDTokenToken
+from oictest.oic_operations import AuthorizationRequestIDTokenToken
 from oictest.oic_operations import RegistrationResponseCARS
-from oictest.oic_operations import UserInfoRequestGetBearerHeader
+#from oictest.oic_operations import UserInfoRequestGetBearerHeader
 from oictest.oic_operations import Response
 from oictest.oic_operations import RegistrationRequest
 from oictest.oic_operations import BodyResponse
@@ -58,37 +60,11 @@ class DataResponse(Response):
     where = "body"
     type = "text"
 
-class OpenIDRequestCodeGeo(OpenIDRequestCode):
+class AuthorizationRequestCodeGeo(AuthorizationRequestCode):
 
-    def __init__(self):
-        OpenIDRequestCode.__init__(self)
+    def __init__(self, cconf=None):
+        AuthorizationRequestCode.__init__(self, cconf)
         self.request_args["userinfo_claims"] = {"claims": {"geolocation": None}}
-
-class UserInfoClaims(UserInfoRequestGetBearerHeader):
-    def __call__(self, environ, trace, location, response, content, features):
-        info = environ["response_message"]
-        # {'_claims_sources': {
-        #   'https://localhost:8089/': {
-        #       'access_token': 'wdVcjbXVV6A9jraG',
-        #       'endpoint': 'https://localhost:8089//userclaimsinfo'}},
-        # '_claims_names': {'geolocation': 'https://localhost:8089/'},
-        # 'user_id': 'uppe0001'}
-        _client = environ["client"]
-        try:
-            trace = environ["trace"]
-        except KeyError:
-            trace = None
-        userinfo = {}
-        for id, spec in info["_claims_sources"].items():
-            if trace:
-                trace.info("--> URL: %s" % spec["endpoint"])
-            res = _client.get_userinfo_claims(**spec)
-            if trace:
-                trace.info("<-- CONTENT: %s" % res.to_dict())
-                trace.info(70*"=")
-            userinfo.update(res)
-
-        return "", DResponse(200), userinfo
 
 class DiscoveryByEmail(Request):
     request = None
@@ -138,15 +114,17 @@ PHASES = {
     "provider-discovery": (Discover, ProviderConfigurationResponse),
 
     "oic-registration": (RegistrationRequest, RegistrationResponseCARS),
-    "oic-registration-ke": (RegistrationRequest_KeyExp, RegistrationResponseCARS),
-
-    "oic-login": (OpenIDRequestCode, AuthzResponse),
-    "oic-login-token": (OpenIDRequestToken, AuthzResponse),
-    "oic-login-idtoken": (OpenIDRequestIDToken, AuthzResponse),
-    "oic-login-code+token": (OpenIDRequestCodeToken, AuthzResponse),
-    "oic-login-code+idtoken": (OpenIDRequestCodeIDToken, AuthzResponse),
-    "oic-login-idtoken+token": (OpenIDRequestIDTokenToken, AuthzResponse),
-    "oic-login-code+idtoken+token": (OpenIDRequestCodeIDTokenToken,
+    "oic-registration-ke_csj": (RegistrationRequest_KeyExpCSJ,
+                                RegistrationResponseCARS),
+    "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
+                                RegistrationResponseCARS),
+    "oic-login": (AuthorizationRequestCode, AuthzResponse),
+    "oic-login-token": (AuthorizationRequestToken, AuthzResponse),
+    "oic-login-idtoken": (AuthorizationRequestIDToken, AuthzResponse),
+    "oic-login-code+token": (AuthorizationRequestCodeToken, AuthzResponse),
+    "oic-login-code+idtoken": (AuthorizationRequestCodeIDToken, AuthzResponse),
+    "oic-login-idtoken+token": (AuthorizationRequestIDTokenToken, AuthzResponse),
+    "oic-login-code+idtoken+token": (AuthorizationRequestCodeIDTokenToken,
                                      AuthzResponse),
     "access-token-request":(AccessTokenRequest, AccessTokenResponse),
     "access-token-request_csj":(AccessTokenRequestCSJWT,
@@ -155,11 +133,12 @@ PHASES = {
                                 AccessTokenResponse),
     "access-token-request_pkj":(AccessTokenRequestPKJWT,
                                 AccessTokenResponse),
-    "oic-login+idtc1": (OpenIDRequestCodeIDTClaim1, AuthzResponse),
-    "user-info-request":(UserInfoRequestGetBearerHeader, UserinfoResponse),
+    "oic-login+idtc1": (AuthorizationRequestCodeIDTClaim1, AuthzResponse),
+    "user-info-request":(UserInfoRequestPostBearerHeader, UserinfoResponse),
 
-    "oic-login+email": (OpenIDRequestCodeScopeEMail, AuthzResponse),
-    "oic-login+spec1": (OpenIDRequestCodeUIClaim1, AuthzResponse),
+    "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
+    "oic-login+spec1": (AuthorizationRequestCodeUIClaim1, AuthzResponse),
+    "oic-login+geoloc": (AuthorizationRequestCodeGeo, AuthzResponse),
     }
 
 FLOWS = {
@@ -242,12 +221,28 @@ FLOWS = {
         "depends": ['rp-12'],
         "sequence": ["oic-login-code+idtoken"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "except_exception": VerificationError
         },
     'rp-15': {
         "name": "Rejects Incorrect at_hash when Implicit Flow Used",
         "depends": ['rp-13'],
         "sequence": ['oic-login-idtoken+token'],
         "endpoints": ["authorization_endpoint"],
+        "except_exception": VerificationError
+        },
+    # =================
+    'rp-18': {
+        "name": 'Accept Valid Asymmetric ID Token Signature',
+        "sequence": ["oic-login", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['rp-07'],
+        },
+    'rp-19': {
+        "name": 'Reject Invalid Asymmetric ID Token Signature',
+        "sequence": ["oic-login", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['rp-18'],
+        "except_exception": VerificationError
         },
     # =================
     #
@@ -279,11 +274,12 @@ FLOWS = {
         },
     'rp-27': {
         "name": 'Uses Distributed Claims',
-        "sequence": ["oic-login", "access-token-request",
+        "sequence": ["oic-login+geoloc", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-01'],
         },
+    # =================
 
     }
