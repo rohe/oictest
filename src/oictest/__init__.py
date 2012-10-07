@@ -194,13 +194,19 @@ class OAuth2(object):
                                  "client": self.client})
 
             try:
+                except_exception = flow_spec["except_exception"]
+            except KeyError:
+                except_exception = False
+
+            try:
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
                 testres, trace = run_sequence(self.client, _seq, self.trace,
                                               interact, self.msgfactory,
                                               self.environ, tests,
                                               self.json_config["features"],
-                                              self.args.verbose, self.cconf)
+                                              self.args.verbose, self.cconf,
+                                              except_exception)
                 self.test_log.extend(testres)
                 sum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(sum)
