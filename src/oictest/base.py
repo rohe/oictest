@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-import cookielib
-import sys
-
 __author__ = 'rohe0002'
 
 import time
+import cookielib
+import sys
 
 from bs4 import BeautifulSoup
 
@@ -108,7 +107,7 @@ ORDER = ["url", "response", "content"]
 
 def run_sequence(client, sequence, trace, interaction, msgfactory,
                  environ=None, tests=None, features=None, verbose=False,
-                 cconf=None):
+                 cconf=None, except_exception=None):
     item = []
     response = None
     content = None
@@ -352,11 +351,19 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                                                  qresp.to_dict()))
                     item.append(qresp)
                     environ["response_message"] = qresp
+                    err = None
                 except Exception, err:
                     environ["exception"] = "%s" % err
                     qresp = None
-                stat = chk(environ, test_output)
-                check_severity(stat)
+                if err and except_exception:
+                    if isinstance(err, except_exception):
+                        trace.info("Got expected exception: %s [%s]" % (err,
+                                                        err.__class__.__name__))
+                    else:
+                        raise
+                else:
+                    stat = chk(environ, test_output)
+                    check_severity(stat)
 
             if qresp:
                 try:
