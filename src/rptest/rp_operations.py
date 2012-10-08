@@ -273,7 +273,7 @@ FLOWS = {
         "depends": ['mj-01'],
         },
     'rp-27': {
-        "name": 'Uses Distributed Claims',
+        "name": 'Uses Distributed/Aggregated Claims',
         "sequence": ["oic-login+geoloc", "access-token-request",
                      "user-info-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
