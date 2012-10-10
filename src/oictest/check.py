@@ -3,8 +3,8 @@ import json
 from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwe import decrypt
-from oic.oauth2.message import ErrorResponse
-from oic.oic import message
+from oic.oauth2.message import ErrorResponse, MissingRequiredAttribute
+from oic.oic import message, AuthorizationResponse
 
 __author__ = 'rohe0002'
 
@@ -210,9 +210,16 @@ class CheckRedirectErrorResponse(ExpectedError):
 
         if _response.status_code == 302 :
             err = ErrorResponse().deserialize(query, "urlencoded")
-            err.verify()
-            res["content"] = err.to_json()
-            environ["item"].append(err)
+            try:
+                err.verify()
+                res["content"] = err.to_json()
+                try:
+                    environ["item"].append(err)
+                except KeyError:
+                    environ["item"] = [err]
+            except MissingRequiredAttribute:
+                self._message = "Expected error message"
+                self._status = CRITICAL
         else:
             self._message = "Expected error message"
             self._status = CRITICAL
@@ -235,9 +242,64 @@ class VerifyBadRequestResponse(ExpectedError):
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
-            environ["item"].append(err)
+            try:
+                environ["item"].append(err)
+            except KeyError:
+                environ["item"] = [err]
         else:
             self._message = "Expected a 400 error message"
+            self._status = CRITICAL
+
+        return res
+
+class VerifyPromptNoneResponse(Check):
+    """
+    The OP may respond in more than one way and still be within
+    what the spec says.
+    """
+    id = "verify-prompt-none-response"
+    msg = "OP error"
+
+    def _func(self, environ):
+        _response = environ["response"]
+        _content = environ["content"]
+        res = {}
+        if _response.status_code == 400 :
+            err = ErrorResponse().deserialize(_content, "json")
+            err.verify()
+            if err["error"] in ["consent_required", "interaction_required"]:
+                # This is OK
+                res["content"] = err.to_json()
+                try:
+                    environ["item"].append(err)
+                except KeyError:
+                    environ["item"] = [err]
+            else:
+                self._message = "Not an error I expected"
+                self._status = CRITICAL
+        elif _response.status_code in [301, 302]:
+            _query = _response.headers["location"].split("?")[1]
+            try:
+                err = ErrorResponse().deserialize(_query, "urlencoded")
+                if err["error"] in ["consent_required", "interaction_required"]:
+                    # This is OK
+                    res["content"] = err.to_json()
+                    try:
+                        environ["item"].append(err)
+                    except KeyError:
+                        environ["item"] = [err]
+                else:
+                    self._message = "Not an error I expected"
+                    self._status = CRITICAL
+            except:
+                resp = AuthorizationResponse().deserialize(_query, "urlencoded")
+                res["content"] = resp.to_json()
+                try:
+                    environ["item"].append(resp)
+                except KeyError:
+                    environ["item"] = [resp]
+        else: # should not get anything else
+            self._message = "Not an response I expected"
             self._status = CRITICAL
 
         return res
@@ -250,6 +312,7 @@ class CheckSupported(CriticalError):
     msg = "X not supported"
     element = "X_supported"
     parameter = "X"
+    default = None
 
     def _func(self, environ):
         res = {}
@@ -269,7 +332,10 @@ class CheckSupported(CriticalError):
         try:
             supported = provider_info[self.element]
         except KeyError:
-            return True
+            if self.default is None:
+                return False
+            else:
+                supported = self.default
 
         try:
             required = request_args[self.parameter]
@@ -433,6 +499,17 @@ class CheckEncryptedIDTokenSupportINT(CheckSupported):
     element = "id_token_algs_supported"
     parameter = "id_token_encrypted_response_int"
 
+class CheckEncryptedIDTokenSupportINT(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    id = "check-signed-idtoken-int-support"
+    msg = "Encrypted Id Token integrity algorithm not supported"
+    element = "request_object_algs_supported"
+    parameter = "require_signed_request_object"
+    default = ["RS256"]
+
+
 class CheckTokenEndpointAuthType(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
@@ -442,14 +519,20 @@ class CheckTokenEndpointAuthType(CriticalError):
 
     def _func(self, environ):
         try:
-            _met = environ["args"]["authn_method"]
+            _req = environ["request_spec"]
+            if _req.request == "RegistrationRequest":
+                _met = environ["request_args"]["token_endpoint_auth_type"]
+            else:
+                _met = environ["args"]["authn_method"]
             _pi = environ["provider_info"]
+
             try:
                 _sup = _pi["token_endpoint_auth_types_supported"]
             except KeyError:
                 _sup = None
 
             if not _sup:
+                # MTI
                 _sup = ["client_secret_basic"]
 
             if _met not in _sup:
@@ -626,12 +709,13 @@ class Parse(CriticalError):
             err = environ["exception"]
             self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
-            cname = environ["response_message"].type()
+            _rmsg = environ["response_message"]
+            cname = _rmsg.type()
             if environ["response_type"] != cname:
                 self._status = self.status
                 self._message = ("Didn't get a response of the type I expected:",
-                                " '%s' instead of '%s'" % (cname,
-                                                environ["response_type"]))
+                                " '%s' instead of '%s', content:'%s'" % (cname,
+                                                environ["response_type"], _rmsg))
         return {
             "response_type": environ["response_type"],
             "url": environ["url"]
