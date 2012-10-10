@@ -228,7 +228,10 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                         done = True
                         break
                     else:
-                        part = do_request(client, url, "GET", trace=trace)
+                        try:
+                            part = do_request(client, url, "GET", trace=trace)
+                        except Exception, err:
+                            raise FatalError("%s" % err)
                         environ.update(dict(zip(ORDER, part)))
                         (url, response, content) = part
 
@@ -387,7 +390,10 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     chk = factory(test)(**args)
                 else:
                     chk = test(**args)
-                check_severity(chk(environ, test_output))
+                try:
+                    check_severity(chk(environ, test_output))
+                except Exception, err:
+                    raise FatalError("%s" % err)
 
     except FatalError:
         pass
