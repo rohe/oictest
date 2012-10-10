@@ -184,7 +184,7 @@ class OAuth2(object):
                                       "message":"Couldn't run testflow: %s" % exc,
                                       "id": "verify_features",
                                       "name": "Make sure you don't do things you shouldn't"}]}
-                print >> sys.stdout, json.dumps(_output)
+                #print >> sys.stdout, json.dumps(_output)
                 return
 
             tests = self.get_test()
