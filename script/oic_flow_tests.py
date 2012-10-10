@@ -191,7 +191,7 @@ if __name__ == "__main__":
     p1 = Popen(["./%s.py" % args.server], stdout=PIPE)
     _cnf = json.loads(p1.stdout.read())
 
-    if "key_export" in _cnf["features"]:
+    if "key_export" in _cnf["features"] and _cnf["features"]["key_export"]:
         _pop = run_key_server(_cnf["client"]["key_export_url"], args.host)
         time.sleep(1)
     else:
