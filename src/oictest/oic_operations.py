@@ -155,8 +155,8 @@ class Request():
             except KeyError:
                 pass
 
-        response = _client.http_request(url, method=self.method,
-                                            data=body, **ht_args)
+        response = _client.http_request(url, method=self.method, data=body,
+                                        **ht_args)
 
         if trace:
             trace.reply("RESPONSE: %s" % response)
@@ -308,7 +308,7 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
     def __init__(self, cconf):
         AuthorizationRequestCode.__init__(self, cconf)
         self.request_args["prompt"] = "none"
-        #self.tests["post"].append(VerifyErrResponse)
+        self.tests["post"] = [VerifyPromptNoneResponse]
 
     def __call__(self, environ, trace, location, response, content, features):
         idt = None
@@ -327,8 +327,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
     def __init__(self, cconf):
         AuthorizationRequestCode.__init__(self, cconf)
         self.request_args["prompt"] = "none"
-        #
-        # self.tests["post"].append(VerifyErrResponse)
+        self.tests["post"] = [VerifyPromptNoneResponse]
 
     def __call__(self, environ, trace, location, response, content, features):
         idt = None
@@ -536,6 +535,7 @@ class PostRequest(Request):
 
 class RegistrationRequest(PostRequest):
     request = "RegistrationRequest"
+    _request_args = {}
 
     def __init__(self, cconf):
         PostRequest.__init__(self, cconf)
@@ -597,14 +597,14 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
 
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
+        self.request_args["token_endpoint_auth_type"] = "client_secret_jwt"
+        self.tests["pre"].append(CheckTokenEndpointAuthType)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, environ, trace, location, response, content, features):
-
         _client = environ["client"]
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
-        self.request_args["token_endpoint_auth_type"] = "client_secret_jwt"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                               content, features)
@@ -615,13 +615,14 @@ class RegistrationRequest_KeyExpCSP(RegistrationRequest):
 
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
+        self.request_args["token_endpoint_auth_type"] = "client_secret_post"
+        self.tests["pre"].append(CheckTokenEndpointAuthType)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
-        self.request_args["token_endpoint_auth_type"] = "client_secret_post"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
@@ -632,6 +633,8 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
 
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
+        self.request_args["token_endpoint_auth_type"] = "private_key_jwt"
+        self.tests["pre"].append(CheckTokenEndpointAuthType)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, environ, trace, location, response, content, features):
@@ -639,7 +642,6 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
         _client = environ["client"]
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
-        self.request_args["token_endpoint_auth_type"] = "private_key_jwt"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
@@ -1044,9 +1046,9 @@ PHASES= {
     "oic-login+prompt_none": (AuthorizationRequestCodePromptNone, AuthzErrResponse),
     "oic-login+prompt_login": (AuthorizationRequestCodePromptLogin, AuthzResponse),
     "oic-login+prompt_none+idtoken": (AuthorizationRequestCodePromptNoneWithIdToken,
-                                      AuthzResponse),
+                                      None),
     "oic-login+prompt_none+request":(AuthorizationRequestCodePromptNoneWithUserID,
-                                     AuthzResponse),
+                                     None),
     "oic-login+request":(AuthorizationRequestCodeWithUserID, AuthzResponse),
     "oic-login-token": (AuthorizationRequestToken, AuthzResponse),
     "oic-login-idtoken": (AuthorizationRequestIDToken, AuthzResponse),
