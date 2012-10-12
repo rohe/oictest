@@ -7,7 +7,7 @@ __author__ = 'rohe0002'
 import time
 #import socket
 from urlparse import urlparse
-from urllib import urlencode, quote
+from urllib import urlencode
 
 from jwkest import unpack
 
@@ -23,6 +23,7 @@ LOCAL_PATH = "export/"
 
 def _get_base(cconf=None):
     part = urlparse(cconf["_base_url"])
+    #part = urlparse(cconf["redirect_uris"][0])
 
     if part.path:
         if part.path == "/":
@@ -34,7 +35,7 @@ def _get_base(cconf=None):
     else:
         _path = ""
 
-    return "%s://%s/%s" % (part.scheme, part.netloc, _path, )
+    return "%s://%s%s" % (part.scheme, part.netloc, _path, )
 
 def store_sector_redirect_uris(args, all=True, extra=False, cconf=None):
     _base = _get_base(cconf)
@@ -161,6 +162,8 @@ class Request():
         if trace:
             trace.reply("RESPONSE: %s" % response)
             trace.reply("CONTENT: %s" % response.text)
+            if response.status_code in [301, 302]:
+                trace.reply("LOCATION: %s" % response.headers["location"])
             trace.reply("COOKIES: %s" % response.cookies)
 #            try:
 #                trace.reply("HeaderCookies: %s" % response.headers["set-cookie"])
@@ -234,8 +237,8 @@ class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
         base_url = _client.redirect_uris[0]
-        self.request_args["redirect_uri"] = quote("%s?%s" % (base_url,
-                                                       urlencode({"fox":"bat"})))
+        self.request_args["redirect_uri"] = "%s?%s" % (base_url,
+                                                       urlencode({"fox":"bat"}))
         return Request.__call__(self, environ, trace, location, response,
                                 content, features)
 
@@ -1242,7 +1245,7 @@ FLOWS = {
                   "  'bearer_body' authentication used"),
         "depends": ['oic-code+idtoken+token-token'],
         "sequence": ["oic-login-code+idtoken+token", "access-token-request",
-                     'user-info-request'],
+                     'user-info-request_pbh'],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         },
@@ -1428,7 +1431,7 @@ FLOWS = {
         "depends": ['mj-01'],
         },
     'mj-22': {
-        "name": 'Requesting ID Token with auth_time Claim',
+        "name": 'Requesting ID Token with auth_time essential Claim',
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1537,7 +1540,8 @@ FLOWS = {
         "name": "Authorization request missing the 'response_type' parameter",
         "sequence": ["oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
-        "tests":[("verify-error", {"error":["invalid_request"]})],
+        "tests":[("verify-error", {"error":["invalid_request",
+                                            "unsupported_response_type"]})],
         "depends": ['mj-01'],
     },
     'mj-36': {
@@ -1738,13 +1742,13 @@ FLOWS = {
         "tests": [("sym-signed-idtoken", {})],
         "depends": ['mj-01'],
         },
-    'mj-62': {
-        "name": 'Requesting ID Token with auth_time Claim',
-        "sequence": ["oic-login+spec2", "access-token-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "userinfo_endpoint"],
-        "depends": ['mj-01'],
-        },
+#    'mj-62': {
+#        "name": 'Requesting ID Token with auth_time Claim',
+#        "sequence": ["oic-login+spec2", "access-token-request"],
+#        "endpoints": ["authorization_endpoint", "token_endpoint",
+#                      "userinfo_endpoint"],
+#        "depends": ['mj-01'],
+#        },
     'mj-63': {
         "name": 'Supports Returning Different Claims in ID Token and UserInfo Endpoint',
         "sequence": ["oic-login-mixed_claims", "access-token-request",
