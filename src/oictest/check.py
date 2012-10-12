@@ -202,7 +202,15 @@ class CheckRedirectErrorResponse(ExpectedError):
 
         res = {}
         try:
-            query = _response.headers["location"].split("?")[1]
+            _loc = _response.headers["location"]
+            if "?" in _loc:
+                query = _loc.split("?")[1]
+            elif "#" in _loc:
+                query = _loc.split("#")[1]
+            else: # ???
+                self._message = "Expected redirect"
+                self._status = CRITICAL
+                return res
         except (KeyError, AttributeError):
             self._message = "Expected redirect"
             self._status = CRITICAL
@@ -256,6 +264,9 @@ class VerifyPromptNoneResponse(Check):
     """
     The OP may respond in more than one way and still be within
     what the spec says.
+    none
+    The Authorization Server MUST NOT display any authentication or
+    consent user interface pages.
     """
     id = "verify-prompt-none-response"
     msg = "OP error"
@@ -263,6 +274,7 @@ class VerifyPromptNoneResponse(Check):
     def _func(self, environ):
         _response = environ["response"]
         _content = environ["content"]
+        _client = environ["client"]
         res = {}
         if _response.status_code == 400 :
             err = ErrorResponse().deserialize(_content, "json")
@@ -278,9 +290,29 @@ class VerifyPromptNoneResponse(Check):
                 self._message = "Not an error I expected"
                 self._status = CRITICAL
         elif _response.status_code in [301, 302]:
-            _query = _response.headers["location"].split("?")[1]
+            _loc = _response.headers["location"]
+            callback = False
+            for url in _client.redirect_uris:
+                if _loc.startswith(url):
+                    callback = True
+                    break
+
+            if not callback:
+                self._message = "Not valid to not redirect back to RP"
+                self._status = ERROR
+                return res
+
+            if "?" in _loc:
+                _query = _loc.split("?")[1]
+            elif "#" in _loc:
+                _query = _loc.split("#")[1]
+            else: # ???
+                self._message = "Expected info in the redirect"
+                self._status = CRITICAL
+                return res
             try:
                 err = ErrorResponse().deserialize(_query, "urlencoded")
+                err.verify()
                 if err["error"] in ["consent_required", "interaction_required"]:
                     # This is OK
                     res["content"] = err.to_json()
@@ -293,6 +325,7 @@ class VerifyPromptNoneResponse(Check):
                     self._status = CRITICAL
             except:
                 resp = AuthorizationResponse().deserialize(_query, "urlencoded")
+                resp.verify()
                 res["content"] = resp.to_json()
                 try:
                     environ["item"].append(resp)
@@ -450,7 +483,7 @@ class CheckEncryptedUserInfoSupportALG(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     id = "check-signed-userinfo-alg-support"
-    msg = "Signed Id Token algorithm not supported"
+    msg = "Userinfo alg algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_alg"
 
@@ -459,7 +492,7 @@ class CheckEncryptedUserInfoSupportENC(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     id = "check-signed-userinfo-enc-support"
-    msg = "Signed Id Token algorithm not supported"
+    msg = "UserInfo enc algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_enc"
 
@@ -468,7 +501,7 @@ class CheckEncryptedUserInfoSupportINT(CheckSupported):
     Checks that the asked for integrity algorithm are among the supported
     """
     id = "check-signed-userinfo-int-support"
-    msg = "Signed Id Token algorithm not supported"
+    msg = "Userinfo Integrity algorithm not supported"
     element = "userinfo_algs_supported"
     parameter = "userinfo_encrypted_response_int"
 
@@ -477,7 +510,7 @@ class CheckEncryptedIDTokenSupportALG(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     id = "check-signed-idtoken-alg-support"
-    msg = "Encrypted Id Token encryption algorithm not supported"
+    msg = "Id Token alg algorithm not supported"
     element = "id_token_algs_supported"
     parameter = "id_token_encrypted_response_alg"
 
@@ -486,7 +519,7 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     id = "check-signed-idtoken-enc-support"
-    msg = "Encrypted Id Token encryption method not supported"
+    msg = "Id Token enc method not supported"
     element = "id_token_algs_supported"
     parameter = "id_token_encrypted_response_enc"
 
@@ -495,7 +528,7 @@ class CheckEncryptedIDTokenSupportINT(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     id = "check-signed-idtoken-int-support"
-    msg = "Encrypted Id Token integrity algorithm not supported"
+    msg = "Id Token int algorithm not supported"
     element = "id_token_algs_supported"
     parameter = "id_token_encrypted_response_int"
 
@@ -791,7 +824,16 @@ class VerifyErrResponse(ExpectedError):
 
         response = environ["response"]
         if response.status_code == 302:
-            _query = response.headers["location"].split("?")[1]
+            _loc = response.headers["location"]
+            if "?" in _loc:
+                _query = _loc.split("?")[1]
+            elif "#" in _loc:
+                _query = _loc.split("#")[1]
+            else:
+                self._message = "Faulty error message"
+                self._status = ERROR
+                return
+
             try:
                 err = ErrorResponse().deserialize(_query, "urlencoded")
                 err.verify()
