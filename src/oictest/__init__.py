@@ -509,9 +509,8 @@ class OIC(OAuth2):
         self.trace.info("EXPORT")
 
         #self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
-        part, res = self.client.keystore.key_export(
-                                        server_url_pattern % (self.args.host,),
-                                        **KEY_EXPORT_ARGS)
+        part, res = self.client.keystore.key_export(self.cconf["_base_url"],
+                                                    **KEY_EXPORT_ARGS)
 
         for name, url in res.items():
             self.cconf[name] = url
