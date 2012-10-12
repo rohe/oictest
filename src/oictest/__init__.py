@@ -271,7 +271,7 @@ class OAuth2(object):
     def do_features(self, *args):
         pass
 
-    def export(self, url):
+    def export(self):
         pass
 
     def client_conf(self, cprop):
@@ -504,7 +504,7 @@ class OIC(OAuth2):
             else:
                 self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
 
-    def export(self, server_url_pattern):
+    def export(self):
         # has to be there
         self.trace.info("EXPORT")
 
