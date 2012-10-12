@@ -451,9 +451,11 @@ class OIC(OAuth2):
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
     def do_features(self, interact, _seq, block):
+        self.cconf["_base_url"] = self.cconf["key_export_url"] % (self.args.host,)
+
         if "key_export" not in block:
             if "key_export" in self.features and self.features["key_export"]:
-                self.export(self.cconf["key_export_url"])
+                self.export()
 
 #        if "sector_identifier_url" in self.features and \
 #            self.features["sector_identifier_url"]:
@@ -506,7 +508,7 @@ class OIC(OAuth2):
         # has to be there
         self.trace.info("EXPORT")
 
-        self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
+        #self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
         part, res = self.client.keystore.key_export(
                                         server_url_pattern % (self.args.host,),
                                         **KEY_EXPORT_ARGS)
