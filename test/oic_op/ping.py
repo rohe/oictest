@@ -12,17 +12,23 @@ del info["client"]["key_export_url"]
 
 PI = "https://connect-interop.pinglabs.org:9031"
 
-info["provider"] = {"dynamic": PI}
+info["provider"] = {
+    "dynamic": PI
+#    "authorization_endpoint": "%s/as/authorization.oauth2" % PI,
+#    "token_endpoint": "%s/as/token.oauth2" % PI,
+#    "userinfo_endpoint": "%s/idp/userinfo.openid" % PI
+}
 
 info["interaction"] = [
     {
         "matches": {
-            "url": "http://id-natnext.orange.fr/auth_user/bin/authNuser.cgi",
+            "url": "%s/as/authorization.oauth2" % PI,
+            "title": "Sign On"
             },
         "page-type": "login",
         "control": {
             "type": "form",
-            "set": {"credential":"0692411424","pwd": "723CBP"}
+            "set": {"username":"joe","password": "test"}
         }
     }
 ]

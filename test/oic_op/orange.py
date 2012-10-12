@@ -7,7 +7,8 @@ info = DEFAULT.copy()
 
 # NO key export
 info["features"]["key_export"] = False
-del info["client"]["key_export_url"]
+
+#del info["client"]["key_export_url"]
 
 info["provider"] = {"dynamic": "http://pub-openid-int.orange.fr/"}
 
