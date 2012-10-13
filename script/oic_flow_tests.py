@@ -15,6 +15,11 @@ from oictest.check import STATUSCODE
 
 OICC = "oicc.py"
 
+LEVEL = {
+    "OK": "+",
+    "ERROR": "!",
+    "CRITICAL": "X"
+}
 class Node():
     def __init__(self, name="", desc=""):
         self.name = name
@@ -145,10 +150,11 @@ def test(node, who, host):
         node.err = p_err
 
     node.state = _sc
+    sign = LEVEL[_sc]
     if reason:
-        print "* (%s)%s - %s (%s)" % (node.name, node.desc, _sc, reason)
+        print "%s (%s)%s - %s (%s)" % (sign, node.name, node.desc, _sc, reason)
     else:
-        print "* (%s)%s - %s" % (node.name, node.desc, _sc)
+        print "%s (%s)%s - %s" % (sign, node.name, node.desc, _sc)
 
 def recursively_test(node, who, host):
     for parent in node.parent:
