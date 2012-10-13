@@ -8,7 +8,7 @@ info = DEFAULT.copy()
 
 # NO key export
 info["features"]["key_export"] = False
-del info["client"]["key_export_url"]
+#del info["client"]["key_export_url"]
 
 PI = "https://connect-interop.pinglabs.org:9031"
 
@@ -28,7 +28,23 @@ info["interaction"] = [
         "page-type": "login",
         "control": {
             "type": "form",
-            "set": {"username":"joe","password": "test"}
+            "set": {
+                #"pf.ok":"Non-JS Sign In",
+                "pf.username": "joe",
+                "pf.pass": "test"}
+        }
+    },
+    {
+        "matches": {
+            #"url": "%s/as/5ZS5x/resume/as/Dyom4/resume/as/authorization.ping" % PI,
+            "title": "Information Access Approval"
+        },
+        "page-type": "user-consent",
+        "control": {
+            "type": "form",
+            "set": {
+                #"pf.oauth.authz.consent": "allow",
+                "scope": "openid"}
         }
     }
 ]
