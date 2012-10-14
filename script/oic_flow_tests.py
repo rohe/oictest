@@ -16,10 +16,14 @@ from oictest.check import STATUSCODE
 OICC = "oicc.py"
 
 LEVEL = {
+    "INFORMATION": 'I',
     "OK": "+",
+    "WARNING": "?",
     "ERROR": "!",
-    "CRITICAL": "X"
+    "CRITICAL": "X",
+    "INTERACTION": "o"
 }
+
 class Node():
     def __init__(self, name="", desc=""):
         self.name = name
