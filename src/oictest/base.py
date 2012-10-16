@@ -116,7 +116,9 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
     _keystore = client.keystore
     features = features or {}
 
-    cjar = {"owner": cookielib.CookieJar(), "client": cookielib.CookieJar()}
+    cjar = {"user": cookielib.CookieJar(),
+            "rp": cookielib.CookieJar(),
+            "service": cookielib.CookieJar()}
 
     environ["sequence"] = sequence
     environ["cis"] = []
@@ -165,12 +167,13 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
             except KeyError:
                 pass
 
-            if req.request in ["AuthorizationRequest", "OpenIDRequest"]:
-                role = "owner"
+            if req.request == "UserInfoRequest":
+                # acting in the role of the service
+                environ["client"].cookiejar = cjar["service"]
             else:
-                role = "client"
+                # acting in the role of the RP
+                environ["client"].cookiejar = cjar["rp"]
 
-            environ["client"].cookiejar = cjar[role]
             try:
                 if verbose:
                     print >> sys.stderr, "> %s" % req.request
@@ -222,12 +225,17 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     for_me = False
                     for redirect_uri in client.redirect_uris:
                         if url.startswith(redirect_uri):
+                            # Back at the RP
+                            environ["client"].cookiejar = cjar["rp"]
                             for_me=True
 
                     if for_me:
                         done = True
                         break
                     else:
+                        # left the RP are now acting as the user client
+                        environ["client"].cookiejar = cjar["user"]
+
                         try:
                             part = do_request(client, url, "GET", trace=trace)
                         except Exception, err:
@@ -271,6 +279,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     trace.info(">> %s <<" % _spec["page-type"])
                     if _spec["page-type"] == "login":
                         environ["login"] = content
+
                 _op = Operation(_spec["control"])
 
                 try:
