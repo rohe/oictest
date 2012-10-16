@@ -22,18 +22,19 @@ from oictest.opfunc import *
 LOCAL_PATH = "export/"
 
 def _get_base(cconf=None):
+    """
+    Make sure a '/' terminated URL is returned
+    """
     part = urlparse(cconf["_base_url"])
     #part = urlparse(cconf["redirect_uris"][0])
 
     if part.path:
-        if part.path == "/":
-            _path = ""
-        elif not part.path.endswith("/"):
+        if not part.path.endswith("/"):
             _path = part.path[:] + "/"
         else:
             _path = part.path[:]
     else:
-        _path = ""
+        _path = "/"
 
     return "%s://%s%s" % (part.scheme, part.netloc, _path, )
 
@@ -41,7 +42,7 @@ def store_sector_redirect_uris(args, all=True, extra=False, cconf=None):
     _base = _get_base(cconf)
 
     if extra:
-        args["redirect_uris"].append("%s/cb" % _base)
+        args["redirect_uris"].append("%scb" % _base)
 
     sector_identifier_url = "%s%s%s" % (_base, LOCAL_PATH,"siu.json")
     f = open("%ssiu.json" % LOCAL_PATH, 'w')
@@ -560,7 +561,7 @@ class RegistrationRequest(PostRequest):
 class RegistrationRequest_MULREDIR(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
-        self.request_args["redirect_uris"].append("%s/cb" % _get_base(cconf))
+        self.request_args["redirect_uris"].append("%scb" % _get_base(cconf))
 
 class RegistrationRequest_MULREDIR_mult_host(RegistrationRequest):
     def __init__(self, cconf):
@@ -750,7 +751,7 @@ class RegistrationRequest_SectorID_2(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         _base = _get_base(cconf)
-        self.request_args["redirect_uris"].append("%s/cb" % _base)
+        self.request_args["redirect_uris"].append("%scb" % _base)
         store_sector_redirect_uris(self.request_args, cconf=cconf)
 
 class RegistrationRequest_SectorID_Err(RegistrationRequest):
@@ -759,6 +760,7 @@ class RegistrationRequest_SectorID_Err(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         store_sector_redirect_uris(self.request_args, False, True, cconf=cconf)
+        #self.request_args["redirect_uris"].append("%scb" % _get_base(cconf))
         self.tests["post"] = [CheckErrorResponse]
 
 class RegistrationRequestEncUserinfo(RegistrationRequest):
