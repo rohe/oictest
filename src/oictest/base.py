@@ -116,7 +116,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
     _keystore = client.keystore
     features = features or {}
 
-    cjar = {"user": cookielib.CookieJar(),
+    cjar = {"browser": cookielib.CookieJar(),
             "rp": cookielib.CookieJar(),
             "service": cookielib.CookieJar()}
 
