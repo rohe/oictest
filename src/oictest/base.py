@@ -167,11 +167,11 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
             except KeyError:
                 pass
 
-            if req.request == "UserInfoRequest":
-                # acting in the role of the service
-                environ["client"].cookiejar = cjar["service"]
+            # The authorization dance is all done through the browser
+            if req.request == "AuthorizationRequest":
+                environ["client"].cookiejar = cjar["browser"]
+            # everything else by someone else, assuming the RP
             else:
-                # acting in the role of the RP
                 environ["client"].cookiejar = cjar["rp"]
 
             try:
@@ -233,9 +233,6 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                         done = True
                         break
                     else:
-                        # left the RP are now acting as the user client
-                        environ["client"].cookiejar = cjar["user"]
-
                         try:
                             part = do_request(client, url, "GET", trace=trace)
                         except Exception, err:
