@@ -77,12 +77,13 @@ class Request():
     method = ""
     lax = False
     _request_args= {}
-    kw_args = {}
+    _kw_args = {}
     tests = {"post": [CheckHTTPResponse], "pre":[]}
 
     def __init__(self, cconf=None):
         self.cconf = cconf
         self.request_args = self._request_args.copy()
+        self.kw_args = self._kw_args.copy()
 
     #noinspection PyUnusedLocal
     def __call__(self, environ, trace, location, response, content, features):
@@ -663,8 +664,8 @@ class RegistrationRequest_update(RegistrationRequest):
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
 
-        self.request_args["client_secret"] = _client.get_client_secret()
-        self.request_args["client_id"] = _client.client_id
+        self.kw_args["access_token"] = _client.registration_access_token
+        self.kw_args["authn_method"] = "bearer_header"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
@@ -681,8 +682,8 @@ class RegistrationRequest_update_user_id(RegistrationRequest):
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
 
-        self.request_args["client_secret"] = _client.get_client_secret()
-        self.request_args["client_id"] = _client.client_id
+        self.request_args["access_token"] = _client.registration_access_token
+        self.kw_args["authn_method"] = "bearer_header"
 
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
@@ -698,8 +699,7 @@ class RegistrationRequest_rotate_secret(RegistrationRequest):
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
 
-        self.request_args["client_secret"] = _client.get_client_secret()
-        self.request_args["client_id"] = _client.client_id
+        self.request_args["access_token"] = _client.registration_access_token
 
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
@@ -767,44 +767,36 @@ class RegistrationRequestEncUserinfo(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         self.request_args["userinfo_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC"
-        self.request_args["userinfo_encrypted_response_int"] = "HS256"
+        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC+HS256"
         self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
-                                  CheckEncryptedUserInfoSupportENC,
-                                  CheckEncryptedUserInfoSupportINT])
+                                  CheckEncryptedUserInfoSupportENC])
 
 class RegistrationRequestSignEncUserinfo(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         self.request_args["userinfo_signed_response_alg"] = "RS256"
         self.request_args["userinfo_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC"
-        self.request_args["userinfo_encrypted_response_int"] = "HS256"
+        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC+HS256"
         self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
-                                  CheckEncryptedUserInfoSupportENC,
-                                  CheckEncryptedUserInfoSupportINT])
+                                  CheckEncryptedUserInfoSupportENC])
 
 class RegistrationRequestEncIDtoken(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         self.request_args["id_token_signed_response_alg"] = "none"
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["id_token_encrypted_response_enc"] = "A128CBC"
-        self.request_args["id_token_encrypted_response_int"] = "HS256"
+        self.request_args["id_token_encrypted_response_enc"] = "A128CBC+HS256"
         self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
-                                  CheckEncryptedIDTokenSupportENC,
-                                  CheckEncryptedIDTokenSupportINT])
+                                  CheckEncryptedIDTokenSupportENC])
 
 class RegistrationRequestSignEncIDtoken(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
         self.request_args["id_token_signed_response_alg"] = "RS256"
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["id_token_encrypted_response_enc"] = "A128CBC"
-        self.request_args["id_token_encrypted_response_int"] = "HS256"
+        self.request_args["id_token_encrypted_response_enc"] = "A128CBC+HS256"
         self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
-                                  CheckEncryptedIDTokenSupportENC,
-                                  CheckEncryptedIDTokenSupportINT])
+                                  CheckEncryptedIDTokenSupportENC])
 
 # =============================================================================
 
@@ -923,7 +915,7 @@ class RegistrationResponseCARS(BodyResponse):
 
     def __call__(self, environ, response):
         _client = environ["client"]
-        _client.keystore.remove_key_type("hmac")
+        _client.keyjar.remove_key("", "hmac", None)
         for prop in ["client_id", "client_secret"]:
             try:
                 setattr(_client, prop, response[prop])
@@ -985,7 +977,7 @@ class DResponse(object):
 def discover(self, client, orig_response, content, issuer, location,
              features, _trace_):
     pcr = client.provider_config(issuer)
-    _trace_.info("%s" % client.keystore._store)
+    _trace_.info("%s" % client.keyjar)
     client.match_preferences(pcr)
     return "", DResponse(status=200, type="application/json"), pcr
 

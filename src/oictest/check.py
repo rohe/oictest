@@ -98,7 +98,11 @@ class CmpIdtoken(Other):
             if msg.type() == "AuthorizationResponse":
                 break
 
-        keys = environ["client"].keystore.get_keys("ver", owner=None)
+        kj = environ["client"].keyjar
+        keys = {}
+        for issuer in kj.keys():
+            keys.update(kj.get_keys("ver", owner=issuer))
+
         idt = IdToken().deserialize(msg["id_token"], "jwt", key=keys)
         if idt.to_dict() == environ["item"][-1].to_dict():
             pass
@@ -466,7 +470,7 @@ class CheckSignedUserInfoSupport(CheckSupported):
     """
     id = "check-signed-userinfo-support"
     msg = "Signed UserInfo not supported"
-    element = "userinfo_algs_supported"
+    element = "userinfo_signing_alg_values_supported"
     parameter = "userinfo_signed_response_alg"
 
 class CheckSignedIdTokenSupport(CheckSupported):
@@ -475,7 +479,7 @@ class CheckSignedIdTokenSupport(CheckSupported):
     """
     id = "check-signed-idtoken-support"
     msg = "Signed Id Token algorithm not supported"
-    element = "id_token_algs_supported"
+    element = "id_token_signing_alg_values_supported"
     parameter = "id_token_signed_response_alg"
 
 class CheckEncryptedUserInfoSupportALG(CheckSupported):
@@ -484,7 +488,7 @@ class CheckEncryptedUserInfoSupportALG(CheckSupported):
     """
     id = "check-signed-userinfo-alg-support"
     msg = "Userinfo alg algorithm not supported"
-    element = "userinfo_algs_supported"
+    element = "userinfo_encryption_alg_values_supported"
     parameter = "userinfo_encrypted_response_alg"
 
 class CheckEncryptedUserInfoSupportENC(CheckSupported):
@@ -493,17 +497,8 @@ class CheckEncryptedUserInfoSupportENC(CheckSupported):
     """
     id = "check-signed-userinfo-enc-support"
     msg = "UserInfo enc algorithm not supported"
-    element = "userinfo_algs_supported"
+    element = "userinfo_encryption_enc_values_supported"
     parameter = "userinfo_encrypted_response_enc"
-
-class CheckEncryptedUserInfoSupportINT(CheckSupported):
-    """
-    Checks that the asked for integrity algorithm are among the supported
-    """
-    id = "check-signed-userinfo-int-support"
-    msg = "Userinfo Integrity algorithm not supported"
-    element = "userinfo_algs_supported"
-    parameter = "userinfo_encrypted_response_int"
 
 class CheckEncryptedIDTokenSupportALG(CheckSupported):
     """
@@ -511,7 +506,7 @@ class CheckEncryptedIDTokenSupportALG(CheckSupported):
     """
     id = "check-signed-idtoken-alg-support"
     msg = "Id Token alg algorithm not supported"
-    element = "id_token_algs_supported"
+    element = "id_token_encryption_alg_values_supported"
     parameter = "id_token_encrypted_response_alg"
 
 class CheckEncryptedIDTokenSupportENC(CheckSupported):
@@ -520,27 +515,8 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     """
     id = "check-signed-idtoken-enc-support"
     msg = "Id Token enc method not supported"
-    element = "id_token_algs_supported"
+    element = "id_token_encryption_enc_values_supported"
     parameter = "id_token_encrypted_response_enc"
-
-class CheckEncryptedIDTokenSupportINT(CheckSupported):
-    """
-    Checks that the asked for encryption algorithm are among the supported
-    """
-    id = "check-signed-idtoken-int-support"
-    msg = "Id Token int algorithm not supported"
-    element = "id_token_algs_supported"
-    parameter = "id_token_encrypted_response_int"
-
-class CheckEncryptedIDTokenSupportINT(CheckSupported):
-    """
-    Checks that the asked for encryption algorithm are among the supported
-    """
-    id = "check-signed-idtoken-int-support"
-    msg = "Encrypted Id Token integrity algorithm not supported"
-    element = "request_object_algs_supported"
-    parameter = "require_signed_request_object"
-    default = ["RS256"]
 
 
 class CheckTokenEndpointAuthType(CriticalError):
@@ -860,7 +836,7 @@ class verifyIDToken(CriticalError):
 
     def _func(self, environ):
         done = False
-        _vkeys = environ["client"].keystore.get_keys("ver", owner=None)
+        _vkeys = environ["client"].keyjar.get_keys("ver", owner=None)
 
         idtoken_claims = {}
         req = get_authz_request(environ)
@@ -1101,7 +1077,7 @@ class CheckKeys(CriticalError):
         cls = environ["request_spec"].request
         client = environ["client"]
         # key type
-        keys = client.keystore.get_sign_key("rsa")
+        keys = client.keyjar.get_signing_key("rsa")
         try:
             assert keys
         except AssertionError:
@@ -1271,7 +1247,7 @@ class CheckSignedEncryptedIDToken(Error):
                     self._status = self.status
                     break
 
-                dkeys = client.keystore.get_decrypt_key(owner=".")
+                dkeys = client.keyjar.get_decrypt_key(owner="")
                 txt = decrypt(_dic["id_token"], dkeys, "private")
                 _tmp = unpack(txt)[0]
                 try:

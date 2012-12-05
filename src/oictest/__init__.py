@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from oic.utils.keyio import key_export
+
 __author__ = 'rohe0002'
 
 import argparse
@@ -66,7 +68,6 @@ KEY_EXPORT_ARGS = {
         #"name": "jwk.json",
     }
 }
-
 
 def start_key_server(part):
     # start the server
@@ -338,19 +339,6 @@ class OAuth2(object):
             else:
                 interactions = json.loads(_int)
 
-#        res = {}
-#        for var in ["title", "url", "class"]:
-#            if var not in interactions:
-#                continue
-#            res[var] = {}
-#            for url, spec in interactions[var].items():
-#                try:
-#                    func_name, args, typ = spec
-#                    func = getattr(self.operations_mod, func_name)
-#                    res[var][url] = (func, args, typ)
-#                except ValueError:
-#                    res[var][url] = spec
-
         return interactions
 
     def get_test(self):
@@ -394,7 +382,7 @@ class OIC(OAuth2):
         if self.args.external_server:
             self.environ["keyprovider"] = None
 
-        _keystore = self.client.keystore
+        _keyjar = self.client.keyjar
         pcr = ProviderConfigurationResponse()
         n = 0
         for param in URL_TYPES:
@@ -403,7 +391,7 @@ class OIC(OAuth2):
                 pcr[param] = self.pinfo[param]
 
         if n:
-            _keystore.load_keys(pcr, self.pinfo["issuer"])
+            _keyjar.load_keys(pcr, self.pinfo["issuer"])
 
         #self.register()
 
@@ -509,8 +497,10 @@ class OIC(OAuth2):
         self.trace.info("EXPORT")
 
         #self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
-        part, res = self.client.keystore.key_export(self.cconf["_base_url"],
-                                                    **KEY_EXPORT_ARGS)
+        part, res = key_export(self.cconf["_base_url"], "exports", "vault",
+                               self.client.keyjar, "example.com",
+                               sig= {"alg":"rsa", "create_if_missing": True,
+                                     "format": ["jwk", "x509"]})
 
         for name, url in res.items():
             self.cconf[name] = url

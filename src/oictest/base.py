@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from oic.oic import RegistrationResponseCARS
+
 __author__ = 'rohe0002'
 
 import time
@@ -113,7 +115,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
     content = None
     url = ""
     test_output = []
-    _keystore = client.keystore
+    _keyjar = client.keyjar
     features = features or {}
 
     cjar = {"browser": cookielib.CookieJar(),
@@ -352,7 +354,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 try:
                     qresp = client.parse_response(response, info, resp_type,
                                                   client.state,
-                                                  keystore=_keystore,
+                                                  keyjar=_keyjar,
                                                   client_id=client.client_id,
                                                   scope="openid")
                     if trace and qresp:
@@ -386,6 +388,10 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                         check_severity(stat)
                 except KeyError:
                     pass
+
+                if isinstance(qresp, RegistrationResponseCARS):
+                    for key, val in qresp.items():
+                        setattr(client, key, val)
 
                 resp(environ, qresp)
 
