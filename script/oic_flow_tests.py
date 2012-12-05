@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-from oic.utils.keystore import KeyStore
+from oic.utils.keyio import KeyJar
+from oic.utils.keyio import key_export
 from oictest import start_key_server
 import time
 
@@ -182,8 +183,9 @@ def test_all(graph, who, host):
 from oictest import KEY_EXPORT_ARGS
 
 def run_key_server(server_url_pattern, host):
-    ks = KeyStore(None)
-    part, res = ks.key_export(server_url_pattern % host, **KEY_EXPORT_ARGS)
+    kj = KeyJar()
+    part, res = key_export(server_url_pattern % host, keyjar=kj,
+                           **KEY_EXPORT_ARGS)
     return start_key_server(part)
 
 if __name__ == "__main__":
