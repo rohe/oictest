@@ -460,9 +460,9 @@ class CheckUserIdSupport(CheckSupported):
     Checks that the asked for acr are among the supported
     """
     id = "check-userid-support"
-    msg = "User_id type not supported"
-    element = "user_id_types_supported"
-    parameter = "user_id_type"
+    msg = "Subject type not supported"
+    element = "subject_types_supported"
+    parameter = "subject_type"
 
 class CheckSignedUserInfoSupport(CheckSupported):
     """

@@ -342,8 +342,8 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
                 break
 
         jso = json.loads(unpack(idt)[1])
-        user_id = jso["user_id"]
-        self.request_args["idtoken_claims"] = {"claims": {"user_id": {
+        user_id = jso["sub"]
+        self.request_args["idtoken_claims"] = {"claims": {"sub": {
                                                             "value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, environ, trace, location,
@@ -363,8 +363,8 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
                 break
 
         jso = json.loads(unpack(idt)[1])
-        user_id = jso["user_id"]
-        self.request_args["idtoken_claims"] = {"claims": {"user_id": {
+        user_id = jso["sub"]
+        self.request_args["idtoken_claims"] = {"claims": {"sub": {
             "value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, environ, trace, location,
