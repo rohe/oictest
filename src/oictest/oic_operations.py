@@ -1795,12 +1795,12 @@ FLOWS = {
         "endpoints": ["registration_endpoint"],
         "depends": ['mj-01'],
         },
-    'mj-69': {
-        "name": 'Registration of sector-identifier-uri',
-        "sequence": ["oic-registration-sector_id", "oic-login"],
-        "endpoints": ["registration_endpoint"],
-        "depends": ['mj-01'],
-        },
+#    'mj-69': {
+#        "name": 'Registration of sector-identifier-uri',
+#        "sequence": ["oic-registration-sector_id", "oic-login"],
+#        "endpoints": ["registration_endpoint"],
+#        "depends": ['mj-01'],
+#        },
 
     }
 
