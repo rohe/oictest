@@ -101,7 +101,7 @@ class CmpIdtoken(Other):
         kj = environ["client"].keyjar
         keys = {}
         for issuer in kj.keys():
-            keys.update(kj.get_keys("ver", owner=issuer))
+            keys.update(kj.get("ver", issuer=issuer))
 
         idt = IdToken().deserialize(msg["id_token"], "jwt", key=keys)
         if idt.to_dict() == environ["item"][-1].to_dict():
@@ -174,7 +174,7 @@ class CheckErrorResponse(ExpectedError):
                     err = ErrorResponse().deserialize(_content, "json")
                     err.verify()
                     res["content"] = err.to_json()
-                    res["temp"] = err
+                    #res["temp"] = err
                 except Exception:
                     res["content"] = _content
             else:
@@ -813,7 +813,7 @@ class VerifyErrResponse(ExpectedError):
             try:
                 err = ErrorResponse().deserialize(_query, "urlencoded")
                 err.verify()
-                res["temp"] = err
+                #res["temp"] = err
                 res["message"] = err.to_dict()
             except Exception:
                 self._message = "Faulty error message"
@@ -836,7 +836,7 @@ class verifyIDToken(CriticalError):
 
     def _func(self, environ):
         done = False
-        _vkeys = environ["client"].keyjar.get_keys("ver", owner=None)
+        _vkeys = environ["client"].keyjar.get("ver")
 
         idtoken_claims = {}
         req = get_authz_request(environ)
@@ -947,8 +947,8 @@ class ChangedSecret(Error):
 
     def _func(self, environ=None):
         resp = environ["response_message"]
-        old_sec = environ["request_args"]["client_secret"]
         _client = environ["client"]
+        old_sec = _client.client_secret
 
         if old_sec == resp["client_secret"]:
             self._message = "Client secret was not changed"
@@ -1117,19 +1117,19 @@ class VerifyLogoURLs(Error):
         return {}
 
 class CheckUserID(Error):
-    id = "different_user_id"
-    msg = "user_id not changed between public and pairwise"
+    id = "different_sub"
+    msg = "sub not changed between public and pairwise"
 
     def _func(self, environ=None):
-        user_id = []
+        sub = []
         for cls, msg in environ["responses"]:
             if cls == OpenIDSchema:
                 _dict = json.loads(msg)
-                user_id.append(_dict["user_id"])
+                sub.append(_dict["sub"])
 
         try:
-            assert len(user_id) == 2
-            assert user_id[0] != user_id[1]
+            assert len(sub) == 2
+            assert sub[0] != sub[1]
         except AssertionError:
             self._status = self.status
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.oic import RegistrationResponseCARS
+from oic.oic import RegistrationResponseCR
 
 __author__ = 'rohe0002'
 
@@ -72,7 +72,6 @@ def check_severity(stat):
     if stat["status"] >= 4:
         raise FatalError
 
-
 def pick_interaction(interactions, _base="", content="", req=None):
     unic = content
     if content:
@@ -106,6 +105,33 @@ def pick_interaction(interactions, _base="", content="", req=None):
     raise KeyError("No interaction matched")
 
 ORDER = ["url", "response", "content"]
+
+def do_check(test, environ, test_output, **kwargs):
+    if isinstance(test, basestring):
+        chk = factory(test)(**kwargs)
+    else:
+        chk = test(**kwargs)
+    stat = chk(environ, test_output)
+    check_severity(stat)
+
+def err_check(test, environ, test_output, err=None, bryt=True):
+    if err:
+        environ["exception"] = err
+    chk = factory(test)()
+    chk(environ, test_output)
+    if bryt:
+        raise FatalError()
+
+def test_sequence(sequence, environ, test_output):
+    for test in sequence:
+        if isinstance(test, tuple):
+            test, kwargs = test
+        else:
+            kwargs = {}
+        do_check(test, environ, test_output, **kwargs)
+        if test == ExpectedError:
+            return False
+    return True
 
 def run_sequence(client, sequence, trace, interaction, msgfactory,
                  environ=None, tests=None, features=None, verbose=False,
@@ -163,9 +189,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
             try:
                 _pretests = req.tests["pre"]
                 for test in _pretests:
-                    chk = test()
-                    stat = chk(environ, test_output)
-                    check_severity(stat)
+                    do_check(test, environ, test_output)
             except KeyError:
                 pass
 
@@ -184,29 +208,18 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 (url, response, content) = part
 
                 try:
-                    for test in req.tests["post"]:
-                        if isinstance(test, tuple):
-                            test, kwargs = test
-                        else:
-                            kwargs = {}
-                        chk = test(**kwargs)
-                        stat = chk(environ, test_output)
-                        check_severity(stat)
-                        if isinstance(chk, ExpectedError):
-                            item.append(stat["temp"])
-                            del stat["temp"]
-                            url = None
-                            break
+                    if not test_sequence(req.tests["post"], environ,
+                                         test_output):
+                        #item.append(stat["temp"])
+                        #del stat["temp"]
+                        url = None
                 except KeyError:
                     pass
 
             except FatalError:
                 raise
             except Exception, err:
-                environ["exception"] = err
-                chk = factory("exception")()
-                chk(environ, test_output)
-                raise FatalError()
+                err_check("exception", environ, test_output, err)
 
             if not resp:
                 continue
@@ -242,10 +255,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                         environ.update(dict(zip(ORDER, part)))
                         (url, response, content) = part
 
-                        check = factory("check-http-response")()
-                        stat = check(environ, test_output)
-                        check_severity(stat)
-
+                        do_check("check-http-response", environ, test_output)
                 if done:
                     break
 
@@ -266,13 +276,9 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                             _check = None
 
                         if _check:
-                            chk = factory("interaction-check")()
-                            chk(environ, test_output)
-                            raise FatalError()
+                            err_check("interaction-check", environ, test_output)
                         else:
-                            chk = factory("interaction-needed")()
-                            chk(environ, test_output)
-                            raise FatalError()
+                            err_check("interaction-needed", environ, test_output)
 
                 if len(_spec) > 2:
                     trace.info(">> %s <<" % _spec["page-type"])
@@ -286,16 +292,11 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     environ.update(dict(zip(ORDER, part)))
                     (url, response, content) = part
 
-                    check = factory("check-http-response")()
-                    stat = check(environ, test_output)
-                    check_severity(stat)
+                    do_check("check-http-response", environ, test_output)
                 except FatalError:
                     raise
                 except Exception, err:
-                    environ["exception"] = err
-                    chk = factory("exception")()
-                    chk(environ, test_output)
-                    raise FatalError
+                    err_check("exception", environ, test_output, err)
 
 #            if done:
 #                break
@@ -329,17 +330,11 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                         _check = None
 
                     if _check:
-                        chk = factory("interaction-check")()
-                        chk(environ, test_output)
-                        raise FatalError()
+                        err_check("interaction-check", environ, test_output)
                     else:
-                        chk = factory("missing-redirect")()
-                        stat = chk(environ, test_output)
-                        check_severity(stat)
+                        do_check("missing-redirect", environ, test_output)
             else:
-                check = factory("check_content_type_header")()
-                stat = check(environ, test_output)
-                check_severity(stat)
+                do_check("check_content_type_header", environ, test_output)
                 info = content
 
             if info and resp.response:
@@ -348,7 +343,6 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 else:
                     response = resp.response
 
-                chk = factory("response-parse")()
                 environ["response_type"] = response.__name__
                 environ["responses"].append((response, info))
                 try:
@@ -373,23 +367,15 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                     else:
                         raise
                 else:
-                    stat = chk(environ, test_output)
-                    check_severity(stat)
+                    do_check("response-parse", environ, test_output)
 
             if qresp:
                 try:
-                    for test in resp.tests["post"]:
-                        if isinstance(test, tuple):
-                            test, kwargs = test
-                        else:
-                            kwargs = {}
-                        chk = test(**kwargs)
-                        stat = chk(environ, test_output)
-                        check_severity(stat)
+                    test_sequence(resp.tests["post"], environ, test_output)
                 except KeyError:
                     pass
 
-                if isinstance(qresp, RegistrationResponseCARS):
+                if isinstance(qresp, RegistrationResponseCR):
                     for key, val in qresp.items():
                         setattr(client, key, val)
 
@@ -397,22 +383,12 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
 
         if tests is not None:
             environ["item"] = item
-            for test, args in tests:
-                if isinstance(test, basestring):
-                    chk = factory(test)(**args)
-                else:
-                    chk = test(**args)
-                try:
-                    check_severity(chk(environ, test_output))
-                except Exception, err:
-                    raise FatalError("%s" % err)
+            test_sequence(tests, environ, test_output)
 
     except FatalError:
         pass
     except Exception, err:
-        environ["exception"] = err
-        chk = factory("exception")()
-        chk(environ, test_output)
+        err_check("exception", environ, test_output, err, False)
 
     return test_output, "%s" % trace
 

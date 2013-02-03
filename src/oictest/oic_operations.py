@@ -11,7 +11,8 @@ from urllib import urlencode
 
 from jwkest import unpack
 
-from oic.oic.message import factory as msgfactory, OpenIDRequest
+from oic.oic.message import factory as msgfactory
+from oic.oic.message import OpenIDRequest
 from oic.oic import message
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -555,7 +556,7 @@ class RegistrationRequest(PostRequest):
             pass
 
         # default
-        self.request_args["type"] = "client_associate"
+        self.request_args["operation"] = "register"
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
 
@@ -657,7 +658,7 @@ class RegistrationRequest_update(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
 
-        self.request_args = {"type": "client_update",
+        self.request_args = {"operation": "client_update",
                              "contacts": ["roland@example.com",
                                          "roland@example.org"]}
 
@@ -676,8 +677,8 @@ class RegistrationRequest_update_user_id(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
 
-        self.request_args = {"type": "client_update",
-                             "user_id_type": "pairwise"}
+        self.request_args = {"operation": "client_update",
+                             "subject_type": "pairwise"}
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
@@ -688,19 +689,31 @@ class RegistrationRequest_update_user_id(RegistrationRequest):
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
 
-class RegistrationRequest_rotate_secret(RegistrationRequest):
+class RegistrationRequest_rotate_secret(PostRequest):
     """ With query component """
+    request = "RotateSecret"
+    _request_args = {}
 
     def __init__(self, cconf):
-        RegistrationRequest.__init__(self, cconf)
+        PostRequest.__init__(self, cconf)
 
-        self.request_args = {"type": "rotate_secret"}
+        for arg in message.RotateSecret().parameters():
+            if arg in cconf:
+                self.request_args[arg] = cconf[arg]
+
+        try:
+            del self.request_args["key_export_url"]
+        except KeyError:
+            pass
+
+        # default
+        self.request_args["operation"] = "rotate_secret"
+        # verify the registration info
+        self.tests["post"].append(RegistrationInfo)
 
     def __call__(self, environ, trace, location, response, content, features):
         _client = environ["client"]
-
         self.request_args["access_token"] = _client.registration_access_token
-
         return PostRequest.__call__(self, environ, trace, location, response,
                                     content, features)
 
@@ -720,7 +733,7 @@ class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
 class RegistrationRequest_with_public_userid(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
-        self.request_args["user_id_type"] = "public"
+        self.request_args["subject_type"] = "public"
         self.tests["pre"].append(CheckUserIdSupport)
 
 class RegistrationRequest_with_userinfo_signed(RegistrationRequest):
@@ -732,7 +745,7 @@ class RegistrationRequest_with_userinfo_signed(RegistrationRequest):
 class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
     def __init__(self, cconf):
         RegistrationRequest.__init__(self, cconf)
-        self.request_args["user_id_type"] = "pairwise"
+        self.request_args["subject_type"] = "pairwise"
         self.tests["pre"].append(CheckUserIdSupport)
         store_sector_redirect_uris(self.request_args, cconf=cconf)
 
@@ -910,8 +923,8 @@ class BodyResponse(Response):
     where = "body"
     type = "json"
 
-class RegistrationResponseCARS(BodyResponse):
-    response = "RegistrationResponseCARS"
+class RegistrationResponseCR(BodyResponse):
+    response = "RegistrationResponseCR"
 
     def __call__(self, environ, response):
         _client = environ["client"]
@@ -924,6 +937,17 @@ class RegistrationResponseCARS(BodyResponse):
 
 class RegistrationResponseCU(BodyResponse):
     response = "RegistrationResponseCU"
+
+    def __call__(self, environ, response):
+        _client = environ["client"]
+        for prop in ["client_id"]:
+            try:
+                setattr(_client, prop, response[prop])
+            except KeyError:
+                pass
+
+class RegistrationResponseRS(BodyResponse):
+    response = "RegistrationResponseRS"
 
     def __call__(self, environ, response):
         _client = environ["client"]
@@ -1073,49 +1097,49 @@ PHASES= {
     "user-info-request_pbb":(UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err":(UserInfoRequestPostBearerHeader_err,
                              ErrorResponse),
-    "oic-registration": (RegistrationRequest, RegistrationResponseCARS),
+    "oic-registration": (RegistrationRequest, RegistrationResponseCR),
     "oic-registration-multi-redirect": (RegistrationRequest_MULREDIR,
-                                        RegistrationResponseCARS),
-    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponseCARS),
+                                        RegistrationResponseCR),
+    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponseCR),
     "oic-registration-wf": (RegistrationRequest_WF,
                             ClientRegistrationErrorResponse),
     "oic-registration-ke_csj": (RegistrationRequest_KeyExpCSJ,
-                                RegistrationResponseCARS),
+                                RegistrationResponseCR),
     "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
-                                RegistrationResponseCARS),
+                                RegistrationResponseCR),
     "oic-registration-update": (RegistrationRequest_update,
                                 RegistrationResponseCU),
     "oic-registration-rotate": (RegistrationRequest_rotate_secret,
-                                RegistrationResponseCARS),
+                                RegistrationResponseRS),
     "oic-registration-policy+logo": (RegistrationRequest_with_policy_and_logo,
-                                     RegistrationResponseCARS),
+                                     RegistrationResponseCR),
     "oic-registration-public_id": (RegistrationRequest_with_public_userid,
-                                   RegistrationResponseCARS),
+                                   RegistrationResponseCR),
     "oic-registration-pairwise_id": (RegistrationRequest_with_pairwise_userid,
-                                     RegistrationResponseCARS),
+                                     RegistrationResponseCR),
     "oic-registration-sector_id": (RegistrationRequest_SectorID,
-                                   RegistrationResponseCARS),
+                                   RegistrationResponseCR),
     "oic-registration-signed_userinfo": (RegistrationRequest_with_userinfo_signed,
-                                   RegistrationResponseCARS),
+                                         RegistrationResponseCR),
     "oic-registration-sector_id-err": (RegistrationRequest_SectorID_Err,
                                        ClientRegistrationErrorResponse),
-    "oic-change-user_id_type": (RegistrationRequest_update_user_id,
+    "oic-change-subject_type": (RegistrationRequest_update_user_id,
                                 RegistrationResponseCU),
     "oic-registration-signed_idtoken":(
                         RegistrationRequest_with_id_token_signed_response_alg,
-                        RegistrationResponseCARS),
+                        RegistrationResponseCR),
     "oic-registration-encrypted_userinfo":(
                         RegistrationRequestEncUserinfo,
-                        RegistrationResponseCARS),
+                        RegistrationResponseCR),
     "oic-registration-signed+encrypted_userinfo":(
                         RegistrationRequestSignEncUserinfo,
-                        RegistrationResponseCARS),
+                        RegistrationResponseCR),
     "oic-registration-encrypted_idtoken":(
                         RegistrationRequestEncIDtoken,
-                        RegistrationResponseCARS),
+                        RegistrationResponseCR),
     "oic-registration-signed+encrypted_idtoken":(
                         RegistrationRequestSignEncIDtoken,
-                        RegistrationResponseCARS),
+                        RegistrationResponseCR),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
 }
@@ -1644,11 +1668,11 @@ FLOWS = {
         "name": 'Verify change in user_id',
         "sequence": ["oic-registration-public_id", "oic-login",
                      "access-token-request", "user-info-request_pbh",
-                     "oic-change-user_id_type", "oic-login+prompt_login",
+                     "oic-change-subject_type", "oic-login+prompt_login",
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["registration_endpoint"],
         "depends": ["mj-49"],
-        "tests": [("different_user_id", {})]
+        "tests": [("different_sub", {})]
         },
     'mj-51': {
         "name": 'Login no nonce',

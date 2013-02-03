@@ -3,7 +3,7 @@ __author__ = 'rohe0002'
 DEFAULT = {
     "versions": { "oauth": "2.0", "openid": "3.0"},
     "features": {
-        "registration":True,
+        "registration": True,
         "discovery": True,
         "session_management": False,
         "key_export": True,
