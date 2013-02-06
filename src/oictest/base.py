@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from oic.oic import RegistrationResponseCR
+from oic.oic import RegistrationResponse
 
 __author__ = 'rohe0002'
 
@@ -375,7 +375,7 @@ def run_sequence(client, sequence, trace, interaction, msgfactory,
                 except KeyError:
                     pass
 
-                if isinstance(qresp, RegistrationResponseCR):
+                if isinstance(qresp, RegistrationResponse):
                     for key, val in qresp.items():
                         setattr(client, key, val)
 
