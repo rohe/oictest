@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
+from rrtest.check import STATUSCODE
 from oictest import start_key_server
 import time
 
@@ -12,7 +13,6 @@ import argparse
 from subprocess import Popen
 from subprocess import PIPE
 
-from oictest.check import STATUSCODE
 
 OICC = "oicc.py"
 
@@ -25,6 +25,7 @@ LEVEL = {
     "INTERACTION": "o"
 }
 
+
 class Node():
     def __init__(self, name="", desc=""):
         self.name = name
@@ -32,6 +33,7 @@ class Node():
         self.children = {}
         self.parent = []
         self.state = STATUSCODE[0]
+
 
 def add_to_tree(root, parents, cnode):
     to_place = parents[:]
@@ -51,6 +53,7 @@ def add_to_tree(root, parents, cnode):
 
     return to_place
 
+
 def in_tree(root, item):
     if not item:
         return False
@@ -61,6 +64,7 @@ def in_tree(root, item):
             if in_tree(branch.children, item):
                 return True
     return False
+
 
 def sort_flows_into_graph(flows, grp):
     result = {}
@@ -90,6 +94,7 @@ def sort_flows_into_graph(flows, grp):
 
     return result
 
+
 def sorted_flows(flows):
     result = []
     remains = flows.keys()
@@ -114,11 +119,13 @@ def sorted_flows(flows):
 
     return result
 
+
 def print_graph(root, inx=""):
     next_inx = inx + "  "
     for key, branch in root.items():
         print "%s%s" % (inx, key)
         print_graph(branch.children, next_inx)
+
 
 def test(node, who, host):
     global OICC
@@ -137,7 +144,7 @@ def test(node, who, host):
         try:
             output = json.loads(p_out)
         except ValueError:
-            print 40*"="+"\n"+p_out+"\n"+40*"="
+            print 40 * "=" + "\n" + p_out + "\n" + 40 * "="
             raise
         node.trace = output
         if output["status"] > 1:
@@ -161,9 +168,10 @@ def test(node, who, host):
     else:
         print "%s (%s)%s - %s" % (sign, node.name, node.desc, _sc)
 
+
 def recursively_test(node, who, host):
     for parent in node.parent:
-        if parent.state == STATUSCODE[0]: # untested, don't go further
+        if parent.state == STATUSCODE[0]:  # untested, don't go further
             print "SKIP %s Parent untested: %s" % (node.name, parent.name)
             return
 
@@ -174,6 +182,7 @@ def recursively_test(node, who, host):
     if node.state == STATUSCODE[1]:
         test_all(node.children, who, host)
 
+
 def test_all(graph, who, host):
     skeys = graph.keys()
     skeys.sort()
@@ -181,6 +190,7 @@ def test_all(graph, who, host):
         recursively_test(graph[key], who, host)
 
 from oictest import KEY_EXPORT_ARGS
+
 
 def run_key_server(server_url_pattern, host):
     kj = KeyJar()

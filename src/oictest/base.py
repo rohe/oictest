@@ -1,65 +1,21 @@
 #!/usr/bin/env python
-from oic.oic import RegistrationResponse
-
 __author__ = 'rohe0002'
 
-import time
-import cookielib
 import sys
 
-from bs4 import BeautifulSoup
-
 from oic.oauth2.message import Message
-
-from oictest.opfunc import do_request
+from oic.oic import RegistrationResponse
 from oictest.opfunc import Operation
-from oictest.check import factory
-from oictest.check import ExpectedError
 
-class FatalError(Exception):
-    pass
+from rrtest import tool, FatalError
 
-class Trace(object):
-    def __init__(self):
-        self.trace = []
-        self.start = time.time()
+ORDER = ["url", "response", "content"]
 
-    def request(self, msg):
-        delta = time.time() - self.start
-        self.trace.append("%f --> %s" % (delta, msg))
-
-    def reply(self, msg):
-        delta = time.time() - self.start
-        self.trace.append("%f <-- %s" % (delta, msg))
-
-    def info(self, msg):
-        delta = time.time() - self.start
-        self.trace.append("%f %s" % (delta, msg))
-
-    def error(self, msg):
-        delta = time.time() - self.start
-        self.trace.append("%f [ERROR] %s" % (delta, msg))
-
-    def warning(self, msg):
-        delta = time.time() - self.start
-        self.trace.append("%f [WARNING] %s" % (delta, msg))
-
-    def __str__(self):
-        return "\n". join([t.encode("utf-8") for t in self.trace])
-
-    def clear(self):
-        self.trace = []
-
-    def __getitem__(self, item):
-        return self.trace[item]
-
-    def next(self):
-        for line in self.trace:
-            yield line
 
 def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
     return [operations.PHASES[phase] for phase in flow["sequence"]]
+
 
 def endpoint(client, base):
     for _endp in client._endpoints:
@@ -68,349 +24,173 @@ def endpoint(client, base):
 
     return False
 
-def check_severity(stat):
-    if stat["status"] >= 4:
-        raise FatalError
 
-def pick_interaction(interactions, _base="", content="", req=None):
-    unic = content
-    if content:
-        _bs = BeautifulSoup(content)
-    else:
-        _bs = None
+class Conversation(tool.Conversation):
+    def __init__(self, client, config, trace, interaction, msg_factory,
+                 check_factory, features=None, verbose=False):
+        tool.Conversation.__init__(self, client, config, trace,
+                                   interaction, check_factory, msg_factory,
+                                   features, verbose)
+        self.environ["cis"] = []
+        self.environ["oidc_response"] = []
+        self.keyjar = self.client.keyjar
+        self.position = ""
+        self.last_response = None
+        self.last_content = None
+        self.accept_exception = False
+        self.creq = None
+        self.cresp = None
+        self.msg_factory = msg_factory
 
-    for interaction in interactions:
-        _match = 0
-        for attr, val in interaction["matches"].items():
-            if attr == "url":
-                if val == _base:
-                    _match += 1
-            elif attr == "title":
-                if _bs is None:
-                    break
-                if _bs.title is None:
-                    break
-                if val in _bs.title.contents:
-                    _match += 1
-            elif attr == "content":
-                if unic and val in unic:
-                    _match += 1
-            elif attr == "class":
-                if req and val == req:
-                    _match += 1
+    def init(self, phase):
+        self.creq, self.cresp = phase
 
-        if _match == len(interaction["matches"]):
-            return interaction
+    def my_endpoints(self):
+        return self.client.redirect_uris
 
-    raise KeyError("No interaction matched")
+    def handle_result(self):
+        try:
+            self.environ["response_spec"] = resp = self.cresp()
+        except TypeError:
+            self.environ["response_spec"] = resp = None
+            return True
 
-ORDER = ["url", "response", "content"]
+        self.qresp = None
+        self.info = None
 
-def do_check(test, environ, test_output, **kwargs):
-    if isinstance(test, basestring):
-        chk = factory(test)(**kwargs)
-    else:
-        chk = test(**kwargs)
-    stat = chk(environ, test_output)
-    check_severity(stat)
+        response = self.last_response
+        resp_type = resp.ctype
+        if response:
+            try:
+                ctype = response.headers["content-type"]
+                if ctype == "application/jwt":
+                    resp_type = "jwt"
+            except (AttributeError, TypeError):
+                pass
 
-def err_check(test, environ, test_output, err=None, bryt=True):
-    if err:
-        environ["exception"] = err
-    chk = factory(test)()
-    chk(environ, test_output)
-    if bryt:
-        raise FatalError()
+        if response.status_code >= 400:
+            pass
+        elif not self.position:
+            if isinstance(self.last_content, Message):
+                self.qresp = self.last_content
+            elif response.status_code == 200:
+                self.info = self.last_content
+        elif resp.where == "url" or response.status_code == 302:
+            try:
+                self.info = response.headers["location"]
+                resp_type = "urlencoded"
+            except KeyError:
+                try:
+                    _check = getattr(self.creq, "interaction_check", None)
+                except AttributeError:
+                    _check = None
 
-def test_sequence(sequence, environ, test_output):
-    for test in sequence:
-        if isinstance(test, tuple):
-            test, kwargs = test
+                if _check:
+                    self.err_check("interaction-check")
+                else:
+                    self.do_check("missing-redirect")
         else:
-            kwargs = {}
-        do_check(test, environ, test_output, **kwargs)
-        if test == ExpectedError:
-            return False
-    return True
+            self.do_check("check_content_type_header")
+            self.info = self.last_content
 
-def run_sequence(client, sequence, trace, interaction, msgfactory,
-                 environ=None, tests=None, features=None, verbose=False,
-                 cconf=None, except_exception=None):
-    item = []
-    response = None
-    content = None
-    url = ""
-    test_output = []
-    _keyjar = client.keyjar
-    features = features or {}
-
-    cjar = {"browser": cookielib.CookieJar(),
-            "rp": cookielib.CookieJar(),
-            "service": cookielib.CookieJar()}
-
-    environ["sequence"] = sequence
-    environ["cis"] = []
-    environ["trace"] = trace
-    environ["responses"] = []
-
-    try:
-        for creq, cresp in sequence:
-            environ["request_spec"] = req = creq(cconf=cconf)
-
-            try:
-                environ["response_spec"] = resp = cresp()
-            except TypeError:
-                environ["response_spec"] = resp = None
-
-            if trace:
-                trace.info(70*"=")
-
-            if isinstance(req, Operation):
-                try:
-                    req.update(pick_interaction(interaction,
-                                                req=creq.__name__)["args"])
-                except KeyError:
-                    pass
+        if self.info and resp.response:
+            if isinstance(resp.response, basestring):
+                response = self.msg_factory(resp.response)
             else:
-                try:
-                    req.update(pick_interaction(interaction,
-                                                req=req.request)["args"])
-                except KeyError:
-                    pass
-                try:
-                    environ["request_args"] = req.request_args
-                except KeyError:
-                    pass
-                try:
-                    environ["args"] = req.kw_args
-                except KeyError:
-                    pass
+                response = resp.response
 
+            self.environ["response_type"] = response.__name__
+            self.environ["oidc_response"].append((response, self.info))
             try:
-                _pretests = req.tests["pre"]
-                for test in _pretests:
-                    do_check(test, environ, test_output)
+                self.qresp = self.client.parse_response(
+                    response, self.info, resp_type, self.client.state,
+                    keyjar=self.keyjar, client_id=self.client.client_id,
+                    scope="openid")
+                self.trace.info("[%s]: %s" % (self.qresp.type(),
+                                              self.qresp.to_dict()))
+                #item.append(qresp)
+                self.environ["response_message"] = self.qresp
+                err = None
+            except Exception, err:
+                self.environ["exception"] = "%s" % err
+
+            if err and self.accept_exception:
+                if isinstance(err, self.accept_exception):
+                    self.trace.info("Got expected exception: %s [%s]" % (
+                        err, err.__class__.__name__))
+                else:
+                    raise
+            else:
+                self.do_check("response-parse")
+
+        if self.qresp:
+            try:
+                self.test_sequence(resp.tests["post"])
             except KeyError:
                 pass
 
-            # The authorization dance is all done through the browser
-            if req.request == "AuthorizationRequest":
-                environ["client"].cookiejar = cjar["browser"]
-            # everything else by someone else, assuming the RP
-            else:
-                environ["client"].cookiejar = cjar["rp"]
+            if isinstance(self.qresp, RegistrationResponse):
+                for key, val in self.qresp.items():
+                    setattr(self.client, key, val)
 
+            resp(self.environ, self.qresp)
+
+            return True
+        else:
+            return False
+
+    def setup_request(self):
+        self.environ["request_spec"] = req = self.creq(cconf=self.client_config,
+                                                       environ=self.environ,
+                                                       trace=self.trace)
+
+        if isinstance(req, Operation):
+            for intact in self.interaction.interactions:
+                try:
+                    if req.__class__.__name__ == intact["matches"]["class"]:
+                        req.args = intact["args"]
+                        break
+                except KeyError:
+                    pass
+        else:
             try:
-                if verbose:
-                    print >> sys.stderr, "> %s" % req.request
-                part = req(environ, trace, url, response, content, features)
-                environ.update(dict(zip(ORDER, part)))
-                (url, response, content) = part
-
-                try:
-                    if not test_sequence(req.tests["post"], environ,
-                                         test_output):
-                        #item.append(stat["temp"])
-                        #del stat["temp"]
-                        url = None
-                except KeyError:
-                    pass
-
-            except FatalError:
-                raise
-            except Exception, err:
-                err_check("exception", environ, test_output, err)
-
-            if not resp:
-                continue
-
-            if response.status_code >= 400:
-                done = True
-            elif url:
-                done = False
-            else:
-                done = True
-
-            while not done:
-                while response.status_code in [302, 301, 303]:
-                    url = response.headers["location"]
-
-                    trace.reply("REDIRECT TO: %s" % url)
-                    # If back to me
-                    for_me = False
-                    for redirect_uri in client.redirect_uris:
-                        if url.startswith(redirect_uri):
-                            # Back at the RP
-                            environ["client"].cookiejar = cjar["rp"]
-                            for_me=True
-
-                    if for_me:
-                        done = True
-                        break
-                    else:
-                        try:
-                            part = do_request(client, url, "GET", trace=trace)
-                        except Exception, err:
-                            raise FatalError("%s" % err)
-                        environ.update(dict(zip(ORDER, part)))
-                        (url, response, content) = part
-
-                        do_check("check-http-response", environ, test_output)
-                if done:
-                    break
-
-                _base = url.split("?")[0]
-
-                try:
-                    _spec = pick_interaction(interaction, _base, content)
-                except KeyError:
-                    if creq.method == "POST":
-                        break
-                    elif not req.request in ["AuthorizationRequest",
-                                             "OpenIDRequest"]:
-                        break
-                    else:
-                        try:
-                            _check = getattr(req, "interaction_check")
-                        except AttributeError:
-                            _check = None
-
-                        if _check:
-                            err_check("interaction-check", environ, test_output)
-                        else:
-                            err_check("interaction-needed", environ, test_output)
-
-                if len(_spec) > 2:
-                    trace.info(">> %s <<" % _spec["page-type"])
-                    if _spec["page-type"] == "login":
-                        environ["login"] = content
-
-                _op = Operation(_spec["control"])
-
-                try:
-                    part = _op(environ, trace, url, response, content, features)
-                    environ.update(dict(zip(ORDER, part)))
-                    (url, response, content) = part
-
-                    do_check("check-http-response", environ, test_output)
-                except FatalError:
-                    raise
-                except Exception, err:
-                    err_check("exception", environ, test_output, err)
-
-#            if done:
-#                break
-
-            info = None
-            qresp = None
-            resp_type = resp.type
-            if response:
-                try:
-                    ctype = response.headers["content-type"]
-                    if ctype == "application/jwt":
-                        resp_type = "jwt"
-                except (AttributeError, TypeError):
-                    pass
-
-            if response.status_code >= 400:
+                self.environ["request_args"] = req.request_args
+            except KeyError:
                 pass
-            elif not url:
-                if isinstance(content, Message):
-                    qresp = content
-                elif response.status_code == 200:
-                    info = content
-            elif resp.where == "url" or response.status_code == 302:
-                try:
-                    info = response.headers["location"]
-                    resp_type = "urlencoded"
-                except KeyError:
-                    try:
-                        _check = getattr(req, "interaction_check", None)
-                    except AttributeError:
-                        _check = None
+            try:
+                self.environ["args"] = req.kw_args
+            except KeyError:
+                pass
 
-                    if _check:
-                        err_check("interaction-check", environ, test_output)
-                    else:
-                        do_check("missing-redirect", environ, test_output)
-            else:
-                do_check("check_content_type_header", environ, test_output)
-                info = content
+        # The authorization dance is all done through the browser
+        if req.request == "AuthorizationRequest":
+            self.client.cookiejar = self.cjar["browser"]
+        # everything else by someone else, assuming the RP
+        else:
+            self.client.cookiejar = self.cjar["rp"]
 
-            if info and resp.response:
-                if isinstance(resp.response, basestring):
-                    response = msgfactory(resp.response)
-                else:
-                    response = resp.response
+        self.req = req
 
-                environ["response_type"] = response.__name__
-                environ["responses"].append((response, info))
-                try:
-                    qresp = client.parse_response(response, info, resp_type,
-                                                  client.state,
-                                                  keyjar=_keyjar,
-                                                  client_id=client.client_id,
-                                                  scope="openid")
-                    if trace and qresp:
-                        trace.info("[%s]: %s" % (qresp.type(),
-                                                 qresp.to_dict()))
-                    item.append(qresp)
-                    environ["response_message"] = qresp
-                    err = None
-                except Exception, err:
-                    environ["exception"] = "%s" % err
-                    qresp = None
-                if err and except_exception:
-                    if isinstance(err, except_exception):
-                        trace.info("Got expected exception: %s [%s]" % (err,
-                                                        err.__class__.__name__))
-                    else:
-                        raise
-                else:
-                    do_check("response-parse", environ, test_output)
-
-            if qresp:
-                try:
-                    test_sequence(resp.tests["post"], environ, test_output)
-                except KeyError:
-                    pass
-
-                if isinstance(qresp, RegistrationResponse):
-                    for key, val in qresp.items():
-                        setattr(client, key, val)
-
-                resp(environ, qresp)
-
-        if tests is not None:
-            environ["item"] = item
-            test_sequence(tests, environ, test_output)
-
-    except FatalError:
-        pass
-    except Exception, err:
-        err_check("exception", environ, test_output, err, False)
-
-    return test_output, "%s" % trace
-
-
-def run_sequences(client, sequences, trace, interaction,
-                  verbose=False):
-    for sequence, endpoints, fid in sequences:
-        # clear cookie cache
-        client.grant.clear()
+    def send(self):
         try:
-            client.http.cookiejar.clear()
-        except AttributeError:
+            self.test_sequence(self.req.tests["pre"])
+        except KeyError:
             pass
 
-        err = run_sequence(client, sequence, trace, interaction, verbose)
+        try:
+            if self.verbose:
+                print >> sys.stderr, "> %s" % self.req.request
+            part = self.req(self.position, self.last_response,
+                            self.last_content, self.features)
+            self.environ.update(dict(zip(ORDER, part)))
+            (self.position, self.last_response, self.last_content) = part
 
-        if err:
-            print "%s - FAIL" % fid
-            print
-            if not verbose:
-                print trace
-        else:
-            print "%s - OK" % fid
-
-        trace.clear()
+            try:
+                if not self.test_sequence(self.req.tests["post"]):
+                    self.position = None
+            except KeyError:
+                pass
+        except FatalError:
+            raise
+        except Exception, err:
+            self.err_check("exception", err)

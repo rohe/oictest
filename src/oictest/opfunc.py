@@ -326,10 +326,11 @@ def post_form(client, orig_response, content, **kwargs):
 
     return do_click(client, form, **kwargs)
 
+
 def NoneFunc():
     return None
 
-#noinspection PyUnusedLocal
+
 def interaction(args):
     _type = args["type"]
     if _type == "form":
@@ -341,13 +342,18 @@ def interaction(args):
 
 # ========================================================================
 
+
 class Operation(object):
-    def __init__(self, args=None):
+    def __init__(self, environ, trace, args=None, cconf=None, features=None):
         if args:
             self.function = interaction(args)
 
         self.args = args or {}
         self.request = None
+        self.environ = environ
+        self.trace = trace
+        self.features = features
+        self.cconf = cconf
 
     def update(self, dic):
         self.args.update(dic)
@@ -356,21 +362,19 @@ class Operation(object):
     def post_op(self, result, environ, args):
         pass
 
-    def __call__(self, environ, trace, location, response, content, features):
+    def __call__(self, location, response, content, feature=None):
         try:
             _args = self.args.copy()
         except (KeyError, AttributeError):
             _args = {}
 
-        _args["_trace_"] = trace
         _args["location"] = location
-        _args["features"] = features
 
-        if trace:
-            trace.reply("FUNCTION: %s" % self.function.__name__)
-            trace.reply("ARGS: %s" % _args)
+        self.trace.reply("FUNCTION: %s" % self.function.__name__)
+        self.trace.reply("ARGS: %s" % (_args,))
 
-        result = self.function(environ["client"], response, content, **_args)
-        self.post_op(result, environ, _args)
+        result = self.function(self.environ["client"], response, content,
+                               **_args)
+        self.post_op(result, self.environ, _args)
         return result
 

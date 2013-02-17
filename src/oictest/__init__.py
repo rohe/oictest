@@ -1,5 +1,10 @@
 #!/usr/bin/env python
+import time
+
+from oictest.base import flow2sequence
+from oictest.base import Conversation
 from oic.utils.keyio import key_export
+from rrtest import Trace, FatalError
 
 __author__ = 'rohe0002'
 
@@ -15,7 +20,8 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.oic.message import RegistrationRequest
 
 from oictest.check import CheckRegistrationResponse
-from oictest.base import *
+from oictest.check import factory as check_factory
+#from oictest.base import *
 
 QUERY2RESPONSE = {
     "AuthorizationRequest": "AuthorizationResponse",
@@ -25,16 +31,21 @@ QUERY2RESPONSE = {
     "RegistrationRequest": "RegistrationResponse"
 }
 
+
 class HTTP_ERROR(Exception):
     pass
+
 
 def start_script(path, *args):
     popen_args = [path]
     popen_args.extend(args)
     return Popen(popen_args, stdout=PIPE, stderr=PIPE)
 
+
 def stop_script_by_name(name):
-    import subprocess, signal, os
+    import subprocess
+    import signal
+    import os
 
     p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
     out, err = p.communicate()
@@ -44,10 +55,12 @@ def stop_script_by_name(name):
             pid = int(line.split(None, 1)[0])
             os.kill(pid, signal.SIGKILL)
 
+
 def stop_script_by_pid(pid):
     import signal, os
 
     os.kill(pid, signal.SIGKILL)
+
 
 def get_page(url):
     resp = requests.get(url)
@@ -56,18 +69,20 @@ def get_page(url):
     else:
         raise HTTP_ERROR(resp.status)
 
+
 KEY_EXPORT_ARGS = {
     "script": "static_provider.py",
 #    "server": "http://%s:8090/export" % HOST,
     "local_path": "export",
     "vault": "keys",
     "sig": {
-        "alg":"rsa",
+        "alg": "rsa",
         "create_if_missing": True,
         "format": ["jwk", "x509"]
         #"name": "jwk.json",
     }
 }
+
 
 def start_key_server(part):
     # start the server
@@ -79,15 +94,17 @@ def start_key_server(part):
 
     return start_script(KEY_EXPORT_ARGS["script"], host, port)
 
+
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password"]
 
-    def __init__(self, operations_mod, client_class, msgfactory):
+    def __init__(self, operations_mod, client_class, msg_factory, chk_factory):
         self.operations_mod = operations_mod
         self.client_class = client_class
         self.client = None
         self.trace = Trace()
-        self.msgfactory = msgfactory
+        self.msg_factory = msg_factory
+        self.chk_factory = chk_factory
 
         self._parser = argparse.ArgumentParser()
         #self._parser.add_argument('-v', dest='verbose', action='store_true')
@@ -105,7 +122,8 @@ class OAuth2(object):
                                   help="List all the test flows as a JSON object")
         self._parser.add_argument("-H", dest="host", default="example.com",
                                   help="Which host the script is running on, used to construct the key export URL")
-        self._parser.add_argument("flow", nargs="?", help="Which test flow to run")
+        self._parser.add_argument("flow", nargs="?",
+                                  help="Which test flow to run")
 
         self.args = None
         self.pinfo = None
@@ -118,7 +136,7 @@ class OAuth2(object):
         self._pop = None
 
     def parse_args(self):
-        self.json_config= self.json_config_file()
+        self.json_config = self.json_config_file()
 
         try:
             self.features = self.json_config["features"]
@@ -134,7 +152,7 @@ class OAuth2(object):
         else:
             return json.loads(open(self.args.json_config_file).read())
 
-    def test_summation(self, id):
+    def test_summation(self, sid):
         status = 0
         for item in self.test_log:
             if item["status"] > status:
@@ -143,17 +161,17 @@ class OAuth2(object):
         if status == 0:
             status = 1
 
-        sum = {
-            "id": id,
+        info = {
+            "id": sid,
             "status": status,
             "tests": self.test_log
         }
 
         if status == 5:
-            sum["url"] = self.test_log[-1]["url"]
-            sum["htmlbody"] = self.test_log[-1]["message"]
+            info["url"] = self.test_log[-1]["url"]
+            info["htmlbody"] = self.test_log[-1]["message"]
 
-        return sum
+        return info
 
     def run(self):
         self.args = self._parser.parse_args()
@@ -173,22 +191,24 @@ class OAuth2(object):
                 block = {}
 
             self.parse_args()
-            _seq = self.make_sequence()
+            _spec = self.make_sequence()
             interact = self.get_interactions()
 
             try:
-                self.do_features(interact, _seq, block)
-            except Exception,exc:
+                self.do_features(interact, _spec["sequence"], block)
+            except Exception, exc:
                 exception_trace("do_features", exc)
-                _output = {"status": 4,
-                           "tests": [{"status": 4,
-                                      "message":"Couldn't run testflow: %s" % exc,
-                                      "id": "verify_features",
-                                      "name": "Make sure you don't do things you shouldn't"}]}
+                _output = {
+                    "status": 4,
+                    "tests": [{
+                        "status": 4,
+                        "message":"Couldn't run testflow: %s" % exc,
+                        "id": "verify_features",
+                        "name": "Make sure you don't do things you shouldn't"}]}
                 #print >> sys.stdout, json.dumps(_output)
                 return
 
-            tests = self.get_test()
+            #tests = self.get_test()
             self.client.state = "STATE0"
 
             self.environ.update({"provider_info": self.pinfo,
@@ -202,17 +222,20 @@ class OAuth2(object):
             try:
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
-                testres, trace = run_sequence(self.client, _seq, self.trace,
-                                              interact, self.msgfactory,
-                                              self.environ, tests,
-                                              self.json_config["features"],
-                                              self.args.verbose, self.cconf,
-                                              except_exception)
-                self.test_log.extend(testres)
-                sum = self.test_summation(self.args.flow)
-                print >>sys.stdout, json.dumps(sum)
-                if sum["status"] > 1 or self.args.debug:
-                    print >>sys.stderr, trace
+                conv = Conversation(self.client, self.cconf, self.trace,
+                                    interact, msg_factory=self.msg_factory,
+                                    check_factory=self.chk_factory)
+                conv.do_sequence(_spec)
+                #testres, trace = do_sequence(oper,
+                self.test_log = conv.test_output
+                tsum = self.test_summation(self.args.flow)
+                print >>sys.stdout, json.dumps(tsum)
+                if tsum["status"] > 1 or self.args.debug:
+                    print >> sys.stderr, self.trace
+            except FatalError, err:
+                print >> sys.stderr, self.trace
+                print err
+                #exception_trace("RUN", err)
             except Exception, err:
                 print >> sys.stderr, self.trace
                 print err
@@ -226,9 +249,8 @@ class OAuth2(object):
 
     def operations(self):
         lista = []
-        for key,val in self.operations_mod.FLOWS.items():
-            item = {"id": key,
-                    "name": val["name"],}
+        for key, val in self.operations_mod.FLOWS.items():
+            item = {"id": key, "name": val["name"]}
             try:
                 _desc = val["descr"]
                 if isinstance(_desc, basestring):
@@ -281,7 +303,7 @@ class OAuth2(object):
         else:
             try:
                 self.client = self.client_class(
-                                        ca_certs=self.json_config["ca_certs"])
+                    ca_certs=self.json_config["ca_certs"])
             except (KeyError, TypeError):
                 self.client = self.client_class()
 
@@ -297,7 +319,8 @@ class OAuth2(object):
         self.cconf = self.json_config["client"]
         # replace pattern with real value
         _h = self.args.host
-        self.cconf["redirect_uris"] = [p % _h for p in self.cconf["redirect_uris"]]
+        self.cconf["redirect_uris"] = [p % _h for p in
+                                       self.cconf["redirect_uris"]]
 
         try:
             self.client.client_prefs = self.cconf["preferences"]
@@ -315,13 +338,24 @@ class OAuth2(object):
         # Whatever is specified on the command line takes precedences
         if self.args.flow:
             sequence = flow2sequence(self.operations_mod, self.args.flow)
+            _flow = self.args.flow
         elif self.json_config and "flow" in self.json_config:
             sequence = flow2sequence(self.operations_mod,
                                      self.json_config["flow"])
+            _flow = self.json_config["flow"]
         else:
             sequence = None
+            _flow = ""
 
-        return sequence
+        res = {"sequence": sequence, "tests": {"pre": [],"post": []}}
+
+        if _flow:
+            try:
+                res["tests"]["post"] = self.operations_mod.FLOWS[_flow]["tests"]
+            except KeyError:
+                pass
+
+        return res
 
     def get_interactions(self):
         interactions = []
@@ -359,20 +393,22 @@ class OAuth2(object):
 
 URL_TYPES = ["jwk_url", "jwk_encryption_url", "x509_url", "x509_encryption_url"]
 
+
 class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
-    def __init__(self, operations_mod, client_class,
-                 consumer_class, msgfactory):
-        OAuth2.__init__(self, operations_mod, client_class, msgfactory)
+    def __init__(self, operations_mod, client_class, consumer_class,
+                 msgfactory, chk_factory):
+        OAuth2.__init__(self, operations_mod, client_class, msgfactory,
+                        chk_factory)
 
         #self._parser.add_argument('-R', dest="rsakey")
-        self._parser.add_argument('-i', dest="internal_server",
-                                  action='store_true',
-                                  help="Whether or not an internal web server to handle key export should be forked")
-        self._parser.add_argument('-e', dest="external_server",
-                                  action='store_true',
-                                  help="A external web server are used to handle key export")
+        self._parser.add_argument(
+            '-i', dest="internal_server", action='store_true',
+            help="Whether or not an internal web server to handle key export should be forked")
+        self._parser.add_argument(
+            '-e', dest="external_server", action='store_true',
+            help="A external web server are used to handle key export")
 
         self.consumer_class = consumer_class
 
@@ -439,7 +475,8 @@ class OIC(OAuth2):
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
     def do_features(self, interact, _seq, block):
-        self.cconf["_base_url"] = self.cconf["key_export_url"] % (self.args.host,)
+        self.cconf["_base_url"] = self.cconf["key_export_url"] % (
+            self.args.host,)
 
         if "key_export" not in block:
             if "key_export" in self.features and self.features["key_export"]:
@@ -468,7 +505,7 @@ class OIC(OAuth2):
                 _seq.insert(0, _ext)
                 interact.append({"matches": {"class":"RegistrationRequest"},
                                  "args":{"request":self.register_args()}})
-        else: # don't try to register
+        else:  # don't try to register
             for sq in _seq:
                 if sq[0].request == "RegistrationRequest":
                     raise Exception("RegistrationRequest in the test should not be run")
@@ -485,9 +522,10 @@ class OIC(OAuth2):
                 op_spec = self.operations_mod.PHASES["provider-discovery"]
                 if op_spec not in _seq:
                     _seq.insert(0, op_spec)
-                interact.append({"matches": {"class": op_spec[0].__name__},
-                                 "args":{"issuer":
-                                    self.json_config["provider"]["dynamic"]}})
+                interact.append({
+                    "matches": {"class": op_spec[0].__name__},
+                    "args": {"issuer":
+                                 self.json_config["provider"]["dynamic"]}})
 
             else:
                 self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
@@ -499,8 +537,8 @@ class OIC(OAuth2):
         #self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
         part, res = key_export(self.cconf["_base_url"], "exports", "vault",
                                self.client.keyjar, "example.com",
-                               sig= {"alg":"rsa", "create_if_missing": True,
-                                     "format": ["jwk", "x509"]})
+                               sig={"alg": "rsa", "create_if_missing": True,
+                                    "format": ["jwk", "x509"]})
 
         for name, url in res.items():
             self.cconf[name] = url
@@ -516,7 +554,8 @@ if __name__ == "__main__":
     from oictest import oauth2_operations
     from oic.oauth2 import Client
     from oic.oauth2 import factory
+    from oictest.check import factory as chk_factory
 
-    cli = OAuth2(oauth2_operations, Client, factory)
+    cli = OAuth2(oauth2_operations, Client, factory, chk_factory)
 
     cli.run()

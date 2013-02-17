@@ -3,8 +3,20 @@ import json
 from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwe import decrypt
-from oic.oauth2.message import ErrorResponse, MissingRequiredAttribute
-from oic.oic import message, AuthorizationResponse
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import MissingRequiredAttribute
+from oic.oic import AuthorizationResponse
+from oic.oic import message
+
+from rrtest.check import Check
+from rrtest.check import CriticalError
+from rrtest.check import Other
+from rrtest.check import Error
+from rrtest.check import ExpectedError
+from rrtest.check import CRITICAL
+from rrtest.check import ERROR
+from rrtest.check import INFORMATION
+from rrtest.check import INTERACTION
 
 __author__ = 'rohe0002'
 
@@ -13,83 +25,22 @@ import sys
 import traceback
 import urlparse
 
-from oic.oic.message import SCOPE2CLAIMS, IdToken, OpenIDSchema
-#from oic.oic.message import
+from oic.oic.message import SCOPE2CLAIMS
+from oic.oic.message import IdToken
+from oic.oic.message import OpenIDSchema
 from oic.utils import time_util
 
-INFORMATION = 0
-OK = 1
-WARNING = 2
-ERROR = 3
-CRITICAL = 4
-INTERACTION = 5
-
-STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
-              "INTERACTION"]
 
 CONT_JSON = "application/json"
 CONT_JWT = "application/jwt"
 
-class Check():
-    """ General test
-    """
-    id = "check"
-    msg = "OK"
 
-    def __init__(self, **kwargs):
-        self._status = OK
-        self._message = ""
-        self.content = None
-        self.url = ""
-        self._kwargs = kwargs
-
-    def _func(self, environ):
-        return {}
-
-    def __call__(self, environ=None, output=None):
-        _stat =  self.response(**self._func(environ))
-        output.append(_stat)
-        return _stat
-
-    def response(self, **kwargs):
-        try:
-            name = " ".join([s.strip() for s in self.__doc__.strip().split("\n")])
-        except AttributeError:
-            name = ""
-
-        res = {
-            "id": self.id,
-            "status": self._status,
-            "name": name
-        }
-
-        if self._message:
-            res["message"] = self._message
-
-        if kwargs:
-            res.update(kwargs)
-
-        return res
-
-class ExpectedError(Check):
-    pass
-
-class CriticalError(Check):
-    status = CRITICAL
-
-class Error(Check):
-    status = ERROR
-
-class Other(CriticalError):
-    """ Other error """
-    msg  = "Other error"
-    
 class CmpIdtoken(Other):
     """
     Compares the JSON received as a CheckID response with my own
     interpretation of the IdToken.
     """
-    id = "compare-idoken-received-with-check_id-response"
+    cid = "compare-idoken-received-with-check_id-response"
 
     def _func(self, environ):
         res = {}
@@ -109,15 +60,16 @@ class CmpIdtoken(Other):
         else:
             self._status = self.status
             res["message"] = " ".join([
-                    "My deserialization of the IDToken differs from what the",
-                    "checkID response"])
+                "My deserialization of the IDToken differs from what the",
+                "checkID response"])
         return res
+
 
 class CheckHTTPResponse(CriticalError):
     """
     Checks that the HTTP response status is within the 200 or 300 range
     """
-    id = "check-http-response"
+    cid = "check-http-response"
     msg = "OP error"
 
     def _func(self, environ):
@@ -125,7 +77,7 @@ class CheckHTTPResponse(CriticalError):
         _content = environ["content"]
 
         res = {}
-        if _response.status_code >= 400 :
+        if _response.status_code >= 400:
             self._status = self.status
             self._message = self.msg
             if CONT_JSON in _response.headers["content-type"]:
@@ -152,12 +104,13 @@ class CheckHTTPResponse(CriticalError):
 
         return res
 
+
 class CheckErrorResponse(ExpectedError):
     """
     Checks that the HTTP response status is outside the 200 or 300 range
     or that an JSON encoded error message has been received
     """
-    id = "check-error-response"
+    cid = "check-error-response"
     msg = "OP error"
 
     def _func(self, environ):
@@ -165,9 +118,9 @@ class CheckErrorResponse(ExpectedError):
         _content = environ["content"]
 
         res = {}
-        if _response.status_code >= 400 :
+        if _response.status_code >= 400:
             content_type = _response.headers["content-type"]
-            if content_type == None:
+            if content_type is None:
                 res["content"] = _content
             elif CONT_JSON in content_type:
                 try:
@@ -193,12 +146,13 @@ class CheckErrorResponse(ExpectedError):
 
         return res
 
+
 class CheckRedirectErrorResponse(ExpectedError):
     """
     Checks that the HTTP response status is outside the 200 or 300 range
     or that an JSON encoded error message has been received
     """
-    id = "check-redirect-error-response"
+    cid = "check-redirect-error-response"
     msg = "OP error"
 
     def _func(self, environ):
@@ -211,7 +165,7 @@ class CheckRedirectErrorResponse(ExpectedError):
                 query = _loc.split("?")[1]
             elif "#" in _loc:
                 query = _loc.split("#")[1]
-            else: # ???
+            else:  # ???
                 self._message = "Expected redirect"
                 self._status = CRITICAL
                 return res
@@ -220,7 +174,7 @@ class CheckRedirectErrorResponse(ExpectedError):
             self._status = CRITICAL
             return res
 
-        if _response.status_code == 302 :
+        if _response.status_code == 302:
             err = ErrorResponse().deserialize(query, "urlencoded")
             try:
                 err.verify()
@@ -238,19 +192,20 @@ class CheckRedirectErrorResponse(ExpectedError):
 
         return res
 
+
 class VerifyBadRequestResponse(ExpectedError):
     """
     Verifies that the OP returned a 400 Bad Request response containing a
     Error message.
     """
-    id = "verify-bad-request-response"
+    cid = "verify-bad-request-response"
     msg = "OP error"
 
     def _func(self, environ):
         _response = environ["response"]
         _content = environ["content"]
         res = {}
-        if _response.status_code == 400 :
+        if _response.status_code == 400:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
@@ -264,6 +219,7 @@ class VerifyBadRequestResponse(ExpectedError):
 
         return res
 
+
 class VerifyPromptNoneResponse(Check):
     """
     The OP may respond in more than one way and still be within
@@ -272,7 +228,7 @@ class VerifyPromptNoneResponse(Check):
     The Authorization Server MUST NOT display any authentication or
     consent user interface pages.
     """
-    id = "verify-prompt-none-response"
+    cid = "verify-prompt-none-response"
     msg = "OP error"
 
     def _func(self, environ):
@@ -280,7 +236,7 @@ class VerifyPromptNoneResponse(Check):
         _content = environ["content"]
         _client = environ["client"]
         res = {}
-        if _response.status_code == 400 :
+        if _response.status_code == 400:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             if err["error"] in ["consent_required", "interaction_required"]:
@@ -310,7 +266,7 @@ class VerifyPromptNoneResponse(Check):
                 _query = _loc.split("?")[1]
             elif "#" in _loc:
                 _query = _loc.split("#")[1]
-            else: # ???
+            else:  # ???
                 self._message = "Expected info in the redirect"
                 self._status = CRITICAL
                 return res
@@ -335,17 +291,18 @@ class VerifyPromptNoneResponse(Check):
                     environ["item"].append(resp)
                 except KeyError:
                     environ["item"] = [resp]
-        else: # should not get anything else
+        else:  # should not get anything else
             self._message = "Not an response I expected"
             self._status = CRITICAL
 
         return res
 
+
 class CheckSupported(CriticalError):
     """
     Checks that something asked for are supported
     """
-    id = "check-support"
+    cid = "check-support"
     msg = "X not supported"
     element = "X_supported"
     parameter = "X"
@@ -394,13 +351,13 @@ class CheckResponseType(CheckSupported):
     """
     Checks that the asked for response type are among the supported
     """
-    id = "check-response-type"
+    cid = "check-response-type"
     msg = "Response type not supported"
 
     def _supported(self, request_args, provider_info):
         try:
             supported = [set(s.split(" ")) for s in
-                   provider_info["response_types_supported"]]
+                         provider_info["response_types_supported"]]
         except KeyError:
             supported = [set(["code"])]
 
@@ -419,11 +376,12 @@ class CheckResponseType(CheckSupported):
 
         return True
 
+
 class CheckAcrSupport(CheckSupported):
     """
     Checks that the asked for acr are among the supported
     """
-    id = "check-acr-support"
+    cid = "check-acr-support"
     msg = "ACR level not supported"
 
     def _supported(self, request_args, provider_info):
@@ -446,74 +404,82 @@ class CheckAcrSupport(CheckSupported):
 
         return True
 
+
 class CheckScopeSupport(CheckSupported):
     """
     Checks that the asked for acr are among the supported
     """
-    id = "check-acr-support"
+    cid = "check-acr-support"
     msg = "ACR level not supported"
     element = "scopes_supported"
     parameter = "scope"
+
 
 class CheckUserIdSupport(CheckSupported):
     """
     Checks that the asked for acr are among the supported
     """
-    id = "check-userid-support"
+    cid = "check-userid-support"
     msg = "Subject type not supported"
     element = "subject_types_supported"
     parameter = "subject_type"
+
 
 class CheckSignedUserInfoSupport(CheckSupported):
     """
     Checks that the asked for signature algorithms are among the supported
     """
-    id = "check-signed-userinfo-support"
+    cid = "check-signed-userinfo-support"
     msg = "Signed UserInfo not supported"
     element = "userinfo_signing_alg_values_supported"
     parameter = "userinfo_signed_response_alg"
+
 
 class CheckSignedIdTokenSupport(CheckSupported):
     """
     Checks that the asked for signature algorithms are among the supported
     """
-    id = "check-signed-idtoken-support"
+    cid = "check-signed-idtoken-support"
     msg = "Signed Id Token algorithm not supported"
     element = "id_token_signing_alg_values_supported"
     parameter = "id_token_signed_response_alg"
+
 
 class CheckEncryptedUserInfoSupportALG(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-userinfo-alg-support"
+    cid = "check-signed-userinfo-alg-support"
     msg = "Userinfo alg algorithm not supported"
     element = "userinfo_encryption_alg_values_supported"
     parameter = "userinfo_encrypted_response_alg"
+
 
 class CheckEncryptedUserInfoSupportENC(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-userinfo-enc-support"
+    cid = "check-signed-userinfo-enc-support"
     msg = "UserInfo enc algorithm not supported"
     element = "userinfo_encryption_enc_values_supported"
     parameter = "userinfo_encrypted_response_enc"
+
 
 class CheckEncryptedIDTokenSupportALG(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-idtoken-alg-support"
+    cid = "check-signed-idtoken-alg-support"
     msg = "Id Token alg algorithm not supported"
     element = "id_token_encryption_alg_values_supported"
     parameter = "id_token_encrypted_response_alg"
+
 
 class CheckEncryptedIDTokenSupportENC(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    id = "check-signed-idtoken-enc-support"
+    cid = "check-signed-idtoken-enc-support"
     msg = "Id Token enc method not supported"
     element = "id_token_encryption_enc_values_supported"
     parameter = "id_token_encrypted_response_enc"
@@ -523,7 +489,7 @@ class CheckTokenEndpointAuthType(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
     """
-    id = "check-token-endpoint-auth-type"
+    cid = "check-token-endpoint-auth-type"
     msg = "Auth type not supported"
 
     def _func(self, environ):
@@ -552,24 +518,25 @@ class CheckTokenEndpointAuthType(CriticalError):
 
         return {}
 
+
 class CheckContentTypeHeader(Error):
     """
     Verify that the content-type header is what it should be.
     """
-    id = "check_content_type_header"
+    cid = "check_content_type_header"
 
     def _func(self, environ=None):
         res = {}
         _response = environ["response"]
         try:
             ctype = _response.headers["content-type"]
-            if environ["response_spec"].type == "json":
+            if environ["response_spec"].ctype == "json":
                 if CONT_JSON in ctype or CONT_JWT in ctype:
                     pass
                 else:
                     self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
-            else: # has to be uuencoded
+            else:  # has to be uuencoded
                 if not "application/x-www-form-urlencoded" in ctype:
                     self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
@@ -578,9 +545,10 @@ class CheckContentTypeHeader(Error):
 
         return res
 
+
 class CheckEndpoint(CriticalError):
     """ Checks that the necessary endpoint exists at a server """
-    id = "check-endpoint"
+    cid = "check-endpoint"
     msg = "Endpoint missing"
 
     def _func(self, environ=None):
@@ -594,46 +562,50 @@ class CheckEndpoint(CriticalError):
 
         return {}
 
+
 class CheckProviderInfo(Error):
     """
     Check that the Provider Info is sound
     """
-    id = "check-provider-info"
+    cid = "check-provider-info"
     msg = "Provider information error"
 
     def _func(self, environ=None):
         #self._status = self.status
         return {}
 
+
 class CheckRegistrationResponse(Error):
     """
     Verifies an Registration response. This is additional constrains besides
     what is optional or required.
     """
-    id = "check-registration-response"
+    cid = "check-registration-response"
     msg = "Registration response error"
 
     def _func(self, environ=None):
         #self._status = self.status
         return {}
 
+
 class CheckAuthorizationResponse(Error):
     """
     Verifies an Authorization response. This is additional constrains besides
     what is optional or required.
     """
-    id = "check-authorization-response"
+    cid = "check-authorization-response"
 
     def _func(self, environ=None):
         #self._status = self.status
         return {}
+
 
 class LoginRequired(Error):
     """
     Verifies an Authorization error response. The error should be
     login_required.
     """
-    id = "login-required"
+    cid = "login-required"
 
     def _func(self, environ=None):
         #self._status = self.status
@@ -642,15 +614,15 @@ class LoginRequired(Error):
             assert resp.type() == "AuthorizationErrorResponse"
         except AssertionError:
             self._status = self.status
-            self._message = "Expected authorization error response got %s" %(
-                                                                    resp.type())
+            self._message = "Expected authorization error response got %s" % (
+                resp.type())
 
             try:
                 assert resp.type() == "ErrorResponse"
             except AssertionError:
                 self.status = CRITICAL
                 self._message = "Expected an Error Response got %s" % (
-                                                                    resp.type())
+                    resp.type())
                 return {}
 
         try:
@@ -661,11 +633,12 @@ class LoginRequired(Error):
 
         return {}
 
+
 class WrapException(CriticalError):
     """
     A runtime exception
     """
-    id = "exception"
+    cid = "exception"
     msg = "Test tool exception"
 
     def _func(self, environ=None):
@@ -673,11 +646,12 @@ class WrapException(CriticalError):
         self._message = traceback.format_exception(*sys.exc_info())
         return {}
 
+
 class InteractionNeeded(CriticalError):
     """
     A Webpage was displayed for which no known interaction is defined.
     """
-    id = "interaction-needed"
+    cid = "interaction-needed"
     msg = "Unexpected page"
 
     def _func(self, environ=None):
@@ -685,11 +659,12 @@ class InteractionNeeded(CriticalError):
         self._message = None
         return {"url": environ["url"]}
 
+
 class InteractionCheck(CriticalError):
     """
     A Webpage was displayed for which no known interaction is defined.
     """
-    id = "interaction-check"
+    cid = "interaction-check"
 
     def _func(self, environ=None):
         self._status = INTERACTION
@@ -697,21 +672,23 @@ class InteractionCheck(CriticalError):
         parts = urlparse.urlsplit(environ["url"])
         return {"url": "%s://%s%s" % parts[:3]}
 
+
 class MissingRedirect(CriticalError):
     """ At this point in the flow a redirect back to the client was expected.
     """
-    id = "missing-redirect"
+    cid = "missing-redirect"
     msg = "Expected redirect to the RP, got something else"
 
     def _func(self, environ=None):
         self._status = self.status
         return {"url": environ["url"]}
 
+
 class Parse(CriticalError):
     """ Parsing the response """
-    id = "response-parse"
+    cid = "response-parse"
     errmsg = "Parse error"
-    
+
     def _func(self, environ=None):
         if "exception" in environ:
             self._status = self.status
@@ -722,13 +699,15 @@ class Parse(CriticalError):
             cname = _rmsg.type()
             if environ["response_type"] != cname:
                 self._status = self.status
-                self._message = ("Didn't get a response of the type I expected:",
-                                " '%s' instead of '%s', content:'%s'" % (cname,
-                                                environ["response_type"], _rmsg))
+                self._message = (
+                    "Didn't get a response of the type I expected:",
+                    " '%s' instead of '%s', content:'%s'" % (
+                        cname, environ["response_type"], _rmsg))
         return {
             "response_type": environ["response_type"],
             "url": environ["url"]
         }
+
 
 def get_authz_request(environ):
     for req in ["AuthorizationRequest", "OpenIDRequest"]:
@@ -738,13 +717,14 @@ def get_authz_request(environ):
             pass
     return None
 
+
 class VerifyClaims(Error):
     """
     Verifies that the user information returned is consistent with
     what was asked for
     """
-    id = "verify-claims"
-    errmsg= "attributes received not matching claims"
+    cid = "verify-claims"
+    errmsg = "attributes received not matching claims"
 
     def _func(self, environ=None):
         userinfo_claims = {}
@@ -788,11 +768,12 @@ class VerifyClaims(Error):
 
         return {}
 
+
 class VerifyErrResponse(ExpectedError):
     """
     Verifies that the response received was an Error response
     """
-    id = "verify-err-response"
+    cid = "verify-err-response"
     msg = "OP error"
 
     def _func(self, environ):
@@ -824,26 +805,27 @@ class VerifyErrResponse(ExpectedError):
 
         return res
 
+
 REQUIRED = {"essential": True}
 OPTIONAL = None
+
 
 class verifyIDToken(CriticalError):
     """
     Verifies that the IDToken contains what it should
     """
-    id = "verify-id-token"
+    cid = "verify-id-token"
     msg = "IDToken error"
 
     def _func(self, environ):
         done = False
-        _vkeys = environ["client"].keyjar.get("ver")
 
         idtoken_claims = {}
         req = get_authz_request(environ)
         if "idtoken_claims" in req:
             for key, val in req["idtoken_claims"]["claims"].items():
                 idtoken_claims[key] = val
-        #self._kwargs["claims"].items()
+                #self._kwargs["claims"].items()
 
         for item in environ["item"]:
             if self._status == self.status or done:
@@ -899,13 +881,14 @@ class verifyIDToken(CriticalError):
                             self._message = "Wrong value on '%s'" % key
                             break
 
-
                 done = True
 
         return {}
 
+
 class Information(Check):
     status = INFORMATION
+
 
 class ResponseInfo(Information):
     """Response information"""
@@ -921,14 +904,17 @@ class ResponseInfo(Information):
 
         return {}
 
+
 class RegistrationInfo(ResponseInfo):
     """Registration Response"""
+
 
 class ProviderConfigurationInfo(ResponseInfo):
     """Provider Configuration Response"""
 
+
 class UnpackAggregatedClaims(Error):
-    id = "unpack-aggregated-claims"
+    cid = "unpack-aggregated-claims"
 
     def _func(self, environ=None):
         resp = environ["response_message"]
@@ -942,8 +928,9 @@ class UnpackAggregatedClaims(Error):
 
         return {}
 
+
 class ChangedSecret(Error):
-    id = "changed-client-secret"
+    cid = "changed-client-secret"
 
     def _func(self, environ=None):
         resp = environ["response_message"]
@@ -956,9 +943,11 @@ class ChangedSecret(Error):
 
         return {}
 
+
 class VerifyAccessTokenResponse(Error):
-    id = "verify-access-token-response"
-    section = "http://openid.bitbucket.org/openid-connect-messages-1_0.html#access_token_response"
+    cid = "verify-access-token-response"
+    section = "http://openid.bitbucket.org/" + \
+              "openid-connect-messages-1_0.html#access_token_response"
 
     def _func(self, environ=None):
         resp = environ["response_message"]
@@ -984,9 +973,10 @@ class VerifyAccessTokenResponse(Error):
 
         return {}
 
+
 class SingleSignOn(Error):
     """ Verifies that Single-Sign-On actually works """
-    id = "single-sign-on"
+    cid = "single-sign-on"
 
     def _func(self, environ):
         logins = 0
@@ -1002,9 +992,10 @@ class SingleSignOn(Error):
 
         return {}
 
+
 class MultipleSignOn(Error):
     """ Verifies that multiple authentication was used in the flow """
-    id = "multiple-sign-on"
+    cid = "multiple-sign-on"
 
     def _func(self, environ):
         logins = 0
@@ -1020,8 +1011,9 @@ class MultipleSignOn(Error):
 
         return {}
 
+
 class VerifyRedirect_uriQueryComponent(Error):
-    id = "verify-redirect_uri-query_component"
+    cid = "verify-redirect_uri-query_component"
 
     def _func(self, environ):
         ruri = self._kwargs["redirect_uri"]
@@ -1039,8 +1031,9 @@ class VerifyRedirect_uriQueryComponent(Error):
 
         return {}
 
+
 class VerifyError(Error):
-    id = "verify-error"
+    cid = "verify-error"
 
     def _func(self, environ):
         response = environ["response"]
@@ -1068,13 +1061,14 @@ class VerifyError(Error):
 
         return {}
 
+
 class CheckKeys(CriticalError):
     """ Checks that the necessary keys are defined """
-    id = "check-keys"
+    cid = "check-keys"
     msg = "Missing keys"
 
     def _func(self, environ=None):
-        cls = environ["request_spec"].request
+        #cls = environ["request_spec"].request
         client = environ["client"]
         # key type
         keys = client.keyjar.get_signing_key("rsa")
@@ -1086,8 +1080,9 @@ class CheckKeys(CriticalError):
 
         return {}
 
+
 class VerifyPolicyURLs(Error):
-    id = "policy_url_on_page"
+    cid = "policy_url_on_page"
     msg = "policy_url not on page"
 
     def _func(self, environ=None):
@@ -1101,8 +1096,9 @@ class VerifyPolicyURLs(Error):
 
         return {}
 
+
 class VerifyLogoURLs(Error):
-    id = "logo_url_on_page"
+    cid = "logo_url_on_page"
     msg = "logo_url not on page"
 
     def _func(self, environ=None):
@@ -1116,13 +1112,14 @@ class VerifyLogoURLs(Error):
 
         return {}
 
+
 class CheckUserID(Error):
-    id = "different_sub"
+    cid = "different_sub"
     msg = "sub not changed between public and pairwise"
 
     def _func(self, environ=None):
         sub = []
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == OpenIDSchema:
                 _dict = json.loads(msg)
                 sub.append(_dict["sub"])
@@ -1135,8 +1132,9 @@ class CheckUserID(Error):
 
         return {}
 
+
 class VerifyUserInfo(Error):
-    id = "verify-userinfo"
+    cid = "verify-userinfo"
     msg = "Essential User info missing"
 
     def _func(self, environ):
@@ -1164,12 +1162,13 @@ class VerifyUserInfo(Error):
 
         return {}
 
+
 class CheckAsymSignedUserInfo(Error):
-    id = "asym-signed-userinfo"
+    cid = "asym-signed-userinfo"
     msg = "User info was not signed"
 
     def _func(self, environ):
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == message.OpenIDSchema:
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
@@ -1180,12 +1179,13 @@ class CheckAsymSignedUserInfo(Error):
 
         return {}
 
+
 class CheckSymSignedIdToken(Error):
-    id = "sym-signed-idtoken"
+    cid = "sym-signed-idtoken"
     msg = "Incorrect signature type"
 
     def _func(self, environ):
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == message.AccessTokenResponse:
                 _dict = json.loads(msg)
                 jwt = _dict["id_token"]
@@ -1198,12 +1198,13 @@ class CheckSymSignedIdToken(Error):
 
         return {}
 
+
 class CheckEncryptedUserInfo(Error):
-    id = "encrypted-userinfo"
+    cid = "encrypted-userinfo"
     msg = "User info was not encrypted"
 
     def _func(self, environ):
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == message.OpenIDSchema:
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
@@ -1214,12 +1215,13 @@ class CheckEncryptedUserInfo(Error):
 
         return {}
 
+
 class CheckEncryptedIDToken(Error):
-    id = "encrypted-idtoken"
+    cid = "encrypted-idtoken"
     msg = "ID Token was not encrypted"
 
     def _func(self, environ):
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == message.AccessTokenResponse:
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
@@ -1231,13 +1233,14 @@ class CheckEncryptedIDToken(Error):
 
         return {}
 
+
 class CheckSignedEncryptedIDToken(Error):
-    id = "signed-encrypted-idtoken"
+    cid = "signed-encrypted-idtoken"
     msg = "ID Token was not signed and encrypted"
 
     def _func(self, environ):
         client = environ["client"]
-        for cls, msg in environ["responses"]:
+        for cls, msg in environ["oidc_response"]:
             if cls == message.AccessTokenResponse:
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
@@ -1258,11 +1261,12 @@ class CheckSignedEncryptedIDToken(Error):
 
         return {}
 
-def factory(id):
+
+def factory(cid):
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj):
             try:
-                if obj.id == id:
+                if obj.cid == cid:
                     return obj
             except AttributeError:
                 pass
