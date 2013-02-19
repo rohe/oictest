@@ -31,8 +31,9 @@ class Conversation(tool.Conversation):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
                                    features, verbose)
-        self.environ["cis"] = []
-        self.environ["oidc_response"] = []
+        self.cis = []
+        self.oidc_response = []
+        #self.item = []
         self.keyjar = self.client.keyjar
         self.position = ""
         self.last_response = None
@@ -41,6 +42,7 @@ class Conversation(tool.Conversation):
         self.creq = None
         self.cresp = None
         self.msg_factory = msg_factory
+        self.login_page = None
 
     def init(self, phase):
         self.creq, self.cresp = phase
@@ -50,9 +52,9 @@ class Conversation(tool.Conversation):
 
     def handle_result(self):
         try:
-            self.environ["response_spec"] = resp = self.cresp()
+            self.response_spec = resp = self.cresp()
         except TypeError:
-            self.environ["response_spec"] = resp = None
+            self.response_spec = resp = None
             return True
 
         self.qresp = None
@@ -99,8 +101,7 @@ class Conversation(tool.Conversation):
             else:
                 response = resp.response
 
-            self.environ["response_type"] = response.__name__
-            self.environ["oidc_response"].append((response, self.info))
+            self.response_type = response.__name__
             try:
                 self.qresp = self.client.parse_response(
                     response, self.info, resp_type, self.client.state,
@@ -109,10 +110,11 @@ class Conversation(tool.Conversation):
                 self.trace.info("[%s]: %s" % (self.qresp.type(),
                                               self.qresp.to_dict()))
                 #item.append(qresp)
-                self.environ["response_message"] = self.qresp
+                self.response_message = self.qresp
+                self.oidc_response.append((self.qresp, self.info))
                 err = None
             except Exception, err:
-                self.environ["exception"] = "%s" % err
+                self.exception = "%s" % err
 
             if err and self.accept_exception:
                 if isinstance(err, self.accept_exception):
@@ -133,16 +135,15 @@ class Conversation(tool.Conversation):
                 for key, val in self.qresp.items():
                     setattr(self.client, key, val)
 
-            resp(self.environ, self.qresp)
+            resp(self, self.qresp)
 
             return True
         else:
             return False
 
     def setup_request(self):
-        self.environ["request_spec"] = req = self.creq(cconf=self.client_config,
-                                                       environ=self.environ,
-                                                       trace=self.trace)
+        self.request_spec = req = self.creq(cconf=self.client_config, conv=self,
+                                            trace=self.trace)
 
         if isinstance(req, Operation):
             for intact in self.interaction.interactions:
@@ -154,11 +155,11 @@ class Conversation(tool.Conversation):
                     pass
         else:
             try:
-                self.environ["request_args"] = req.request_args
+                self.request_args = req.request_args
             except KeyError:
                 pass
             try:
-                self.environ["args"] = req.kw_args
+                self.args = req.kw_args
             except KeyError:
                 pass
 
@@ -182,7 +183,6 @@ class Conversation(tool.Conversation):
                 print >> sys.stderr, "> %s" % self.req.request
             part = self.req(self.position, self.last_response,
                             self.last_content, self.features)
-            self.environ.update(dict(zip(ORDER, part)))
             (self.position, self.last_response, self.last_content) = part
 
             try:

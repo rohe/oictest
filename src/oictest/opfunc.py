@@ -344,13 +344,13 @@ def interaction(args):
 
 
 class Operation(object):
-    def __init__(self, environ, trace, args=None, cconf=None, features=None):
+    def __init__(self, conv, trace, args=None, cconf=None, features=None):
         if args:
             self.function = interaction(args)
 
         self.args = args or {}
         self.request = None
-        self.environ = environ
+        self.conv = conv
         self.trace = trace
         self.features = features
         self.cconf = cconf
@@ -373,8 +373,7 @@ class Operation(object):
         self.trace.reply("FUNCTION: %s" % self.function.__name__)
         self.trace.reply("ARGS: %s" % (_args,))
 
-        result = self.function(self.environ["client"], response, content,
-                               **_args)
-        self.post_op(result, self.environ, _args)
+        result = self.function(self.conv.client, response, content, **_args)
+        self.post_op(result, self.conv, _args)
         return result
 

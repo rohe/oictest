@@ -42,20 +42,20 @@ class CmpIdtoken(Other):
     """
     cid = "compare-idoken-received-with-check_id-response"
 
-    def _func(self, environ):
+    def _func(self, conv):
         res = {}
-        msg = None
-        for msg in environ["item"]:
-            if msg.type() == "AuthorizationResponse":
+        instance = None
+        for instance, msg in conv.oidc_response:
+            if instance.type() == "AuthorizationResponse":
                 break
 
-        kj = environ["client"].keyjar
+        kj = conv.client.keyjar
         keys = {}
         for issuer in kj.keys():
             keys.update(kj.get("ver", issuer=issuer))
 
-        idt = IdToken().deserialize(msg["id_token"], "jwt", key=keys)
-        if idt.to_dict() == environ["item"][-1].to_dict():
+        idt = IdToken().deserialize(instance["id_token"], "jwt", key=keys)
+        if idt.to_dict() == conv.oidc_response[-1][0].to_dict():
             pass
         else:
             self._status = self.status
@@ -72,9 +72,9 @@ class CheckHTTPResponse(CriticalError):
     cid = "check-http-response"
     msg = "OP error"
 
-    def _func(self, environ):
-        _response = environ["response"]
-        _content = environ["content"]
+    def _func(self, conv):
+        _response = conv.last_response
+        _content = conv.last_content
 
         res = {}
         if _response.status_code >= 400:
@@ -88,7 +88,7 @@ class CheckHTTPResponse(CriticalError):
                     res["content"] = _content
             else:
                 res["content"] = _content
-            res["url"] = environ["url"]
+            res["url"] = conv.position
             res["http_status"] = _response.status_code
         else:
             # might still be an error message
@@ -100,7 +100,7 @@ class CheckHTTPResponse(CriticalError):
             except Exception:
                 pass
 
-            res["url"] = environ["url"]
+            res["url"] = conv.position
 
         return res
 
@@ -113,9 +113,9 @@ class CheckErrorResponse(ExpectedError):
     cid = "check-error-response"
     msg = "OP error"
 
-    def _func(self, environ):
-        _response = environ["response"]
-        _content = environ["content"]
+    def _func(self, conv):
+        _response = conv.last_response
+        _content = conv.last_content
 
         res = {}
         if _response.status_code >= 400:
@@ -142,7 +142,7 @@ class CheckErrorResponse(ExpectedError):
                 self._message = "Expected error message"
                 self._status = CRITICAL
 
-            res["url"] = environ["url"]
+            res["url"] = conv.position
 
         return res
 
@@ -155,8 +155,8 @@ class CheckRedirectErrorResponse(ExpectedError):
     cid = "check-redirect-error-response"
     msg = "OP error"
 
-    def _func(self, environ):
-        _response = environ["response"]
+    def _func(self, conv):
+        _response = conv.last_response
 
         res = {}
         try:
@@ -179,10 +179,7 @@ class CheckRedirectErrorResponse(ExpectedError):
             try:
                 err.verify()
                 res["content"] = err.to_json()
-                try:
-                    environ["item"].append(err)
-                except KeyError:
-                    environ["item"] = [err]
+                conv.oidc_response.append((err, query))
             except MissingRequiredAttribute:
                 self._message = "Expected error message"
                 self._status = CRITICAL
@@ -201,18 +198,15 @@ class VerifyBadRequestResponse(ExpectedError):
     cid = "verify-bad-request-response"
     msg = "OP error"
 
-    def _func(self, environ):
-        _response = environ["response"]
-        _content = environ["content"]
+    def _func(self, conv):
+        _response = conv.last_response
+        _content = conv.last_content
         res = {}
         if _response.status_code == 400:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
-            try:
-                environ["item"].append(err)
-            except KeyError:
-                environ["item"] = [err]
+            conv.oidc_response.append((err, _content))
         else:
             self._message = "Expected a 400 error message"
             self._status = CRITICAL
@@ -231,10 +225,10 @@ class VerifyPromptNoneResponse(Check):
     cid = "verify-prompt-none-response"
     msg = "OP error"
 
-    def _func(self, environ):
-        _response = environ["response"]
-        _content = environ["content"]
-        _client = environ["client"]
+    def _func(self, conv):
+        _response = conv.last_response
+        _content = conv.last_content
+        _client = conv.client
         res = {}
         if _response.status_code == 400:
             err = ErrorResponse().deserialize(_content, "json")
@@ -242,10 +236,7 @@ class VerifyPromptNoneResponse(Check):
             if err["error"] in ["consent_required", "interaction_required"]:
                 # This is OK
                 res["content"] = err.to_json()
-                try:
-                    environ["item"].append(err)
-                except KeyError:
-                    environ["item"] = [err]
+                conv.oidc_response.append((err, _content))
             else:
                 self._message = "Not an error I expected"
                 self._status = CRITICAL
@@ -276,10 +267,7 @@ class VerifyPromptNoneResponse(Check):
                 if err["error"] in ["consent_required", "interaction_required"]:
                     # This is OK
                     res["content"] = err.to_json()
-                    try:
-                        environ["item"].append(err)
-                    except KeyError:
-                        environ["item"] = [err]
+                    conv.oidc_response.append((err, _query))
                 else:
                     self._message = "Not an error I expected"
                     self._status = CRITICAL
@@ -287,10 +275,7 @@ class VerifyPromptNoneResponse(Check):
                 resp = AuthorizationResponse().deserialize(_query, "urlencoded")
                 resp.verify()
                 res["content"] = resp.to_json()
-                try:
-                    environ["item"].append(resp)
-                except KeyError:
-                    environ["item"] = [resp]
+                conv.oidc_response.append((resp, _query))
         else:  # should not get anything else
             self._message = "Not an response I expected"
             self._status = CRITICAL
@@ -308,11 +293,11 @@ class CheckSupported(CriticalError):
     parameter = "X"
     default = None
 
-    def _func(self, environ):
+    def _func(self, conv):
         res = {}
         try:
-            _sup = self._supported(environ["request_args"],
-                                   environ["provider_info"])
+            _sup = self._supported(conv.request_args,
+                                   conv.provider_info)
             if not _sup:
                 self._status = self.status
                 self._message = self.msg
@@ -492,14 +477,14 @@ class CheckTokenEndpointAuthType(CriticalError):
     cid = "check-token-endpoint-auth-type"
     msg = "Auth type not supported"
 
-    def _func(self, environ):
+    def _func(self, conv):
         try:
-            _req = environ["request_spec"]
+            _req = conv.request_spec
             if _req.request == "RegistrationRequest":
-                _met = environ["request_args"]["token_endpoint_auth_type"]
+                _met = conv.request_args["token_endpoint_auth_type"]
             else:
-                _met = environ["args"]["authn_method"]
-            _pi = environ["provider_info"]
+                _met = conv.args["authn_method"]
+            _pi = conv.provider_info
 
             try:
                 _sup = _pi["token_endpoint_auth_types_supported"]
@@ -525,12 +510,12 @@ class CheckContentTypeHeader(Error):
     """
     cid = "check_content_type_header"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         res = {}
-        _response = environ["response"]
+        _response = conv.last_response
         try:
             ctype = _response.headers["content-type"]
-            if environ["response_spec"].ctype == "json":
+            if conv.response_spec.ctype == "json":
                 if CONT_JSON in ctype or CONT_JWT in ctype:
                     pass
                 else:
@@ -551,11 +536,11 @@ class CheckEndpoint(CriticalError):
     cid = "check-endpoint"
     msg = "Endpoint missing"
 
-    def _func(self, environ=None):
-        cls = environ["request_spec"].request
-        endpoint = environ["client"].request2endpoint[cls]
+    def _func(self, conv=None):
+        cls = conv.request_spec.request
+        endpoint = conv.client.request2endpoint[cls]
         try:
-            assert endpoint in environ["provider_info"]
+            assert endpoint in conv.provider_info
         except AssertionError:
             self._status = self.status
             self._message = "No '%s' registered" % endpoint
@@ -570,7 +555,7 @@ class CheckProviderInfo(Error):
     cid = "check-provider-info"
     msg = "Provider information error"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         #self._status = self.status
         return {}
 
@@ -583,7 +568,7 @@ class CheckRegistrationResponse(Error):
     cid = "check-registration-response"
     msg = "Registration response error"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         #self._status = self.status
         return {}
 
@@ -595,7 +580,7 @@ class CheckAuthorizationResponse(Error):
     """
     cid = "check-authorization-response"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         #self._status = self.status
         return {}
 
@@ -607,9 +592,9 @@ class LoginRequired(Error):
     """
     cid = "login-required"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         #self._status = self.status
-        resp = environ["content"]
+        resp = conv.last_content
         try:
             assert resp.type() == "AuthorizationErrorResponse"
         except AssertionError:
@@ -641,7 +626,7 @@ class WrapException(CriticalError):
     cid = "exception"
     msg = "Test tool exception"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         self._status = self.status
         self._message = traceback.format_exception(*sys.exc_info())
         return {}
@@ -654,10 +639,10 @@ class InteractionNeeded(CriticalError):
     cid = "interaction-needed"
     msg = "Unexpected page"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         self._status = self.status
         self._message = None
-        return {"url": environ["url"]}
+        return {"url": conv.position}
 
 
 class InteractionCheck(CriticalError):
@@ -666,10 +651,10 @@ class InteractionCheck(CriticalError):
     """
     cid = "interaction-check"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         self._status = INTERACTION
-        self._message = environ["content"]
-        parts = urlparse.urlsplit(environ["url"])
+        self._message = conv.last_content
+        parts = urlparse.urlsplit(conv.position)
         return {"url": "%s://%s%s" % parts[:3]}
 
 
@@ -679,9 +664,9 @@ class MissingRedirect(CriticalError):
     cid = "missing-redirect"
     msg = "Expected redirect to the RP, got something else"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         self._status = self.status
-        return {"url": environ["url"]}
+        return {"url": conv.position}
 
 
 class Parse(CriticalError):
@@ -689,31 +674,31 @@ class Parse(CriticalError):
     cid = "response-parse"
     errmsg = "Parse error"
 
-    def _func(self, environ=None):
-        if "exception" in environ:
+    def _func(self, conv=None):
+        if conv.exception:
             self._status = self.status
-            err = environ["exception"]
+            err = conv.exception
             self._message = "%s: %s" % (err.__class__.__name__, err)
         else:
-            _rmsg = environ["response_message"]
+            _rmsg = conv.response_message
             cname = _rmsg.type()
-            if environ["response_type"] != cname:
+            if conv.response_type != cname:
                 self._status = self.status
                 self._message = (
                     "Didn't get a response of the type I expected:",
                     " '%s' instead of '%s', content:'%s'" % (
-                        cname, environ["response_type"], _rmsg))
+                        cname, conv.response_type, _rmsg))
         return {
-            "response_type": environ["response_type"],
-            "url": environ["url"]
+            "response_type": conv.response_type,
+            "url": conv.position
         }
 
 
-def get_authz_request(environ):
+def get_authz_request(conv):
     for req in ["AuthorizationRequest", "OpenIDRequest"]:
         try:
-            return environ[req]
-        except KeyError:
+            return getattr(conv, req)
+        except AttributeError:
             pass
     return None
 
@@ -726,10 +711,10 @@ class VerifyClaims(Error):
     cid = "verify-claims"
     errmsg = "attributes received not matching claims"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         userinfo_claims = {}
 
-        req = get_authz_request(environ)
+        req = get_authz_request(conv)
         try:
             _scopes = req["scope"]
         except KeyError:
@@ -749,7 +734,7 @@ class VerifyClaims(Error):
                 userinfo_claims[key] = val
 
         # last item should be the UserInfoResponse
-        resp = environ["response_message"]
+        resp = conv.response_message
         if userinfo_claims:
             for key, restr in userinfo_claims.items():
                 if key in resp:
@@ -776,10 +761,10 @@ class VerifyErrResponse(ExpectedError):
     cid = "verify-err-response"
     msg = "OP error"
 
-    def _func(self, environ):
+    def _func(self, conv):
         res = {}
 
-        response = environ["response"]
+        response = conv.last_response
         if response.status_code == 302:
             _loc = response.headers["location"]
             if "?" in _loc:
@@ -817,17 +802,17 @@ class verifyIDToken(CriticalError):
     cid = "verify-id-token"
     msg = "IDToken error"
 
-    def _func(self, environ):
+    def _func(self, conv):
         done = False
 
         idtoken_claims = {}
-        req = get_authz_request(environ)
+        req = get_authz_request(conv)
         if "idtoken_claims" in req:
             for key, val in req["idtoken_claims"]["claims"].items():
                 idtoken_claims[key] = val
                 #self._kwargs["claims"].items()
 
-        for item in environ["item"]:
+        for item, msg in conv.oidc_response:
             if self._status == self.status or done:
                 break
 
@@ -893,9 +878,9 @@ class Information(Check):
 class ResponseInfo(Information):
     """Response information"""
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         self._status = self.status
-        _msg = environ["content"]
+        _msg = conv.last_content
 
         if isinstance(_msg, basestring):
             self._message = _msg
@@ -916,9 +901,9 @@ class ProviderConfigurationInfo(ResponseInfo):
 class UnpackAggregatedClaims(Error):
     cid = "unpack-aggregated-claims"
 
-    def _func(self, environ=None):
-        resp = environ["response_message"]
-        _client = environ["client"]
+    def _func(self, conv=None):
+        resp = conv.response_message
+        _client = conv.client
 
         try:
             _client.unpack_aggregated_claims(resp)
@@ -932,9 +917,9 @@ class UnpackAggregatedClaims(Error):
 class ChangedSecret(Error):
     cid = "changed-client-secret"
 
-    def _func(self, environ=None):
-        resp = environ["response_message"]
-        _client = environ["client"]
+    def _func(self, conv=None):
+        resp = conv.response_message
+        _client = conv.client
         old_sec = _client.client_secret
 
         if old_sec == resp["client_secret"]:
@@ -949,8 +934,8 @@ class VerifyAccessTokenResponse(Error):
     section = "http://openid.bitbucket.org/" + \
               "openid-connect-messages-1_0.html#access_token_response"
 
-    def _func(self, environ=None):
-        resp = environ["response_message"]
+    def _func(self, conv=None):
+        resp = conv.response_message
 
         #This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
@@ -963,9 +948,9 @@ class VerifyAccessTokenResponse(Error):
         # parameters MUST be included in the response if the grant_type is
         # authorization_code and the Authorization Request scope parameter
         # contained openid: id_token
-        cis = environ["cis"][-1]
+        cis = conv.cis[-1]
         if cis["grant_type"] == "authorization_code":
-            req = get_authz_request(environ)
+            req = get_authz_request(conv)
             if "openid" in req["scope"]:
                 if "id_token" not in resp:
                     self._message = "IdToken has to be present"
@@ -978,10 +963,10 @@ class SingleSignOn(Error):
     """ Verifies that Single-Sign-On actually works """
     cid = "single-sign-on"
 
-    def _func(self, environ):
+    def _func(self, conv):
         logins = 0
 
-        for line in environ["trace"]:
+        for line in conv.trace:
             if ">> login <<" in line:
                 logins += 1
 
@@ -997,10 +982,10 @@ class MultipleSignOn(Error):
     """ Verifies that multiple authentication was used in the flow """
     cid = "multiple-sign-on"
 
-    def _func(self, environ):
+    def _func(self, conv):
         logins = 0
 
-        for line in environ["trace"]:
+        for line in conv.trace:
             if ">> login <<" in line:
                 logins += 1
 
@@ -1015,15 +1000,15 @@ class MultipleSignOn(Error):
 class VerifyRedirect_uriQueryComponent(Error):
     cid = "verify-redirect_uri-query_component"
 
-    def _func(self, environ):
+    def _func(self, conv):
         ruri = self._kwargs["redirect_uri"]
         part = urlparse.urlparse(ruri)
         qdict = urlparse.parse_qs(part.query)
-        msg = environ["item"][-1]
+        item, msg = conv.oidc_response[-1]
         try:
             for key, vals in qdict.items():
                 if len(vals) == 1:
-                    assert msg[key] == vals[0]
+                    assert item[key] == vals[0]
         except AssertionError:
             self._message = "Query component that was part of the " \
                             "redirect_uri is missing"
@@ -1035,8 +1020,8 @@ class VerifyRedirect_uriQueryComponent(Error):
 class VerifyError(Error):
     cid = "verify-error"
 
-    def _func(self, environ):
-        response = environ["response"]
+    def _func(self, conv):
+        response = conv.last_response
         if response.status_code == 400:
             try:
                 resp = json.loads(response.text)
@@ -1045,18 +1030,18 @@ class VerifyError(Error):
             except Exception:
                 pass
 
-        msg = environ["item"][-1]
+        item, msg = conv.oidc_response[-1]
         try:
-            assert msg.type().endswith("ErrorResponse")
+            assert item.type().endswith("ErrorResponse")
         except AssertionError:
             self._message = "Expected an error response"
             self._status = self.status
             return {}
 
         try:
-            assert msg["error"] in self._kwargs["error"]
+            assert item["error"] in self._kwargs["error"]
         except AssertionError:
-            self._message = "Wrong type of error, got %s" % msg["error"]
+            self._message = "Wrong type of error, got %s" % item["error"]
             self._status = self.status
 
         return {}
@@ -1067,9 +1052,9 @@ class CheckKeys(CriticalError):
     cid = "check-keys"
     msg = "Missing keys"
 
-    def _func(self, environ=None):
-        #cls = environ["request_spec"].request
-        client = environ["client"]
+    def _func(self, conv=None):
+        #cls = conv.request_spec"].request
+        client = conv.client
         # key type
         keys = client.keyjar.get_signing_key("rsa")
         try:
@@ -1085,9 +1070,9 @@ class VerifyPolicyURLs(Error):
     cid = "policy_url_on_page"
     msg = "policy_url not on page"
 
-    def _func(self, environ=None):
-        login_page = environ["login"]
-        regreq = environ["RegistrationRequest"]
+    def _func(self, conv=None):
+        login_page = conv.login_page
+        regreq = conv.RegistrationRequest
 
         try:
             assert regreq["policy_url"] in login_page
@@ -1101,9 +1086,9 @@ class VerifyLogoURLs(Error):
     cid = "logo_url_on_page"
     msg = "logo_url not on page"
 
-    def _func(self, environ=None):
-        login_page = environ["login"]
-        regreq = environ["RegistrationRequest"]
+    def _func(self, conv=None):
+        login_page = conv.login_page
+        regreq = conv.RegistrationRequest
 
         try:
             assert regreq["logo_url"] in login_page
@@ -1117,10 +1102,10 @@ class CheckUserID(Error):
     cid = "different_sub"
     msg = "sub not changed between public and pairwise"
 
-    def _func(self, environ=None):
+    def _func(self, conv=None):
         sub = []
-        for cls, msg in environ["oidc_response"]:
-            if cls == OpenIDSchema:
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, OpenIDSchema):
                 _dict = json.loads(msg)
                 sub.append(_dict["sub"])
 
@@ -1137,8 +1122,8 @@ class VerifyUserInfo(Error):
     cid = "verify-userinfo"
     msg = "Essential User info missing"
 
-    def _func(self, environ):
-        req = get_authz_request(environ)
+    def _func(self, conv):
+        req = get_authz_request(conv)
         try:
             claims = req["userinfo_claims"]["claims"]
         except KeyError:
@@ -1147,7 +1132,7 @@ class VerifyUserInfo(Error):
             for param in SCOPE2CLAIMS[scope]:
                 claims[param] = REQUIRED
 
-        response = environ["item"][-1]
+        response, msg = conv.oidc_response[-1]
         try:
             for key, val in claims.items():
                 if val == OPTIONAL:
@@ -1167,9 +1152,9 @@ class CheckAsymSignedUserInfo(Error):
     cid = "asym-signed-userinfo"
     msg = "User info was not signed"
 
-    def _func(self, environ):
-        for cls, msg in environ["oidc_response"]:
-            if cls == message.OpenIDSchema:
+    def _func(self, conv):
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, message.OpenIDSchema):
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
                     assert header["alg"].startswith("RS")
@@ -1184,9 +1169,9 @@ class CheckSymSignedIdToken(Error):
     cid = "sym-signed-idtoken"
     msg = "Incorrect signature type"
 
-    def _func(self, environ):
-        for cls, msg in environ["oidc_response"]:
-            if cls == message.AccessTokenResponse:
+    def _func(self, conv):
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, message.AccessTokenResponse):
                 _dict = json.loads(msg)
                 jwt = _dict["id_token"]
                 header = json.loads(b64d(str(jwt.split(".")[0])))
@@ -1203,9 +1188,9 @@ class CheckEncryptedUserInfo(Error):
     cid = "encrypted-userinfo"
     msg = "User info was not encrypted"
 
-    def _func(self, environ):
-        for cls, msg in environ["oidc_response"]:
-            if cls == message.OpenIDSchema:
+    def _func(self, conv):
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, message.OpenIDSchema):
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
                     assert header["alg"].startswith("RSA")
@@ -1220,9 +1205,9 @@ class CheckEncryptedIDToken(Error):
     cid = "encrypted-idtoken"
     msg = "ID Token was not encrypted"
 
-    def _func(self, environ):
-        for cls, msg in environ["oidc_response"]:
-            if cls == message.AccessTokenResponse:
+    def _func(self, conv):
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, message.AccessTokenResponse):
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
                 try:
@@ -1238,10 +1223,10 @@ class CheckSignedEncryptedIDToken(Error):
     cid = "signed-encrypted-idtoken"
     msg = "ID Token was not signed and encrypted"
 
-    def _func(self, environ):
-        client = environ["client"]
-        for cls, msg in environ["oidc_response"]:
-            if cls == message.AccessTokenResponse:
+    def _func(self, conv):
+        client = conv.client
+        for instance, msg in conv.oidc_response:
+            if isinstance(instance, message.AccessTokenResponse):
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
                 try:
