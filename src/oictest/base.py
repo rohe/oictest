@@ -43,6 +43,7 @@ class Conversation(tool.Conversation):
         self.cresp = None
         self.msg_factory = msg_factory
         self.login_page = None
+        self.response_message = None
 
     def init(self, phase):
         self.creq, self.cresp = phase
@@ -57,7 +58,7 @@ class Conversation(tool.Conversation):
             self.response_spec = resp = None
             return True
 
-        self.qresp = None
+        _qresp = None
         self.info = None
 
         response = self.last_response
@@ -74,7 +75,7 @@ class Conversation(tool.Conversation):
             pass
         elif not self.position:
             if isinstance(self.last_content, Message):
-                self.qresp = self.last_content
+                self.response_message = _qresp = self.last_content
             elif response.status_code == 200:
                 self.info = self.last_content
         elif resp.where == "url" or response.status_code == 302:
@@ -103,15 +104,14 @@ class Conversation(tool.Conversation):
 
             self.response_type = response.__name__
             try:
-                self.qresp = self.client.parse_response(
+                _qresp = self.client.parse_response(
                     response, self.info, resp_type, self.client.state,
                     keyjar=self.keyjar, client_id=self.client.client_id,
                     scope="openid")
-                self.trace.info("[%s]: %s" % (self.qresp.type(),
-                                              self.qresp.to_dict()))
+                self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
                 #item.append(qresp)
-                self.response_message = self.qresp
-                self.oidc_response.append((self.qresp, self.info))
+                self.response_message = _qresp
+                self.oidc_response.append((_qresp, self.info))
                 err = None
             except Exception, err:
                 self.exception = "%s" % err
@@ -125,17 +125,17 @@ class Conversation(tool.Conversation):
             else:
                 self.do_check("response-parse")
 
-        if self.qresp:
+        if _qresp:
             try:
                 self.test_sequence(resp.tests["post"])
             except KeyError:
                 pass
 
-            if isinstance(self.qresp, RegistrationResponse):
-                for key, val in self.qresp.items():
+            if isinstance(_qresp, RegistrationResponse):
+                for key, val in _qresp.items():
                     setattr(self.client, key, val)
 
-            resp(self, self.qresp)
+            resp(self, _qresp)
 
             return True
         else:
