@@ -1,5 +1,7 @@
 __author__ = 'rolandh'
 
+from oic.oauth2.message import ErrorResponse
+
 INFORMATION = 0
 OK = 1
 WARNING = 2
@@ -9,6 +11,9 @@ INTERACTION = 5
 
 STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
               "INTERACTION"]
+
+CONT_JSON = "application/json"
+CONT_JWT = "application/jwt"
 
 class Check():
     """ General test
@@ -70,4 +75,43 @@ class Other(CriticalError):
     """ Other error """
     msg = "Other error"
 
+
+class CheckHTTPResponse(CriticalError):
+    """
+    Checks that the HTTP response status is within the 200 or 300 range
+    """
+    cid = "check-http-response"
+    msg = "OP error"
+
+    def _func(self, conv):
+        _response = conv.last_response
+        _content = conv.last_content
+
+        res = {}
+        if _response.status_code >= 400:
+            self._status = self.status
+            self._message = self.msg
+            if CONT_JSON in _response.headers["content-type"]:
+                try:
+                    err = ErrorResponse().deserialize(_content, "json")
+                    self._message = err.to_json()
+                except Exception:
+                    res["content"] = _content
+            else:
+                res["content"] = _content
+            res["url"] = conv.position
+            res["http_status"] = _response.status_code
+        else:
+            # might still be an error message
+            try:
+                err = ErrorResponse().deserialize(_content, "json")
+                err.verify()
+                self._message = err.to_json()
+                self._status = self.status
+            except Exception:
+                pass
+
+            res["url"] = conv.position
+
+        return res
 

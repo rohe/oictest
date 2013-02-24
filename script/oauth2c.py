@@ -2,10 +2,13 @@
 
 __author__ = 'rohe0002'
 
-from oictest import OAuth2
-from oictest import oauth2_operations
 from oic.oauth2 import Client
+from oic.oauth2 import factory
 
-cli = OAuth2(oauth2_operations, Client)
+from oauth2test import OAuth2
+from oauth2test import oauth2_operations
+from oauth2test.check import factory as chk_factory
+
+cli = OAuth2(oauth2_operations, Client, factory, chk_factory)
 
 cli.run()

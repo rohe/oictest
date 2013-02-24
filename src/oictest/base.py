@@ -12,11 +12,6 @@ from rrtest import tool, FatalError
 ORDER = ["url", "response", "content"]
 
 
-def flow2sequence(operations, item):
-    flow = operations.FLOWS[item]
-    return [operations.PHASES[phase] for phase in flow["sequence"]]
-
-
 def endpoint(client, base):
     for _endp in client._endpoints:
         if getattr(client, _endp) == base:
@@ -125,6 +120,7 @@ class Conversation(tool.Conversation):
             else:
                 self.do_check("response-parse")
 
+    def post_proses(self, resp):
         if _qresp:
             try:
                 self.test_sequence(resp.tests["post"])
