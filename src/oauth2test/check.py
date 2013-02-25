@@ -7,6 +7,7 @@ from rrtest.check import Check, CONT_JSON
 from rrtest.check import CriticalError
 from rrtest.check import Error
 from rrtest.check import ExpectedError
+from rrtest.check import OK
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
 from rrtest.check import INFORMATION
@@ -162,7 +163,7 @@ class Parse(CriticalError):
         }
 
 
-class VerifyErrResponse(ExpectedError):
+class VerifyErrorResponse(ExpectedError):
     """
     Verifies that the response received was an Error response
     """
@@ -303,16 +304,19 @@ class CheckContentTypeHeader(Error):
         return res
 
 
-def factory(cid):
-    for name, obj in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(obj):
-            try:
-                if obj.cid == cid:
-                    return obj
-            except AttributeError:
-                pass
-
-    return None
+class_cache = {}
+def factory(cid, classes=class_cache):
+    if len(classes) == 0:
+        for name, obj in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(obj):
+                try:
+                    class_cache[obj.cid] = obj
+                except AttributeError:
+                    pass
+    if cid in classes:
+        return classes[cid]
+    else:
+        return None
 
 
 if __name__ == "__main__":
