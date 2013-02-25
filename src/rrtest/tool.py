@@ -10,7 +10,7 @@ from rrtest.status import STATUSCODE
 __author__ = 'rolandh'
 
 
-class Conversation():
+class Conversation(object):
     def __init__(self, client, config, trace, interaction,
                  check_factory=None, msg_factory=None,
                  features=None, verbose=False):
