@@ -15,7 +15,7 @@ STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
 CONT_JSON = "application/json"
 CONT_JWT = "application/jwt"
 
-class Check():
+class Check(object):
     """ General test
     """
 
@@ -34,7 +34,8 @@ class Check():
 
     def __call__(self, conv=None, output=None):
         _stat = self.response(**self._func(conv))
-        output.append(_stat)
+        if output is not None:
+            output.append(_stat)
         return _stat
 
     def response(self, **kwargs):
