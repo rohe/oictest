@@ -1,7 +1,6 @@
 import json
 import argparse
 import sys
-from oauth2test.base import Conversation
 from oic.utils import exception_trace
 from rrtest import Trace, FatalError
 
@@ -16,13 +15,15 @@ def flow2sequence(operations, item):
 class OAuth2(object):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
-    def __init__(self, operations_mod, client_class, msg_factory, chk_factory):
+    def __init__(self, operations_mod, client_class, msg_factory, chk_factory,
+                 conversation_cls):
         self.operations_mod = operations_mod
         self.client_class = client_class
         self.client = None
         self.trace = Trace()
         self.msg_factory = msg_factory
         self.chk_factory = chk_factory
+        self.conversation_cls = conversation_cls
 
         self._parser = argparse.ArgumentParser()
         #self._parser.add_argument('-v', dest='verbose', action='store_true')
@@ -146,9 +147,10 @@ class OAuth2(object):
             try:
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
-                conv = Conversation(self.client, self.cconf, self.trace,
-                                    interact, msg_factory=self.msg_factory,
-                                    check_factory=self.chk_factory)
+                conv = self.conversation_cls(self.client, self.cconf,
+                                             self.trace, interact,
+                                             msg_factory=self.msg_factory,
+                                             check_factory=self.chk_factory)
                 conv.do_sequence(_spec)
                 #testres, trace = do_sequence(oper,
                 self.test_log = conv.test_output

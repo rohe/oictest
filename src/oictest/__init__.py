@@ -55,9 +55,9 @@ class OIC(OAuth2):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
     def __init__(self, operations_mod, client_class, consumer_class,
-                 msgfactory, chk_factory):
+                 msgfactory, chk_factory, conversation_cls):
         OAuth2.__init__(self, operations_mod, client_class, msgfactory,
-                        chk_factory)
+                        chk_factory, conversation_cls)
 
         #self._parser.add_argument('-R', dest="rsakey")
         self._parser.add_argument(

@@ -8,7 +8,7 @@ from oic.oauth2.message import MissingRequiredAttribute
 from oic.oic import AuthorizationResponse
 from oic.oic import message
 
-from rrtest.check import Check
+from rrtest.check import Check, CONT_JSON, CONT_JWT
 from rrtest.check import CriticalError
 from rrtest.check import Other
 from rrtest.check import Error

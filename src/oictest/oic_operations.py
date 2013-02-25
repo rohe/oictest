@@ -13,8 +13,6 @@ from urllib import urlencode
 
 from jwkest import unpack
 
-from oic.oic.message import factory as msgfactory
-from oic.oic.message import OpenIDRequest
 from oic.oic import message
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -110,8 +108,8 @@ class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
     def __call__(self, location, response, content, features):
         _client = self.conv.client
         base_url = _client.redirect_uris[0]
-        self.request_args["redirect_uri"] = "%s?%s" % (base_url,
-                                                       urlencode({"fox":"bat"}))
+        self.request_args["redirect_uri"] = "%s?%s" % (
+            base_url, urlencode({"fox": "bat"}))
         return Request.__call__(self, location, response, content, features)
 
 
@@ -156,7 +154,7 @@ class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.kw_args["base_path"] = _get_base(conv.client_conf) + "export/"
+        self.kw_args["base_path"] = _get_base(conv.client_config) + "export/"
 
 
 class ConnectionVerify(GetRequest):
@@ -345,7 +343,7 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
         AuthorizationRequestCode.__init__(self, conv)
         # Must auth_time
         self.request_args["idtoken_claims"] = {"claims": {
-                                                "auth_time": {"essential": True}}}
+            "auth_time": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
@@ -363,7 +361,7 @@ class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
         self.request_args["idtoken_claims"] = {"claims": {
-                                                    "acr": {"essential": True}}}
+            "acr": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
@@ -445,8 +443,8 @@ class RegistrationRequest(PostRequest):
         PostRequest.__init__(self, conv)
 
         for arg in message.RegistrationRequest().parameters():
-            if arg in conv.client_conf:
-                self.request_args[arg] = conv.client_conf[arg]
+            if arg in conv.client_config:
+                self.request_args[arg] = conv.client_config[arg]
 
         try:
             del self.request_args["key_export_url"]
@@ -463,7 +461,7 @@ class RegistrationRequest_MULREDIR(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.request_args["redirect_uris"].append(
-            "%scb" % _get_base(conv.client_conf))
+            "%scb" % _get_base(conv.client_config))
 
 
 class RegistrationRequest_MULREDIR_mult_host(RegistrationRequest):
@@ -630,7 +628,7 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         self.request_args["subject_type"] = "pairwise"
         self.tests["pre"].append(CheckUserIdSupport)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_conf)
+        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
 
 
 class RegistrationRequest_with_id_token_signed_response_alg(
@@ -644,15 +642,15 @@ class RegistrationRequest_with_id_token_signed_response_alg(
 class RegistrationRequest_SectorID(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_conf)
+        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
 
 
 class RegistrationRequest_SectorID_2(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        _base = _get_base(conv.client_conf)
+        _base = _get_base(conv.client_config)
         self.request_args["redirect_uris"].append("%scb" % _base)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_conf)
+        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
 
 
 class RegistrationRequest_SectorID_Err(RegistrationRequest):
@@ -661,7 +659,7 @@ class RegistrationRequest_SectorID_Err(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         store_sector_redirect_uris(self.request_args, False, True,
-                                   cconf=conv.client_conf)
+                                   cconf=conv.client_config)
         #self.request_args["redirect_uris"].append("%scb" % _get_base(cconf))
         self.tests["post"] = [CheckErrorResponse]
 

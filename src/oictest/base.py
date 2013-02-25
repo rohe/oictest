@@ -120,26 +120,25 @@ class Conversation(tool.Conversation):
             else:
                 self.do_check("response-parse")
 
-    def post_proses(self, resp):
-        if _qresp:
+    def post_process(self, resp):
+        if self.response_message:
             try:
                 self.test_sequence(resp.tests["post"])
             except KeyError:
                 pass
 
-            if isinstance(_qresp, RegistrationResponse):
-                for key, val in _qresp.items():
+            if isinstance(self.response_message, RegistrationResponse):
+                for key, val in self.response_message.items():
                     setattr(self.client, key, val)
 
-            resp(self, _qresp)
+            resp(self, self.response_message)
 
             return True
         else:
             return False
 
     def setup_request(self):
-        self.request_spec = req = self.creq(cconf=self.client_config, conv=self,
-                                            trace=self.trace)
+        self.request_spec = req = self.creq(self)
 
         if isinstance(req, Operation):
             for intact in self.interaction.interactions:

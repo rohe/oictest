@@ -344,16 +344,16 @@ def interaction(args):
 
 
 class Operation(object):
-    def __init__(self, conv, trace, args=None, cconf=None, features=None):
+    def __init__(self, conv, args=None, features=None):
         if args:
             self.function = interaction(args)
 
         self.args = args or {}
         self.request = None
         self.conv = conv
-        self.trace = trace
+        self.trace = conv.trace
         self.features = features
-        self.cconf = cconf
+        self.cconf = conv.client_config
 
     def update(self, dic):
         self.args.update(dic)
