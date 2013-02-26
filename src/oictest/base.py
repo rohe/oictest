@@ -27,7 +27,6 @@ class Conversation(tool.Conversation):
                                    interaction, check_factory, msg_factory,
                                    features, verbose)
         self.cis = []
-        self.oidc_response = []
         #self.item = []
         self.keyjar = self.client.keyjar
         self.position = ""
@@ -106,7 +105,7 @@ class Conversation(tool.Conversation):
                 self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
                 #item.append(qresp)
                 self.response_message = _qresp
-                self.oidc_response.append((_qresp, self.info))
+                self.protocol_response.append((_qresp, self.info))
                 err = None
             except Exception, err:
                 self.exception = "%s" % err

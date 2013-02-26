@@ -91,7 +91,7 @@ class CheckRedirectErrorResponse(ExpectedError):
             try:
                 err.verify()
                 res["content"] = err.to_json()
-                conv.oidc_response.append((err, query))
+                conv.protocol_response.append((err, query))
             except MissingRequiredAttribute:
                 self._message = "Expected error message"
                 self._status = CRITICAL
@@ -118,7 +118,7 @@ class VerifyBadRequestResponse(ExpectedError):
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
-            conv.oidc_response.append((err, _content))
+            conv.protocol_response.append((err, _content))
         else:
             self._message = "Expected a 400 error message"
             self._status = CRITICAL
@@ -231,7 +231,7 @@ class VerifyError(Error):
             except Exception:
                 pass
 
-        item, msg = conv.oidc_response[-1]
+        item, msg = conv.protocol_response[-1]
         try:
             assert item.type().endswith("ErrorResponse")
         except AssertionError:
