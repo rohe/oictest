@@ -189,7 +189,34 @@ class Conversation(object):
         pass
 
     def setup_request(self):
-        pass
+        self.request_spec = req = self.creq(conv=self)
+
+        if isinstance(req, Operation):
+            for intact in self.interaction.interactions:
+                try:
+                    if req.__class__.__name__ == intact["matches"]["class"]:
+                        req.args = intact["args"]
+                        break
+                except KeyError:
+                    pass
+        else:
+            try:
+                self.request_args = req.request_args
+            except KeyError:
+                pass
+            try:
+                self.args = req.kw_args
+            except KeyError:
+                pass
+
+        # The authorization dance is all done through the browser
+        if req.request == "AuthorizationRequest":
+            self.client.cookiejar = self.cjar["browser"]
+        # everything else by someone else, assuming the RP
+        else:
+            self.client.cookiejar = self.cjar["rp"]
+
+        self.req = req
 
     def send(self):
         pass
