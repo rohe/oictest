@@ -41,7 +41,7 @@ class CmpIdtoken(Other):
     def _func(self, conv):
         res = {}
         instance = None
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if instance.type() == "AuthorizationResponse":
                 break
 
@@ -51,7 +51,7 @@ class CmpIdtoken(Other):
             keys.update(kj.get("ver", issuer=issuer))
 
         idt = IdToken().deserialize(instance["id_token"], "jwt", key=keys)
-        if idt.to_dict() == conv.oidc_response[-1][0].to_dict():
+        if idt.to_dict() == conv.protocol_response[-1][0].to_dict():
             pass
         else:
             self._status = self.status
@@ -135,7 +135,7 @@ class CheckRedirectErrorResponse(ExpectedError):
             try:
                 err.verify()
                 res["content"] = err.to_json()
-                conv.oidc_response.append((err, query))
+                conv.protocol_response.append((err, query))
             except MissingRequiredAttribute:
                 self._message = "Expected error message"
                 self._status = CRITICAL
@@ -162,7 +162,7 @@ class VerifyBadRequestResponse(ExpectedError):
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
-            conv.oidc_response.append((err, _content))
+            conv.protocol_response.append((err, _content))
         else:
             self._message = "Expected a 400 error message"
             self._status = CRITICAL
@@ -192,7 +192,7 @@ class VerifyPromptNoneResponse(Check):
             if err["error"] in ["consent_required", "interaction_required"]:
                 # This is OK
                 res["content"] = err.to_json()
-                conv.oidc_response.append((err, _content))
+                conv.protocol_response.append((err, _content))
             else:
                 self._message = "Not an error I expected"
                 self._status = CRITICAL
@@ -223,7 +223,7 @@ class VerifyPromptNoneResponse(Check):
                 if err["error"] in ["consent_required", "interaction_required"]:
                     # This is OK
                     res["content"] = err.to_json()
-                    conv.oidc_response.append((err, _query))
+                    conv.protocol_response.append((err, _query))
                 else:
                     self._message = "Not an error I expected"
                     self._status = CRITICAL
@@ -231,7 +231,7 @@ class VerifyPromptNoneResponse(Check):
                 resp = AuthorizationResponse().deserialize(_query, "urlencoded")
                 resp.verify()
                 res["content"] = resp.to_json()
-                conv.oidc_response.append((resp, _query))
+                conv.protocol_response.append((resp, _query))
         else:  # should not get anything else
             self._message = "Not an response I expected"
             self._status = CRITICAL
@@ -768,7 +768,7 @@ class verifyIDToken(CriticalError):
                 idtoken_claims[key] = val
                 #self._kwargs["claims"].items()
 
-        for item, msg in conv.oidc_response:
+        for item, msg in conv.protocol_response:
             if self._status == self.status or done:
                 break
 
@@ -960,7 +960,7 @@ class VerifyRedirect_uriQueryComponent(Error):
         ruri = self._kwargs["redirect_uri"]
         part = urlparse.urlparse(ruri)
         qdict = urlparse.parse_qs(part.query)
-        item, msg = conv.oidc_response[-1]
+        item, msg = conv.protocol_response[-1]
         try:
             for key, vals in qdict.items():
                 if len(vals) == 1:
@@ -986,7 +986,7 @@ class VerifyError(Error):
             except Exception:
                 pass
 
-        item, msg = conv.oidc_response[-1]
+        item, msg = conv.protocol_response[-1]
         try:
             assert item.type().endswith("ErrorResponse")
         except AssertionError:
@@ -1060,7 +1060,7 @@ class CheckUserID(Error):
 
     def _func(self, conv=None):
         sub = []
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, OpenIDSchema):
                 _dict = json.loads(msg)
                 sub.append(_dict["sub"])
@@ -1088,7 +1088,7 @@ class VerifyUserInfo(Error):
             for param in SCOPE2CLAIMS[scope]:
                 claims[param] = REQUIRED
 
-        response, msg = conv.oidc_response[-1]
+        response, msg = conv.protocol_response[-1]
         try:
             for key, val in claims.items():
                 if val == OPTIONAL:
@@ -1109,7 +1109,7 @@ class CheckAsymSignedUserInfo(Error):
     msg = "User info was not signed"
 
     def _func(self, conv):
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, message.OpenIDSchema):
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
@@ -1126,7 +1126,7 @@ class CheckSymSignedIdToken(Error):
     msg = "Incorrect signature type"
 
     def _func(self, conv):
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 _dict = json.loads(msg)
                 jwt = _dict["id_token"]
@@ -1145,7 +1145,7 @@ class CheckEncryptedUserInfo(Error):
     msg = "User info was not encrypted"
 
     def _func(self, conv):
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, message.OpenIDSchema):
                 header = json.loads(b64d(str(msg.split(".")[0])))
                 try:
@@ -1162,7 +1162,7 @@ class CheckEncryptedIDToken(Error):
     msg = "ID Token was not encrypted"
 
     def _func(self, conv):
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
@@ -1181,7 +1181,7 @@ class CheckSignedEncryptedIDToken(Error):
 
     def _func(self, conv):
         client = conv.client
-        for instance, msg in conv.oidc_response:
+        for instance, msg in conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 _dic = json.loads(msg)
                 header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))

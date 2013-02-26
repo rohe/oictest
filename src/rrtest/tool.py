@@ -11,6 +11,11 @@ __author__ = 'rolandh'
 
 
 class Conversation(object):
+    """
+    :ivar response: The received HTTP messages
+    :ivar protocol_response: List of the received protocol messages
+    """
+    
     def __init__(self, client, config, trace, interaction,
                  check_factory=None, msg_factory=None,
                  features=None, verbose=False):
@@ -27,6 +32,7 @@ class Conversation(object):
                      "rp": cookielib.CookieJar(),
                      "service": cookielib.CookieJar()}
 
+        self.protocol_response = []
         self.last_response = None
         self.last_content = None
         self.response = None

@@ -195,7 +195,7 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
 
     def __call__(self, location, response, content, features):
         idt = None
-        for (instance, msg) in self.conv.oidc_response:
+        for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 idt = json.loads(msg)["id_token"]
                 break
@@ -215,7 +215,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
 
     def __call__(self, location, response, content, features):
         idt = None
-        for (instance, msg) in self.conv.oidc_response:
+        for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 idt = json.loads(msg)["id_token"]
                 break
@@ -237,7 +237,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
 
     def __call__(self, location, response, content, features):
         idt = None
-        for (instance, msg) in self.conv.oidc_response:
+        for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
                 idt = json.loads(msg)["id_token"]
                 break
