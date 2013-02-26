@@ -7,6 +7,7 @@ from rrtest.check import Check, CONT_JSON
 from rrtest.check import CriticalError
 from rrtest.check import Error
 from rrtest.check import ExpectedError
+from rrtest.check import WrapException
 from rrtest.check import OK
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
@@ -63,7 +64,8 @@ class CheckErrorResponse(ExpectedError):
 class CheckRedirectErrorResponse(ExpectedError):
     """
     Checks that the HTTP response status is outside the 200 or 300 range
-    or that an JSON encoded error message has been received
+    or that an error message has been received urlencoded in the form of a
+    redirection.
     """
     cid = "check-redirect-error-response"
     msg = "OP error"
@@ -165,7 +167,8 @@ class Parse(CriticalError):
 
 class VerifyErrorResponse(ExpectedError):
     """
-    Verifies that the response received was an Error response
+    Verifies that the response received by the client via redirect was an Error
+    response.
     """
     cid = "verify-err-response"
     msg = "OP error"
