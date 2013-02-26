@@ -24,14 +24,10 @@ class PostRequest(Request):
 
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
-
-    def __init__(self, conv):
-        PostRequest.__init__(self, conv)
-        self.tests["post"] = [CheckHTTPResponse]
-        self.kw_args = {"authn_method": "client_secret_basic"}
+    _kw_args = {"authn_method": "client_secret_basic"}
 
 
-class Response():
+class Response(object):
     response = ""
     tests = {}
 
@@ -47,7 +43,7 @@ class UrlResponse(Response):
     ctype = "urlencoded"
 
 
-class AuthzResponse(UrlResponse):
+class AuthorizationResponse(UrlResponse):
     response = "AuthorizationResponse"
     tests = {"post": [CheckAuthorizationResponse]}
 
@@ -66,7 +62,7 @@ class AccessTokenResponse(BodyResponse):
 
 
 PHASES = {
-    "login": (AuthorizationRequestCode, AuthzResponse),
+    "login": (AuthorizationRequestCode, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
 }
 

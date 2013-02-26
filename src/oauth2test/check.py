@@ -7,6 +7,8 @@ from rrtest.check import Check, CONT_JSON
 from rrtest.check import CriticalError
 from rrtest.check import Error
 from rrtest.check import ExpectedError
+from rrtest.check import WrapException
+from rrtest.check import OK
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
 from rrtest.check import INFORMATION
@@ -62,7 +64,8 @@ class CheckErrorResponse(ExpectedError):
 class CheckRedirectErrorResponse(ExpectedError):
     """
     Checks that the HTTP response status is outside the 200 or 300 range
-    or that an JSON encoded error message has been received
+    or that an error message has been received urlencoded in the form of a
+    redirection.
     """
     cid = "check-redirect-error-response"
     msg = "OP error"
@@ -162,9 +165,10 @@ class Parse(CriticalError):
         }
 
 
-class VerifyErrResponse(ExpectedError):
+class VerifyErrorResponse(ExpectedError):
     """
-    Verifies that the response received was an Error response
+    Verifies that the response received by the client via redirect was an Error
+    response.
     """
     cid = "verify-err-response"
     msg = "OP error"
@@ -303,16 +307,19 @@ class CheckContentTypeHeader(Error):
         return res
 
 
-def factory(cid):
-    for name, obj in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(obj):
-            try:
-                if obj.cid == cid:
-                    return obj
-            except AttributeError:
-                pass
-
-    return None
+class_cache = {}
+def factory(cid, classes=class_cache):
+    if len(classes) == 0:
+        for name, obj in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(obj):
+                try:
+                    class_cache[obj.cid] = obj
+                except AttributeError:
+                    pass
+    if cid in classes:
+        return classes[cid]
+    else:
+        return None
 
 
 if __name__ == "__main__":

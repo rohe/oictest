@@ -1,4 +1,6 @@
 import cookielib
+import sys
+import traceback
 from rrtest import FatalError
 from rrtest.check import ExpectedError
 from rrtest.check import INTERACTION
@@ -68,7 +70,9 @@ class Conversation(object):
         chk = self.check_factory(test)()
         chk(self, self.test_output)
         if bryt:
-            raise FatalError(test)
+            e = FatalError(test)
+            e.trace = "".join(traceback.format_exception(*sys.exc_info()))
+            raise e
 
     def test_sequence(self, sequence):
         for test in sequence:

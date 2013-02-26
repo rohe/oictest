@@ -2,6 +2,9 @@ __author__ = 'rolandh'
 
 from oic.oauth2.message import ErrorResponse
 
+import traceback
+import sys
+
 INFORMATION = 0
 OK = 1
 WARNING = 2
@@ -70,6 +73,19 @@ class CriticalError(Check):
 
 class Error(Check):
     status = ERROR
+
+
+class WrapException(CriticalError):
+    """
+    A runtime exception
+    """
+    cid = "exception"
+    msg = "Test tool exception"
+
+    def _func(self, conv=None):
+        self._status = self.status
+        self._message = traceback.format_exception(*sys.exc_info())
+        return {}
 
 
 class Other(CriticalError):
