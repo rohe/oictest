@@ -13,6 +13,7 @@ from rrtest.check import CriticalError
 from rrtest.check import Other
 from rrtest.check import Error
 from rrtest.check import ExpectedError
+from rrtest.check import WrapException
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
 from rrtest.check import INFORMATION
@@ -22,7 +23,6 @@ __author__ = 'rohe0002'
 
 import inspect
 import sys
-import traceback
 import urlparse
 
 from oic.oic.message import SCOPE2CLAIMS
@@ -572,19 +572,6 @@ class LoginRequired(Error):
             self._status = self.status
             self._message = "Wrong error code"
 
-        return {}
-
-
-class WrapException(CriticalError):
-    """
-    A runtime exception
-    """
-    cid = "exception"
-    msg = "Test tool exception"
-
-    def _func(self, conv=None):
-        self._status = self.status
-        self._message = traceback.format_exception(*sys.exc_info())
         return {}
 
 
