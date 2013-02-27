@@ -39,9 +39,6 @@ class Conversation(tool.Conversation):
         self.login_page = None
         self.response_message = None
 
-    def init(self, phase):
-        self.creq, self.cresp = phase
-
     def my_endpoints(self):
         return self.client.redirect_uris
 

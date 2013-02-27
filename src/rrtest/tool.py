@@ -186,7 +186,7 @@ class Conversation(object):
             self.last_content = None
 
     def init(self, phase):
-        pass
+        self.creq, self.cresp = phase
 
     def setup_request(self):
         self.request_spec = req = self.creq(conv=self)
@@ -232,7 +232,7 @@ class Conversation(object):
             self.handle_result()
 
     def do_sequence(self, oper):
-
+        # TODO: Find out why we start to look for an interaction on AccessTokenResponse
         try:
             self.test_sequence(oper["tests"]["pre"])
         except KeyError:
