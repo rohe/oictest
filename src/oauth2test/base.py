@@ -118,7 +118,7 @@ class Conversation(tool.Conversation):
         if self.info and resp.response:
             self.do_response(resp, resp_type)
             
-        self.post_process(resp)
+        return self.post_process(resp)
         
     def send(self):
         try:
