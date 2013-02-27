@@ -1,5 +1,10 @@
 #!/usr/bin/env python
+from rrtest.request import BodyResponse
+from rrtest.request import GetRequest
 from rrtest.request import Request
+from rrtest.request import Response
+from rrtest.request import UrlResponse
+from rrtest.request import PostRequest
 from rrtest.check import CheckHTTPResponse
 
 __author__ = 'rohe0002'
@@ -58,10 +63,6 @@ def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
         args["redirect_uris"].append("%scb" % _base)
 
     args["sector_identifier_url"] = sector_identifier_url
-
-
-class GetRequest(Request):
-    method = "GET"
 
 
 class MissingResponseType(GetRequest):
@@ -428,10 +429,6 @@ class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
         AuthorizationRequestCodeIDToken.__init__(self, conv)
         self.request_args["response_type"].append("token")
 
-
-class PostRequest(Request):
-    method = "POST"
-
 # =============================================================================
 
 
@@ -782,22 +779,6 @@ class UserInfoRequestPostBearerBody(PostRequest):
 # -----------------------------------------------------------------------------
 
 
-class Response():
-    response = ""
-    tests = {}
-
-    def __init__(self):
-        pass
-
-    def __call__(self, conv, response):
-        pass
-
-
-class UrlResponse(Response):
-    where = "url"
-    ctype = "urlencoded"
-
-
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
     tests = {"post": [CheckAuthorizationResponse]}
@@ -805,11 +786,6 @@ class AuthzResponse(UrlResponse):
 
 class AuthzErrResponse(UrlResponse):
     response = "AuthorizationErrorResponse"
-
-
-class BodyResponse(Response):
-    where = "body"
-    ctype = "json"
 
 
 class RegistrationResponse(BodyResponse):

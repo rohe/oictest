@@ -107,3 +107,32 @@ class Request(object):
                 res[key] = val
 
         return res
+
+
+class GetRequest(Request):
+    method = "GET"
+
+
+class PostRequest(Request):
+    method = "POST"
+
+
+class Response(object):
+    response = ""
+    tests = {}
+
+    def __init__(self):
+        pass
+
+    def __call__(self, conv, response):
+        pass
+
+
+class UrlResponse(Response):
+    where = "url"
+    ctype = "urlencoded"
+
+
+class BodyResponse(Response):
+    where = "body"
+    ctype = "json"
