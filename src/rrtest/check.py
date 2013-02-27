@@ -113,9 +113,9 @@ class CheckErrorResponse(ExpectedError):
                 res["content"] = _content
             elif CONT_JSON in content_type:
                 try:
-                    err = ErrorResponse().deserialize(_content, "json")
-                    err.verify()
-                    res["content"] = err.to_json()
+                    self.err = ErrorResponse().deserialize(_content, "json")
+                    self.err.verify()
+                    res["content"] = self.err.to_json()
                     #res["temp"] = err
                 except Exception:
                     res["content"] = _content
@@ -124,9 +124,9 @@ class CheckErrorResponse(ExpectedError):
         else:
             # might still be an error message
             try:
-                err = ErrorResponse().deserialize(_content, "json")
-                err.verify()
-                res["content"] = err.to_json()
+                self.err = ErrorResponse().deserialize(_content, "json")
+                self.err.verify()
+                res["content"] = self.err.to_json()
             except Exception:
                 self._message = "Expected error message"
                 self._status = CRITICAL
