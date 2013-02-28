@@ -85,4 +85,3 @@ def get_page(url):
         return resp.text
     else:
         raise HTTP_ERROR(resp.status)
-
