@@ -5,7 +5,6 @@ import sys
 
 from oic.oauth2.message import Message
 from oic.oic import RegistrationResponse
-from oictest.opfunc import Operation
 
 from rrtest import tool, FatalError
 
@@ -46,10 +45,9 @@ class Conversation(tool.Conversation):
         try:
             self.response_spec = resp = self.cresp()
         except TypeError:
-            self.response_spec = resp = None
+            self.response_spec = None
             return True
 
-        _qresp = None
         self.info = None
 
         response = self.last_response
@@ -66,7 +64,7 @@ class Conversation(tool.Conversation):
             pass
         elif not self.position:
             if isinstance(self.last_content, Message):
-                self.response_message = _qresp = self.last_content
+                self.response_message = self.last_content
             elif response.status_code == 200:
                 self.info = self.last_content
         elif resp.where == "url" or response.status_code == 302:
@@ -115,6 +113,8 @@ class Conversation(tool.Conversation):
                     raise
             else:
                 self.do_check("response-parse")
+
+        return self.post_process(resp)
 
     def post_process(self, resp):
         if self.response_message:
