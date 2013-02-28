@@ -8,6 +8,7 @@ from mechanize import ParseResponseEx
 from mechanize._form import ControlNotFoundError, AmbiguityError
 from mechanize._form import ListControl
 
+
 class FlowException(Exception):
     def __init__(self, function="", content="", url=""):
         Exception.__init__(self)
@@ -23,7 +24,7 @@ class DResponse():
     """ A Response class that behaves in the way that mechanize expects it
     """
     def __init__(self, **kwargs):
-        self.status = 200 # default
+        self.status = 200  # default
         self.index = 0
         self._message = ""
         self.url = ""
@@ -71,7 +72,7 @@ class DResponse():
                     part = self._message[self.index:]
                     self.index = self._len
                 else:
-                    part = self._message[self.index:self.index+size]
+                    part = self._message[self.index:self.index + size]
                     self.index += size
                 return part
         else:
@@ -110,8 +111,8 @@ def do_request(client, url, method, body="", headers=None, trace=False):
         trace.request("BODY: %s" % body)
         trace.request("Headers: %s" % (headers,))
 
-    response = client.http_request(url, method=method,
-                                            data=body, headers=headers)
+    response = client.http_request(url, method=method, data=body,
+                                   headers=headers)
 
     if trace:
         trace.reply("RESPONSE: %s" % response)
@@ -120,6 +121,7 @@ def do_request(client, url, method, body="", headers=None, trace=False):
             trace.reply("COOKIES: %s" % response.cookies)
 
     return url, response, response.text
+
 
 def pick_form(response, content, url=None, **kwargs):
     """
@@ -181,6 +183,7 @@ def pick_form(response, content, url=None, **kwargs):
 
     return _form
 
+
 def do_click(client, form, **kwargs):
     """
     Emulates the user clicking submit on a form.
@@ -191,7 +194,7 @@ def do_click(client, form, **kwargs):
     """
 
     if "click" in kwargs:
-        request=None
+        request = None
         _name = kwargs["click"]
         try:
             _ = form.find_control(name=_name)
@@ -230,6 +233,7 @@ def do_click(client, form, **kwargs):
     else:
         return do_request(client, url, "GET", headers=headers, trace=_trace)
 
+
 def select_form(client, orig_response, content, **kwargs):
     """
     Pick a form on a web page, possibly enter some information and submit
@@ -246,7 +250,7 @@ def select_form(client, orig_response, content, **kwargs):
         _url = kwargs["location"]
     # content is a form to be filled in and returned
     if isinstance(content, unicode):
-       content = content.encode("utf-8")
+        content = content.encode("utf-8")
 
     response = DResponse(status=orig_response.status_code, url=_url)
     response.write(content)
@@ -276,6 +280,7 @@ def select_form(client, orig_response, content, **kwargs):
 
     return do_click(client, form, **kwargs)
 
+
 #noinspection PyUnusedLocal
 def chose(client, orig_response, content, path, **kwargs):
     """
@@ -300,12 +305,13 @@ def chose(client, orig_response, content, path, **kwargs):
             _url = kwargs["location"]
 
         part = urlparse(_url)
-        url = "%s://%s%s" %  (part[0], part[1], path)
+        url = "%s://%s%s" % (part[0], part[1], path)
     else:
         url = path
 
     return do_request(client, url, "GET", trace=_trace)
     #return resp, ""
+
 
 def post_form(client, orig_response, content, **kwargs):
     """
@@ -376,4 +382,3 @@ class Operation(object):
         result = self.function(self.conv.client, response, content, **_args)
         self.post_op(result, self.conv, _args)
         return result
-
