@@ -6,7 +6,7 @@ from jwkest.jwe import decrypt
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
-from rrtest import check
+from rrtest import check, Unknown
 
 from rrtest.check import Check, CONT_JSON, CONT_JWT
 from rrtest.check import CriticalError
@@ -972,7 +972,7 @@ def factory(cid, classes=CLASS_CACHE):
     if cid in classes:
         return classes[cid]
     else:
-        return None
+        raise Unknown("Couldn't find the check: '%s'" % cid)
 
 
 if __name__ == "__main__":
