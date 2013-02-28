@@ -1,7 +1,6 @@
 from oic.oauth2 import Message
 import sys
 from rrtest import tool, FatalError
-from rrtest.interaction import Operation
 
 __author__ = 'rolandh'
 
@@ -118,7 +117,7 @@ class Conversation(tool.Conversation):
         if self.info and resp.response:
             self.do_response(resp, resp_type)
             
-        self.post_process(resp)
+        return self.post_process(resp)
         
     def send(self):
         try:
