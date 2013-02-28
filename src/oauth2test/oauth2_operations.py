@@ -1,11 +1,12 @@
 from oauth2test.check import CheckAuthorizationResponse
 from oauth2test.check import VerifyAccessTokenResponse
 from rrtest.check import CheckHTTPResponse
+from rrtest.request import BodyResponse
+from rrtest.request import GetRequest
 from rrtest.request import Request
-
-
-class GetRequest(Request):
-    method = "GET"
+from rrtest.request import Response
+from rrtest.request import UrlResponse
+from rrtest.request import PostRequest
 
 
 class AuthorizationRequest(GetRequest):
@@ -18,39 +19,14 @@ class AuthorizationRequestCode(AuthorizationRequest):
     _request_args = {"response_type": ["code"]}
 
 
-class PostRequest(Request):
-    method = "POST"
-
-
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
     _kw_args = {"authn_method": "client_secret_basic"}
 
 
-class Response(object):
-    response = ""
-    tests = {}
-
-    def __init__(self):
-        pass
-
-    def __call__(self, conv, response):
-        pass
-
-
-class UrlResponse(Response):
-    where = "url"
-    ctype = "urlencoded"
-
-
 class AuthorizationResponse(UrlResponse):
     response = "AuthorizationResponse"
     tests = {"post": [CheckAuthorizationResponse]}
-
-
-class BodyResponse(Response):
-    where = "body"
-    ctype = "json"
 
 
 class AccessTokenResponse(BodyResponse):

@@ -186,10 +186,37 @@ class Conversation(object):
             self.last_content = None
 
     def init(self, phase):
-        pass
+        self.creq, self.cresp = phase
 
     def setup_request(self):
-        pass
+        self.request_spec = req = self.creq(conv=self)
+
+        if isinstance(req, Operation):
+            for intact in self.interaction.interactions:
+                try:
+                    if req.__class__.__name__ == intact["matches"]["class"]:
+                        req.args = intact["args"]
+                        break
+                except KeyError:
+                    pass
+        else:
+            try:
+                self.request_args = req.request_args
+            except KeyError:
+                pass
+            try:
+                self.args = req.kw_args
+            except KeyError:
+                pass
+
+        # The authorization dance is all done through the browser
+        if req.request == "AuthorizationRequest":
+            self.client.cookiejar = self.cjar["browser"]
+        # everything else by someone else, assuming the RP
+        else:
+            self.client.cookiejar = self.cjar["rp"]
+
+        self.req = req
 
     def send(self):
         pass
@@ -205,7 +232,7 @@ class Conversation(object):
             self.handle_result()
 
     def do_sequence(self, oper):
-
+        # TODO: Find out why we start to look for an interaction on AccessTokenResponse
         try:
             self.test_sequence(oper["tests"]["pre"])
         except KeyError:
