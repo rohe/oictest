@@ -1,5 +1,8 @@
 from rrtest import check
 from rrtest.check import CONT_JSON
+from rrtest.check import CheckErrorResponse
+from rrtest.check import CRITICAL
+from rrtest.check import OK
 from rrtest.check import Error
 
 __author__ = 'rohe0002'
@@ -62,6 +65,29 @@ class CheckContentTypeHeader(Error):
                     self._message = "Wrong content type: %s" % ctype
         except KeyError:
             pass
+
+        return res
+
+
+class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
+    cid = "check_second_code_usage_error_response"
+
+    def _func(self, conv=None):
+        """@todo: Docstring for _func
+
+        :conv: @todo
+        :returns: @todo
+
+        """
+        res = super(CheckSecondCodeUsageErrorResponse, self)._func(conv)
+
+        expected_value = "invalid_grant"
+
+        if OK == self._status:
+            if expected_value != self.err['error']:
+                self._status = CRITICAL
+                self._message = ('The error parameter should be "%s"' %
+                                 expected_value)
 
         return res
 

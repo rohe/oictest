@@ -159,7 +159,7 @@ class OAuth2(object):
                 if tsum["status"] > 1 or self.args.debug:
                     print >> sys.stderr, self.trace
             except FatalError, err:
-                print >> sys.stderr, err.trace
+                print >> sys.stderr, self.trace
                 print err
                 #exception_trace("RUN", err)
             except Exception, err:

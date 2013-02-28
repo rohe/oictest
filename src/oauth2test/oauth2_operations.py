@@ -1,10 +1,9 @@
 from oauth2test.check import CheckAuthorizationResponse
+from oauth2test.check import CheckSecondCodeUsageErrorResponse
 from oauth2test.check import VerifyAccessTokenResponse
-from rrtest.check import CheckHTTPResponse
+from rrtest.check import CheckHTTPResponse, VerifyError
 from rrtest.request import BodyResponse
 from rrtest.request import GetRequest
-from rrtest.request import Request
-from rrtest.request import Response
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
 
@@ -37,9 +36,19 @@ class AccessTokenResponse(BodyResponse):
         self.tests = {"post": [VerifyAccessTokenResponse]}
 
 
+class AccessTokenSecondResponse(AccessTokenResponse):
+    tests = {"post": [VerifyError]}
+
+
+class AccessTokenSecondRequest(AccessTokenRequest):
+    tests = {"post": [CheckSecondCodeUsageErrorResponse]}
+
+
 PHASES = {
     "login": (AuthorizationRequestCode, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
+    "access-token-second-request": (AccessTokenSecondRequest,
+                                        AccessTokenSecondResponse),
 }
 
 
@@ -61,13 +70,14 @@ FLOWS = {
         "sequence": ["login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
-    'code-idtoken_get': {
-        "name": 'Basic Code flow with ID Token',
+    'code-idtoken-double_post': {
+        "name": 'Basic Code flow with two requests for ID Token',
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login", "access-token-request-get"],
+        "sequence": ["login", "access-token-request",
+            "access-token-second-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
 }
