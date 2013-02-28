@@ -73,12 +73,6 @@ class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
     cid = "check_second_code_usage_error_response"
 
     def _func(self, conv=None):
-        """@todo: Docstring for _func
-
-        :conv: @todo
-        :returns: @todo
-
-        """
         res = super(CheckSecondCodeUsageErrorResponse, self)._func(conv)
 
         expected_value = "invalid_grant"
