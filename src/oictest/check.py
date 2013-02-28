@@ -4,26 +4,17 @@ from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwe import decrypt
 from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import MissingRequiredAttribute
 from oic.oic import AuthorizationResponse
 from oic.oic import message
+from rrtest import check
 
 from rrtest.check import Check, CONT_JSON, CONT_JWT
 from rrtest.check import CriticalError
-from rrtest.check import CheckErrorResponse
-from rrtest.check import CheckRedirectErrorResponse
 from rrtest.check import Other
 from rrtest.check import Error
-from rrtest.check import ExpectedError
-from rrtest.check import MissingRedirect
 from rrtest.check import ResponseInfo
-from rrtest.check import VerifyBadRequestResponse
-from rrtest.check import VerifyErrorResponse
-from rrtest.check import VerifyError
-from rrtest.check import WrapException
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
-from rrtest.check import INFORMATION
 from rrtest.check import INTERACTION
 
 __author__ = 'rohe0002'
@@ -159,7 +150,6 @@ class CheckSupported(CriticalError):
             pass
 
         return res
-
 
     def _supported(self, request_args, provider_info):
         try:
@@ -966,16 +956,23 @@ class CheckSignedEncryptedIDToken(Error):
         return {}
 
 
-def factory(cid):
-    for name, obj in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(obj):
-            try:
-                if obj.cid == cid:
-                    return obj
-            except AttributeError:
-                pass
+CLASS_CACHE = {}
 
-    return None
+
+def factory(cid, classes=CLASS_CACHE):
+    if len(classes) == 0:
+        check.factory(cid, classes)
+        for name, obj in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(obj):
+                try:
+                    classes[obj.cid] = obj
+                except AttributeError:
+                    pass
+
+    if cid in classes:
+        return classes[cid]
+    else:
+        return None
 
 
 if __name__ == "__main__":

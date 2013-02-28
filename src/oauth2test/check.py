@@ -1,24 +1,6 @@
-import json
-
-from oic.oauth2.message import ErrorResponse
-from oic.oauth2.message import MissingRequiredAttribute
-
-from rrtest.check import Check, CONT_JSON
-from rrtest.check import CriticalError
-from rrtest.check import CheckErrorResponse
-from rrtest.check import CheckRedirectErrorResponse
+from rrtest import check
+from rrtest.check import CONT_JSON
 from rrtest.check import Error
-from rrtest.check import ExpectedError
-from rrtest.check import MissingRedirect
-from rrtest.check import Parse
-from rrtest.check import ResponseInfo
-from rrtest.check import VerifyErrorResponse
-from rrtest.check import VerifyError
-from rrtest.check import WrapException
-from rrtest.check import OK
-from rrtest.check import CRITICAL
-from rrtest.check import ERROR
-from rrtest.check import INFORMATION
 
 __author__ = 'rohe0002'
 
@@ -84,15 +66,19 @@ class CheckContentTypeHeader(Error):
         return res
 
 
-class_cache = {}
-def factory(cid, classes=class_cache):
+CLASS_CACHE = {}
+
+
+def factory(cid, classes=CLASS_CACHE):
     if len(classes) == 0:
+        check.factory(cid, classes)
         for name, obj in inspect.getmembers(sys.modules[__name__]):
             if inspect.isclass(obj):
                 try:
-                    class_cache[obj.cid] = obj
+                    classes[obj.cid] = obj
                 except AttributeError:
                     pass
+
     if cid in classes:
         return classes[cid]
     else:

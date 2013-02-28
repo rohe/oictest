@@ -1,6 +1,9 @@
+import inspect
+import json
+
 __author__ = 'rolandh'
 
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ErrorResponse, MissingRequiredAttribute
 
 import traceback
 import sys
@@ -17,6 +20,7 @@ STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
 
 CONT_JSON = "application/json"
 CONT_JWT = "application/jwt"
+
 
 class Check(object):
     """ General test
@@ -360,9 +364,23 @@ class Parse(CriticalError):
                     "Didn't get a response of the type I expected:",
                     " '%s' instead of '%s', content:'%s'" % (
                         cname, conv.response_type, _rmsg))
-        return {
-            "response_type": conv.response_type,
-            "url": conv.position
-        }
+                return {
+                    "response_type": conv.response_type,
+                    "url": conv.position
+                }
 
+        return {}
 
+def factory(cid, classes):
+    if len(classes) == 0:
+        for name, obj in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(obj):
+                try:
+                    classes[obj.cid] = obj
+                except AttributeError:
+                    pass
+
+    if cid in classes:
+        return classes[cid]
+    else:
+        return None
