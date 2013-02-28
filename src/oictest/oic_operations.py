@@ -2,10 +2,12 @@
 from rrtest.request import BodyResponse
 from rrtest.request import GetRequest
 from rrtest.request import Request
-from rrtest.request import Response
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
 from rrtest.check import CheckHTTPResponse
+from rrtest.check import VerifyErrorResponse
+from rrtest.check import CheckRedirectErrorResponse
+from rrtest.check import CheckErrorResponse
 
 __author__ = 'rohe0002'
 
@@ -19,9 +21,10 @@ from urllib import urlencode
 from jwkest import unpack
 
 from oic.oic import message
+
 # Used upstream not in this module so don't remove
 from oictest.check import *
-from oictest.opfunc import *
+from rrtest.opfunc import *
 
 # ========================================================================
 
@@ -184,7 +187,7 @@ class AuthorizationRequestCodePromptNone(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
-        self.tests["post"] = [VerifyErrResponse]
+        self.tests["post"] = [VerifyErrorResponse]
 
 
 class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
