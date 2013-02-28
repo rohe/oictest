@@ -1,11 +1,12 @@
 import cookielib
 import sys
 import traceback
+from rrtest.opfunc import Operation
 from rrtest import FatalError
 from rrtest.check import ExpectedError
 from rrtest.check import INTERACTION
 from rrtest.interaction import Interaction
-from rrtest.interaction import Operation
+from rrtest.interaction import Action
 from rrtest.interaction import InteractionNeeded
 from rrtest.status import STATUSCODE
 
@@ -70,7 +71,7 @@ class Conversation(object):
         chk = self.check_factory(test)()
         chk(self, self.test_output)
         if bryt:
-            e = FatalError(test)
+            e = FatalError("%s" % err)
             e.trace = "".join(traceback.format_exception(*sys.exc_info()))
             raise e
 
@@ -158,7 +159,7 @@ class Conversation(object):
                 if _spec["page-type"] == "login":
                     self.login_page = content
 
-            _op = Operation(_spec["control"])
+            _op = Action(_spec["control"])
 
             try:
                 _response = _op(self.client, self, self.trace, url,
