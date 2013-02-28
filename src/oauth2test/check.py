@@ -83,7 +83,27 @@ class CheckContentTypeHeader(Error):
 
         return res
 
+class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
+    def _func(self, conv=None):
+        """@todo: Docstring for _func
 
+        :conv: @todo
+        :returns: @todo
+
+        """
+        res = super(CheckSecondCodeUsageErrorResponse, self)._func(conv)
+
+        expected_value = "invalid_grant"
+
+        if OK == self._status:
+            if expected_value != self.err['error']:
+                self._status = CRITICAL
+                self._message = ('The error parameter should be "%s"' %
+                        expected_value)
+
+        return res
+
+        
 class_cache = {}
 def factory(cid, classes=class_cache):
     if len(classes) == 0:
