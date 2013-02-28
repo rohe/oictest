@@ -2,7 +2,6 @@
 import time
 from oauth2test import OAuth2
 
-from oauth2test import flow2sequence
 from oictest.base import Conversation
 from oic.utils.keyio import key_export
 from rrtest import start_script
@@ -205,7 +204,7 @@ class OIC(OAuth2):
                 interact.append({
                     "matches": {"class": op_spec[0].__name__},
                     "args": {"issuer":
-                                 self.json_config["provider"]["dynamic"]}})
+                             self.json_config["provider"]["dynamic"]}})
 
             else:
                 self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
