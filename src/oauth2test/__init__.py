@@ -33,15 +33,22 @@ class OAuth2(object):
                                   help="Print runtime information")
         self._parser.add_argument(
             '-C', dest="ca_certs",
-            help="CA certs to use to verify HTTPS server certificates, if HTTPS is used and no server CA certs are defined then no cert verification is done")
+            help=("CA certs to use to verify HTTPS server certificates,",
+                  "if HTTPS is used and no server CA certs are defined then",
+                  " no cert verification is done"))
         self._parser.add_argument('-J', dest="json_config_file",
                                   help="Script configuration")
-        self._parser.add_argument('-I', dest="interactions",
-                                  help="Extra interactions not defined in the script configuration file")
-        self._parser.add_argument("-l", dest="list", action="store_true",
-                                  help="List all the test flows as a JSON object")
-        self._parser.add_argument("-H", dest="host",
-                                  help="Which host the script is running on, used to construct the key export URL")
+        self._parser.add_argument(
+            '-I', dest="interactions",
+            help=("Extra interactions not defined in the script ",
+                  "configuration file"))
+        self._parser.add_argument(
+            "-l", dest="list", action="store_true",
+            help="List all the test flows as a JSON object")
+        self._parser.add_argument(
+            "-H", dest="host",
+            help=("Which host the script is running on, used to construct the ",
+                  "key export URL"))
         self._parser.add_argument("flow", nargs="?",
                                   help="Which test flow to run")
 
@@ -140,9 +147,9 @@ class OAuth2(object):
             self.client.state = "STATE0"
 
             try:
-                except_exception = flow_spec["except_exception"]
+                expect_exception = flow_spec["expect_exception"]
             except KeyError:
-                except_exception = False
+                expect_exception = False
 
             try:
                 if self.args.verbose:
@@ -150,7 +157,8 @@ class OAuth2(object):
                 conv = self.conversation_cls(self.client, self.cconf,
                                              self.trace, interact,
                                              msg_factory=self.msg_factory,
-                                             check_factory=self.chk_factory)
+                                             check_factory=self.chk_factory,
+                                             expect_exception=expect_exception)
                 conv.do_sequence(_spec)
                 #testres, trace = do_sequence(oper,
                 self.test_log = conv.test_output
@@ -160,6 +168,10 @@ class OAuth2(object):
                     print >> sys.stderr, self.trace
             except FatalError, err:
                 print >> sys.stderr, self.trace
+                try:
+                    print >> sys.stderr, err.trace
+                except AttributeError:
+                    pass
                 print err
                 #exception_trace("RUN", err)
             except Exception, err:
@@ -253,7 +265,7 @@ class OAuth2(object):
             sequence = None
             _flow = ""
 
-        res = {"sequence": sequence, "tests": {"pre": [],"post": []}}
+        res = {"sequence": sequence, "tests": {"pre": [], "post": []}}
 
         if _flow:
             try:
