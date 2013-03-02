@@ -2,7 +2,6 @@
 import time
 from oauth2test import OAuth2
 
-from oictest.base import Conversation
 from oic.utils.keyio import key_export
 from rrtest import start_script
 
