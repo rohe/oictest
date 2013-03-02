@@ -21,10 +21,11 @@ def endpoint(client, base):
 
 class Conversation(tool.Conversation):
     def __init__(self, client, config, trace, interaction, msg_factory,
-                 check_factory, features=None, verbose=False):
+                 check_factory, features=None, verbose=False,
+                 expect_exception=False):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
-                                   features, verbose)
+                                   features, verbose, expect_exception)
         self.cis = []
         #self.item = []
         self.keyjar = self.client.keyjar
@@ -49,6 +50,7 @@ class Conversation(tool.Conversation):
             return True
 
         self.info = None
+        self.response_message = None
 
         response = self.last_response
         resp_type = resp.ctype
