@@ -1,5 +1,6 @@
 from oauth2test.check import CheckAuthorizationResponse
 from oauth2test.check import CheckSecondCodeUsageErrorResponse
+from oauth2test.check import CheckPresenceOfStateParameter
 from oauth2test.check import VerifyAccessTokenResponse
 from rrtest.check import CheckHTTPResponse, VerifyError
 from rrtest.request import BodyResponse
@@ -43,12 +44,24 @@ class AccessTokenSecondResponse(AccessTokenResponse):
 class AccessTokenSecondRequest(AccessTokenRequest):
     tests = {"post": [CheckSecondCodeUsageErrorResponse]}
 
+class AuthorizationRequestCodeWithState(AuthorizationRequestCode):
+
+    def __init__(self, conv=None):
+        super(AuthorizationRequestCodeWithState, self).__init__(conv)
+
+        self.request_args["state"] = "afdsliLKJ253oiuffaslkj"
+
+class AuthorizationResponseWhichForcesState(AuthorizationResponse):
+    tests = {"post": [CheckPresenceOfStateParameter]}
+
 
 PHASES = {
     "login": (AuthorizationRequestCode, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-second-request": (AccessTokenSecondRequest,
                                         AccessTokenSecondResponse),
+    "login-with-state": (AuthorizationRequestCodeWithState,
+                AuthorizationResponseWhichForcesState),
 }
 
 
@@ -79,5 +92,14 @@ FLOWS = {
         "sequence": ["login", "access-token-request",
             "access-token-second-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
+    },
+    'code-presence-of-state': {
+        'name': 'Basic Code flow with authentication which checks for state parameter',
+        'descr': ('Basic test of a Provider using the authorization code ',
+                  'flow. The test tool acting as a consumer is relaxed but ',
+                  'ensures that the state parameter in the authorization ',
+                  'response is equal to the state given in the authorization ,'
+                  'request.'),
+        'sequence': ['login-with-state']
     },
 }

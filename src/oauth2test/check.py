@@ -85,6 +85,21 @@ class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
 
         return res
 
+class CheckPresenceOfStateParameter(Error):
+    """ Makes sure that the state-parameter is present and correct
+    """
+    cid = "check_presence_of_state_parameter"
+
+    def _func(self, conv=None):
+        response, content = conv.protocol_response[-1]
+        if not "state" in response:
+            self._status = self.status
+            self._message = "State was missing from the authorization response"
+        elif response["state"] != "afdsliLKJ253oiuffaslkj":
+            self._status = self.status
+            self._message = "State parameter was changed"
+        return {}
+
 
 CLASS_CACHE = {}
 
