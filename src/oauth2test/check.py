@@ -18,7 +18,7 @@ class CheckAuthorizationResponse(Error):
     """
     cid = "check-authorization-response"
 
-    def _func(self, conv=None):
+    def _func(self, conv):
         #self._status = self.status
         return {}
 
@@ -29,7 +29,7 @@ class VerifyAccessTokenResponse(Error):
     """
     cid = "verify-access-token-response"
 
-    def _func(self, conv=None):
+    def _func(self, conv):
         resp = conv.response_message
 
         #This specification further constrains that only Bearer Tokens [OAuth
@@ -48,7 +48,7 @@ class CheckContentTypeHeader(Error):
     """
     cid = "check_content_type_header"
 
-    def _func(self, conv=None):
+    def _func(self, conv):
         res = {}
         _response = conv.last_response
         try:
@@ -72,13 +72,7 @@ class CheckContentTypeHeader(Error):
 class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
     cid = "check_second_code_usage_error_response"
 
-    def _func(self, conv=None):
-        """@todo: Docstring for _func
-
-        :conv: @todo
-        :returns: @todo
-
-        """
+    def _func(self, conv):
         res = super(CheckSecondCodeUsageErrorResponse, self)._func(conv)
 
         expected_value = "invalid_grant"
@@ -88,6 +82,38 @@ class CheckSecondCodeUsageErrorResponse(CheckErrorResponse):
                 self._status = CRITICAL
                 self._message = ('The error parameter should be "%s"' %
                                  expected_value)
+
+        return res
+
+
+class CheckPresenceOfStateParameter(Error):
+    """ Makes sure that the state-parameter is present and correct
+    """
+    cid = "check_presence_of_state_parameter"
+
+    def _func(self, conv):
+        response, content = conv.protocol_response[-1]
+        if not "state" in response:
+            self._status = self.status
+            self._message = "State was missing from the authorization response"
+        elif response["state"] != "afdsliLKJ253oiuffaslkj":
+            self._status = self.status
+            self._message = "State parameter was changed"
+        return {}
+
+
+class CheckErrorResponseForInvalidType(CheckErrorResponse):
+    status = check.ERROR
+
+    def _func(self, conv):
+        res = super(CheckErrorResponseForInvalidType, self)._func(conv)
+
+        expected_value = "unsupported_grant_type"
+
+        if OK == self._status:
+            if self.err["error"] != expected_value:
+                self._status = self.status
+                self._message = 'The error parameter should be "%s"' % expected_value
 
         return res
 

@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from rrtest.request import BodyResponse
+from rrtest.request import ErrorResponse
 from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
@@ -834,9 +835,6 @@ class ClientRegistrationErrorResponse(BodyResponse):
 class AuthorizationErrorResponse(BodyResponse):
     response = "AuthorizationErrorResponse"
 
-
-class ErrorResponse(BodyResponse):
-    response = "ErrorResponse"
 
 # ----------------------------------------------------------------------------
 

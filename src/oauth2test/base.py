@@ -7,10 +7,11 @@ __author__ = 'rolandh'
 
 class Conversation(tool.Conversation):
     def __init__(self, client, config, trace, interaction, msg_factory,
-                 check_factory, features=None, verbose=False):
+                 check_factory, features=None, verbose=False,
+                 expect_exception=False):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
-                                   features, verbose)
+                                   features, verbose, expect_exception)
         self.cis = []
         self.protocol_response = []
         #self.item = []

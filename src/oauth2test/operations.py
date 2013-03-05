@@ -1,11 +1,14 @@
 from oauth2test.check import CheckAuthorizationResponse
+from oauth2test.check import CheckErrorResponseForInvalidType
 from oauth2test.check import CheckSecondCodeUsageErrorResponse
+from oauth2test.check import CheckPresenceOfStateParameter
 from oauth2test.check import VerifyAccessTokenResponse
 from rrtest.check import CheckHTTPResponse, VerifyError
 from rrtest.request import BodyResponse
+from rrtest.request import ErrorResponse
 from rrtest.request import GetRequest
-from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
+from rrtest.request import UrlResponse
 
 
 class AuthorizationRequest(GetRequest):
@@ -30,18 +33,37 @@ class AuthorizationResponse(UrlResponse):
 
 class AccessTokenResponse(BodyResponse):
     response = "AccessTokenResponse"
-
-    def __init__(self):
-        BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse]}
-
-
-class AccessTokenSecondResponse(AccessTokenResponse):
-    tests = {"post": [VerifyError]}
+    tests = {"post": [VerifyAccessTokenResponse]}
 
 
 class AccessTokenSecondRequest(AccessTokenRequest):
+    tests = {"post": [VerifyError]}
+
+class AccessTokenSecondResponse(AccessTokenResponse):
     tests = {"post": [CheckSecondCodeUsageErrorResponse]}
+
+
+class AuthorizationRequestCodeWithState(AuthorizationRequestCode):
+
+    def __init__(self, conv=None):
+        super(AuthorizationRequestCodeWithState, self).__init__(conv)
+
+        self.request_args["state"] = "afdsliLKJ253oiuffaslkj"
+
+class AuthorizationResponseWhichForcesState(AuthorizationResponse):
+    tests = {"post": [CheckPresenceOfStateParameter]}
+
+
+class AccessTokenInvalidTypeRequest(AccessTokenRequest):
+    tests = {"post": [VerifyError]}
+
+    def __init__(self, conv):
+        super(AccessTokenInvalidTypeRequest, self).__init__(conv)
+
+        self.request_args["grant_type"] = 'nissesapa'
+
+class AccessTokenInvalidTypeResponse(ErrorResponse):
+    tests = {"post": [CheckErrorResponseForInvalidType]}
 
 
 PHASES = {
@@ -49,6 +71,10 @@ PHASES = {
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-second-request": (AccessTokenSecondRequest,
                                         AccessTokenSecondResponse),
+    "login-with-state": (AuthorizationRequestCodeWithState,
+                AuthorizationResponseWhichForcesState),
+    "access-token-request-invalid-type": (AccessTokenInvalidTypeRequest,
+                        AccessTokenInvalidTypeResponse),
 }
 
 
@@ -79,5 +105,21 @@ FLOWS = {
         "sequence": ["login", "access-token-request",
             "access-token-second-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
+    },
+    'code-presence-of-state': {
+        'name': 'Basic Code flow with authentication which checks for state parameter',
+        'descr': ('Basic test of a Provider using the authorization code ',
+                  'flow. The test tool acting as a consumer is relaxed but ',
+                  'ensures that the state parameter in the authorization ',
+                  'response is equal to the state given in the authorization ,'
+                  'request.'),
+        'sequence': ['login-with-state']
+    },
+    'code-faulty-grant-type': {
+        'name': 'Basic Code flow with faulty grant_type',
+        'descr': ('Basic test of a Provider which checks that the provider',
+                  'correctly indicates faulty values for the grant_type',
+                  'parameter.'),
+        'sequence': ['login', 'access-token-request-invalid-type'],
     },
 }
