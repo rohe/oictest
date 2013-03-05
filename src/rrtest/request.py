@@ -136,3 +136,7 @@ class UrlResponse(Response):
 class BodyResponse(Response):
     where = "body"
     ctype = "json"
+
+
+class ErrorResponse(BodyResponse):
+    response = "ErrorResponse"
