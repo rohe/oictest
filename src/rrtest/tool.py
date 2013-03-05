@@ -176,7 +176,7 @@ class Conversation(object):
 
                 if _response.status_code >= 400:
                     break
-            except FatalError:
+            except (FatalError, InteractionNeeded):
                 raise
             except Exception, err:
                 self.err_check("exception", err, False)
