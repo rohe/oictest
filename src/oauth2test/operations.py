@@ -4,9 +4,10 @@ from oauth2test.check import CheckPresenceOfStateParameter
 from oauth2test.check import VerifyAccessTokenResponse
 from rrtest.check import CheckHTTPResponse, VerifyError
 from rrtest.request import BodyResponse
+from rrtest.request import ErrorResponse
 from rrtest.request import GetRequest
-from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
+from rrtest.request import UrlResponse
 
 
 class AuthorizationRequest(GetRequest):
@@ -31,18 +32,15 @@ class AuthorizationResponse(UrlResponse):
 
 class AccessTokenResponse(BodyResponse):
     response = "AccessTokenResponse"
-
-    def __init__(self):
-        BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse]}
-
-
-class AccessTokenSecondResponse(AccessTokenResponse):
-    tests = {"post": [VerifyError]}
+    tests = {"post": [VerifyAccessTokenResponse]}
 
 
 class AccessTokenSecondRequest(AccessTokenRequest):
+    tests = {"post": [VerifyError]}
+
+class AccessTokenSecondResponse(AccessTokenResponse):
     tests = {"post": [CheckSecondCodeUsageErrorResponse]}
+
 
 class AuthorizationRequestCodeWithState(AuthorizationRequestCode):
 
