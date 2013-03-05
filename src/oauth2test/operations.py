@@ -1,4 +1,5 @@
 from oauth2test.check import CheckAuthorizationResponse
+from oauth2test.check import CheckErrorResponseForInvalidType
 from oauth2test.check import CheckSecondCodeUsageErrorResponse
 from oauth2test.check import CheckPresenceOfStateParameter
 from oauth2test.check import VerifyAccessTokenResponse
@@ -53,6 +54,18 @@ class AuthorizationResponseWhichForcesState(AuthorizationResponse):
     tests = {"post": [CheckPresenceOfStateParameter]}
 
 
+class AccessTokenInvalidTypeRequest(AccessTokenRequest):
+    tests = {"post": [VerifyError]}
+
+    def __init__(self, conv):
+        super(AccessTokenInvalidTypeRequest, self).__init__(conv)
+
+        self.request_args["grant_type"] = 'nissesapa'
+
+class AccessTokenInvalidTypeResponse(ErrorResponse):
+    tests = {"post": [CheckErrorResponseForInvalidType]}
+
+
 PHASES = {
     "login": (AuthorizationRequestCode, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
@@ -60,6 +73,8 @@ PHASES = {
                                         AccessTokenSecondResponse),
     "login-with-state": (AuthorizationRequestCodeWithState,
                 AuthorizationResponseWhichForcesState),
+    "access-token-request-invalid-type": (AccessTokenInvalidTypeRequest,
+                        AccessTokenInvalidTypeResponse),
 }
 
 
@@ -99,5 +114,12 @@ FLOWS = {
                   'response is equal to the state given in the authorization ,'
                   'request.'),
         'sequence': ['login-with-state']
+    },
+    'code-faulty-grant-type': {
+        'name': 'Basic Code flow with faulty grant_type',
+        'descr': ('Basic test of a Provider which checks that the provider',
+                  'correctly indicates faulty values for the grant_type',
+                  'parameter.'),
+        'sequence': ['login', 'access-token-request-invalid-type'],
     },
 }

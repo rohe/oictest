@@ -101,6 +101,22 @@ class CheckPresenceOfStateParameter(Error):
         return {}
 
 
+class CheckErrorResponseForInvalidType(CheckErrorResponse):
+    status = check.ERROR
+
+    def _func(self, conv):
+        res = super(CheckErrorResponseForInvalidType, self)._func(conv)
+
+        expected_value = "unsupported_grant_type"
+
+        if OK == self._status:
+            if self.err["error"] != expected_value:
+                self._status = self.status
+                self._message = 'The error parameter should be "%s"' % expected_value
+
+        return res
+
+
 CLASS_CACHE = {}
 
 
