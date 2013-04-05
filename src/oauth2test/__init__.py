@@ -2,6 +2,7 @@ import json
 import argparse
 import sys
 from oic.utils import exception_trace
+from oic.utils.authn import CLIENT_AUTHN_METHOD
 from rrtest import Trace, FatalError
 
 __author__ = 'rolandh'
@@ -216,13 +217,16 @@ class OAuth2(object):
 
     def client_conf(self, cprop):
         if self.args.ca_certs:
-            self.client = self.client_class(ca_certs=self.args.ca_certs)
+            self.client = self.client_class(
+                ca_certs=self.args.ca_certs,
+                client_authn_method=CLIENT_AUTHN_METHOD)
         else:
             try:
                 self.client = self.client_class(
                     ca_certs=self.json_config["ca_certs"])
             except (KeyError, TypeError):
-                self.client = self.client_class()
+                self.client = self.client_class(
+                    client_authn_method=CLIENT_AUTHN_METHOD)
 
         #self.client.http_request = self.client.http.crequest
 

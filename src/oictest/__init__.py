@@ -2,7 +2,8 @@
 import time
 from oauth2test import OAuth2
 
-from oic.utils.keyio import key_export
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import dump_jwks
 from rrtest import start_script
 
 __author__ = 'rohe0002'
@@ -46,7 +47,7 @@ def start_key_server(part):
     return start_script(KEY_EXPORT_ARGS["script"], host, port)
 
 
-URL_TYPES = ["jwk_url", "jwk_encryption_url", "x509_url", "x509_encryption_url"]
+URL_TYPES = ["jwks_uri"]
 
 
 class OIC(OAuth2):
@@ -212,17 +213,22 @@ class OIC(OAuth2):
         # has to be there
         self.trace.info("EXPORT")
 
-        #self.cconf["_base_url"] = server_url_pattern % (self.args.host,)
-        part, res = key_export(self.cconf["_base_url"], "exports", "vault",
-                               self.client.keyjar, "example.com",
-                               sig={"alg": "rsa", "create_if_missing": True,
-                                    "format": ["jwk", "x509"]})
+        kbl = []
+        for typ, info in self.cconf["keys"].items():
+            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
+                           keytype=typ)
+            self.client.keyjar.add_kb("", kb)
+            kbl.append(kb)
 
-        for name, url in res.items():
-            self.cconf[name] = url
+        try:
+            new_name = "static/jwks.json"
+            dump_jwks(kbl, new_name)
+            self.client.jwks_uri = "%s%s" % (self.cconf["_base_url"], new_name)
+        except KeyError:
+            pass
 
         if self.args.internal_server:
-            self._pop = start_key_server(part)
+            self._pop = start_key_server(self.cconf["_base_url"])
             self.environ["keyprovider"] = self._pop
             self.trace.info("Started key provider")
             time.sleep(1)

@@ -1,6 +1,10 @@
+import json
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import MissingRequiredAttribute
 from rrtest import check
-from rrtest.check import CONT_JSON
-from rrtest.check import CheckErrorResponse
+from rrtest.check import CONT_JSON, CriticalError
+from rrtest.check import ExpectedError
+from rrtest.check import ERROR
 from rrtest.check import CRITICAL
 from rrtest.check import OK
 from rrtest.check import Error
@@ -116,6 +120,7 @@ class CheckErrorResponseForInvalidType(CheckErrorResponse):
                 self._message = 'The error parameter should be "%s"' % expected_value
 
         return res
+
 
 
 CLASS_CACHE = {}

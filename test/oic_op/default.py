@@ -15,6 +15,12 @@ DEFAULT = {
         "application_type": "web",
         "application_name": "OIC test tool",
         "key_export_url": "http://%s:8090/",
+        "keys": {
+            "rsa": {
+                "key": "keys/pyoidc",
+                "use": ["enc", "sig"]
+            }
+        },
         #"request_object_alg": "RS256",
         #"userinfo_signed_response_alg": "RS256",
         #"id_token_signed_response_alg": "RS256"

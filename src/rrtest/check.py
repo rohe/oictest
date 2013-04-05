@@ -1,9 +1,8 @@
 import inspect
 import json
+from oic.oauth2 import ErrorResponse, MissingRequiredAttribute
 
 __author__ = 'rolandh'
-
-from oic.oauth2.message import ErrorResponse, MissingRequiredAttribute
 
 import traceback
 import sys
@@ -98,12 +97,67 @@ class ResponseInfo(Information):
         return {}
 
 
-class CheckErrorResponse(ExpectedError):
+class WrapException(CriticalError):
     """
-    Checks that the HTTP response status is outside the 200 or 300 range
-    or that an JSON encoded error message has been received
+    A runtime exception
     """
-    cid = "check-error-response"
+    cid = "exception"
+    msg = "Test tool exception"
+
+    def _func(self, conv=None):
+        self._status = self.status
+        self._message = traceback.format_exception(*sys.exc_info())
+        return {}
+
+
+class Other(CriticalError):
+    """ Other error """
+    msg = "Other error"
+
+
+class MissingRedirect(CriticalError):
+    """ At this point in the flow a redirect back to the client was expected.
+    """
+    cid = "missing-redirect"
+    msg = "Expected redirect to the RP, got something else"
+
+    def _func(self, conv=None):
+        self._status = self.status
+        return {"url": conv.position}
+
+
+class Parse(CriticalError):
+    """ Parsing the response """
+    cid = "response-parse"
+    errmsg = "Parse error"
+
+    def _func(self, conv=None):
+        if conv.exception:
+            self._status = self.status
+            err = conv.exception
+            self._message = "%s: %s" % (err.__class__.__name__, err)
+        else:
+            _rmsg = conv.response_message
+            cname = _rmsg.type()
+            if conv.response_type != cname:
+                self._status = self.status
+                self._message = (
+                    "Didn't get a response of the type I expected:",
+                    " '%s' instead of '%s', content:'%s'" % (
+                        cname, conv.response_type, _rmsg))
+                return {
+                    "response_type": conv.response_type,
+                    "url": conv.position
+                }
+
+        return {}
+
+
+class CheckHTTPResponse(CriticalError):
+    """
+    Checks that the HTTP response status is within the 200 or 300 range
+    """
+    cid = "check-http-response"
     msg = "OP error"
 
     def _func(self, conv):
@@ -112,30 +166,67 @@ class CheckErrorResponse(ExpectedError):
 
         res = {}
         if _response.status_code >= 400:
-            content_type = _response.headers["content-type"]
-            if content_type is None:
-                res["content"] = _content
-            elif CONT_JSON in content_type:
+            self._status = self.status
+            self._message = self.msg
+            if CONT_JSON in _response.headers["content-type"]:
                 try:
-                    self.err = ErrorResponse().deserialize(_content, "json")
-                    self.err.verify()
-                    res["content"] = self.err.to_json()
-                    #res["temp"] = err
+                    err = ErrorResponse().deserialize(_content, "json")
+                    self._message = err.to_json()
                 except Exception:
                     res["content"] = _content
             else:
                 res["content"] = _content
+            res["url"] = conv.position
+            res["http_status"] = _response.status_code
         else:
             # might still be an error message
             try:
-                self.err = ErrorResponse().deserialize(_content, "json")
-                self.err.verify()
-                res["content"] = self.err.to_json()
+                err = ErrorResponse().deserialize(_content, "json")
+                err.verify()
+                self._message = err.to_json()
+                self._status = self.status
             except Exception:
-                self._message = "Expected error message"
-                self._status = CRITICAL
+                pass
 
             res["url"] = conv.position
+
+        return res
+
+
+class VerifyErrorResponse(ExpectedError):
+    """
+    Verifies that the response received by the client via redirect was an Error
+    response.
+    """
+    cid = "verify-err-response"
+    msg = "OP error"
+
+    def _func(self, conv):
+        res = {}
+
+        response = conv.last_response
+        if response.status_code == 302:
+            _loc = response.headers["location"]
+            if "?" in _loc:
+                _query = _loc.split("?")[1]
+            elif "#" in _loc:
+                _query = _loc.split("#")[1]
+            else:
+                self._message = "Faulty error message"
+                self._status = ERROR
+                return
+
+            try:
+                err = ErrorResponse().deserialize(_query, "urlencoded")
+                err.verify()
+                #res["temp"] = err
+                res["message"] = err.to_dict()
+            except Exception:
+                self._message = "Faulty error message"
+                self._status = ERROR
+        else:
+            self._message = "Expected a redirect with an error message"
+            self._status = ERROR
 
         return res
 
@@ -208,44 +299,6 @@ class VerifyBadRequestResponse(ExpectedError):
         return res
 
 
-class VerifyErrorResponse(ExpectedError):
-    """
-    Verifies that the response received by the client via redirect was an Error
-    response.
-    """
-    cid = "verify-err-response"
-    msg = "OP error"
-
-    def _func(self, conv):
-        res = {}
-
-        response = conv.last_response
-        if response.status_code == 302:
-            _loc = response.headers["location"]
-            if "?" in _loc:
-                _query = _loc.split("?")[1]
-            elif "#" in _loc:
-                _query = _loc.split("#")[1]
-            else:
-                self._message = "Faulty error message"
-                self._status = ERROR
-                return
-
-            try:
-                err = ErrorResponse().deserialize(_query, "urlencoded")
-                err.verify()
-                #res["temp"] = err
-                res["message"] = err.to_dict()
-            except Exception:
-                self._message = "Faulty error message"
-                self._status = ERROR
-        else:
-            self._message = "Expected a redirect with an error message"
-            self._status = ERROR
-
-        return res
-
-
 class VerifyError(Error):
     cid = "verify-error"
 
@@ -276,29 +329,12 @@ class VerifyError(Error):
         return {}
 
 
-class WrapException(CriticalError):
+class CheckErrorResponse(ExpectedError):
     """
-    A runtime exception
+    Checks that the HTTP response status is outside the 200 or 300 range
+    or that an JSON encoded error message has been received
     """
-    cid = "exception"
-    msg = "Test tool exception"
-
-    def _func(self, conv=None):
-        self._status = self.status
-        self._message = traceback.format_exception(*sys.exc_info())
-        return {}
-
-
-class Other(CriticalError):
-    """ Other error """
-    msg = "Other error"
-
-
-class CheckHTTPResponse(CriticalError):
-    """
-    Checks that the HTTP response status is within the 200 or 300 range
-    """
-    cid = "check-http-response"
+    cid = "check-error-response"
     msg = "OP error"
 
     def _func(self, conv):
@@ -307,69 +343,34 @@ class CheckHTTPResponse(CriticalError):
 
         res = {}
         if _response.status_code >= 400:
-            self._status = self.status
-            self._message = self.msg
-            if CONT_JSON in _response.headers["content-type"]:
+            content_type = _response.headers["content-type"]
+            if content_type is None:
+                res["content"] = _content
+            elif CONT_JSON in content_type:
                 try:
-                    err = ErrorResponse().deserialize(_content, "json")
-                    self._message = err.to_json()
+                    self.err = ErrorResponse().deserialize(_content, "json")
+                    self.err.verify()
+                    res["content"] = self.err.to_json()
+                    #res["temp"] = err
                 except Exception:
                     res["content"] = _content
             else:
                 res["content"] = _content
-            res["url"] = conv.position
-            res["http_status"] = _response.status_code
         else:
             # might still be an error message
             try:
-                err = ErrorResponse().deserialize(_content, "json")
-                err.verify()
-                self._message = err.to_json()
-                self._status = self.status
+                self.err = ErrorResponse().deserialize(_content, "json")
+                self.err.verify()
+                res["content"] = self.err.to_json()
             except Exception:
-                pass
+                self._message = "Expected error message"
+                self._status = CRITICAL
 
             res["url"] = conv.position
 
         return res
 
 
-class MissingRedirect(CriticalError):
-    """ At this point in the flow a redirect back to the client was expected.
-    """
-    cid = "missing-redirect"
-    msg = "Expected redirect to the RP, got something else"
-
-    def _func(self, conv=None):
-        self._status = self.status
-        return {"url": conv.position}
-
-
-class Parse(CriticalError):
-    """ Parsing the response """
-    cid = "response-parse"
-    errmsg = "Parse error"
-
-    def _func(self, conv=None):
-        if conv.exception:
-            self._status = self.status
-            err = conv.exception
-            self._message = "%s: %s" % (err.__class__.__name__, err)
-        else:
-            _rmsg = conv.response_message
-            cname = _rmsg.type()
-            if conv.response_type != cname:
-                self._status = self.status
-                self._message = (
-                    "Didn't get a response of the type I expected:",
-                    " '%s' instead of '%s', content:'%s'" % (
-                        cname, conv.response_type, _rmsg))
-                return {
-                    "response_type": conv.response_type,
-                    "url": conv.position
-                }
-
-        return {}
 
 def factory(cid, classes):
     if len(classes) == 0:

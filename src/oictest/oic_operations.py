@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+import rrtest.request as req
 from rrtest.request import BodyResponse
-from rrtest.request import ErrorResponse
 from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
@@ -409,11 +409,13 @@ class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
         self.request_args["userinfo_claims"] = {"claims": {
             "name": {"essential": True}}}
 
+
 class AuthorizationRequestCodeToken(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["response_type"].append("token")
+
 
 class AuthorizationRequestCodeIDToken(AuthorizationRequestCode):
 
@@ -421,11 +423,13 @@ class AuthorizationRequestCodeIDToken(AuthorizationRequestCode):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["response_type"].append("id_token")
 
+
 class AuthorizationRequestIDTokenToken(AuthorizationRequestIDToken):
 
     def __init__(self, conv):
         AuthorizationRequestIDToken.__init__(self, conv)
         self.request_args["response_type"].append("token")
+
 
 class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
 
@@ -515,7 +519,7 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
         self.request_args["redirect_uris"] = _client.redirect_uris
 
         return PostRequest.__call__(self, location, response,
-                              content, features)
+                                    content, features)
 
 
 class RegistrationRequest_KeyExpCSP(RegistrationRequest):
@@ -878,7 +882,7 @@ class Discover(Operation):
 
 # ===========================================================================
 
-PHASES= {
+PHASES = {
     "login": (AuthorizationRequestCode, AuthzResponse),
     #"login-nonce": (AuthorizationRequest_with_nonce, AuthzResponse),
     "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
@@ -943,13 +947,13 @@ PHASES= {
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-request_csj": (AccessTokenRequestCSJWT, AccessTokenResponse),
     "access-token-request_pkj": (AccessTokenRequestPKJWT, AccessTokenResponse),
-    "access-token-request_err": (AccessTokenRequest_err, ErrorResponse),
+    "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
     "user-info-request_pbb": (UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err": (UserInfoRequestPostBearerHeader_err,
-                              ErrorResponse),
+                              req.ErrorResponse),
     "oic-registration": (RegistrationRequest, RegistrationResponse),
     "oic-registration-multi-redirect": (RegistrationRequest_MULREDIR,
                                         RegistrationResponse),
@@ -1280,7 +1284,8 @@ FLOWS = {
         "depends": ['mj-12'],
     },
     'mj-21': {
-        "name": ('OpenID Request Object with Required name and Optional email and picture Claim'),
+        "name": (
+            'OpenID Request Object with Required name and Optional email and picture Claim'),
         "sequence": ["oic-login+spec3", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1343,10 +1348,10 @@ FLOWS = {
         "name": 'Request with prompt=none',
         "sequence": ["oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
-        "tests":[("verify-error", {"error":["login_required",
-                                            "interaction_required",
-                                            "session_selection_required",
-                                            "consent_required"]})],
+        "tests": [("verify-error", {"error":["login_required",
+                                             "interaction_required",
+                                             "session_selection_required",
+                                             "consent_required"]})],
         "depends": ['mj-01'],
         },
     'mj-29': {
@@ -1428,7 +1433,7 @@ FLOWS = {
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-4.1",
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "tests": [("verify-bad-request-response", {})],
-        "depends":["oic-code-token"],
+        "depends": ["oic-code-token"],
     },
     'mj-40': {
         "name": 'Trying to use access code twice should result in '
@@ -1439,7 +1444,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-bad-request-response", {})],
-        "depends":["mj-39"],
+        "depends": ["mj-39"],
     },
     'mj-41': {
         "name": 'Registration and later registration update',
@@ -1466,7 +1471,7 @@ FLOWS = {
         "sequence": ["oic-registration-policy+logo", "oic-login"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "tests": [("policy_url_on_page", {}),
-                    ("logo_url_on_page", {})],
+                ("logo_url_on_page", {})],
         "depends": ['mj-01'],
         },
     'mj-46': {
