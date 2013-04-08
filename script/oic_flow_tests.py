@@ -195,9 +195,8 @@ from oictest import KEY_EXPORT_ARGS
 
 def run_key_server(server_url_pattern, host):
     kj = KeyJar()
-    part, res = key_export(server_url_pattern % host, keyjar=kj,
-                           **KEY_EXPORT_ARGS)
-    return start_key_server(part)
+    _ = key_export(server_url_pattern % host, keyjar=kj, **KEY_EXPORT_ARGS)
+    return start_key_server(server_url_pattern)
 
 if __name__ == "__main__":
     from oictest.oic_operations import FLOWS
@@ -205,6 +204,7 @@ if __name__ == "__main__":
     _parser = argparse.ArgumentParser()
     _parser.add_argument('-H', dest='host', default="example.org")
     _parser.add_argument('-g', dest='group')
+    _parser.add_argument('-e', dest='extkeysrv', action='store_true')
     _parser.add_argument('server', nargs=1)
     args = _parser.parse_args()
 
@@ -214,7 +214,9 @@ if __name__ == "__main__":
     p1 = Popen(["./%s.py" % args.server], stdout=PIPE)
     _cnf = json.loads(p1.stdout.read())
 
-    if "key_export" in _cnf["features"] and _cnf["features"]["key_export"]:
+    if args.extkeysrv:
+        _pop = None
+    elif "key_export" in _cnf["features"] and _cnf["features"]["key_export"]:
         _pop = run_key_server(_cnf["client"]["key_export_url"], args.host)
         time.sleep(1)
     else:
