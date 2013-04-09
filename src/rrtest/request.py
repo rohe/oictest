@@ -78,6 +78,10 @@ class Request(object):
 
         self.trace.reply("RESPONSE: %s" % response)
         self.trace.reply("CONTENT: %s" % response.text)
+        try:
+            self.trace.reply("REASON: %s" % response.reason)
+        except AttributeError:
+            pass
         if response.status_code in [301, 302]:
             self.trace.reply("LOCATION: %s" % response.headers["location"])
         self.trace.reply("COOKIES: %s" % response.cookies)
