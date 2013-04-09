@@ -152,6 +152,7 @@ class OAuth2(object):
             except KeyError:
                 expect_exception = False
 
+            conv = None
             try:
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
@@ -168,6 +169,9 @@ class OAuth2(object):
                 if tsum["status"] > 1 or self.args.debug:
                     print >> sys.stderr, self.trace
             except FatalError, err:
+                self.test_log = conv.test_output
+                tsum = self.test_summation(self.args.flow)
+                print >>sys.stdout, json.dumps(tsum)
                 print >> sys.stderr, self.trace
                 try:
                     print >> sys.stderr, err.trace
