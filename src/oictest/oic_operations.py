@@ -21,6 +21,8 @@ from urllib import urlencode
 
 from jwkest import unpack
 
+from oic.oauth2 import JSON_ENCODED
+
 from oic.oic import message
 
 # Used upstream not in this module so don't remove
@@ -442,6 +444,7 @@ class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
 
 class RegistrationRequest(PostRequest):
     request = "RegistrationRequest"
+    content_type = JSON_ENCODED
     _request_args = {}
 
     def __init__(self, conv):
@@ -456,8 +459,6 @@ class RegistrationRequest(PostRequest):
         except KeyError:
             pass
 
-        # default
-        self.request_args["operation"] = "register"
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
 
@@ -556,45 +557,6 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
         _client = self.conv.client
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
-
-        return PostRequest.__call__(self, location, response,
-                                    content, features)
-
-
-class RegistrationRequest_update(RegistrationRequest):
-    """ With query component """
-
-    def __init__(self, conv):
-        RegistrationRequest.__init__(self, conv)
-
-        self.request_args = {"operation": "client_update",
-                             "contacts": ["roland@example.com",
-                                          "roland@example.org"]}
-
-    def __call__(self, location, response, content, features):
-        _client = self.conv.client
-
-        self.kw_args["access_token"] = _client.registration_access_token
-        self.kw_args["authn_method"] = "bearer_header"
-
-        return PostRequest.__call__(self, location, response,
-                                    content, features)
-
-
-class RegistrationRequest_update_user_id(RegistrationRequest):
-    """ With query component """
-
-    def __init__(self, conv):
-        RegistrationRequest.__init__(self, conv)
-
-        self.request_args = {"operation": "client_update",
-                             "subject_type": "pairwise"}
-
-    def __call__(self, location, response, content, features):
-        _client = self.conv.client
-
-        self.request_args["access_token"] = _client.registration_access_token
-        self.kw_args["authn_method"] = "bearer_header"
 
         return PostRequest.__call__(self, location, response,
                                     content, features)
@@ -706,6 +668,17 @@ class RegistrationRequestSignEncIDtoken(RegistrationRequest):
         self.request_args["id_token_encrypted_response_enc"] = "A128CBC+HS256"
         self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
                                   CheckEncryptedIDTokenSupportENC])
+
+
+class ReadRegistration(GetRequest):
+    def __call__(self, location, response, content, features):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.registration_access_token
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = _client.registration_response[
+            "registration_client_uri"]
+        return GetRequest.__call__(self, location, response, content, features)
+
 
 # =============================================================================
 
@@ -964,8 +937,6 @@ PHASES = {
                                 RegistrationResponse),
     "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
                                 RegistrationResponse),
-    "oic-registration-update": (RegistrationRequest_update,
-                                RegistrationResponse),
     "oic-registration-policy+logo": (RegistrationRequest_with_policy_and_logo,
                                      RegistrationResponse),
     "oic-registration-public_id": (RegistrationRequest_with_public_userid,
@@ -978,8 +949,6 @@ PHASES = {
         RegistrationRequest_with_userinfo_signed, RegistrationResponse),
     "oic-registration-sector_id-err": (RegistrationRequest_SectorID_Err,
                                        ClientRegistrationErrorResponse),
-    "oic-change-subject_type": (RegistrationRequest_update_user_id,
-                                RegistrationResponse),
     "oic-registration-signed_idtoken": (
         RegistrationRequest_with_id_token_signed_response_alg,
         RegistrationResponse),
@@ -993,6 +962,7 @@ PHASES = {
         RegistrationRequestSignEncIDtoken, RegistrationResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
+    "read-registration": (ReadRegistration, RegistrationResponse)
 }
 
 OWNER_OPS = []
@@ -1336,14 +1306,14 @@ FLOWS = {
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-27': {
         "name": 'Request with display=popup',
         "sequence": ["oic-login+disp_popup", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-28': {
         "name": 'Request with prompt=none',
         "sequence": ["oic-login+prompt_none"],
@@ -1353,14 +1323,14 @@ FLOWS = {
                                              "session_selection_required",
                                              "consent_required"]})],
         "depends": ['mj-01'],
-        },
+    },
     'mj-29': {
         "name": 'Request with prompt=login',
         "sequence": ["oic-login+prompt_login", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     # ---------------------------------------------------------------------
     'mj-30': {
         "name": 'Access token request with client_secret_basic authentication',
@@ -1418,14 +1388,14 @@ FLOWS = {
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-38': {
         "name": 'Access token request with public_key_jwt authentication',
         "sequence": ["oic-registration-ke_pkj", "oic-login",
                      "access-token-request_pkj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-39': {
         "name": 'Trying to use access code twice should result in an error',
         "sequence": ["oic-login", "access-token-request",
@@ -1447,11 +1417,10 @@ FLOWS = {
         "depends": ["mj-39"],
     },
     'mj-41': {
-        "name": 'Registration and later registration update',
-        "sequence": ["oic-registration", "oic-registration-update"],
-        "endpoints": ["registration_endpoint"],
-        "depends": ['mj-01'],
-        },
+        "name": "Registering and then read the client info",
+        "sequence": ["oic-registration", "read-registration"],
+        "depends": ["mj-00"],
+    },
     'mj-43': {
         "name": "No redirect_uri in request, one registered",
         "sequence": ["oic-registration", "oic-login-no-redirect"],
@@ -1500,16 +1469,6 @@ FLOWS = {
         "endpoints": ["registration_endpoint", "authorization_endpoint",
                       "token_endpoint", "userinfo_endpoint"],
         "depends": ['mj-47'],
-        },
-    'mj-50': {
-        "name": 'Verify change in user_id',
-        "sequence": ["oic-registration-public_id", "oic-login",
-                     "access-token-request", "user-info-request_pbh",
-                     "oic-change-subject_type", "oic-login+prompt_login",
-                     "access-token-request", "user-info-request_pbh"],
-        "endpoints": ["registration_endpoint"],
-        "depends": ["mj-49"],
-        "tests": [("different_sub", {})]
         },
     'mj-51': {
         "name": 'Login no nonce',
