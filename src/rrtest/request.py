@@ -1,3 +1,4 @@
+from oic.oauth2 import URL_ENCODED, Message
 from rrtest.check import CheckHTTPResponse
 
 __author__ = 'rolandh'
@@ -6,6 +7,7 @@ __author__ = 'rolandh'
 class Request(object):
     request = ""
     method = ""
+    content_type = URL_ENCODED
     lax = False
     _request_args = {}
     _kw_args = {}
@@ -20,7 +22,9 @@ class Request(object):
     #noinspection PyUnusedLocal
     def __call__(self, location, response, content, features):
         _client = self.conv.client
-        if isinstance(self.request, basestring):
+        if not self.request:
+            request = None
+        elif isinstance(self.request, basestring):
             request = self.conv.msg_factory(self.request)
         else:
             request = self.request
@@ -36,18 +40,21 @@ class Request(object):
         except KeyError:
             _req = {}
 
-        cis = getattr(_client, "construct_%s" % request.__name__)(request,
-                                                                  **kwargs)
-        # Remove parameters with None value
-        for key, val in cis.items():
-            if val is None:
-                del cis[key]
+        if request:
+            cis = getattr(_client, "construct_%s" % request.__name__)(request,
+                                                                      **kwargs)
+            # Remove parameters with None value
+            for key, val in cis.items():
+                if val is None:
+                    del cis[key]
 
-        setattr(self.conv, request.__name__, cis)
-        try:
-            cis.lax = self.lax
-        except AttributeError:
-            pass
+            setattr(self.conv, request.__name__, cis)
+            try:
+                cis.lax = self.lax
+            except AttributeError:
+                pass
+        else:
+            cis = Message()
 
         ht_add = None
 
@@ -56,15 +63,19 @@ class Request(object):
         else:
             h_arg = None
 
-        url, body, ht_args, cis = _client.uri_and_body(request, cis,
-                                                       method=self.method,
-                                                       request_args=_req)
-
-        self.conv.cis.append(cis)
-        if h_arg:
-            ht_args.update(h_arg)
-        if ht_add:
-            ht_args.update({"headers": ht_add})
+        if request:
+            url, body, ht_args, cis = _client.uri_and_body(
+                request, cis, method=self.method, request_args=_req,
+                content_type=self.content_type)
+            self.conv.cis.append(cis)
+            if h_arg:
+                ht_args.update(h_arg)
+            if ht_add:
+                ht_args.update({"headers": ht_add})
+        else:
+            ht_args = h_arg
+            url = kwargs["endpoint"]
+            body = ""
 
         self.trace.request("URL: %s" % url)
         self.trace.request("BODY: %s" % body)
