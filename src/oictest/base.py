@@ -127,8 +127,14 @@ class Conversation(tool.Conversation):
                 pass
 
             if isinstance(self.response_message, RegistrationResponse):
-                for key, val in self.response_message.items():
-                    setattr(self.client, key, val)
+                self.client.registration_response = self.response_message
+                for key in ["client_id", "client_secret",
+                            "registration_access_token",
+                            "registration_client_uri"]:
+                    try:
+                        setattr(self.client, key, self.response_message[key])
+                    except KeyError:
+                        pass
 
             resp(self, self.response_message)
 
