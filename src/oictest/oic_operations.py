@@ -489,8 +489,6 @@ class RegistrationRequest_WQC(RegistrationRequest):
             ru += "?foo=bar"
         self.request_args["redirect_uris"][0] = ru
 
-#from oictest import start_key_server
-
 
 class RegistrationRequest_WF(RegistrationRequest):
     """ With fragment, which is not allowed """

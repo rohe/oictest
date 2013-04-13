@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import time
+from urlparse import urlparse
 from oauth2test import OAuth2
 
 from oic.utils.keyio import KeyBundle
@@ -36,7 +37,8 @@ KEY_EXPORT_ARGS = {
 }
 
 
-def start_key_server(part):
+def start_key_server(url):
+    part = urlparse(url)
     # start the server
     try:
         (host, port) = part.netloc.split(":")
