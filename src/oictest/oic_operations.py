@@ -633,7 +633,7 @@ class RegistrationRequestEncUserinfo(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.request_args["userinfo_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC+HS256"
+        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC-HS256"
         self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
                                   CheckEncryptedUserInfoSupportENC])
 
@@ -643,7 +643,7 @@ class RegistrationRequestSignEncUserinfo(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         self.request_args["userinfo_signed_response_alg"] = "RS256"
         self.request_args["userinfo_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC+HS256"
+        self.request_args["userinfo_encrypted_response_enc"] = "A128CBC-HS256"
         self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
                                   CheckEncryptedUserInfoSupportENC])
 
@@ -653,7 +653,7 @@ class RegistrationRequestEncIDtoken(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         self.request_args["id_token_signed_response_alg"] = "none"
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["id_token_encrypted_response_enc"] = "A128CBC+HS256"
+        self.request_args["id_token_encrypted_response_enc"] = "A128CBC-HS256"
         self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
                                   CheckEncryptedIDTokenSupportENC])
 
@@ -663,7 +663,7 @@ class RegistrationRequestSignEncIDtoken(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         self.request_args["id_token_signed_response_alg"] = "RS256"
         self.request_args["id_token_encrypted_response_alg"] = "RSA1_5"
-        self.request_args["id_token_encrypted_response_enc"] = "A128CBC+HS256"
+        self.request_args["id_token_encrypted_response_enc"] = "A128CBC-HS256"
         self.tests["pre"].extend([CheckEncryptedIDTokenSupportALG,
                                   CheckEncryptedIDTokenSupportENC])
 
