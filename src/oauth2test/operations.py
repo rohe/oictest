@@ -39,16 +39,17 @@ class AccessTokenResponse(BodyResponse):
 class AccessTokenSecondRequest(AccessTokenRequest):
     tests = {"post": [VerifyError]}
 
+
 class AccessTokenSecondResponse(AccessTokenResponse):
     tests = {"post": [CheckSecondCodeUsageErrorResponse]}
 
 
 class AuthorizationRequestCodeWithState(AuthorizationRequestCode):
-
     def __init__(self, conv=None):
         super(AuthorizationRequestCodeWithState, self).__init__(conv)
 
         self.request_args["state"] = "afdsliLKJ253oiuffaslkj"
+
 
 class AuthorizationResponseWhichForcesState(AuthorizationResponse):
     tests = {"post": [CheckPresenceOfStateParameter]}
@@ -62,6 +63,7 @@ class AccessTokenInvalidTypeRequest(AccessTokenRequest):
 
         self.request_args["grant_type"] = 'nissesapa'
 
+
 class AccessTokenInvalidTypeResponse(ErrorResponse):
     tests = {"post": [CheckErrorResponseForInvalidType]}
 
@@ -70,13 +72,12 @@ PHASES = {
     "login": (AuthorizationRequestCode, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-second-request": (AccessTokenSecondRequest,
-                                        AccessTokenSecondResponse),
+                                    AccessTokenSecondResponse),
     "login-with-state": (AuthorizationRequestCodeWithState,
-                AuthorizationResponseWhichForcesState),
+                         AuthorizationResponseWhichForcesState),
     "access-token-request-invalid-type": (AccessTokenInvalidTypeRequest,
-                        AccessTokenInvalidTypeResponse),
+                                          AccessTokenInvalidTypeResponse),
 }
-
 
 FLOWS = {
     'code': {
@@ -103,7 +104,7 @@ FLOWS = {
                   'and tries to obtain an ID Token.'),
         "depends": ["basic-code-authn"],
         "sequence": ["login", "access-token-request",
-            "access-token-second-request"],
+                     "access-token-second-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
     'code-presence-of-state': {

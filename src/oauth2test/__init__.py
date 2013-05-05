@@ -2,7 +2,7 @@ import json
 import argparse
 import sys
 from oic.utils import exception_trace
-from oic.utils.authn import CLIENT_AUTHN_METHOD
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from rrtest import Trace, FatalError
 
 __author__ = 'rolandh'

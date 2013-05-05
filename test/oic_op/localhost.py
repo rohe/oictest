@@ -16,7 +16,7 @@ info["interaction"] = [
         "page-type": "login",
         "control": {
             "type": "form",
-            "set": {"login":"diana","password": "krall"}
+            "set": {"login": "diana", "password": "krall"}
         }
     }
 ]
