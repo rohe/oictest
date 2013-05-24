@@ -21,8 +21,8 @@ info = {
         }
     },
     "client": {
-        "client_id": "1234567890",
-        "client_secret": "SoonerOrLater",
+        "client_id": "JOVPpP2srljq",
+        "client_secret": "0599bbadc6effc72b6884d73a8ffe9d8ce7ef6271c0a04112a93442b",
         "redirect_uris": ["https://localhost:8091/"]
     },
     "interaction": [
@@ -33,7 +33,7 @@ info = {
             "page-type": "login",
             "control": {
                 "type": "form",
-                "set": {"login":"diana","password": "krall"}
+                "set": {"login": "diana", "password": "krall"}
             }
         }
     ]
