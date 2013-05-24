@@ -728,6 +728,13 @@ class AccessTokenRequest_err(AccessTokenRequest):
         self.tests["post"] = []
 
 
+class AccessTokenRequestScope(AccessTokenRequest):
+    def __init__(self, conv):
+        AccessTokenRequest.__init__(self, conv)
+        self.request_args["scope"] = "scim"
+        self.tests["post"] = [CheckErrorResponse]
+
+
 class UserInfoRequestPostBearerHeader_err(PostRequest):
     request = "UserInfoRequest"
 
@@ -919,6 +926,7 @@ PHASES = {
     "access-token-request_csj": (AccessTokenRequestCSJWT, AccessTokenResponse),
     "access-token-request_pkj": (AccessTokenRequestPKJWT, AccessTokenResponse),
     "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
+    "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
@@ -1619,6 +1627,12 @@ FLOWS = {
 #        "endpoints": ["registration_endpoint"],
 #        "depends": ['mj-01'],
 #        },
+    'mj-70': {
+        "name": 'AuthzRequest and TokenRequest with different scopes',
+        "sequence": ["oic-login", "access-token-request-scope"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-00'],
+    },
 
     }
 
