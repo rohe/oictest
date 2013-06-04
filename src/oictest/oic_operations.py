@@ -229,8 +229,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"claims": {"sub": {
-            "value": user_id}}}
+        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
         return AuthorizationRequestCode.__call__(self, location, response, 
                                                  content, features)
@@ -251,8 +250,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"claims": {"sub": {
-            "value": user_id}}}
+        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
         return AuthorizationRequestCode.__call__(self, location, response, 
                                                  content, features)
@@ -309,16 +307,14 @@ class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["userinfo_claims"] = {
-            "claims": {"name": {"essential": True}}}
+        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
 
 
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Picture and email optional
-        self.request_args["userinfo_claims"] = {"claims": {"picture": None,
-                                                           "email": None}}
+        self.request_args["userinfo_claims"] = {"picture": None, "email": None}
 
 
 class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
@@ -326,10 +322,9 @@ class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"claims": {
-                                                "name": {"essential": True},
+        self.request_args["userinfo_claims"] = {"name": {"essential": True},
                                                 "picture": None,
-                                                "email": None}}
+                                                "email": None}
 
 
 class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
@@ -337,10 +332,9 @@ class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"claims": {
-            "name": {"essential": True},
-            "picture": None,
-            "email": None}}
+        self.request_args["userinfo_claims"] = {"name": {"essential": True},
+                                                "picture": None,
+                                                "email": None}
         self.request_args["scope"].append("address")
 
 
@@ -349,16 +343,14 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must auth_time
-        self.request_args["idtoken_claims"] = {"claims": {
-            "auth_time": {"essential": True}}}
+        self.request_args["idtoken_claims"] = {"auth_time": {"essential": True}}
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {
-            "claims": {"acr": {"values": ["2"]}}}
+        self.request_args["idtoken_claims"] = {"acr": {"values": ["2"]}}
         self.tests["pre"].append(CheckAcrSupport)
 
 
@@ -367,8 +359,7 @@ class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"claims": {
-            "acr": {"essential": True}}}
+        self.request_args["idtoken_claims"] = {"acr": {"essential": True}}
 
 
 class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
@@ -376,7 +367,7 @@ class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"claims": {"acr": None}}
+        self.request_args["idtoken_claims"] = {"acr": None}
 
 
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
@@ -384,32 +375,29 @@ class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
     def __init__(self, conv):
         time.sleep(2)
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"max_age": 1}
+        self.request_args["max_age"] = 1
 
 
 class AuthorizationRequestCodeIDTMaxAge10(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"max_age": 10}
+        self.request_args["max_age"] = 10
 
 
 class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"claims": {
-            "email": {"essential": True}}}
+        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
 
 
 class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"claims": {
-            "email": {"essential": True}}}
-        self.request_args["userinfo_claims"] = {"claims": {
-            "name": {"essential": True}}}
+        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
+        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
 
 
 class AuthorizationRequestCodeToken(AuthorizationRequestCode):
@@ -1274,7 +1262,7 @@ FLOWS = {
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("verify-id-token", {"claims":{"auth_time": None}})],
+        "tests": [("verify-id-token", {"auth_time": None})],
         "depends": ['mj-01'],
     },
     'mj-23': {
@@ -1283,7 +1271,7 @@ FLOWS = {
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("verify-id-token", {"claims":{"acr": {"values": ["2"]}}})],
+        "tests": [("verify-id-token", {"acr": {"values": ["2"]}})],
         "depends": ['mj-01'],
     },
     'mj-24': {
@@ -1292,7 +1280,7 @@ FLOWS = {
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("verify-id-token", {"claims":{"acr": "essential"}})],
+        "tests": [("verify-id-token", {"acr": "essential"})],
         "depends": ['mj-01'],
     },
     'mj-25': {
@@ -1428,18 +1416,10 @@ FLOWS = {
         "depends": ["mj-00"],
     },
     'mj-43': {
-        "name": "No redirect_uri in request, one registered",
-        "sequence": ["oic-registration", "oic-login-no-redirect"],
+        "name": "No redirect_uri in request",
+        "sequence": ["oic-registration", "oic-login-no-redirect-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "depends": ["oic-code-token"]
-    },
-    'mj-44': {
-        "name": "No redirect_uri in request, multi registered",
-        "sequence": ["oic-registration-multi-redirect",
-                     "oic-login-no-redirect-err"],
-        "endpoints": ["registration_endpoint", "authorization_endpoint"],
-        "depends": ["oic-code-token"],
-        #"tests": [("verify-bad-request-response", {})],
     },
     'mj-45': {
         "name": 'Registration with policy_url and logo_url',
@@ -1531,7 +1511,7 @@ FLOWS = {
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        #"tests": [("verify-id-token", {"claims":{"acr": None}})],
+        #"tests": [("verify-id-token", {"acr": None})],
         "depends": ['mj-01'],
         },
     'mj-59': {
@@ -1627,13 +1607,6 @@ FLOWS = {
 #        "endpoints": ["registration_endpoint"],
 #        "depends": ['mj-01'],
 #        },
-    'mj-70': {
-        "name": 'AuthzRequest and TokenRequest with different scopes',
-        "sequence": ["oic-login", "access-token-request-scope"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "depends": ['mj-00'],
-    },
-
     }
 
 #Providing Aggregated Claims

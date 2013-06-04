@@ -2,13 +2,15 @@ import json
 
 from jwkest import b64d
 from jwkest import unpack
-from jwkest.jwe import decrypt
+from jwkest.jwe import JWE_RSA
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
 from rrtest import check, Unknown
 
-from rrtest.check import Check, CONT_JSON, CONT_JWT
+from rrtest.check import Check
+from rrtest.check import CONT_JSON
+from rrtest.check import CONT_JWT
 from rrtest.check import CriticalError
 from rrtest.check import Other
 from rrtest.check import Error
@@ -598,7 +600,12 @@ class verifyIDToken(CriticalError):
                         self._message = "'%s' was supposed to be there" % key
                         break
                 elif val == REQUIRED:
-                    assert key in idtoken
+                    try:
+                        assert key in idtoken
+                    except AssertionError:
+                        self._status = self.status
+                        self._message = "'%s' was expected to be there" % key
+                        break
                 elif "values" in val:
                     if key not in idtoken:
                         self._status = self.status
@@ -945,7 +952,7 @@ class CheckSignedEncryptedIDToken(Error):
                     break
 
                 dkeys = client.keyjar.get_decrypt_key(owner="")
-                txt = decrypt(_dic["id_token"], dkeys, "private")
+                txt = JWE_RSA().decrypt(_dic["id_token"], dkeys, "private")
                 _tmp = unpack(txt)[0]
                 try:
                     assert _tmp["alg"] == "RS256"
