@@ -964,6 +964,25 @@ class CheckSignedEncryptedIDToken(Error):
         return {}
 
 
+class VerifyAud(Error):
+    cid = "verify-aud"
+    msg = "Not the same aud in the newly issued token"
+
+    def _func(self, conv):
+        # Should be two AccessTokenResponses
+        atr = []
+        for instance, msg in conv.protocol_response:
+            if isinstance(instance, message.AccessTokenResponse):
+                atr.append(instance)
+
+        try:
+            assert atr[0]["id_token"]["aud"] == atr[1]["id_token"]["aud"]
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 

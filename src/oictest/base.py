@@ -100,10 +100,12 @@ class Conversation(tool.Conversation):
                     response, self.info, resp_type, _cli.state,
                     keyjar=self.keyjar, client_id=_cli.client_id,
                     scope="openid", opponent_id=_cli.provider_info.keys()[0])
-                self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
-                #item.append(qresp)
-                self.response_message = _qresp
-                self.protocol_response.append((_qresp, self.info))
+                if _qresp:
+                    self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
+                    self.response_message = _qresp
+                    self.protocol_response.append((_qresp, self.info))
+                else:
+                    self.response_message = None
                 err = None
             except Exception, err:
                 self.exception = "%s" % err
@@ -114,7 +116,7 @@ class Conversation(tool.Conversation):
                         err, err.__class__.__name__))
                 else:
                     raise
-            else:
+            elif self.response_message:
                 self.do_check("response-parse")
 
         return self.post_process(resp)

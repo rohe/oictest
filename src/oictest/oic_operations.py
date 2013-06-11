@@ -295,6 +295,14 @@ class AuthorizationRequestCodeScopePhone(AuthorizationRequestCode):
         self.tests["pre"].append(CheckScopeSupport)
 
 
+class AuthorizationRequestCodeScopeOfflineAccess(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["scope"].append("offline_access")
+        self.request_args["prompt"] = "consent"
+        self.tests["pre"].append(CheckScopeSupport)
+
+
 class AuthorizationRequestCodeScopeAll(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
@@ -750,6 +758,10 @@ class UserInfoRequestPostBearerBody(PostRequest):
         self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_body"}
 
+
+class RefreshAccessToken(PostRequest):
+    request = "RefreshAccessTokenRequest"
+
 # -----------------------------------------------------------------------------
 
 
@@ -868,6 +880,8 @@ PHASES = {
     "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
     "oic-login+phone": (AuthorizationRequestCodeScopePhone, AuthzResponse),
     "oic-login+address": (AuthorizationRequestCodeScopeAddress, AuthzResponse),
+    "oic-login+offline": (AuthorizationRequestCodeScopeOfflineAccess,
+                          AuthzResponse),
     "oic-login+all": (AuthorizationRequestCodeScopeAll, AuthzResponse),
     "oic-login+spec1": (AuthorizationRequestCodeUIClaim1, AuthzResponse),
     "oic-login+spec2": (AuthorizationRequestCodeUIClaim2, AuthzResponse),
@@ -915,6 +929,7 @@ PHASES = {
     "access-token-request_pkj": (AccessTokenRequestPKJWT, AccessTokenResponse),
     "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
     "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
+    "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
@@ -1473,14 +1488,16 @@ FLOWS = {
         "name": 'using prompt=none with user hint through IdToken',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+prompt_none+idtoken"],
-        "endpoints": ["registration_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         "depends": ['mj-01'],
         },
     "mj-54": {
         "name": 'using prompt=none with user hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+prompt_none+request"],
-        "endpoints": ["registration_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
         "depends": ['mj-01'],
         },
     'mj-55': {
@@ -1521,7 +1538,8 @@ FLOWS = {
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("single-sign-on", {})],
+        "tests": [("single-sign-on", {}),
+                  ("verify-id-token", {"auth_time": None})],
         "depends": ['mj-25'],
         },
     'mj-60': {
@@ -1598,16 +1616,27 @@ FLOWS = {
         "name": 'User hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+request"],
-        "endpoints": ["registration_endpoint"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
         },
-#    'mj-69': {
-#        "name": 'Registration of sector-identifier-uri',
-#        "sequence": ["oic-registration-sector_id", "oic-login"],
-#        "endpoints": ["registration_endpoint"],
-#        "depends": ['mj-01'],
-#        },
-    }
+    'mj-69': {
+        "name": 'UserInfo Endpoint Access with POST and bearer_body',
+        "sequence": ["oic-login", "access-token-request",
+                     "access-token-refresh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-13'],
+        "tests": [("verify-aud", {})],
+    },
+    'mj-70': {
+        "name": 'Scope Requesting address Claims',
+        "sequence": ["oic-login+offline", "access-token-request",
+                     "access-token-refresh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "depends": ['mj-69'],
+    },
+
+}
 
 #Providing Aggregated Claims
 #Providing Distributed Claims
