@@ -90,6 +90,16 @@ class Conversation(object):
     def my_endpoints(self):
         pass
 
+    def for_me(self, response="", url=""):
+        if not response:
+            response = self.last_response
+        if not url:
+            url = response.headers["location"]
+        for redirect_uri in self.my_endpoints():
+            if url.startswith(redirect_uri):
+                return True
+        return False
+
     def intermit(self):
         _response = self.last_response
         if _response.status_code >= 400:
@@ -112,15 +122,10 @@ class Conversation(object):
                             "Too long sequence of redirects: %s" % rdseq)
 
                 self.trace.reply("REDIRECT TO: %s" % url)
-                # If back to me
-                for_me = False
-                for redirect_uri in self.my_endpoints():
-                    if url.startswith(redirect_uri):
-                        # Back at the RP
-                        self.client.cookiejar = self.cjar["rp"]
-                        for_me = True
 
-                if for_me:
+                # If back to me
+                if self.for_me(_response):
+                    self.client.cookiejar = self.cjar["rp"]
                     done = True
                     break
                 else:
@@ -229,9 +234,10 @@ class Conversation(object):
     def do_query(self):
         self.setup_request()
         self.send()
-        if not self.handle_result():
+        if self.last_response.status_code in [301, 302, 303] and \
+                not self.for_me():
             self.intermit()
-            self.handle_result()
+        self.handle_result()
 
     def do_sequence(self, oper):
         try:
