@@ -173,11 +173,11 @@ class OAuth2(object):
                 tsum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(tsum)
                 print >> sys.stderr, self.trace
-                try:
-                    print >> sys.stderr, err.trace
-                except AttributeError:
-                    pass
-                print err
+                # try:
+                #     print >> sys.stderr, err.trace
+                # except AttributeError:
+                #     pass
+                # print err
                 #exception_trace("RUN", err)
             except Exception, err:
                 print >> sys.stderr, self.trace
