@@ -237,7 +237,9 @@ class Conversation(object):
         if self.last_response.status_code in [301, 302, 303] and \
                 not self.for_me():
             self.intermit()
-        self.handle_result()
+        if not self.handle_result():
+            self.intermit()
+            self.handle_result()
 
     def do_sequence(self, oper):
         try:
