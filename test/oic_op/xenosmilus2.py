@@ -5,12 +5,14 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-info["provider"] = {"dynamic": "https://xenosmilus2.umdc.umu.se:8088/"}
+HOST = "https://xenosmilus2.umdc.umu.se:8091/"
+
+info["provider"] = {"dynamic": HOST}
 
 info["interaction"] = [
     {
         "matches": {
-            "url": "https://xenosmilus2.umdc.umu.se:8088/authorization",
+            "url": "%sauthorization" % HOST,
             },
         "page-type": "login",
         "control": {

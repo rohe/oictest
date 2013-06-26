@@ -17,14 +17,14 @@ info["interaction"] = [
         "page-type": "login",
         "control": {
             "type": "form",
-            "pick": { "control": {"id":"login_form", "value": "email"}},
-            "set":{
-                "email":"roland@catalogix.se",
-                },
+            "pick": {"control": {"id": "login_form", "value": "email"}},
+            "set": {
+                "email": "roland@catalogix.se",
+            },
         }
-    },{
+    }, {
         "matches": {
-            "url":"https://wenou-test.wenoit.org/username-password/password"
+            "url": "https://wenou-test.wenoit.org/username-password/password"
         },
         "page-type": "login",
         "control": {
@@ -33,11 +33,11 @@ info["interaction"] = [
                 "method": "POST",
             },
             "set": {
-                "password":"DentalCarev6"
+                "password": "DentalCarev6"
             },
             #"click": "form.commit"
         }
-    },{
+    }, {
         "matches": {
             "url": "https://wenou-test.wenoit.org/oauth/authorize",
             "content": "Or enter another email:"

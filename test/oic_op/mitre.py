@@ -5,9 +5,9 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-info["provider"] = {"dynamic": "https://id.mitre.org/connect/"}
+info["provider"] = {"dynamic": "http://rivers.richer.org:8080/openid-connect-server/"}
 
-info["interaction"] =[
+info["interaction"] = [
     {
         "matches": {
             "url": "https://www.example.com/authorization",
@@ -15,7 +15,7 @@ info["interaction"] =[
         "page-type": "login",
         "control": {
             "type": "form",
-            "set": {"login":"diana","password": "krall"}
+            "set": {"login": "diana", "password": "krall"}
         }
     }
 ]
