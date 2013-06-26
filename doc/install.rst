@@ -15,11 +15,14 @@ https://github.com/andreassolberg/oictest
 If you have git installed you should be able to do::
 
     $ git clone git://github.com/rohe/pyoidc.git
-    $ git clone git://github.com/andreassolberg/oictest.git
+    $ git clone git://github.com/rohe/pyjwkest.git
+    $ git clone git://github.com/rohe/oictest.git
 
 Given that you have a Python version >= 2.6 and < 3.0 you should
 be able to install by doing::
 
+    $ cd pyjwkest
+    $ python setup.py install
     $ cd pyoidc
     $ python setup.py install
     $ cd ../oictest

@@ -30,7 +30,7 @@ with a service.
 To be able to *fake* the user the test tool has some extra features.
 
 Basically the user interaction boils down to two things; either entering
-information on a form and then submitting the form or clicking on a link.
+information in a form and then submitting the form or clicking on a link.
 
 The tool has to be taught how to do this and what is used is something
 called interactions.
@@ -39,7 +39,7 @@ This is part of the configuration of the tool and this is an example::
     "interaction": [
         {
             "matches": {
-                "url": "https://www.kodtest.se:8088/authorization"
+                "url": "https://xenosmilus2.umdc.umu.se:8091/authorization"
             },
             "page-type": "login",
             "control": {
@@ -196,13 +196,13 @@ If the OP supports discovery, then you don't have to add so much
 information about the OP, something similar to this is should be enough::
 
     "provider": {
-        "dynamic": "https://www.kodtest.se:8088/",
+        "dynamic": "https://xenosmilus2.umdc.umu.se:8091/",
         },
 
 The *dynamic* parameter specifies where you expect to find the provider
 information.
 
-If it doesn't, you have enter all the information by hand.
+If it doesn't, you have to enter all the information by hand.
 The format for this is the same as in
 http://openid.net/specs/openid-connect-discovery-1_0-07.html
 with one exception and that is that all the endpoints are collected in
@@ -210,19 +210,18 @@ a dictionary, like this::
 
     "provider": {
         "version": "3.0",
-        "issuer": "https://connect-op.heroku.com",
-        "authorization_endpoint": "https://connect-op.heroku.com/authorizations/new",
-        "token_endpoint": "https://connect-op.heroku.com/access_tokens",
-        "userinfo_endpoint": "https://connect-op.heroku.com/user_info",
-        "check_id_endpoint": "https://connect-op.heroku.com/id_token",
+        "issuer": "https://server.example.com",
+        "authorization_endpoint": "https://server.example.com/connect/authorize",
+        "token_endpoint": "https://server.example.com/connect/token",
+        "userinfo_endpoint": "https://server.example.com/connect/userinfo",
         "registration_endpoint": "https://connect-op.heroku.com/connect/client",
-        "scopes_supported": ["openid", "profile", "email", "address", "phone"],
-        "response_types_supported": ["code", "token", "id_token", "code token",
-                                    "code id_token", "id_token token",
-                                    "code id_token token"],
-        "user_id_types_supported": ["public", "pairwise"],
-        "id_token_algs_supported": ["RS256"],
-        "x509_url": "https://connect-op.heroku.com/cert.pem"
+        "scopes_supported": ["openid", "profile", "email", "address", "phone",
+                             "offline_access"],
+        "response_types_supported": ["code", "code id_token", "id_token",
+                                     "token id_token"],
+        "subject_types_supported": ["public", "pairwise"],
+        "id_token_signing_alg_values_supported": ["RS256"],
+        "jwks_uri": "https://server.example.com/jwks.json"
     },
 
 Client information
@@ -232,28 +231,34 @@ If you are using dynamic client registration then you have add some
 information used in the Client Registration Request::
 
     "client": {
-        "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
+        "redirect_uris": ["https://%s/authz_cb"],
         "contact": ["roland.hedberg@example.com"],
         "application_type": "web",
         "application_name": "OIC test tool",
+        "keys": {
+            "RSA": {
+                "key": "keys/pyoidc",
+                "use": ["enc", "sig"]
+            }
+        },
         "preferences":{
-            "user_id_type": ["pairwise", "public"],
-            "require_signed_request_object": ["RS256", "RS384", "RS512",
-                                              "HS512", "HS384", "HS256"],
-            "token_endpoint_auth_type": ["client_secret_basic",
-                                         "client_secret_post",
-                                         "client_secret_jwt",
-                                         "private_key_jwt"],
-            #"userinfo_signed_response_algs": ["RS256", "RS384", "RS512"],
+            "subject_type": ["pairwise", "public"],
+            "request_object_signing_alg": ["RS256", "RS384", "RS512",
+                                           "HS512", "HS384", "HS256"],
+            "token_endpoint_auth_methods_supported": ["client_secret_basic",
+                                                      "client_secret_post",
+                                                      "client_secret_jwt",
+                                                      "private_key_jwt"],
             "id_token_signed_response_alg": ["RS256", "RS384", "RS512",
                                               "HS512", "HS384", "HS256"],
-            #"token_endpoint_auth_alg": [],
             "default_max_age": 3600,
             "require_auth_time": True,
             "default_acr":["2", "1"]
         }
     },
 
+Note the '%s' in the redirect_uris, that notation will be obvious when we
+look at the '-H' argument you can use when running the script.
 
 Running tests
 *************
@@ -278,15 +283,31 @@ python script)::
 Those of the tests defined by Mike Jones that I have implemented are named
 mj-XX (00 <= XX <= 60 and increasing).
 
+FQDN is of course the fully qualified domain name of the host you are running
+the script from.
+
 If you have the configuration as a JSON file running the tests becomes::
 
-    oicc.py -J nov.json 'mj-00'
+    oicc.py -J nov.json -H <FQDN> 'mj-00'
 
 To run all Mike's test you can do::
 
-    oic_flow_tests.py -H <FQDN> nov mj
+    oic_flow_tests.py -H <FQDN> nov
 
 This depends on there being a nov.py file.
+If you are exporting key material which you most probable are then you have 
+to run another script before starting oic_flow_tests.py and that is 
+scripts/static_provider.py.
+
+Assuming that you plan to run the tests from the test/oic_op directory do::
+
+    $ cd test/oic_op
+    $ ../../script/static_provider.py <FQDN> 8090
+    
+and now you can run oic_flow_tests.py . The reason for this is that 
+the oic_flow_tests.py script would otherwise have to spawn of a webserver
+just for servering it's key material. For better or for worse I chose to do it
+this way.
 
 This is the documentation of the scripts arguments::
 
@@ -411,7 +432,7 @@ First the configuration of the script as a Python script::
 
     info = {
         "client": {
-            "redirect_uris": ["https://smultron.catalogix.se/authz_cb"],
+            "redirect_uris": ["https://%s/authz_cb"],
             "contact": ["roland.hedberg@adm.umu.se"],
             "application_type": "web",
             "application_name": "OIC test tool",
@@ -419,22 +440,22 @@ First the configuration of the script as a Python script::
             },
         "provider": {
             "version": { "oauth": "2.0", "openid": "3.0"},
-            "dynamic": "https://www.kodtest.se:8088/",
+            "dynamic": "https://xenosmilus2.umdc.umu.se:8091/",
             },
 
         "interaction": {
-            "https://www.kodtest.se:8088/authorization": ["select_form",
+            "https://xenosmilus2.umdc.umu.se:8091/authorization": ["select_form",
                                 {"login":"diana", "password": "krall"}]
         }
     }
 
     print json.dumps(info)
 
-This is placed in a file named *kodtest.py*
+This is placed in a file named *xenosmilus2.py*
 
 Now I can run the whole test suit::
 
-    $ oic_flow_tests.py kodtest mj
+    $ oic_flow_tests.py senosmilus2
     * (mj-00)Client registration Request - OK
     * (mj-01)Request with response_type=code - OK
     * (mj-02)Request with response_type=token - OK
@@ -471,16 +492,16 @@ Hey, what did you expect I have made both the test tool and the OP :-) :-)
 
 Now, I still might want to see more specifically what happened in a flow::
 
-    $ ./kodtest.py | oicc.py -J - -d 'mj-01' 2> mj-01.out > /dev/null
+    $ ./xenosmilus2.py | oicc.py -J - -d 'mj-01' 2> mj-01.out > /dev/null
     $ head mj-01.out
     SERVER CONFIGURATION: {'version': {u'oauth': u'2.0', u'openid': u'3.0'}}
     ======================================================================
     <-- FUNCTION: discover
     <-- ARGS: {'location': '',
                 '_trace_': <oictest.base.Trace object at 0x101829550>,
-                'issuer': u'https://www.kodtest.se:8088/'}
+                'issuer': u'https://xenosmilus2.umdc.umu.se:8091/'}
     ======================================================================
-    --> URL: https://www.kodtest.se:8088/registration
+    --> URL: https://xenosmilus2.umdc.umu.se:8091/registration
     --> BODY: application_type=web&type=client_associate&redirect_uris=https%3A%2F%2Fsmultron.catalogix.se%2Fauthz_cb&application_name=OIC+test+tool
     --> HEADERS: {'content-type': 'application/x-www-form-urlencoded'}
     <-- RESPONSE: {'status': '200', 'transfer-encoding': 'chunked',
