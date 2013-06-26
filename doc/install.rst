@@ -6,11 +6,7 @@ Quick install guide
 
 Installing OICTest should be straight forward
 
-The code you can get from github:
-
-https://github.com/rohe/pyoidc
-and
-https://github.com/andreassolberg/oictest
+The code you can get from github from my site.
 
 If you have git installed you should be able to do::
 
