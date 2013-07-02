@@ -21,7 +21,7 @@ __author__ = 'rohe0002'
 
 setup(
     name="oictest",
-    version="0.1.1",
+    version="0.2.0",
     description="Tools to test OAuth2 and/or OpenID Connect implementations",
     author = "Roland Hedberg",
     author_email = "roland.hedberg@adm.umu.se",
