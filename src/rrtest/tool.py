@@ -42,6 +42,8 @@ class Conversation(object):
         self.response = None
         self.interaction = Interaction(self.client, interaction)
         self.exception = None
+        self.provider_info = self.client.provider_info or {}
+        self.interact_done = []
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -151,6 +153,10 @@ class Conversation(object):
 
             try:
                 _spec = self.interaction.pick_interaction(_base, content)
+                if _spec in self.interact_done:
+                    self.trace.error("Same interaction a second time")
+                    raise InteractionNeeded("Same interaction twice")
+                self.interact_done.append(_spec)
             except InteractionNeeded:
                 self.position = url
                 self.trace.error("Page Content: %s" % content)

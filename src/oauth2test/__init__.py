@@ -154,6 +154,8 @@ class OAuth2(object):
 
             conv = None
             try:
+                if self.pinfo:
+                    self.client.provider_info = self.pinfo
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
                 conv = self.conversation_cls(self.client, self.cconf,
