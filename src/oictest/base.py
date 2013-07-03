@@ -101,21 +101,30 @@ class Conversation(tool.Conversation):
                     keyjar=self.keyjar, client_id=_cli.client_id,
                     scope="openid", opponent_id=_cli.provider_info.keys()[0])
                 if _qresp:
-                    self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
+                    self.trace.info("[%s]: %s" % (_qresp.type(),
+                                                  _qresp.to_dict()))
+                    if _qresp.extra():
+                        self.trace.info("### extra claims: %s" % _qresp.extra())
                     self.response_message = _qresp
                     self.protocol_response.append((_qresp, self.info))
                 else:
                     self.response_message = None
                 err = None
+                _errtxt = ""
             except Exception, err:
-                self.exception = "%s" % err
+                _errtxt = "%s" % err
+                self.trace.error(_errtxt)
+                self.exception = _errtxt
 
-            if err and self.accept_exception:
-                if isinstance(err, self.accept_exception):
-                    self.trace.info("Got expected exception: %s [%s]" % (
-                        err, err.__class__.__name__))
+            if err:
+                if self.accept_exception:
+                    if isinstance(err, self.accept_exception):
+                        self.trace.info("Got expected exception: %s [%s]" % (
+                            err, err.__class__.__name__))
+                    else:
+                        raise
                 else:
-                    raise
+                    raise FatalError(_errtxt)
             elif self.response_message:
                 self.do_check("response-parse")
 
