@@ -736,7 +736,6 @@ class UserInfoRequestPostBearerHeader_err(PostRequest):
 
     def __init__(self, conv):
         PostRequest.__init__(self, conv)
-        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_header"}
         self.tests["post"] = [CheckErrorResponse]
 
@@ -746,7 +745,6 @@ class UserInfoRequestPostBearerHeader(PostRequest):
 
     def __init__(self, conv):
         PostRequest.__init__(self, conv)
-        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_header"}
 
 
@@ -755,7 +753,6 @@ class UserInfoRequestPostBearerBody(PostRequest):
 
     def __init__(self, conv):
         PostRequest.__init__(self, conv)
-        self.request_args = {"schema": "openid"}
         self.kw_args = {"authn_method": "bearer_body"}
 
 
