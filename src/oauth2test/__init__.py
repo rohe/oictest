@@ -258,7 +258,10 @@ class OAuth2(object):
         # set necessary information in the Client
         for prop in cprop:
             try:
-                setattr(self.client, prop, self.cconf[prop])
+                if prop == "client_secret":
+                    self.client.set_client_secret(self.cconf[prop])
+                else:
+                    setattr(self.client, prop, self.cconf[prop])
             except KeyError:
                 pass
 
