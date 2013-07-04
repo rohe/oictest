@@ -112,8 +112,11 @@ class OAuth2(object):
         }
 
         if status == 5:
-            info["url"] = self.test_log[-1]["url"]
-            info["htmlbody"] = self.test_log[-1]["message"]
+            for log in reversed(self.test_log):
+                if log["status"] == 5:
+                    info["url"] = log["url"]
+                    info["htmlbody"] = log["message"]
+                    break
 
         return info
 
