@@ -153,10 +153,10 @@ class Conversation(object):
 
             try:
                 _spec = self.interaction.pick_interaction(_base, content)
-                if _spec in self.interact_done:
-                    self.trace.error("Same interaction a second time")
-                    raise InteractionNeeded("Same interaction twice")
-                self.interact_done.append(_spec)
+                #if _spec in self.interact_done:
+                #    self.trace.error("Same interaction a second time")
+                #    raise InteractionNeeded("Same interaction twice")
+                #self.interact_done.append(_spec)
             except InteractionNeeded:
                 self.position = url
                 self.trace.error("Page Content: %s" % content)
