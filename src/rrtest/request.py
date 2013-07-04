@@ -96,8 +96,11 @@ class Request(object):
             pass
         if response.status_code in [301, 302]:
             self.trace.reply("LOCATION: %s" % response.headers["location"])
-        self.trace.reply("COOKIES: %s" % requests.utils.dict_from_cookiejar(
-            response.cookies))
+        try:
+            self.trace.reply("COOKIES: %s" % requests.utils.dict_from_cookiejar(
+                response.cookies))
+        except AttributeError:
+            self.trace.reply("COOKIES: %s" % response.cookies)
 
         return url, response, response.text
 
