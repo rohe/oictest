@@ -5,7 +5,7 @@ from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
-from rrtest.check import CheckHTTPResponse
+from rrtest.check import CheckHTTPResponse, VerifyBadRequestResponse
 from rrtest.check import VerifyErrorResponse
 from rrtest.check import CheckRedirectErrorResponse
 from rrtest.check import CheckErrorResponse
@@ -104,14 +104,12 @@ class AuthorizationRequestIDToken(AuthorizationRequest):
 
 
 class AuthorizationRequestCode_WQC(AuthorizationRequestCode):
-
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["query"] = "component"
 
 
 class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
-
     def __call__(self, location, response, content, features):
         _client = self.conv.client
         base_url = _client.redirect_uris[0]
@@ -127,7 +125,6 @@ class AuthorizationRequestCode_RUWQC_Err(AuthorizationRequestCode_RUWQC):
 
 
 class AuthorizationRequest_Mismatching_Redirect_uri(AuthorizationRequestCode):
-
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["redirect_uri"] = "https://foo.example.se/authz_cb"
@@ -135,7 +132,6 @@ class AuthorizationRequest_Mismatching_Redirect_uri(AuthorizationRequestCode):
 
 
 class AuthorizationRequest_No_Redirect_uri(AuthorizationRequestCode):
-
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["redirect_uri"] = None
@@ -143,17 +139,16 @@ class AuthorizationRequest_No_Redirect_uri(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeWithNonce(AuthorizationRequestCode):
-
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["nonce"] = "12nonce34"
 
 
 class AuthorizationRequest_without_nonce(AuthorizationRequestToken):
-
     def __init__(self, conv=None):
         AuthorizationRequestToken.__init__(self, conv)
         self.request_args["nonce"] = None
+        self.tests["post"] = [VerifyBadRequestResponse]
 
 
 class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
@@ -172,21 +167,18 @@ class ConnectionVerify(GetRequest):
 
 
 class AuthorizationRequestCodeDisplayPage(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["display"] = "page"
 
 
 class AuthorizationRequestCodeDisplayPopUp(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["display"] = "popup"
 
 
 class AuthorizationRequestCodePromptNone(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
@@ -194,7 +186,6 @@ class AuthorizationRequestCodePromptNone(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
@@ -214,7 +205,6 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
@@ -231,12 +221,11 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
         user_id = jso["sub"]
         self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
-        return AuthorizationRequestCode.__call__(self, location, response, 
+        return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features)
 
 
 class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.tests["post"].append(CheckHTTPResponse)
@@ -252,19 +241,17 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
         user_id = jso["sub"]
         self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
-        return AuthorizationRequestCode.__call__(self, location, response, 
+        return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features)
 
 
 class AuthorizationRequestCodePromptLogin(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "login"
 
 
 class AuthorizationRequestCodeScopeProfile(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["scope"].append("profile")
@@ -272,7 +259,6 @@ class AuthorizationRequestCodeScopeProfile(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeScopeEMail(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["scope"].append("email")
@@ -280,7 +266,6 @@ class AuthorizationRequestCodeScopeEMail(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeScopeAddress(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["scope"].append("address")
@@ -288,7 +273,6 @@ class AuthorizationRequestCodeScopeAddress(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeScopePhone(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["scope"].append("phone")
@@ -312,7 +296,6 @@ class AuthorizationRequestCodeScopeAll(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["userinfo_claims"] = {"name": {"essential": True}}
@@ -326,7 +309,6 @@ class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
@@ -336,7 +318,6 @@ class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
@@ -347,7 +328,6 @@ class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must auth_time
@@ -355,7 +335,6 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["idtoken_claims"] = {"acr": {"values": ["2"]}}
@@ -363,7 +342,6 @@ class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
@@ -371,7 +349,6 @@ class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
@@ -379,7 +356,6 @@ class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
-
     def __init__(self, conv):
         time.sleep(2)
         AuthorizationRequestCode.__init__(self, conv)
@@ -387,21 +363,18 @@ class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeIDTMaxAge10(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["max_age"] = 10
 
 
 class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["idtoken_claims"] = {"email": {"essential": True}}
 
 
 class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["idtoken_claims"] = {"email": {"essential": True}}
@@ -409,28 +382,24 @@ class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCodeToken(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["response_type"].append("token")
 
 
 class AuthorizationRequestCodeIDToken(AuthorizationRequestCode):
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["response_type"].append("id_token")
 
 
 class AuthorizationRequestIDTokenToken(AuthorizationRequestIDToken):
-
     def __init__(self, conv):
         AuthorizationRequestIDToken.__init__(self, conv)
         self.request_args["response_type"].append("token")
 
 
 class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
-
     def __init__(self, conv):
         AuthorizationRequestCodeIDToken.__init__(self, conv)
         self.request_args["response_type"].append("token")
@@ -547,7 +516,6 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, location, response, content, features):
-
         _client = self.conv.client
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -557,7 +525,6 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
 
 
 class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
-
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
 
@@ -593,7 +560,7 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
 
 
 class RegistrationRequest_with_id_token_signed_response_alg(
-        RegistrationRequest):
+    RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.request_args["id_token_signed_response_alg"] = "HS256"
@@ -700,7 +667,6 @@ class AccessTokenRequest(PostRequest):
 
 
 class AccessTokenRequestCSPost(AccessTokenRequest):
-
     def __init__(self, conv):
         AccessTokenRequest.__init__(self, conv)
         self.kw_args = {"authn_method": "client_secret_post"}
@@ -866,9 +832,9 @@ PHASES = {
     "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
                              AuthorizationErrorResponse),
     "oic-login-no-nonce": (AuthorizationRequest_without_nonce,
-                             AuthorizationErrorResponse),
-#    "login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
-#                             AuthorizationErrorResponse),
+                           AuthorizationErrorResponse),
+    #    "login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
+    #                             AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (AuthorizationRequestCode, AuthzResponse),
     "oic-login-reqfile": (AuthorizationRequestCodeRequestInFile, AuthzResponse),
@@ -886,7 +852,7 @@ PHASES = {
     "oic-login-combine_claims": (AuthorizationRequestCodeUICombiningClaims,
                                  AuthzResponse),
     "oic-login-mixed_claims": (AuthorizationRequestCodeMixedClaims,
-                                 AuthzResponse),
+                               AuthzResponse),
     "oic-login+idtc1": (AuthorizationRequestCodeIDTClaim1, AuthzResponse),
     "oic-login+idtc2": (AuthorizationRequestCodeIDTClaim2, AuthzResponse),
     "oic-login+idtc3": (AuthorizationRequestCodeIDTClaim3, AuthzResponse),
@@ -985,23 +951,23 @@ FLOWS = {
     'oic-discovery': {
         "name": 'Provider configuration discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
-        "sequence": [],  # discovery will be auto-magically added
+        "sequence": [], # discovery will be auto-magically added
         "endpoints": [],
         "block": ["registration", "key_export"],
         "depends": ['oic-verify'],
     },
 
     # -------------------------------------------------------------------------
-#    'oic-code+nonce-token': {
-#        "name": 'Simple authorization grant flow',
-#        "descr": ("1) Request with response_type=code",
-#                  "scope = ['openid']",
-#                  "2) AccessTokenRequest",
-#                  "Authentication method used is 'client_secret_post'"),
-#        "depends": ['mj-01'],
-#        "sequence": ["oic-login-nonce", "access-token-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint"],
-#        },
+    #    'oic-code+nonce-token': {
+    #        "name": 'Simple authorization grant flow',
+    #        "descr": ("1) Request with response_type=code",
+    #                  "scope = ['openid']",
+    #                  "2) AccessTokenRequest",
+    #                  "Authentication method used is 'client_secret_post'"),
+    #        "depends": ['mj-01'],
+    #        "sequence": ["oic-login-nonce", "access-token-request"],
+    #        "endpoints": ["authorization_endpoint", "token_endpoint"],
+    #        },
     'oic-code+token-token': {
         "name": "Flow with response_type='code token'",
         "descr": ("1) Request with response_type='code token'",
@@ -1145,10 +1111,10 @@ FLOWS = {
     },
 
     #    'mj-01n': {
-#        "name": 'Request with response_type=code',
-#        "sequence": ["oic-login-nonce"],
-#        "endpoints": ["authorization_endpoint"]
-#    },
+    #        "name": 'Request with response_type=code',
+    #        "sequence": ["oic-login-nonce"],
+    #        "endpoints": ["authorization_endpoint"]
+    #    },
     'mj-02': {
         "name": 'Request with response_type=token',
         "sequence": ["oic-login-token"],
@@ -1182,7 +1148,7 @@ FLOWS = {
     'mj-07': {
         "name": 'Request with response_type=code id_token token',
         "sequence": ['oic-login-code+idtoken+token'],
-        "endpoints": ["authorization_endpoint",],
+        "endpoints": ["authorization_endpoint", ],
         "depends": ['mj-01'],
     },
     # -------------------------------------------------------------------------
@@ -1324,10 +1290,10 @@ FLOWS = {
         "name": 'Request with prompt=none',
         "sequence": ["oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
-        "tests": [("verify-error", {"error":["login_required",
-                                             "interaction_required",
-                                             "session_selection_required",
-                                             "consent_required"]})],
+        "tests": [("verify-error", {"error": ["login_required",
+                                              "interaction_required",
+                                              "session_selection_required",
+                                              "consent_required"]})],
         "depends": ['mj-01'],
     },
     'mj-29': {
@@ -1344,7 +1310,7 @@ FLOWS = {
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-31': {
         "name": 'Request with response_type=code and extra query component',
         "sequence": ["login-wqc"],
@@ -1357,8 +1323,8 @@ FLOWS = {
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
         #"tests": [("verify-redirect_uri-query_component", {})]
-                #{"redirect_uri":
-                #     PHASES["login-ruwqc"][0].request_args["redirect_uri"]})]
+        #{"redirect_uri":
+        #     PHASES["login-ruwqc"][0].request_args["redirect_uri"]})]
     },
     'mj-33': {
         "name": 'Registration where a redirect_uri has a query component',
@@ -1378,8 +1344,8 @@ FLOWS = {
         "name": "Authorization request missing the 'response_type' parameter",
         "sequence": ["oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
-        "tests":[("verify-error", {"error":["invalid_request",
-                                            "unsupported_response_type"]})],
+        "tests": [("verify-error", {"error": ["invalid_request",
+                                              "unsupported_response_type"]})],
         "depends": ['mj-01'],
     },
     'mj-36': {
@@ -1438,28 +1404,28 @@ FLOWS = {
         "sequence": ["oic-registration-policy+logo", "oic-login"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "tests": [("policy_url_on_page", {}),
-                ("logo_url_on_page", {})],
+                  ("logo_url_on_page", {})],
         "depends": ['mj-01'],
-        },
+    },
     'mj-46': {
         "name": 'Registration of wish for public user_id',
         "sequence": ["oic-registration-public_id", "oic-login",
                      "access-token-request"],
         "endpoints": ["registration_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-47': {
         "name": 'Registration of sector-identifier-uri',
         "sequence": ["oic-registration-sector_id", "oic-login"],
         "endpoints": ["registration_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-48': {
         "name": 'Incorrect registration of sector-identifier-uri',
         "sequence": ["oic-registration-sector_id-err"],
         "endpoints": ["registration_endpoint"],
         "depends": ['mj-47'],
-        },
+    },
     'mj-49': {
         "name": 'Registration of wish for pairwise user_id',
         "sequence": ["oic-registration-pairwise_id", "oic-login",
@@ -1467,12 +1433,14 @@ FLOWS = {
         "endpoints": ["registration_endpoint", "authorization_endpoint",
                       "token_endpoint", "userinfo_endpoint"],
         "depends": ['mj-47'],
-        },
+    },
     'mj-51': {
         "name": 'Login no nonce',
         "sequence": ["oic-login-no-nonce"],
         "endpoints": ["authorization_endpoint"],
-        "depends": ['mj-02']
+        "depends": ['mj-02'],
+        "tests": [("verify-error", {"error": ["invalid_request",
+                                              "unsupported_response_type"]})],
     },
     'mj-52': {
         "name": 'Requesting ID Token with Email claims',
@@ -1488,7 +1456,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     "mj-54": {
         "name": 'using prompt=none with user hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
@@ -1496,29 +1464,30 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-55': {
         "name": 'Rejects redirect_uri when Query Parameter Does Not Match',
         "sequence": ["oic-registration-wqc", "login-ruwqc-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.1.2",
         "depends": ['mj-01'],
-        },
+    },
     'mj-56': {
-        "name": ('Supports Combining Claims Requested with scope and Request Object'),
+        "name": (
+            'Supports Combining Claims Requested with scope and Request Object'),
         "sequence": ["oic-login-combine_claims", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-22'],
         "tests": [("verify-userinfo", {})]
-        },
+    },
     'mj-57': {
         "name": 'Support Request File',
         "sequence": ["oic-login-reqfile"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-00'],
-        },
+    },
     'mj-58': {
         "name": 'Requesting ID Token with Required acr Claim',
         "sequence": ["oic-login+idtc6", "access-token-request",
@@ -1527,7 +1496,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         #"tests": [("verify-id-token", {"acr": None})],
         "depends": ['mj-01'],
-        },
+    },
     'mj-59': {
         "name": 'Requesting ID Token with max_age=10 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
@@ -1538,7 +1507,7 @@ FLOWS = {
         "tests": [("single-sign-on", {}),
                   ("verify-id-token", {"auth_time": None})],
         "depends": ['mj-25'],
-        },
+    },
     'mj-60': {
         "name": "RP wants signed UserInfo returned",
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
@@ -1548,7 +1517,7 @@ FLOWS = {
         "tests": [("asym-signed-userinfo", {})],
         "depends": ['mj-01'],
 
-        },
+    },
     'mj-61': {
         "name": "RP wants symmetric IdToken signature",
         "sequence": ["oic-registration-signed_idtoken", "oic-login",
@@ -1556,14 +1525,14 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "tests": [("sym-signed-idtoken", {})],
         "depends": ['mj-01'],
-        },
-#    'mj-62': {
-#        "name": 'Requesting ID Token with auth_time Claim',
-#        "sequence": ["oic-login+spec2", "access-token-request"],
-#        "endpoints": ["authorization_endpoint", "token_endpoint",
-#                      "userinfo_endpoint"],
-#        "depends": ['mj-01'],
-#        },
+    },
+    #    'mj-62': {
+    #        "name": 'Requesting ID Token with auth_time Claim',
+    #        "sequence": ["oic-login+spec2", "access-token-request"],
+    #        "endpoints": ["authorization_endpoint", "token_endpoint",
+    #                      "userinfo_endpoint"],
+    #        "depends": ['mj-01'],
+    #        },
     'mj-63': {
         "name": 'Supports Returning Different Claims in ID Token and UserInfo Endpoint',
         "sequence": ["oic-login-mixed_claims", "access-token-request",
@@ -1572,7 +1541,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {}), ("verify-userinfo", {})],
         "depends": ['mj-19'],
-        },
+    },
     'mj-64': {
         "name": 'Can Provide Encrypted UserInfo Response',
         "sequence": ["oic-registration-encrypted_userinfo", "oic-login",
@@ -1581,7 +1550,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
         "tests": [("encrypted-userinfo", {})],
-        },
+    },
     'mj-65': {
         "name": 'Can Provide Signed and Encrypted UserInfo Response',
         "sequence": ["oic-registration-signed+encrypted_userinfo", "oic-login",
@@ -1590,7 +1559,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "depends": ['mj-60'],
         "tests": [("encrypted-userinfo", {})],
-        },
+    },
     'mj-66': {
         "name": 'Can Provide Encrypted ID Token Response',
         "sequence": ["oic-registration-encrypted_idtoken", "oic-login",
@@ -1599,7 +1568,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "depends": ['mj-60'],
         "tests": [("encrypted-idtoken", {})],
-        },
+    },
     'mj-67': {
         "name": 'Can Provide Signed and Encrypted ID Token Response',
         "sequence": ["oic-registration-signed+encrypted_idtoken", "oic-login",
@@ -1608,14 +1577,14 @@ FLOWS = {
                       "userinfo_endpoint"],
         "depends": ['mj-60'],
         "tests": [("signed-encrypted-idtoken", {})],
-        },
+    },
     "mj-68": {
         "name": 'User hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
-        },
+    },
     'mj-69': {
         "name": 'UserInfo Endpoint Access with POST and bearer_body',
         "sequence": ["oic-login", "access-token-request",
