@@ -333,7 +333,7 @@ class CheckTokenEndpointAuthType(CriticalError):
             _pi = conv.provider_info
 
             try:
-                _sup = _pi["token_endpoint_auth_types_supported"]
+                _sup = _pi["token_endpoint_auth_methods_supported"]
             except KeyError:
                 _sup = None
 
