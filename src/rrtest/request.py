@@ -45,9 +45,9 @@ class Request(object):
             cis = getattr(_client, "construct_%s" % request.__name__)(request,
                                                                       **kwargs)
             # Remove parameters with None value
-            for key, val in cis.items():
-                if val is None:
-                    del cis[key]
+            # for key, val in cis.items():
+            #     if val is None:
+            #         del cis[key]
 
             setattr(self.conv, request.__name__, cis)
             try:
