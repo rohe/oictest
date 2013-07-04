@@ -75,7 +75,7 @@ class MissingResponseType(GetRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": [], "scope": ["openid"]}
     lax = True
-    tests = {"post": [CheckRedirectErrorResponse]}
+    tests = {"post": [VerifyBadRequestResponse]}
 
 
 class AuthorizationRequest(GetRequest):
@@ -135,7 +135,7 @@ class AuthorizationRequest_No_Redirect_uri(AuthorizationRequestCode):
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["redirect_uri"] = None
-        self.tests["post"] = []
+        self.tests["post"] = [VerifyBadRequestResponse]
 
 
 class AuthorizationRequestCodeWithNonce(AuthorizationRequestCode):
