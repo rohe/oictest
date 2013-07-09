@@ -152,7 +152,7 @@ class AuthorizationRequest_without_nonce(AuthorizationRequestToken):
 
 
 class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
-    kw_args = {"request_method": "file", "local_dir": "export"}
+    _kw_args = {"request_method": "file", "local_dir": "export"}
 
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
