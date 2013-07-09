@@ -316,18 +316,18 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     parameter = "id_token_encrypted_response_enc"
 
 
-class CheckTokenEndpointAuthType(CriticalError):
+class CheckTokenEndpointAuthMethod(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
     """
-    cid = "check-token-endpoint-auth-type"
+    cid = "check-token-endpoint-auth-method"
     msg = "Auth type not supported"
 
     def _func(self, conv):
         try:
             _req = conv.request_spec
             if _req.request == "RegistrationRequest":
-                _met = conv.request_args["token_endpoint_auth_type"]
+                _met = conv.request_args["token_endpoint_auth_method"]
             else:
                 _met = conv.args["authn_method"]
             _pi = conv.provider_info

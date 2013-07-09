@@ -5,9 +5,9 @@ from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
-from rrtest.check import CheckHTTPResponse, VerifyBadRequestResponse
+from rrtest.check import CheckHTTPResponse
+from rrtest.check import VerifyBadRequestResponse
 from rrtest.check import VerifyErrorResponse
-from rrtest.check import CheckRedirectErrorResponse
 from rrtest.check import CheckErrorResponse
 
 __author__ = 'rohe0002'
@@ -473,8 +473,8 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_type"] = "client_secret_jwt"
-        self.tests["pre"].append(CheckTokenEndpointAuthType)
+        self.request_args["token_endpoint_auth_method"] = "client_secret_jwt"
+        self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, location, response, content, features):
@@ -492,8 +492,8 @@ class RegistrationRequest_KeyExpCSP(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_type"] = "client_secret_post"
-        self.tests["pre"].append(CheckTokenEndpointAuthType)
+        self.request_args["token_endpoint_auth_method"] = "client_secret_post"
+        self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, location, response, content, features):
@@ -511,8 +511,8 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_type"] = "private_key_jwt"
-        self.tests["pre"].append(CheckTokenEndpointAuthType)
+        self.request_args["token_endpoint_auth_method"] = "private_key_jwt"
+        self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
     def __call__(self, location, response, content, features):
@@ -655,10 +655,10 @@ class AccessTokenRequest(PostRequest):
     def __call__(self, location, response, content, features):
         if "authn_method" not in self.kw_args:
             _pinfo = self.conv.provider_info
-            if "token_endpoint_auth_types_supported" in _pinfo:
+            if "token_endpoint_auth_methods_supported" in _pinfo:
                 for meth in ["client_secret_basic", "client_secret_post",
                              "client_secret_jwt", "private_key_jwt"]:
-                    if meth in _pinfo["token_endpoint_auth_types_supported"]:
+                    if meth in _pinfo["token_endpoint_auth_methods_supported"]:
                         self.kw_args = {"authn_method": meth}
                         break
             else:
@@ -1060,7 +1060,14 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
     },
-
+    'oic-idtoken': {
+        "name":
+            """Flow with response_type='idtoken'""",
+        "descr": ("1) Request with response_type='id_token'",),
+        "depends": ["mj-03"],
+        "sequence": ['oic-login-idtoken', 'user-info-request_pbh'],
+        "endpoints": ["authorization_endpoint"],
+    },
     # -------------------------------------------------------------------------
     # beared body authentication
     'oic-code-token-userinfo_bb': {
@@ -1306,7 +1313,7 @@ FLOWS = {
     # ---------------------------------------------------------------------
     'mj-30': {
         "name": 'Access token request with client_secret_basic authentication',
-        # Should register token_endpoint_auth_type=client_secret_post
+        # Should register token_endpoint_auth_method=client_secret_post
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
