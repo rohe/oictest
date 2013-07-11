@@ -418,7 +418,8 @@ class RegistrationRequest(PostRequest):
         for arg in message.RegistrationRequest().parameters():
             if arg in conv.client_config:
                 self.request_args[arg] = conv.client_config[arg]
-
+            elif arg in conv.client_config["preferences"]:
+                self.request_args[arg] = conv.client_config["preferences"][arg]
         try:
             del self.request_args["key_export_url"]
         except KeyError:
@@ -531,9 +532,9 @@ class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
         ruri = self.request_args["redirect_uris"][0]
         p = urlparse(ruri)
 
-        self.request_args["policy_url"] = "%s://%s/%s" % (p.scheme, p.netloc,
+        self.request_args["policy_uri"] = "%s://%s/%s" % (p.scheme, p.netloc,
                                                           "policy.html")
-        self.request_args["logo_url"] = "%s://%s/%s" % (p.scheme, p.netloc,
+        self.request_args["logo_uri"] = "%s://%s/%s" % (p.scheme, p.netloc,
                                                         "logo.png")
 
 
@@ -1407,11 +1408,11 @@ FLOWS = {
         "depends": ["oic-code-token"]
     },
     'mj-45': {
-        "name": 'Registration with policy_url and logo_url',
+        "name": 'Registration with policy_uri and logo_uri',
         "sequence": ["oic-registration-policy+logo", "oic-login"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
-        "tests": [("policy_url_on_page", {}),
-                  ("logo_url_on_page", {})],
+        "tests": [("policy_uri_on_page", {}),
+                  ("logo_uri_on_page", {})],
         "depends": ['mj-01'],
     },
     'mj-46': {
