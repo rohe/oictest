@@ -5,17 +5,26 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-info["provider"] = {"dynamic": "http://rivers.richer.org:8080/openid-connect-server/"}
+info["provider"] = {"dynamic": "https://mitreid.org/"}
 
 info["interaction"] = [
     {
         "matches": {
-            "url": "https://www.example.com/authorization",
+            "url": "https://mitreid.org",
+        },
+        "page-type": "user-consent",
+        "control": {
+            "type": "form",
+        }
+    },
+    {
+        "matches": {
+            "url": "https://mitreid.org/login",
         },
         "page-type": "login",
         "control": {
             "type": "form",
-            "set": {"login": "diana", "password": "krall"}
+            "set": {"j_username": "user", "j_password": "password"}
         }
     }
 ]

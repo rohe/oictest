@@ -21,8 +21,8 @@ info = {
         }
     },
     "client": {
-        "client_id": "JOVPpP2srljq",
-        "client_secret": "0599bbadc6effc72b6884d73a8ffe9d8ce7ef6271c0a04112a93442b",
+        "client_id": "5pOGKpoC2eab",
+        "client_secret": "8300a053d1a9ee87565bc0b2e80d7a8e9979d96b7f135a36e3091df0",
         "redirect_uris": ["https://localhost:8091/"]
     },
     "interaction": [
