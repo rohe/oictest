@@ -20,9 +20,16 @@ class Request(object):
         self.conv = conv
         self.trace = conv.trace
 
-    #noinspection PyUnusedLocal
-    def __call__(self, location, response, content, features):
-        _client = self.conv.client
+    def construct_request(self, client, **cargs):
+        """
+        Construct the request to send to the OP
+        :param client: A client (RP) instance
+        :param cargs: Extra keyword arguments
+        :return:
+            url - which url to send the request to
+            body - The message to send in the HTTP body
+            ht_args - HTTP headers arguments
+        """
         if not self.request:
             request = None
         elif isinstance(self.request, basestring):
@@ -35,6 +42,7 @@ class Request(object):
         except KeyError:
             kwargs = {}
 
+        kwargs.update(cargs)
         try:
             kwargs["request_args"] = self.request_args.copy()
             _req = kwargs["request_args"].copy()
@@ -42,8 +50,8 @@ class Request(object):
             _req = {}
 
         if request:
-            cis = getattr(_client, "construct_%s" % request.__name__)(request,
-                                                                      **kwargs)
+            cis = getattr(client, "construct_%s" % request.__name__)(request,
+                                                                     **kwargs)
             # Remove parameters with None value
             # for key, val in cis.items():
             #     if val is None:
@@ -60,12 +68,12 @@ class Request(object):
         ht_add = None
 
         if "authn_method" in kwargs:
-            h_arg = _client.init_authentication_method(cis, **kwargs)
+            h_arg = client.init_authentication_method(cis, **kwargs)
         else:
-            h_arg = None
+            h_arg = {}
 
         if request:
-            url, body, ht_args, cis = _client.uri_and_body(
+            url, body, ht_args, cis = client.uri_and_body(
                 request, cis, method=self.method, request_args=_req,
                 content_type=self.content_type)
             self.conv.cis.append(cis)
@@ -80,13 +88,17 @@ class Request(object):
 
         self.trace.request("URL: %s" % url)
         self.trace.request("BODY: %s" % body)
-        try:
-            self.trace.request("HEADERS: %s" % ht_args["headers"])
-        except KeyError:
-            pass
+        for param in ["headers", "auth"]:
+            try:
+                self.trace.request("%s: %s" % (param.upper(), ht_args[param]))
+            except KeyError:
+                pass
 
-        response = _client.http_request(url, method=self.method, data=body,
-                                        **ht_args)
+        return url, body, ht_args
+
+    def do_request(self, client, url, body, ht_args):
+        response = client.http_request(url, method=self.method, data=body,
+                                       **ht_args)
 
         self.trace.reply("RESPONSE: %s" % response)
         self.trace.reply("CONTENT: %s" % response.text)
@@ -103,6 +115,14 @@ class Request(object):
             self.trace.reply("COOKIES: %s" % response.cookies)
 
         return url, response, response.text
+
+    def __call__(self, location, response="", content="", features=None,
+                 **cargs):
+        _client = self.conv.client
+
+        url, body, ht_args = self.construct_request(_client, **cargs)
+
+        return self.do_request(_client, url, body, ht_args)
 
     def update(self, dic):
         _tmp = {"request": self.request_args.copy(), "kw": self.kw_args}

@@ -237,13 +237,17 @@ class OAuth2(object):
                 self.client = self.client_class(
                     client_authn_method=CLIENT_AUTHN_METHOD)
 
-        #self.client.http_request = self.client.http.crequest
-
         # set the endpoints in the Client from the provider information
-        # If they are statically configured, if dynamic it happens elsewhere
+        # if they are statically configured, if dynamic it happens elsewhere
         for key, val in self.pinfo.items():
             if key.endswith("_endpoint"):
                 setattr(self.client, key, val)
+
+        try:
+            for item in self.json_config["deviate"]:
+                self.client.allow[item] = True
+        except KeyError:
+            pass
 
         # Client configuration
         self.cconf = self.json_config["client"]

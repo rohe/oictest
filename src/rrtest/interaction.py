@@ -41,7 +41,7 @@ class RResponse():
         self.index = 0
         self.text = resp.text
         if isinstance(self.text, unicode):
-            if resp.encoding == "UTF-8":
+            if resp.encoding.upper() == "UTF-8":
                 self.text = self.text.encode("utf-8")
             else:
                 self.text = self.text.encode("latin-1")

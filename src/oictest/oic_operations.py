@@ -71,6 +71,18 @@ def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
     args["sector_identifier_url"] = sector_identifier_url
 
 
+class ProviderRequest(GetRequest):
+    request = ""
+    tests = {"pre": [], "post": [CheckHTTPResponse]}
+
+    def __call__(self, *args, **kwargs):
+        if "endpoint" in kwargs:
+            kwargs["endpoint"] += ".well-known/openid-configuration"
+
+        url, response, text = GetRequest.__call__(self, *args, **kwargs)
+        return url, response, text
+
+
 class MissingResponseType(GetRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": [], "scope": ["openid"]}
@@ -110,7 +122,8 @@ class AuthorizationRequestCode_WQC(AuthorizationRequestCode):
 
 
 class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         _client = self.conv.client
         base_url = _client.redirect_uris[0]
         self.request_args["redirect_uri"] = "%s?%s" % (
@@ -191,7 +204,8 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyPromptNoneResponse]
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         idt = None
         for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
@@ -210,7 +224,8 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyPromptNoneResponse]
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         idt = None
         for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
@@ -230,7 +245,8 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
         AuthorizationRequestCode.__init__(self, conv)
         self.tests["post"].append(CheckHTTPResponse)
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         idt = None
         for (instance, msg) in self.conv.protocol_response:
             if isinstance(instance, message.AccessTokenResponse):
@@ -478,7 +494,8 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         _client = self.conv.client
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -497,7 +514,8 @@ class RegistrationRequest_KeyExpCSP(RegistrationRequest):
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         _client = self.conv.client
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -516,7 +534,8 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         _client = self.conv.client
         # Do the redirect_uris dynamically
         self.request_args["redirect_uris"] = _client.redirect_uris
@@ -633,7 +652,8 @@ class RegistrationRequestSignEncIDtoken(RegistrationRequest):
 
 
 class ReadRegistration(GetRequest):
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         _client = self.conv.client
         self.request_args["access_token"] = _client.registration_access_token
         self.kw_args["authn_method"] = "bearer_header"
@@ -653,7 +673,8 @@ class AccessTokenRequest(PostRequest):
         self.tests["post"] = [CheckHTTPResponse]
         #self.kw_args = {"authn_method": "client_secret_basic"}
 
-    def __call__(self, location, response, content, features):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         if "authn_method" not in self.kw_args:
             _pinfo = self.conv.provider_info
             if "token_endpoint_auth_methods_supported" in _pinfo:
@@ -934,6 +955,7 @@ PHASES = {
     "oic-registration-signed+encrypted_idtoken": (
         RegistrationRequestSignEncIDtoken, RegistrationResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
+    "provider-info": (ProviderRequest, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
     "read-registration": (ReadRegistration, RegistrationResponse)
 }
@@ -952,7 +974,7 @@ FLOWS = {
     'oic-discovery': {
         "name": 'Provider configuration discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
-        "sequence": [], # discovery will be auto-magically added
+        "sequence": [],  # discovery will be auto-magically added
         "endpoints": [],
         "block": ["registration", "key_export"],
         "depends": ['oic-verify'],
