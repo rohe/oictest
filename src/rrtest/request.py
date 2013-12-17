@@ -1,4 +1,5 @@
 from oic.oauth2 import URL_ENCODED, Message
+from oictest.check import CheckEndpoint
 import requests
 from rrtest.check import CheckHTTPResponse
 
@@ -155,6 +156,7 @@ class GetRequest(Request):
 
 class PostRequest(Request):
     method = "POST"
+    tests = {"pre": [CheckEndpoint], "post": [CheckHTTPResponse]}
 
 
 class Response(object):

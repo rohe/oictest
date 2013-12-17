@@ -3,7 +3,7 @@ import time
 from urlparse import urlparse
 from oauth2test import OAuth2
 
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyBundle, KeyJar
 from oic.utils.keyio import dump_jwks
 from rrtest import start_script
 
@@ -85,6 +85,8 @@ class OIC(OAuth2):
                 pcr[param] = self.pinfo[param]
 
         if n:
+            if _keyjar is None:
+                _keyjar = self.client.keyjar = KeyJar()
             _keyjar.load_keys(pcr, self.pinfo["issuer"])
 
         #self.register()
@@ -217,6 +219,9 @@ class OIC(OAuth2):
     def export(self):
         # has to be there
         self.trace.info("EXPORT")
+
+        if self.client.keyjar is None:
+            self.client.keyjar = KeyJar()
 
         kbl = []
         for typ, info in self.cconf["keys"].items():

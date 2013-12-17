@@ -15,15 +15,9 @@ __author__ = 'rohe0002'
 # ========================================================================
 
 import time
-#import socket
-from urlparse import urlparse
+
 from urllib import urlencode
-
-from jwkest import unpack
-
 from oic.oauth2 import JSON_ENCODED
-
-from oic.oic import message
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -93,25 +87,24 @@ class MissingResponseType(GetRequest):
 class AuthorizationRequest(GetRequest):
     request = "AuthorizationRequest"
     _request_args = {"scope": ["openid"]}
-    tests = {"pre": [CheckResponseType], "post": [CheckHTTPResponse]}
+    tests = {"pre": [CheckResponseType, CheckEndpoint],
+             "post": [CheckHTTPResponse]}
 
 
 class AuthorizationRequestCode(AuthorizationRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": ["code"], "scope": ["openid"]}
-    tests = {"pre": [CheckResponseType], "post": [CheckHTTPResponse]}
 
 
 class AuthorizationRequestToken(AuthorizationRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": ["token"], "scope": ["openid"]}
-    tests = {"pre": [CheckResponseType], "post": [CheckHTTPResponse]}
 
 
 class AuthorizationRequestIDToken(AuthorizationRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": ["id_token"], "scope": ["openid"]}
-    tests = {"pre": [CheckResponseType, CheckScopeSupport],
+    tests = {"pre": [CheckResponseType, CheckScopeSupport, CheckEndpoint],
              "post": [CheckHTTPResponse]}
 
 
@@ -128,7 +121,8 @@ class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
         base_url = _client.redirect_uris[0]
         self.request_args["redirect_uri"] = "%s?%s" % (
             base_url, urlencode({"fox": "bat"}))
-        return Request.__call__(self, location, response, content, features)
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 
 
 class AuthorizationRequestCode_RUWQC_Err(AuthorizationRequestCode_RUWQC):
@@ -175,7 +169,8 @@ class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
 class ConnectionVerify(GetRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": ["code"], "scope": ["openid"]}
-    tests = {"pre": [CheckResponseType], "post": [CheckHTTPResponse]}
+    tests = {"pre": [CheckResponseType, CheckEndpoint],
+             "post": [CheckHTTPResponse]}
     interaction_check = True
 
 
@@ -215,7 +210,7 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
         self.request_args["id_token"] = idt
 
         return AuthorizationRequestCode.__call__(self, location, response,
-                                                 content, features)
+                                                 content, features, **kwargs)
 
 
 class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
@@ -237,7 +232,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
         self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
-                                                 content, features)
+                                                 content, features, **kwargs)
 
 
 class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
@@ -258,7 +253,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
         self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
-                                                 content, features)
+                                                 content, features, **kwargs)
 
 
 class AuthorizationRequestCodePromptLogin(AuthorizationRequestCode):
@@ -501,7 +496,7 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
         self.request_args["redirect_uris"] = _client.redirect_uris
 
         return PostRequest.__call__(self, location, response,
-                                    content, features)
+                                    content, features, **kwargs)
 
 
 class RegistrationRequest_KeyExpCSP(RegistrationRequest):
@@ -521,7 +516,7 @@ class RegistrationRequest_KeyExpCSP(RegistrationRequest):
         self.request_args["redirect_uris"] = _client.redirect_uris
 
         return PostRequest.__call__(self, location, response,
-                                    content, features)
+                                    content, features, **kwargs)
 
 
 class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
@@ -541,7 +536,7 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
         self.request_args["redirect_uris"] = _client.redirect_uris
 
         return PostRequest.__call__(self, location, response,
-                                    content, features)
+                                    content, features, **kwargs)
 
 
 class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
@@ -659,7 +654,8 @@ class ReadRegistration(GetRequest):
         self.kw_args["authn_method"] = "bearer_header"
         self.kw_args["endpoint"] = _client.registration_response[
             "registration_client_uri"]
-        return GetRequest.__call__(self, location, response, content, features)
+        return GetRequest.__call__(self, location, response, content, features,
+                                   **kwargs)
 
 
 # =============================================================================
@@ -685,7 +681,8 @@ class AccessTokenRequest(PostRequest):
                         break
             else:
                 self.kw_args = {"authn_method": "client_secret_basic"}
-        return Request.__call__(self, location, response, content, features)
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 
 
 class AccessTokenRequestCSPost(AccessTokenRequest):
@@ -717,6 +714,43 @@ class AccessTokenRequestScope(AccessTokenRequest):
         AccessTokenRequest.__init__(self, conv)
         self.request_args["scope"] = "scim"
         self.tests["post"] = [CheckErrorResponse]
+
+
+class AccessTokenRequestModRedirectURI1(AccessTokenRequest):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        _client = self.conv.client
+        _uri = _client.redirect_uris[0]
+        # Mess with the redirect_uri dynamically
+        _uri += "/xlevel"
+        self.request_args["redirect_uri"] = _uri
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
+
+
+class AccessTokenRequestModRedirectURI2(AccessTokenRequest):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        _client = self.conv.client
+        _uri = _client.redirect_uris[0]
+        # Mess with the redirect_uri dynamically
+        _uri += "?query=foo"
+        self.request_args["redirect_uri"] = _uri
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
+
+
+class AccessTokenRequestModRedirectURI3(AccessTokenRequest):
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        _client = self.conv.client
+        _uri = _client.redirect_uris[0]
+        # Mess with the redirect_uri dynamically
+        part = urlparse(_uri)
+        _uri = _uri.replace(part.path, "/")
+        self.request_args["redirect_uri"] = _uri
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 
 
 class UserInfoRequestPostBearerHeader_err(PostRequest):
@@ -828,6 +862,12 @@ class Discover(Operation):
 
     def discover(self, client, orig_response, content, issuer, **kwargs):
         pcr = client.provider_config(issuer)
+        if len(client.provider_info) == 2 and "" in client.provider_info.keys():
+            _di = client.provider_info[""]
+            del client.provider_info[""]
+            client.provider_info.values()[0].update(_di)
+            client.handle_provider_config(pcr, issuer)
+
         self.trace.info("%s" % client.keyjar)
         client.match_preferences(pcr)
         return "", DResponse(status=200, ctype="application/json"), pcr
@@ -957,7 +997,15 @@ PHASES = {
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "provider-info": (ProviderRequest, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
-    "read-registration": (ReadRegistration, RegistrationResponse)
+    "read-registration": (ReadRegistration, RegistrationResponse),
+    "oic-registration-multi-redirect_hosts": (
+        RegistrationRequest_MULREDIR_mult_host, RegistrationResponse),
+    "access-token-request-other-redirect_uri-1": (
+        AccessTokenRequestModRedirectURI1, req.ErrorResponse),
+    "access-token-request-other-redirect_uri-2": (
+        AccessTokenRequestModRedirectURI2, req.ErrorResponse),
+    "access-token-request-other-redirect_uri-3": (
+        AccessTokenRequestModRedirectURI3, req.ErrorResponse)
 }
 
 OWNER_OPS = []
@@ -1084,12 +1132,11 @@ FLOWS = {
                       "userinfo_endpoint"],
     },
     'oic-idtoken': {
-        "name":
-            """Flow with response_type='idtoken'""",
+        "name": "Flow with response_type='idtoken'",
         "descr": ("1) Request with response_type='id_token'",),
         "depends": ["mj-03"],
-        "sequence": ['oic-login-idtoken', 'user-info-request_pbh'],
-        "endpoints": ["authorization_endpoint"],
+        "sequence": ['oic-login-idtoken'],
+        "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     # -------------------------------------------------------------------------
     # beared body authentication
@@ -1335,7 +1382,7 @@ FLOWS = {
     },
     # ---------------------------------------------------------------------
     'mj-30': {
-        "name": 'Access token request with client_secret_basic authentication',
+        "name": 'Access token request with client_secret_post authentication',
         # Should register token_endpoint_auth_method=client_secret_post
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
@@ -1631,7 +1678,30 @@ FLOWS = {
                       "userinfo_endpoint"],
         "depends": ['mj-69'],
     },
-
+    'mj-71': {
+        "name": 'Checking redirect_uri matching between '
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+        "sequence": ["oic-login",
+                     "access-token-request-other-redirect_uri-1"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-69'],
+    },
+    'mj-72': {
+        "name": 'Checking redirect_uri matching between '
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+        "sequence": ["oic-login",
+                     "access-token-request-other-redirect_uri-2"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-69'],
+    },
+    'mj-73': {
+        "name": 'Checking redirect_uri matching between '
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+        "sequence": ["oic-login",
+                     "access-token-request-other-redirect_uri-3"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-69'],
+    },
 }
 
 #Providing Aggregated Claims

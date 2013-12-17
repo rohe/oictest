@@ -241,7 +241,7 @@ class CheckScopeSupport(CheckSupported):
     Checks that the asked for acr are among the supported
     """
     cid = "check-acr-support"
-    msg = "ACR level not supported"
+    msg = "Scope not supported"
     element = "scopes_supported"
     parameter = "scope"
 
@@ -386,7 +386,7 @@ class CheckEndpoint(CriticalError):
         cls = conv.request_spec.request
         endpoint = conv.client.request2endpoint[cls]
         try:
-            assert endpoint in conv.provider_info
+            assert endpoint in conv.client.provider_info.values()[0]
         except AssertionError:
             self._status = self.status
             self._message = "No '%s' registered" % endpoint
@@ -783,15 +783,15 @@ class CheckKeys(CriticalError):
 
 
 class VerifyPolicyURLs(Error):
-    cid = "policy_url_on_page"
-    msg = "policy_url not on page"
+    cid = "policy_uri_on_page"
+    msg = "policy_uri not on page"
 
     def _func(self, conv=None):
         login_page = conv.login_page
         regreq = conv.RegistrationRequest
 
         try:
-            assert regreq["policy_url"] in login_page
+            assert regreq["policy_uri"] in login_page
         except AssertionError:
             self._status = self.status
 
@@ -799,15 +799,15 @@ class VerifyPolicyURLs(Error):
 
 
 class VerifyLogoURLs(Error):
-    cid = "logo_url_on_page"
-    msg = "logo_url not on page"
+    cid = "logo_uri_on_page"
+    msg = "logo_uri not on page"
 
     def _func(self, conv=None):
         login_page = conv.login_page
         regreq = conv.RegistrationRequest
 
         try:
-            assert regreq["logo_url"] in login_page
+            assert regreq["logo_uri"] in login_page
         except AssertionError:
             self._status = self.status
 

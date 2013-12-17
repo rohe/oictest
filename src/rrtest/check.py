@@ -178,6 +178,8 @@ class CheckHTTPResponse(CriticalError):
                 res["content"] = _content
             res["url"] = conv.position
             res["http_status"] = _response.status_code
+        elif _response.status_code in [300, 301, 302]:
+            pass
         else:
             # might still be an error message
             try:
@@ -292,6 +294,8 @@ class VerifyBadRequestResponse(ExpectedError):
             err.verify()
             res["content"] = err.to_json()
             conv.protocol_response.append((err, _content))
+        elif _response.status_code in [301, 302, 303]:
+            pass
         else:
             self._message = "Expected a 400 error message"
             self._status = CRITICAL
@@ -312,7 +316,13 @@ class VerifyError(Error):
             except Exception:
                 pass
 
-        item, msg = conv.protocol_response[-1]
+        try:
+            item, msg = conv.protocol_response[-1]
+        except IndexError:
+            self._message = "Expected a message"
+            self._status = CRITICAL
+            return {}
+
         try:
             assert item.type().endswith("ErrorResponse")
         except AssertionError:
@@ -369,7 +379,6 @@ class CheckErrorResponse(ExpectedError):
             res["url"] = conv.position
 
         return res
-
 
 
 def factory(cid, classes):

@@ -158,14 +158,24 @@ class OAuth2(object):
             conv = None
             try:
                 if self.pinfo:
-                    self.client.provider_info = self.pinfo
+                    self.client.provider_info = {"": self.pinfo}
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
+                try:
+                    extra_args = self.json_config["extra_args"]
+                except KeyError:
+                    extra_args = {}
                 conv = self.conversation_cls(self.client, self.cconf,
                                              self.trace, interact,
                                              msg_factory=self.msg_factory,
                                              check_factory=self.chk_factory,
-                                             expect_exception=expect_exception)
+                                             expect_exception=expect_exception,
+                                             extra_args=extra_args)
+                try:
+                    conv.ignore_check = self.json_config["ignore_check"]
+                except KeyError:
+                    pass
+
                 conv.do_sequence(_spec)
                 #testres, trace = do_sequence(oper,
                 self.test_log = conv.test_output
@@ -304,12 +314,12 @@ class OAuth2(object):
             except KeyError:
                 pass
 
-        if self.args.interactions:
-            _int = self.args.interactions.replace("\'", '"')
-            if interactions:
-                interactions.update(json.loads(_int))
-            else:
-                interactions = json.loads(_int)
+        #if self.args.interactions:
+        #    _int = self.args.interactions.replace("\'", '"')
+        #    if interactions:
+        #        interactions.update(json.loads(_int))
+        #    else:
+        #        interactions = json.loads(_int)
 
         return interactions
 

@@ -22,10 +22,11 @@ def endpoint(client, base):
 class Conversation(tool.Conversation):
     def __init__(self, client, config, trace, interaction, msg_factory,
                  check_factory, features=None, verbose=False,
-                 expect_exception=False):
+                 expect_exception=False, extra_args=None):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
-                                   features, verbose, expect_exception)
+                                   features, verbose, expect_exception,
+                                   extra_args)
         self.cis = []
         #self.item = []
         self.keyjar = self.client.keyjar
@@ -162,8 +163,14 @@ class Conversation(tool.Conversation):
         try:
             if self.verbose:
                 print >> sys.stderr, "> %s" % self.req.request
+
+            try:
+                extra_args = {
+                    "extra_args": self.extra_args[self.req.__class__.__name__]}
+            except KeyError:
+                extra_args = {}
             part = self.req(self.position, self.last_response,
-                            self.last_content, self.features)
+                            self.last_content, self.features, **extra_args)
             (self.position, self.last_response, self.last_content) = part
 
             try:

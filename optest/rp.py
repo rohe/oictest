@@ -1,11 +1,18 @@
 import base64
+from copy import copy
+import glob
 import hashlib
+import json
+import traceback
 import uuid
+from oic.oauth2 import rndstr
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyBundle, dump_jwks, KeyJar
+import re
 import requests
-from rrtest import Trace
+import sys
+from rrtest import Trace, FatalError
 import action
 
 from beaker.middleware import SessionMiddleware
@@ -19,7 +26,7 @@ from oic.utils.http_util import BadRequest
 from oic.utils.http_util import R2C
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import Response
-from oictest.oic_operations import PHASES
+from oictest.oic_operations import PHASES, RegistrationRequest
 from oidc import OpenIDConnect
 
 from oictest import oic_operations
@@ -28,7 +35,7 @@ import rp_conf
 
 import logging
 
-LOGGER = logging.getLogger("")
+logger = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
 hdlr = logging.FileHandler(LOGFILE_NAME)
 base_formatter = logging.Formatter(
@@ -39,8 +46,8 @@ CPC = ('%(asctime)s %(name)s:%(levelname)s '
 cpc_formatter = logging.Formatter(CPC)
 
 hdlr.setFormatter(base_formatter)
-LOGGER.addHandler(hdlr)
-LOGGER.setLevel(logging.DEBUG)
+logger.addHandler(hdlr)
+logger.setLevel(logging.DEBUG)
 
 LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         module_directory='modules',
@@ -50,7 +57,7 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
 SERVER_ENV = {}
 RP = None
 FLOWS = None
-FLOW_SEQUENCE = []
+FLOW_SEQUENCE = None
 CLIENT_CONFIG = {
     "redirect_uris": ["%sauthorization"],
     "contacts": ["roland.hedberg@adm.umu.se"],
@@ -119,7 +126,6 @@ def export_keys(keys):
 
 def setup_server_env(rp_conf):
     global SERVER_ENV
-    global logger
 
     SERVER_ENV = dict([(k, v) for k, v in rp_conf.__dict__.items()
                        if not k.startswith("__")])
@@ -129,6 +135,12 @@ def setup_server_env(rp_conf):
     SERVER_ENV["OIC_CLIENT"] = {}
     if "KEYS" in SERVER_ENV:
         SERVER_ENV["KEYJAR"] = export_keys(SERVER_ENV["KEYS"])
+        SERVER_ENV["JWKS_URI"] = "%skeys" % rp_conf.BASE
+
+    SERVER_ENV["OP"] = {}
+    for fil in glob.glob("op/*"):
+        namn = fil.split("/")[1]
+        SERVER_ENV["OP"][namn] = json.load(open(fil))
 
 
 class Session(object):
@@ -145,39 +157,6 @@ class Session(object):
         self.session[key] = value
 
 
-#noinspection PyUnresolvedReferences
-def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
-
-    try:
-        text = open(path).read()
-        if path.endswith(".ico"):
-            start_response('200 OK', [('Content-Type', "image/x-icon")])
-        elif path.endswith(".html"):
-            start_response('200 OK', [('Content-Type', 'text/html')])
-        elif path.endswith(".json"):
-            start_response('200 OK', [('Content-Type', 'application/json')])
-        elif path.endswith(".txt"):
-            start_response('200 OK', [('Content-Type', 'text/plain')])
-        elif path.endswith(".css"):
-            start_response('200 OK', [('Content-Type', 'text/css')])
-        else:
-            start_response('200 OK', [('Content-Type', "text/xml")])
-        return [text]
-    except IOError:
-        resp = NotFound()
-        return resp(environ, start_response)
-
-
-def opbyuid(environ, start_response):
-    resp = Response(mako_template="opbyuid.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-    }
-    return resp(environ, start_response, **argv)
-
-
 def display_result(trace):
     return Response("<pre>%s</pre>" % trace)
 
@@ -190,7 +169,7 @@ def do_response(phase, cli, trace, session, flow, environ=None, reqi=None):
         respi.last_content = reqi.last_content
 
     respi.parse_response(environ)
-    trace.info("{%s}%s" % (respi.response_type, respi.test_output))
+    trace.info("::%s::%s" % (respi.response_type, respi.test_output))
 
     _phase = resp = _flow = None
     # are there more to do = step to next phase in the flow
@@ -209,52 +188,263 @@ def do_response(phase, cli, trace, session, flow, environ=None, reqi=None):
     return _phase, _flow, resp
 
 
+def create_client(opkey, key_export=True, **kwargs):
+    client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+
+    try:
+        _deviates = kwargs["deviate"]
+    except KeyError:
+        pass
+    else:
+        for key in _deviates:
+            client.allow[key] = True
+
+    if key_export:
+        try:
+            client.keyjar = SERVER_ENV["KEYJAR"]
+        except KeyError:
+            pass
+
+    client.redirect_uris = CLIENT_CONFIG["redirect_uris"]
+    SERVER_ENV["OIC_CLIENT"][opkey] = client
+    return client
+
+
+def skip_registration(phase, session):
+    try:
+        _op = session["op_conf"]
+    except KeyError:
+        return False
+
+    if phase[0] == RegistrationRequest:
+        try:
+            if not _op["features"]["registration"]:
+                return True
+        except (TypeError, KeyError):
+            pass
+
+    return False
+
+
+# -----------------------------------------------------------------------------
+# Callbacks
+# -----------------------------------------------------------------------------
+#noinspection PyUnresolvedReferences
+CTYPE_MAP = {
+    "ico": "image/x-icon",
+    "html": "text/html",
+    "json": 'application/json',
+    "txt": 'text/plain',
+    "css": 'text/css',
+    "xml": "text/xml",
+    "js": "text/javascript"
+}
+
+
+#noinspection PyUnusedLocal
+def static(environ, session, path):
+    logger.info("[static]sending: %s" % (path,))
+
+    try:
+        text = open(path).read()
+        ext = path.rsplit(".", 1)[-1]
+        try:
+            ctype = CTYPE_MAP[ext]
+        except KeyError:
+            ctype = CTYPE_MAP["txt"]
+
+        return Response(text, headers=[('Content-Type', ctype)])
+    except IOError:
+        return NotFound()
+
+
+#noinspection PyUnusedLocal
+def op_choice(environ=None, session=None, path=""):
+    link = session["srv_discovery_url"]
+    if not link:
+        resp = Response(mako_template="opbyuid.mako",
+                        template_lookup=LOOKUP,
+                        headers=[])
+        argv = {
+        }
+        return resp, argv
+    else:
+        client = SERVER_ENV["OIC_CLIENT"][session["opkey"]]
+    return {"link": link, "client": client}
+
+#noinspection PyUnusedLocal
+
+def uid(environ, session, path):
+    query = parse_qs(environ["QUERY_STRING"])
+    if "uid" in query:
+        try:
+            link = RP.find_srv_discovery_url(resource=query["uid"][0])
+        except requests.ConnectionError:
+            return ServiceError("Webfinger lookup failed, connection error")
+
+        session["srv_discovery_url"] = link
+        md5 = hashlib.md5()
+        md5.update(link)
+        opkey = base64.b16encode(md5.digest())
+        client = create_client(opkey)
+        SERVER_ENV["OIC_CLIENT"][opkey] = client
+        session["opkey"] = opkey
+        return {"client": client, "link": link}
+    else:
+        return BadRequest()
+
+
+def test(environ, session, path):
+    _test = path[5:]
+    session["flow_index"] = FLOW_SEQUENCE.index(_test)
+    session["phase_index"] = 0
+    session["start"] = 0
+    session["trace"] = Trace()
+    _op = resp = client = link = None
+    try:
+        query = parse_qs(environ["QUERY_STRING"])
+    except KeyError:
+        pass
+    else:
+        try:
+            session["op"] = query["op"][0]
+            try:
+                assert session["op"] in SERVER_ENV["OP"]
+                _op = session["op_conf"] = SERVER_ENV["OP"][session["op"]]
+            except AssertionError:
+                return BadRequest("OP chosen that is not configured")
+        except KeyError:
+            pass
+    if _op:
+        try:
+            client = SERVER_ENV["OIC_CLIENT"][session["opkey"]]
+        except KeyError:
+            _key = rndstr()
+            try:
+                kwargs = {"deviate": _op["deviate"]}
+            except KeyError:
+                kwargs = {}
+            client = create_client(_key, **kwargs)
+            session["opkey"] = _key
+            SERVER_ENV["OIC_CLIENT"][session["opkey"]] = client
+
+        if _op["features"]["discovery"]:
+            link = _op["provider"]["dynamic"]
+            session["srv_discovery_url"] = link
+        else:
+            client.handle_provider_config(_op["provider"], session["op"])
+    else:
+        resp = Redirect("/")
+
+    if resp:
+        return resp
+    else:
+        return {"client": client, "link": link}
+
+
+#noinspection PyUnusedLocal
+def op(environ, session, path):
+    op = path[6:]
+    if op == "":
+        return BadRequest("Missing OP specification")
+
+    SERVER_ENV["OP"][op] = action.get_body(environ)
+
+# -----------------------------------------------------------------------------
+
+URLS = [
+    #(r'^static', static),
+    (r'^rp', uid),
+    (r'^test', test),
+    (r'^op', op),
+    (r'^$', op_choice),
+#    (r'.+\op.css$', css),
+#    (r'safe', safe),
+#    (r'tracelog', trace_log),
+]
+
+
+def loop(session, client, flow, _phase, _trace, **kwargs):
+    resp = None
+    while True:
+        if skip_registration(_phase, session):
+            session["phase_index"] += 1
+            try:
+                _phase = PHASES[flow["sequence"][session["phase_index"]]]
+            except IndentationError:
+                return display_result(_trace)
+
+        reqi = action.Request(_phase, client, CLIENT_CONFIG, _trace, **kwargs)
+        session["start"] = 1
+
+        resp = reqi.do_query()
+
+        if resp:
+            return resp
+
+        _trace.info("::%s::%s" % (reqi.req.__class__.__name__, reqi.test_output))
+        if reqi.last_response.status_code == 200:
+            if "<html>" in reqi.last_content and "</html>" in reqi.last_content:
+                return Response(reqi.last_content)
+
+            _phase, _flow, resp = do_response(_phase, client, _trace, session,
+                                              flow, None, reqi)
+            if resp:
+                break
+            if _phase is None:  # end of a flow
+                resp = display_result(_trace)
+                break
+        elif 300 <= reqi.last_response.status_code < 400:
+            resp = R2C[reqi.last_response.status_code]()
+
+    return resp
+
+
 def application(environ, start_response):
     session = Session(environ['beaker.session'])
 
     path = environ.get('PATH_INFO', '').lstrip('/')
-    client = link = None
-    if path == "robots.txt":
-        return static(environ, start_response, LOGGER, "static/robots.txt")
-    elif path.startswith("static/"):
-        return static(environ, start_response, LOGGER, path)
-    elif path == "keys":
-        return static(environ, start_response, LOGGER, "keys/jwk")
-    elif path == "":
-        return opbyuid(environ, start_response)
-    elif path == "rp":
-        query = parse_qs(environ["QUERY_STRING"])
-        if "uid" in query:
+    resp = None
+    for regex, callback in URLS:
+        match = re.search(regex, path)
+        if match is not None:
             try:
-                link = RP.find_srv_discovery_url(resource=query["uid"][0])
-            except requests.ConnectionError:
-                resp = ServiceError("Webfinger lookup failed, connection error")
+                environ['oic.url_args'] = match.groups()[0]
+            except IndexError:
+                environ['oic.url_args'] = path
+
+            logger.info("callback: %s" % callback)
+            try:
+                resp = callback(environ, session, path)
+            except Exception, err:
+                print >> sys.stderr, "%s" % err
+                message = traceback.format_exception(*sys.exc_info())
+                print >> sys.stderr, message
+                logger.exception("%s" % err)
+                resp = ServiceError("%s" % err)
+
+            if isinstance(resp, tuple):
+                return resp[0](environ, start_response, **resp[1])
+            elif isinstance(resp, Response):
                 return resp(environ, start_response)
+            else:
+                break
 
-            client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+    if not resp:
+        if path == "robots.txt":
+            return static(environ, session, "static/robots.txt")
+        elif path == "keys":
+            return static(environ, session, "keys/jwk")
+        elif path.startswith("static"):
+            return static(environ, session, path)
 
-            try:
-                client.keyjar = SERVER_ENV["KEYJAR"]
-            except KeyError:
-                pass
+    # From here on testing is setup and done
 
-            client.redirect_uris = CLIENT_CONFIG["redirect_uris"]
-            session["srv_discovery_url"] = link
-            md5 = hashlib.md5()
-            md5.update(link)
-            opkey = base64.b16encode(md5.digest())
-            SERVER_ENV["OIC_CLIENT"][opkey] = client
-            session["opkey"] = opkey
-        else:
-            resp = BadRequest()
-            return resp(environ, start_response)
-    elif path.startswith("test/"):
-        _test = path[5:]
-        session["flow_index"] = FLOW_SEQUENCE.index(_test)
-        session["phase_index"] = 0
-        session["start"] = 0
-        resp = Redirect("/")
-        return resp(environ, start_response)
+    try:
+        client = resp["client"]
+        link = resp["link"]
+    except (KeyError, TypeError):
+        client = link = None
 
     try:
         flow = FLOWS[FLOW_SEQUENCE[session["flow_index"]]]
@@ -274,11 +464,22 @@ def application(environ, start_response):
     _trace = session["trace"]
     if _trace is None:
         _trace = session["trace"] = Trace()
-    _cli = resp = None
+    _cli = None
     if not request:  # Do response first
-        _cli = SERVER_ENV["OIC_CLIENT"][session["opkey"]]
-        _phase, _flow, resp = do_response(_phase, _cli, _trace,
-                                          session, flow, environ)
+        if client:
+            _cli = client
+        else:
+            _cli = SERVER_ENV["OIC_CLIENT"][session["opkey"]]
+
+        try:
+            _phase, _flow, resp = do_response(_phase, _cli, _trace,
+                                              session, flow, environ)
+        except FatalError:
+            return display_result(_trace)
+        except Exception:
+            message = traceback.format_exception(*sys.exc_info())
+            resp = ServiceError("%s" % message)
+
         if resp:
             return resp(environ, start_response)
         if _phase is None:  # end of a flow
@@ -292,29 +493,15 @@ def application(environ, start_response):
         kwargs = {"endpoint": link}
     else:
         kwargs = {}
-    while True:
-        reqi = action.Request(_phase, client, CLIENT_CONFIG, _trace, **kwargs)
-        session["start"] = 1
-        resp = reqi.do_query()
 
-        if resp:
-            return resp(environ, start_response)
-
-        _trace.info("{%s}%s" % (reqi.req.__class__.__name__, reqi.test_output))
-        if reqi.last_response.status_code == 200:
-            if "<html>" in reqi.last_content and "</html>" in reqi.last_content:
-                resp = Response(reqi.last_content)
-                return resp(environ, start_response)
-
-            _phase, _flow, resp = do_response(_phase, client, _trace, session,
-                                              flow, None, reqi)
-            if resp:
-                break
-            if _phase is None:  # end of a flow
-                resp = display_result(_trace)
-                break
-        elif 300 <= reqi.last_response.status_code < 400:
-            resp = R2C[reqi.last_response.status_code]()
+    # Looping through the phases of a flow
+    try:
+        resp = loop(session, client, flow, _phase, _trace, **kwargs)
+    except FatalError:
+        return display_result(_trace)
+    except Exception:
+        message = traceback.format_exception(*sys.exc_info())
+        resp = ServiceError("%s" % message)
 
     if not resp:
         resp = Response()
@@ -333,13 +520,18 @@ if __name__ == '__main__':
     }
 
     FLOWS = oic_operations.FLOWS
-    FLOW_SEQUENCE = FLOWS.keys()
+    FLOW_SEQUENCE = copy(FLOWS.keys())
     FLOW_SEQUENCE.sort()
     REGISTER = True
     DYNAMIC = True
 
     CLIENT_CONFIG["redirect_uris"] = [
         a % rp_conf.BASE for a in CLIENT_CONFIG["redirect_uris"]]
+
+    try:
+        CLIENT_CONFIG["jwks_uri"] = SERVER_ENV["JWKS_URI"]
+    except KeyError:
+        pass
 
     for tag in FLOW_SEQUENCE:
         _seq = FLOWS[tag]["sequence"]
@@ -363,7 +555,7 @@ if __name__ == '__main__':
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             rp_conf.SERVER_CERT, rp_conf.SERVER_KEY, rp_conf.CA_BUNDLE)
 
-    LOGGER.info("RP server starting listening on port:%s" % rp_conf.PORT)
+    logger.info("RP server starting listening on port:%s" % rp_conf.PORT)
     print "RP server starting listening on port:%s" % rp_conf.PORT
     try:
         SRV.start()

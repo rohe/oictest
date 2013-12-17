@@ -21,7 +21,8 @@ class Conversation(object):
     
     def __init__(self, client, config, trace, interaction,
                  check_factory=None, msg_factory=None,
-                 features=None, verbose=False, expect_exception=None):
+                 features=None, verbose=False, expect_exception=None,
+                 extra_args=None):
         self.client = client
         self.client_config = config
         self.trace = trace
@@ -31,6 +32,7 @@ class Conversation(object):
         self.check_factory = check_factory
         self.msg_factory = msg_factory
         self.expect_exception = expect_exception
+        self.extra_args = extra_args
 
         self.cjar = {"browser": cookielib.CookieJar(),
                      "rp": cookielib.CookieJar(),
@@ -44,6 +46,7 @@ class Conversation(object):
         self.exception = None
         self.provider_info = self.client.provider_info or {}
         self.interact_done = []
+        self.ignore_check = []
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -65,8 +68,10 @@ class Conversation(object):
             chk = self.check_factory(test)(**kwargs)
         else:
             chk = test(**kwargs)
-        stat = chk(self, self.test_output)
-        self.check_severity(stat)
+
+        if chk.__class__.__name__ not in self.ignore_check:
+            stat = chk(self, self.test_output)
+            self.check_severity(stat)
 
     def err_check(self, test, err=None, bryt=True):
         if err:

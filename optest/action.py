@@ -147,6 +147,8 @@ class Request(Conversation):
             self.test_sequence(self.req.tests["pre"])
         except KeyError:
             pass
+        except Exception, err:
+            raise
 
         try:
             if self.verbose:
@@ -217,6 +219,13 @@ class Response(Conversation):
                         pass
             elif isinstance(_msg, ProviderConfigurationResponse):
                 _issuer = self.session["srv_discovery_url"]
+                _op_conf = self.session["op_conf"]
+                if _op_conf:
+                    for key, val in _op_conf["provider"].items():
+                        if key == "dynamic":
+                            continue
+                        else:
+                            _msg[key] = val
                 self.client.handle_provider_config(_msg, _issuer)
                 self.client.provider_info[_msg["issuer"]] = _msg
 
@@ -281,7 +290,7 @@ class Response(Conversation):
 
             _qresp = _cli.parse_response(
                 response, _info, resp_type, _cli.state,
-                keyjar=self.keyjar, client_id=_cli.client_id,
+                keyjar=_cli.keyjar, client_id=_cli.client_id,
                 scope="openid", **kwargs)
             if _qresp:
                 self.trace.info("[%s]: %s" % (_qresp.type(),
