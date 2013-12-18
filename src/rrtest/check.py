@@ -366,6 +366,8 @@ class CheckErrorResponse(ExpectedError):
                     res["content"] = _content
             else:
                 res["content"] = _content
+        elif _response.status_code in [300, 301, 302, 303]:
+            pass
         else:
             # might still be an error message
             try:
