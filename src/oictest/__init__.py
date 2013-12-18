@@ -227,6 +227,8 @@ class OIC(OAuth2):
         for typ, info in self.cconf["keys"].items():
             kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
                            keytype=typ)
+            for k in kb.keys():
+                k.serialize()
             self.client.keyjar.add_kb("", kb)
             kbl.append(kb)
 
