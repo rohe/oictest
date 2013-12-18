@@ -111,12 +111,14 @@ class VerifyPromptNoneResponse(Check):
             try:
                 err = ErrorResponse().deserialize(_query, "urlencoded")
                 err.verify()
-                if err["error"] in ["consent_required", "interaction_required"]:
+                if err["error"] in ["consent_required", "interaction_required",
+                                    "login_required"]:
                     # This is OK
                     res["content"] = err.to_json()
                     conv.protocol_response.append((err, _query))
                 else:
-                    self._message = "Not an error I expected"
+                    self._message = "Not an error I expected '%s'" % err[
+                        "error"]
                     self._status = CRITICAL
             except:
                 resp = AuthorizationResponse().deserialize(_query, "urlencoded")
