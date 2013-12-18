@@ -127,7 +127,7 @@ def print_graph(root, inx=""):
         print_graph(branch.children, next_inx)
 
 
-def test(node, who, host):
+def test(node, who, host, csv=False):
     global OICC
 
     #print ">> %s" % node.name
@@ -165,30 +165,36 @@ def test(node, who, host):
     node.state = _sc
     sign = LEVEL[_sc]
     if reason:
-        print "%s (%s)%s - %s (%s)" % (sign, node.name, node.desc, _sc, reason)
+        if csv:
+            print "%s, %s (%s)" % (node.name, _sc, reason)
+        else:
+            print "%s (%s)%s - %s (%s)" % (sign, node.name, node.desc, _sc, reason)
     else:
-        print "%s (%s)%s - %s" % (sign, node.name, node.desc, _sc)
+        if csv:
+            print "%s, %s" % (node.name,_sc)
+        else:
+            print "%s (%s)%s - %s" % (sign, node.name, node.desc, _sc)
 
 
-def recursively_test(node, who, host):
+def recursively_test(node, who, host, csv=False):
     for parent in node.parent:
         if parent.state == STATUSCODE[0]:  # untested, don't go further
             print "SKIP %s Parent untested: %s" % (node.name, parent.name)
             return
 
-    test(node, who, host)
+    test(node, who, host, csv)
 
     #print "node.state: %s" % node.state
 
     if node.state == STATUSCODE[1]:
-        test_all(node.children, who, host)
+        test_all(node.children, who, host, csv)
 
 
-def test_all(graph, who, host):
+def test_all(graph, who, host, csv=False):
     skeys = graph.keys()
     skeys.sort()
     for key in skeys:
-        recursively_test(graph[key], who, host)
+        recursively_test(graph[key], who, host, csv)
 
 from oictest import KEY_EXPORT_ARGS
 
@@ -205,6 +211,8 @@ if __name__ == "__main__":
     _parser.add_argument('-H', dest='host', default="example.org")
     _parser.add_argument('-g', dest='group')
     _parser.add_argument('-e', dest='extkeysrv', action='store_true')
+    _parser.add_argument('-c', dest='csv', action='store_true')
+    _parser.add_argument('-l', dest='list', action='store_true')
     _parser.add_argument('server', nargs=1)
     args = _parser.parse_args()
 
@@ -222,10 +230,15 @@ if __name__ == "__main__":
     else:
         _pop = None
 
-    flow_graph = sort_flows_into_graph(FLOWS, args.group)
-    #print_graph(flow_graph)
-    #print
-    test_all(flow_graph, args.server, args.host)
+    if args.list:
+        keys = FLOWS.keys()
+        keys.sort()
+        for key in keys:
+            node = Node(name=key, desc=FLOWS[key])
+            test(node, args.server, args.host, args.csv)
+    else:
+        flow_graph = sort_flows_into_graph(FLOWS, args.group)
+        test_all(flow_graph, args.server, args.host, args.csv)
 
     if _pop:
         _pop.kill()
