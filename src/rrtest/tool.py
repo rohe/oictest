@@ -57,7 +57,7 @@ class Conversation(object):
             except KeyError:
                 pass
             try:
-                self.trace.error("INFO: %s" % stat["message"])
+                self.trace.error("INFO: %s" % (stat["message"],))
             except KeyError:
                 pass
 
