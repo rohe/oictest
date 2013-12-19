@@ -8,7 +8,7 @@ from oic.oic import AuthorizationResponse
 from oic.oic import message
 from rrtest import check, Unknown
 
-from rrtest.check import Check
+from rrtest.check import Check, WARNING
 from rrtest.check import CONT_JSON
 from rrtest.check import CONT_JWT
 from rrtest.check import CriticalError
@@ -546,7 +546,7 @@ class VerifyClaims(Error):
 
         for key in resp.keys():
             if key not in userinfo_claims:
-                self._status = ERROR
+                self._status = WARNING
                 self._message = "Unexpected %s claim in response" % key
                 return {"returned claims": resp.keys()}
 
