@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from oic.oauth2.exception import UnSupported
+
 import rrtest.request as req
 from rrtest.request import BodyResponse
 from rrtest.request import GetRequest
@@ -717,6 +719,10 @@ class AccessTokenRequestScope(AccessTokenRequest):
 
 
 class AccessTokenRequestModRedirectURI1(AccessTokenRequest):
+    def __init__(self, conv):
+        AccessTokenRequest.__init__(self, conv)
+        self.tests["post"] = [CheckErrorResponse]
+
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
         _client = self.conv.client
@@ -729,6 +735,10 @@ class AccessTokenRequestModRedirectURI1(AccessTokenRequest):
 
 
 class AccessTokenRequestModRedirectURI2(AccessTokenRequest):
+    def __init__(self, conv):
+        AccessTokenRequest.__init__(self, conv)
+        self.tests["post"] = [CheckErrorResponse]
+
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
         _client = self.conv.client
@@ -741,6 +751,10 @@ class AccessTokenRequestModRedirectURI2(AccessTokenRequest):
 
 
 class AccessTokenRequestModRedirectURI3(AccessTokenRequest):
+    def __init__(self, conv):
+        AccessTokenRequest.__init__(self, conv)
+        self.tests["post"] = [CheckErrorResponse]
+
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
         _client = self.conv.client
@@ -780,6 +794,26 @@ class UserInfoRequestPostBearerBody(PostRequest):
 
 class RefreshAccessToken(PostRequest):
     request = "RefreshAccessTokenRequest"
+
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        # make sure there is a refresh_token
+        if "refresh_token" not in self.conv.response_message:
+            raise UnSupported("No refresh_token")
+
+        if "authn_method" not in self.kw_args:
+            _pinfo = self.conv.provider_info
+            if "token_endpoint_auth_methods_supported" in _pinfo:
+                for meth in ["client_secret_basic", "client_secret_post",
+                             "client_secret_jwt", "private_key_jwt"]:
+                    if meth in _pinfo["token_endpoint_auth_methods_supported"]:
+                        self.kw_args = {"authn_method": meth}
+                        break
+            else:
+                self.kw_args = {"authn_method": "client_secret_basic"}
+
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 
 # -----------------------------------------------------------------------------
 
@@ -859,6 +893,7 @@ class Discover(Operation):
         Operation.__init__(self, conv, **kwargs)
         self.request = "DiscoveryRequest"
         self.function = self.discover
+        self.do_postop = True
 
     def discover(self, client, orig_response, content, issuer, **kwargs):
         pcr = client.provider_config(issuer)
@@ -867,6 +902,7 @@ class Discover(Operation):
             del client.provider_info[""]
             client.provider_info.values()[0].update(_di)
             client.handle_provider_config(pcr, issuer)
+            self.do_postop = False
 
         self.trace.info("%s" % client.keyjar)
         client.match_preferences(pcr)
@@ -877,11 +913,12 @@ class Discover(Operation):
         # This overwrites what's there before. In some cases this might not
         # be preferable.
 
-        attr = getattr(conv, self.conv_param, None)
-        if attr is None:
-            setattr(conv, self.conv_param, result[2].to_dict())
-        else:
-            attr.update(result[2].to_dict())
+        if self.do_postop:
+            attr = getattr(conv, self.conv_param, None)
+            if attr is None:
+                setattr(conv, self.conv_param, result[2].to_dict())
+            else:
+                attr.update(result[2].to_dict())
 
 # ===========================================================================
 
@@ -1663,7 +1700,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-69': {
-        "name": 'UserInfo Endpoint Access with POST and bearer_body',
+        "name": 'Access token refresh',
         "sequence": ["oic-login", "access-token-request",
                      "access-token-refresh"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
@@ -1671,9 +1708,9 @@ FLOWS = {
         "tests": [("verify-aud", {})],
     },
     'mj-70': {
-        "name": 'Scope Requesting address Claims',
+        "name": 'Offline_access scope',
         "sequence": ["oic-login+offline", "access-token-request",
-                     "access-token-refresh"],
+                     "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-69'],
