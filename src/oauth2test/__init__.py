@@ -1,6 +1,7 @@
 import json
 import argparse
 import sys
+from oic.oauth2 import UnSupported
 from oic.utils import exception_trace
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from rrtest import Trace, FatalError
@@ -183,7 +184,7 @@ class OAuth2(object):
                 print >>sys.stdout, json.dumps(tsum)
                 if tsum["status"] > 1 or self.args.debug:
                     print >> sys.stderr, self.trace
-            except FatalError, err:
+            except (FatalError, UnSupported), err:
                 self.test_log = conv.test_output
                 tsum = self.test_summation(self.args.flow)
                 print >>sys.stdout, json.dumps(tsum)
