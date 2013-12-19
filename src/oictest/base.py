@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from oic.oauth2 import UnSupported
+
 __author__ = 'rohe0002'
 
 import sys
@@ -179,6 +181,12 @@ class Conversation(tool.Conversation):
             except KeyError:
                 pass
         except FatalError:
+            raise
+        except UnSupported, err:
+            self.trace.info("%s" % err)
+            self.test_output.append(
+                {"status": 2, "id": "Check support",
+                 "name": "Verifies that a function is supported"})
             raise
         except Exception, err:
             self.err_check("exception", err)
