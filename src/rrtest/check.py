@@ -1,6 +1,7 @@
 import inspect
 import json
-from oic.oauth2 import ErrorResponse, MissingRequiredAttribute
+from oic.oauth2 import ErrorResponse
+from oic.oauth2 import MissingRequiredAttribute
 
 __author__ = 'rolandh'
 
