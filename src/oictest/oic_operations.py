@@ -64,7 +64,7 @@ def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
     if extra:
         args["redirect_uris"].append("%scb" % _base)
 
-    args["sector_identifier_url"] = sector_identifier_url
+    args["sector_identifier_uri"] = sector_identifier_url
 
 
 class ProviderRequest(GetRequest):
@@ -108,6 +108,13 @@ class AuthorizationRequestIDToken(AuthorizationRequest):
     _request_args = {"response_type": ["id_token"], "scope": ["openid"]}
     tests = {"pre": [CheckResponseType, CheckScopeSupport, CheckEndpoint],
              "post": [CheckHTTPResponse]}
+
+
+class AuthorizationRequestCodeUri(AuthorizationRequestCode):
+    pass
+    # def __init__(self, conv=None):
+    #     AuthorizationRequestCode.__init__(self, conv)
+    #     self.tests["post"].extend([VerifyPolicyURLs, VerifyLogoURLs])
 
 
 class AuthorizationRequestCode_WQC(AuthorizationRequestCode):
@@ -936,6 +943,7 @@ PHASES = {
     #                             AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
     "oic-login": (AuthorizationRequestCode, AuthzResponse),
+    "oic-login-uri": (AuthorizationRequestCodeUri, AuthzResponse),
     "oic-login-reqfile": (AuthorizationRequestCodeRequestInFile, AuthzResponse),
     #"oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
     "oic-login+profile": (AuthorizationRequestCodeScopeProfile, AuthzResponse),
@@ -1515,7 +1523,7 @@ FLOWS = {
     },
     'mj-45': {
         "name": 'Registration with policy_uri and logo_uri',
-        "sequence": ["oic-registration-policy+logo", "oic-login"],
+        "sequence": ["oic-registration-policy+logo", "oic-login-uri"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "tests": [("policy_uri_on_page", {}),
                   ("logo_uri_on_page", {})],
@@ -1717,7 +1725,7 @@ FLOWS = {
     },
     'mj-71': {
         "name": 'Checking redirect_uri matching between '
-                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint 1',
         "sequence": ["oic-login",
                      "access-token-request-other-redirect_uri-1"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
@@ -1725,7 +1733,7 @@ FLOWS = {
     },
     'mj-72': {
         "name": 'Checking redirect_uri matching between '
-                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint 2',
         "sequence": ["oic-login",
                      "access-token-request-other-redirect_uri-2"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
@@ -1733,7 +1741,7 @@ FLOWS = {
     },
     'mj-73': {
         "name": 'Checking redirect_uri matching between '
-                'AuthorizationRequestEndpoint and TokenRequestEndpoint',
+                'AuthorizationRequestEndpoint and TokenRequestEndpoint 3',
         "sequence": ["oic-login",
                      "access-token-request-other-redirect_uri-3"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],

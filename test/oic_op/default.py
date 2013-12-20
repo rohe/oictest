@@ -52,7 +52,7 @@ DEFAULT = {
             #"id_token_encrypted_response_int",
             "default_max_age": 3600,
             "require_auth_time": True,
-            "default_acr_values":["2", "1"]
+            "default_acr_values":["2", "1", "PASSWORD"]
         }
     },
 }
