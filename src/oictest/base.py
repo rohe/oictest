@@ -170,7 +170,12 @@ class Conversation(tool.Conversation):
                 extra_args = {
                     "extra_args": self.extra_args[self.req.__class__.__name__]}
             except KeyError:
-                extra_args = {}
+                try:
+                    extra_args = {
+                        "extra_args": self.extra_args[self.req.request]}
+                except KeyError:
+                    extra_args = {}
+                    
             part = self.req(self.position, self.last_response,
                             self.last_content, self.features, **extra_args)
             (self.position, self.last_response, self.last_content) = part
