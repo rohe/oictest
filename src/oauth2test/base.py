@@ -8,10 +8,11 @@ __author__ = 'rolandh'
 class Conversation(tool.Conversation):
     def __init__(self, client, config, trace, interaction, msg_factory,
                  check_factory, features=None, verbose=False,
-                 expect_exception=False):
+                 expect_exception=False, extra_args=None, **kwargs):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
-                                   features, verbose, expect_exception)
+                                   features, verbose, expect_exception,
+                                   extra_args)
         self.cis = []
         self.protocol_response = []
         #self.item = []
@@ -25,6 +26,7 @@ class Conversation(tool.Conversation):
         self.msg_factory = msg_factory
         self.login_page = None
         self.response_message = None
+        self.kwargs = kwargs
 
     def my_endpoints(self):
         return self.client.redirect_uris
