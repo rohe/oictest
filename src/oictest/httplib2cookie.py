@@ -115,8 +115,8 @@ class DummyMessage(object):
         #  using ','.  but the netscape cookie format uses ','
         #  as part of the expires= date format.  so we have
         #  to split carefully here - header.split(',') won't do it.
-        HEADERVAL= re.compile(r'\s*(([^,]|(,\s*\d))+)')
-        return [h[0] for h in HEADERVAL.findall(self.response[k])]
+        headerval= re.compile(r'\s*(([^,]|(,\s*\d))+)')
+        return [h[0] for h in headerval.findall(self.response[k])]
 
 class CookiefulHttp(Http):
     """Subclass of httplib2.Http that keeps cookie state
