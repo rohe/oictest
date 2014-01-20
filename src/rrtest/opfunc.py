@@ -333,7 +333,7 @@ def post_form(client, orig_response, content, **kwargs):
     return do_click(client, form, **kwargs)
 
 
-def NoneFunc():
+def no_func():
     return None
 
 
@@ -344,7 +344,7 @@ def interaction(args):
     elif _type == "link":
         return chose
     else:
-        return NoneFunc
+        return no_func
 
 # ========================================================================
 
@@ -368,7 +368,7 @@ class Operation(object):
     def post_op(self, result, environ, args):
         pass
 
-    def __call__(self, location, response, content, feature=None):
+    def __call__(self, location, response, content, feature=None, **kwargs):
         try:
             _args = self.args.copy()
         except (KeyError, AttributeError):

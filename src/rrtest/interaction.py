@@ -27,7 +27,7 @@ class InteractionNeeded(Exception):
     pass
 
 
-def NoneFunc():
+def no_func():
     return None
 
 
@@ -351,7 +351,7 @@ class Interaction(object):
         elif _type == "response":
             return self.parse
         else:
-            return NoneFunc
+            return no_func
 
 # ========================================================================
 

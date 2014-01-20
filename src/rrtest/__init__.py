@@ -11,7 +11,7 @@ class FatalError(Exception):
     pass
 
 
-class HTTP_ERROR(Exception):
+class HttpError(Exception):
     pass
 
 

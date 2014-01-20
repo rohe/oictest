@@ -95,7 +95,7 @@ class Conversation(object):
         return True
 
     def my_endpoints(self):
-        pass
+        return []
 
     def for_me(self, response="", url=""):
         if not response:
