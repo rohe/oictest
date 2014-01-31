@@ -43,6 +43,14 @@ class Request(object):
         except KeyError:
             kwargs = {}
 
+        try:
+            _mod = cargs["kwargs_mod"]
+        except KeyError:
+            pass
+        else:
+            kwargs.update(_mod)
+            del cargs["kwargs_mod"]
+
         kwargs.update(cargs)
         try:
             kwargs["request_args"] = self.request_args.copy()

@@ -22,7 +22,7 @@ class Conversation(object):
     def __init__(self, client, config, trace, interaction,
                  check_factory=None, msg_factory=None,
                  features=None, verbose=False, expect_exception=None,
-                 extra_args=None):
+                 **extra_args):
         self.client = client
         self.client_config = config
         self.trace = trace
