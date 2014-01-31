@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from jwkest.jwk import SerializationNotPossible
 from oic.oauth2.exception import UnSupported
 
 import rrtest.request as req
@@ -911,7 +912,10 @@ class Discover(Operation):
             client.handle_provider_config(pcr, issuer)
             self.do_postop = False
 
-        self.trace.info("%s" % client.keyjar)
+        try:
+            self.trace.info("%s" % client.keyjar)
+        except SerializationNotPossible:
+            pass
         client.match_preferences(pcr)
         return "", DResponse(status=200, ctype="application/json"), pcr
 

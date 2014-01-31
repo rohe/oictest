@@ -24,11 +24,11 @@ def endpoint(client, base):
 class Conversation(tool.Conversation):
     def __init__(self, client, config, trace, interaction, msg_factory,
                  check_factory, features=None, verbose=False,
-                 expect_exception=False, extra_args=None):
+                 expect_exception=False, **extra_args):
         tool.Conversation.__init__(self, client, config, trace,
                                    interaction, check_factory, msg_factory,
                                    features, verbose, expect_exception,
-                                   extra_args)
+                                   **extra_args)
         self.cis = []
         #self.item = []
         self.keyjar = self.client.keyjar
@@ -156,6 +156,23 @@ class Conversation(tool.Conversation):
         else:
             return False
 
+    def collect_extra_args(self):
+        _args = {}
+        for param in ["extra_args", "kwargs_mod"]:
+            try:
+                spec = self.extra_args[param]
+            except KeyError:
+                continue
+            else:
+                try:
+                    _args = {param: spec[self.req.__class__.__name__]}
+                except KeyError:
+                    try:
+                        _args = {param: spec[self.req.request]}
+                    except KeyError:
+                        pass
+        return _args
+
     def send(self):
         try:
             self.test_sequence(self.req.tests["pre"])
@@ -166,16 +183,11 @@ class Conversation(tool.Conversation):
             if self.verbose:
                 print >> sys.stderr, "> %s" % self.req.request
 
+            extra_args = self.collect_extra_args()
             try:
-                extra_args = {
-                    "extra_args": self.extra_args[self.req.__class__.__name__]}
+                extra_args.update(self.client_config[self.creq.request])
             except KeyError:
-                try:
-                    extra_args = {
-                        "extra_args": self.extra_args[self.req.request]}
-                except KeyError:
-                    extra_args = {}
-                    
+                pass
             part = self.req(self.position, self.last_response,
                             self.last_content, self.features, **extra_args)
             (self.position, self.last_response, self.last_content) = part
