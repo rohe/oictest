@@ -256,6 +256,11 @@ class OAuth2(object):
                 self.client = self.client_class(
                     client_authn_method=CLIENT_AUTHN_METHOD)
 
+        if self.args.not_verify_ssl:
+            self.client.verify_ssl = False
+            if self.client.keyjar:
+                self.client.keyjar.verify_ssl = False
+
         # set the endpoints in the Client from the provider information
         # if they are statically configured, if dynamic it happens elsewhere
         for key, val in self.pinfo.items():
