@@ -51,6 +51,9 @@ class OAuth2(object):
             "-H", dest="host",
             help=("Which host the script is running on, used to construct the ",
                   "key export URL"))
+        self._parser.add_argument(
+            "-x", dest="not_verify_ssl", action="store_true",
+            help="Don't verify SSL certificates")
         self._parser.add_argument("flow", nargs="?",
                                   help="Which test flow to run")
 
@@ -162,16 +165,20 @@ class OAuth2(object):
                     self.client.provider_info = {"": self.pinfo}
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
-                try:
-                    extra_args = self.json_config["extra_args"]
-                except KeyError:
-                    extra_args = {}
+
+                args = {}
+                for arg in ["extra_args", "kwargs_mod"]:
+                    try:
+                        args[arg] = self.json_config[arg]
+                    except KeyError:
+                        args[arg] = {}
+
                 conv = self.conversation_cls(self.client, self.cconf,
                                              self.trace, interact,
                                              msg_factory=self.msg_factory,
                                              check_factory=self.chk_factory,
                                              expect_exception=expect_exception,
-                                             extra_args=extra_args)
+                                             **args)
                 try:
                     conv.ignore_check = self.json_config["ignore_check"]
                 except KeyError:
@@ -241,10 +248,11 @@ class OAuth2(object):
                 ca_certs=self.args.ca_certs,
                 client_authn_method=CLIENT_AUTHN_METHOD)
         else:
-            try:
+            if "ca_certs" in self.json_config:
                 self.client = self.client_class(
-                    ca_certs=self.json_config["ca_certs"])
-            except (KeyError, TypeError):
+                    ca_certs=self.json_config["ca_certs"],
+                    client_authn_method=CLIENT_AUTHN_METHOD)
+            else:
                 self.client = self.client_class(
                     client_authn_method=CLIENT_AUTHN_METHOD)
 
