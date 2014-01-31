@@ -25,7 +25,7 @@ DEFAULT = {
         #"userinfo_signed_response_alg": "RS256",
         #"id_token_signed_response_alg": "RS256"
         "preferences":{
-            "subject_types": ["pairwise", "public"],
+            "subject_type": "public",
             "request_object_signing_algs": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],

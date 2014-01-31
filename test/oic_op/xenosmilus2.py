@@ -22,4 +22,7 @@ info["interaction"] = [
     }
 ]
 
+#info["client"]["RegistrationRequest"] = {"authn_method": "bearer_header",
+#                                         "access_token": "foobar"}
+
 print json.dumps(info)
