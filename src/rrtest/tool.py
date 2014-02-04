@@ -1,6 +1,7 @@
 import cookielib
 import sys
 import traceback
+
 from rrtest.opfunc import Operation
 from rrtest import FatalError
 from rrtest.check import ExpectedError
@@ -9,6 +10,7 @@ from rrtest.interaction import Interaction
 from rrtest.interaction import Action
 from rrtest.interaction import InteractionNeeded
 from rrtest.status import STATUSCODE
+
 
 __author__ = 'rolandh'
 
@@ -114,9 +116,10 @@ class Conversation(object):
         else:
             done = False
 
-        url = _response.url
-        content = _response.text
         while not done:
+            url = _response.url
+            content = _response.text
+
             rdseq = []
             while _response.status_code in [302, 301, 303]:
                 url = _response.headers["location"]

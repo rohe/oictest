@@ -1,12 +1,12 @@
 __author__ = 'rohe0002'
 
 import json
-
 from urlparse import urlparse
-from bs4 import BeautifulSoup
+import re
 
+from bs4 import BeautifulSoup
 from mechanize import ParseResponseEx
-from mechanize._form import ControlNotFoundError, AmbiguityError
+from mechanize._form import ControlNotFoundError
 from mechanize._form import ListControl
 
 NO_CTRL = "No submit control with the name='%s' and value='%s' could be found"
@@ -312,6 +312,25 @@ class Interaction(object):
         return self.httpc.send(url, "GET", trace=_trace)
         #return resp, ""
 
+    def javascript_redirect(self, orig_response, url_regex, **kwargs):
+        """
+        Simulates a JavaScript redirect by extracting the target of the
+        redirection from the page content using the given regex
+
+        :param orig_response: The original response
+        :param url_regex: The regex that defines how the target of the redirect
+                          can be extracted from the content
+        """
+
+        matches = re.findall(url_regex, orig_response.content)
+        no_of_matches = len(matches)
+        if not no_of_matches == 1:
+            raise InteractionNeeded("Expected single match but found %d",
+                                    no_of_matches)
+
+        url = matches[0]
+        return self.httpc.send(url, "GET")
+
     def post_form(self, orig_response, **kwargs):
         """
         The same as select_form but with no possibility of change the content
@@ -350,6 +369,8 @@ class Interaction(object):
             return self.chose
         elif _type == "response":
             return self.parse
+        elif _type == "javascript_redirect":
+            return self.javascript_redirect
         else:
             return no_func
 
