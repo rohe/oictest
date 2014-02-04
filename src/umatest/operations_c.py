@@ -15,8 +15,8 @@ from rrtest.request import ErrorResponse
 from rrtest.request import GetRequest
 from rrtest.request import PostRequest
 from rrtest.request import UrlResponse
-from umatest.check import RegistrationInfo
-from umatest.check import ProviderConfigurationInfo
+from uma.check import RegistrationInfo
+from uma.check import ProviderConfigurationInfo
 
 
 class AuthorizationRequest(GetRequest):
