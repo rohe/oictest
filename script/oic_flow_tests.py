@@ -14,7 +14,8 @@ from subprocess import Popen
 from subprocess import PIPE
 
 
-OICC = "oicc.py"
+#OICC = "oicc.py"
+OICC = "../../script/oicc.py"
 
 LEVEL = {
     "INFORMATION": 'I',
@@ -158,9 +159,11 @@ def test(node, who, host, csv=False):
             node.err = p_err
         #print output["status"]
         _sc = STATUSCODE[output["status"]]
+    elif p_err:
+        _sc = STATUSCODE[4]
+        node.err = p_err
     else:
         _sc = STATUSCODE[1]
-        node.err = p_err
 
     node.state = _sc
     sign = LEVEL[_sc]
@@ -168,7 +171,8 @@ def test(node, who, host, csv=False):
         if csv:
             print "%s, %s (%s)" % (node.name, _sc, reason)
         else:
-            print "%s (%s)%s - %s (%s)" % (sign, node.name, node.desc, _sc, reason)
+            print "%s (%s)%s - %s (%s)" % (sign, node.name, node.desc, _sc,
+                                           reason)
     else:
         if csv:
             print "%s, %s" % (node.name,_sc)
