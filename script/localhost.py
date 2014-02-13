@@ -6,7 +6,7 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-info["provider"] = {"dynamic": "https://localhost:8092/"}
+#info["provider"] = {"dynamic": "https://localhost:8092/"}
 
 info["interaction"] = [
     {

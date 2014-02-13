@@ -5,7 +5,7 @@ How to test an OpenID Connect OP
 ********************************
 
 This is the simple how-to description. For those that just wants to test
-there OP using a pre-defined set of test flows.
+there OpenId provider (OP) using a pre-defined set of test flows.
 
 There will eventually be more documentation for those that wants to build
 their own test flows.
@@ -21,7 +21,7 @@ Configuration
 Dealing with user interaction when no user is present
 =====================================================
 
-The communication between an RP and an OP basically consists of a sequence of
+The communication between an Relying party (RP) and an OpenId provider (OP) basically consists of a sequence of
 requests and responses. Some of these are defined in the standard some are not.
 The once that are not in the standard are those where the user are involved.
 Like authentication and choosing which user information to be share
