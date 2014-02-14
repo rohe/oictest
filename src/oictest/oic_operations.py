@@ -92,6 +92,7 @@ class AuthorizationRequest(GetRequest):
     _request_args = {"scope": ["openid"]}
     tests = {"pre": [CheckResponseType, CheckEndpoint],
              "post": [CheckHTTPResponse]}
+    interaction_check = True
 
 
 class AuthorizationRequestCode(AuthorizationRequest):
@@ -903,7 +904,8 @@ class Discover(Operation):
         self.function = self.discover
         self.do_postop = True
 
-    def discover(self, client, orig_response, content, issuer, **kwargs):
+    def discover(self, client, orig_response="", content="", issuer="",
+                 **kwargs):
         pcr = client.provider_config(issuer)
         if len(client.provider_info) == 2 and "" in client.provider_info.keys():
             _di = client.provider_info[""]

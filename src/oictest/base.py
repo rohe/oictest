@@ -83,7 +83,7 @@ class Conversation(tool.Conversation):
                     _check = None
 
                 if _check:
-                    self.err_check("interaction-check")
+                    return False
                 else:
                     self.do_check("missing-redirect")
         else:
