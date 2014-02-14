@@ -7,7 +7,6 @@ DEFAULT = {
         "discovery": True,
         "session_management": False,
         "key_export": True,
-        #"sector_identifier_url": True
     },
     "client": {
         "redirect_uris": ["https://%s/authz_cb"],
@@ -21,9 +20,6 @@ DEFAULT = {
                 "use": ["enc", "sig"]
             }
         },
-        #"request_object_alg": "RS256",
-        #"userinfo_signed_response_alg": "RS256",
-        #"id_token_signed_response_alg": "RS256"
         "preferences":{
             "subject_type": "public",
             "request_object_signing_algs": [
@@ -41,15 +37,9 @@ DEFAULT = {
             "userinfo_signed_response_algs": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],
-            #"userinfo_encrypted_response_alg",
-            #"userinfo_encrypted_response_enc",
-            #"userinfo_encrypted_response_int",
             "id_token_signed_response_algs": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],
-            #"id_token_encrypted_response_alg",
-            #"id_token_encrypted_response_enc",
-            #"id_token_encrypted_response_int",
             "default_max_age": 3600,
             "require_auth_time": True,
             "default_acr_values":["2", "1", "PASSWORD"]

@@ -13,8 +13,7 @@ import argparse
 from subprocess import Popen
 from subprocess import PIPE
 
-
-OICC = "./oicc.py"
+OICC = "oicc.py"
 
 LEVEL = {
     "INFORMATION": 'I',

@@ -4,6 +4,9 @@ import sys
 from oic.oauth2 import UnSupported
 from oic.utils import exception_trace
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.keyio import KeyJar, KeyBundle, dump_jwks
+import time
+from oictest import start_key_server
 from rrtest import Trace, FatalError
 
 __author__ = 'rolandh'
@@ -13,15 +16,21 @@ def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
     return [operations.PHASES[phase] for phase in flow["sequence"]]
 
+ROLES = ["C", "RS"]
 
-class OAuth2(object):
+
+class UMACRS(object):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
-    def __init__(self, operations_mod, client_class, msg_factory, chk_factory,
+    def __init__(self, operations_mod, uma_c, uma_rs, msg_factory, chk_factory,
                  conversation_cls):
         self.operations_mod = operations_mod
-        self.client_class = client_class
-        self.client = None
+
+        self.uma = {"C": uma_c, "RS": uma_rs}
+        self.client = {}
+        self.cconf = {}
+        self.pinfo = {}
+
         self.trace = Trace()
         self.msg_factory = msg_factory
         self.chk_factory = chk_factory
@@ -56,9 +65,11 @@ class OAuth2(object):
             help="Don't verify SSL certificates")
         self._parser.add_argument("flow", nargs="?",
                                   help="Which test flow to run")
+        self._parser.add_argument(
+            '-e', dest="external_server", action='store_true',
+            help="A external web server are used to handle key export")
 
         self.args = None
-        self.pinfo = None
         self.sequences = []
         self.function_args = {}
         self.signing_key = None
@@ -66,18 +77,22 @@ class OAuth2(object):
         self.test_log = []
         self.environ = {}
         self._pop = None
+        self.json_config = None
+        self.features = {}
+        self.keysrv_running = False
 
     def parse_args(self):
         self.json_config = self.json_config_file()
 
-        try:
-            self.features = self.json_config["features"]
-        except KeyError:
-            self.features = {}
+        for role in ROLES:
+            try:
+                self.features[role] = self.json_config[role]["features"]
+            except KeyError:
+                self.features[role] = {}
 
-        self.pinfo = self.provider_info()
+            self.pinfo[role] = self.provider_info(role)
 
-        self.client_conf(self.client_args)
+            self.cconf[role] = self.client_conf(role, self.client_args)
 
     def json_config_file(self):
         if self.args.json_config_file == "-":
@@ -85,18 +100,20 @@ class OAuth2(object):
         else:
             return json.loads(open(self.args.json_config_file).read())
 
-    def provider_info(self):
-        # Should provide a Metadata class
+    def provider_info(self, role):
         res = {}
-        _jc = self.json_config["provider"]
-
-        # Backward compatible
-        if "endpoints" in _jc:
-            try:
-                for endp, url in _jc["endpoints"].items():
-                    res[endp] = url
-            except KeyError:
-                pass
+        try:
+            _jc = self.json_config[role]["provider"]
+        except KeyError:
+            pass
+        else:
+            # Backward compatible
+            if "endpoints" in _jc:
+                try:
+                    for endp, url in _jc["endpoints"].items():
+                        res[endp] = url
+                except KeyError:
+                    pass
 
         return res
 
@@ -152,7 +169,8 @@ class OAuth2(object):
                 return
 
             #tests = self.get_test()
-            self.client.state = "STATE0"
+            for role in ROLES:
+                self.client[role].state = "STATE0"
 
             try:
                 expect_exception = flow_spec["expect_exception"]
@@ -161,8 +179,10 @@ class OAuth2(object):
 
             conv = None
             try:
-                if self.pinfo:
-                    self.client.provider_info = {"": self.pinfo}
+                # for role in ROLES:
+                #     for key, val in self.pinfo[role].items():
+                #         self.client[role][key].provider_info = {"": val}
+
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
 
@@ -173,12 +193,13 @@ class OAuth2(object):
                     except KeyError:
                         args[arg] = {}
 
-                conv = self.conversation_cls(self.client, self.cconf,
-                                             self.trace, interact,
-                                             msg_factory=self.msg_factory,
-                                             check_factory=self.chk_factory,
-                                             expect_exception=expect_exception,
-                                             **args)
+                conv = self.conversation_cls(
+                    self.client, self.cconf, self.trace, interact,
+                    resource_owner=self.json_config["RS"]["resource_owner"],
+                    requester=self.json_config["C"]["requester"],
+                    msg_factory=self.msg_factory,
+                    check_factory=self.chk_factory,
+                    expect_exception=expect_exception, **args)
                 try:
                     conv.ignore_check = self.json_config["ignore_check"]
                 except KeyError:
@@ -236,53 +257,156 @@ class OAuth2(object):
 
         print json.dumps(lista)
 
-    def do_features(self, *args):
-        pass
+    def _features(self, interact, _seq, block, cconf, features, jconf, pinfo,
+                  client, role):
+        try:
+            cconf["_base_url"] = cconf["key_export_url"] % (self.args.host,)
+        except KeyError:
+            pass
 
-    def export(self):
-        pass
+        if "key_export" not in block:
+            if "key_export" in features and features["key_export"]:
+                self.export(client, cconf, role)
 
-    def client_conf(self, cprop):
-        if self.args.ca_certs:
-            self.client = self.client_class(
-                ca_certs=self.args.ca_certs,
-                client_authn_method=CLIENT_AUTHN_METHOD)
-        else:
-            if "ca_certs" in self.json_config:
-                self.client = self.client_class(
-                    ca_certs=self.json_config["ca_certs"],
-                    client_authn_method=CLIENT_AUTHN_METHOD)
+#        if "sector_identifier_url" in features and \
+#            features["sector_identifier_url"]:
+#            self.do_sector_identifier_url(self.cconf["key_export_url"])
+
+        if "registration" not in block:
+            if "registration" in features and features[
+                    "registration"]:
+                _register = True
+            elif "register" in cconf and cconf["register"]:
+                _register = True
             else:
-                self.client = self.client_class(
-                    client_authn_method=CLIENT_AUTHN_METHOD)
+                _register = False
+        else:
+            _register = False
+
+        if _register:
+            for sq in _seq:
+                if sq[0].request == "RegistrationRequest":
+                    _register = False
+            if _register:
+                _ext = self.operations_mod.PHASES["oic-registration"]
+                _seq.insert(0, _ext)
+                interact.append({"matches": {"class": "RegistrationRequest"},
+                                 "args": {"request": self.register_args()}})
+        else:  # don't try to register
+            for sq in _seq:
+                if sq[0].request == "RegistrationRequest":
+                    raise Exception(
+                        "RegistrationRequest in the test should not be run")
+
+        if "discovery" not in block:
+            if "discovery" in features and features["discovery"]:
+                _discover = True
+            elif "dynamic" in jconf["provider"]:
+                _discover = True
+            else:
+                _discover = False
+
+            if _discover:
+                _txt = "provider-discovery"
+                _role = role.lower()
+                op_spec = self.operations_mod.PHASES["%s-%s" % (_role, _txt)]
+                if op_spec in _seq:
+                    interact.append({
+                        "matches": {"class": op_spec[0].__name__},
+                        "args": {"issuer":
+                                 self.json_config["provider"]["dynamic"]}})
+            else:
+                self.trace.info("SERVER CONFIGURATION: %s" % pinfo)
+
+    def do_features(self, interact, _seq, block):
+        for role in ROLES:
+            self._features(interact[role], _seq, block,
+                           self.cconf[role], self.features[role],
+                           self.json_config[role], self.pinfo[role],
+                           self.client[role], role)
+
+    def export(self, client, cconf, role):
+        # has to be there
+        self.trace.info("EXPORT")
+
+        if client.keyjar is None:
+            client.keyjar = KeyJar()
+
+        kbl = []
+        for typ, info in cconf["keys"].items():
+            kb = KeyBundle(source="file://%s" % info["key"],
+                           fileformat="der", keytype=typ)
+            for k in kb.keys():
+                k.serialize()
+            client.keyjar.add_kb("", kb)
+            kbl.append(kb)
+
+        try:
+            new_name = "static/%s_jwks.json" % role
+            dump_jwks(kbl, new_name)
+            client.jwks_uri = "%s%s" % (cconf["_base_url"], new_name)
+        except KeyError:
+            pass
+
+        if not self.args.external_server and not self.keysrv_running:
+            self._pop = start_key_server(cconf["_base_url"])
+
+            self.environ["keyprovider"] = self._pop
+            self.trace.info("Started key provider")
+            time.sleep(1)
+            self.keysrv_running = True
+
+    @staticmethod
+    def init_dataset(conf):
+        _module = __import__(conf["cls"][0], globals(), locals(),
+                             [conf["cls"][1]], -1)
+        ci = getattr(_module, conf["cls"][1])
+        return ci(**conf["args"])
+
+    def client_conf(self, role, cprop):
+        kwargs = {"client_authn_method": CLIENT_AUTHN_METHOD}
+
+        if self.args.ca_certs:
+            kwargs["ca_certs"] = self.args.ca_certs
+        elif "ca_certs" in self.json_config:
+            kwargs["ca_certs"] = self.json_config["ca_certs"]
+
+        if role == "RS":  # need dataset
+            kwargs["dataset"] = self.init_dataset(
+                self.json_config["RS"]["dataset"])
+
+        self.client[role] = self.uma[role](**kwargs)
+
+        _client = self.client[role]
 
         if self.args.not_verify_ssl:
-            self.client.verify_ssl = False
-            if self.client.keyjar:
-                self.client.keyjar.verify_ssl = False
+            _client.verify_ssl = False
+            if _client.keyjar:
+                _client.keyjar.verify_ssl = False
 
         # set the endpoints in the Client from the provider information
         # if they are statically configured, if dynamic it happens elsewhere
-        for key, val in self.pinfo.items():
+        for key, val in self.pinfo[role].items():
             if key.endswith("_endpoint"):
-                setattr(self.client, key, val)
+                setattr(_client, key, val)
 
         try:
-            for item in self.json_config["deviate"]:
-                self.client.allow[item] = True
+            for item in self.json_config[role]["deviate"]:
+                _client.allow[item] = True
         except KeyError:
             pass
 
         # Client configuration
-        self.cconf = self.json_config["client"]
+        _cconf = self.json_config[role]["client"]
         # replace pattern with real value
         _h = self.args.host
         if _h:
-            self.cconf["redirect_uris"] = [p % _h for p in
-                                           self.cconf["redirect_uris"]]
+            _uris = _cconf["registration_info"]["redirect_uris"]
+            _cconf["registration_info"]["redirect_uris"] = [p % _h for p in
+                                                            _uris]
 
         try:
-            self.client.client_prefs = self.cconf["preferences"]
+            _client.client_prefs = _cconf["preferences"]
         except KeyError:
             pass
 
@@ -290,21 +414,19 @@ class OAuth2(object):
         for prop in cprop:
             try:
                 if prop == "client_secret":
-                    self.client.set_client_secret(self.cconf[prop])
+                    _client.set_client_secret(_cconf[prop])
                 else:
-                    setattr(self.client, prop, self.cconf[prop])
+                    setattr(_client, prop, _cconf[prop])
             except KeyError:
                 pass
+
+        return _cconf
 
     def make_sequence(self):
         # Whatever is specified on the command line takes precedences
         if self.args.flow:
             sequence = flow2sequence(self.operations_mod, self.args.flow)
             _flow = self.args.flow
-        elif self.json_config and "flow" in self.json_config:
-            sequence = flow2sequence(self.operations_mod,
-                                     self.json_config["flow"])
-            _flow = self.json_config["flow"]
         else:
             sequence = None
             _flow = ""
@@ -320,13 +442,14 @@ class OAuth2(object):
         return res
 
     def get_interactions(self):
-        interactions = []
+        interactions = {}
 
         if self.json_config:
-            try:
-                interactions = self.json_config["interaction"]
-            except KeyError:
-                pass
+            for role in ["C", "RS"]:
+                try:
+                    interactions[role] = self.json_config[role]["interaction"]
+                except KeyError:
+                    pass
 
         #if self.args.interactions:
         #    _int = self.args.interactions.replace("\'", '"')

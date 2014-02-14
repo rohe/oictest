@@ -6,7 +6,8 @@ from jwkest.jwe import JWE_RSA
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
-from rrtest import check, Unknown
+from rrtest import check
+from rrtest import Unknown
 
 from rrtest.check import Check, WARNING
 from rrtest.check import CONT_JSON

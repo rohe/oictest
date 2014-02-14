@@ -1,18 +1,21 @@
 import cookielib
-import sys
 import traceback
-
+from oic.exception import UnSupported
+from oic.oauth2 import Message
+from oic.oic import RegistrationResponse
+import sys
 from rrtest.opfunc import Operation
 from rrtest import FatalError
-from rrtest.check import ExpectedError
 from rrtest.check import INTERACTION
+from rrtest.check import ExpectedError
+from rrtest.check import STATUSCODE
 from rrtest.interaction import Interaction
 from rrtest.interaction import Action
 from rrtest.interaction import InteractionNeeded
-from rrtest.status import STATUSCODE
-
 
 __author__ = 'rolandh'
+
+ROLES = ["C", "RS"]
 
 
 class Conversation(object):
@@ -20,17 +23,21 @@ class Conversation(object):
     :param response: The received HTTP messages
     :param protocol_response: List of the received protocol messages
     """
-    
-    def __init__(self, client, config, trace, interaction,
-                 check_factory=None, msg_factory=None,
-                 features=None, verbose=False, expect_exception=None,
-                 **extra_args):
-        self.client = client
-        self.client_config = config
+
+    def __init__(self, client, config, trace, interaction, resource_owner,
+                 requester, msg_factory=None, check_factory=None,
+                 expect_exception=None, **extra_args):
+
+        self.resource_owner = resource_owner
+        self.requester = requester
+        self._clients = client
+        self._client_config = config
+        self.client = None
+        self.client_config = None
         self.trace = trace
         self.test_output = []
-        self.features = features
-        self.verbose = verbose
+        self.features = {}
+        self.verbose = False
         self.check_factory = check_factory
         self.msg_factory = msg_factory
         self.expect_exception = expect_exception
@@ -44,11 +51,30 @@ class Conversation(object):
         self.last_response = None
         self.last_content = None
         self.response = None
-        self.interaction = Interaction(self.client, interaction)
         self.exception = None
-        self.provider_info = self.client.provider_info or {}
         self.interact_done = []
         self.ignore_check = []
+
+        self.interaction = {}
+        self.provider_info = {}
+        for role in ROLES:
+            self.interaction[role] = Interaction(self._clients[role],
+                                                 interaction[role])
+            self.provider_info[role] = self._clients[role].provider_info
+        self.role = ""
+        self.req = None
+        self.accept_exception = False
+        self.request_spec = None
+        self.login_page = None
+        self.position = ""
+        self.creq = self.cresp = None
+        self.request_args = None
+        self.args = None
+        self.response_spec = None
+        self.info = None
+        self.response_type = None
+        self.response_message = None
+        self.cis = []
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -97,7 +123,7 @@ class Conversation(object):
         return True
 
     def my_endpoints(self):
-        return []
+        return self.client.redirect_uris
 
     def for_me(self, response="", url=""):
         if not response:
@@ -160,7 +186,8 @@ class Conversation(object):
             _base = url.split("?")[0]
 
             try:
-                _spec = self.interaction.pick_interaction(_base, content)
+                _spec = self.interaction[self.role].pick_interaction(_base,
+                                                                     content)
                 #if _spec in self.interact_done:
                 #    self.trace.error("Same interaction a second time")
                 #    raise InteractionNeeded("Same interaction twice")
@@ -210,10 +237,21 @@ class Conversation(object):
         self.creq, self.cresp = phase
 
     def setup_request(self):
+        try:
+            self.role = self.creq.role
+        except AttributeError:
+            # continue with the same if once been used
+            if not self.role:
+                self.role = ROLES[0]  # doesn't matter which one
+
+        self.trace.info("<< %s >>" % self.role)
+        self.client = self._clients[self.role]
+        self.client_config = self._client_config[self.role]
+
         self.request_spec = req = self.creq(conv=self)
 
         if isinstance(req, Operation):
-            for intact in self.interaction.interactions:
+            for intact in self.interaction[self.role].interactions:
                 try:
                     if req.__class__.__name__ == intact["matches"]["class"]:
                         req.args = intact["args"]
@@ -238,12 +276,6 @@ class Conversation(object):
             self.client.cookiejar = self.cjar["rp"]
 
         self.req = req
-
-    def send(self):
-        pass
-
-    def handle_result(self):
-        pass
 
     def do_query(self):
         self.setup_request()
@@ -282,3 +314,167 @@ class Conversation(object):
             self.test_sequence(oper["tests"]["post"])
         except KeyError:
             pass
+
+    def handle_result(self):
+        try:
+            self.response_spec = resp = self.cresp()
+        except TypeError:
+            self.response_spec = None
+            return True
+
+        self.info = None
+        self.response_message = None
+
+        response = self.last_response
+        resp_type = resp.ctype
+        if response:
+            try:
+                ctype = response.headers["content-type"]
+                if ctype == "application/jwt":
+                    resp_type = "jwt"
+            except (AttributeError, TypeError):
+                pass
+
+        if response.status_code >= 400:
+            pass
+        elif not self.position:
+            if isinstance(self.last_content, Message):
+                self.response_message = self.last_content
+            elif response.status_code == 200:
+                self.info = self.last_content
+        elif resp.where == "url" or response.status_code == 302:
+            try:
+                self.info = response.headers["location"]
+                resp_type = "urlencoded"
+            except KeyError:
+                try:
+                    _check = getattr(self.creq, "interaction_check", None)
+                except AttributeError:
+                    _check = None
+
+                if _check:
+                    self.err_check("interaction-check")
+                else:
+                    self.do_check("missing-redirect")
+        else:
+            self.do_check("check_content_type_header")
+            self.info = self.last_content
+
+        if self.info and resp.response:
+            if isinstance(resp.response, basestring):
+                response = self.msg_factory(resp.response)
+            else:
+                response = resp.response
+
+            self.response_type = response.__name__
+            try:
+                _cli = self.client
+                _qresp = self.client.parse_response(
+                    response, self.info, resp_type, _cli.state,
+                    keyjar=_cli.keyjar,
+                    client_id=_cli.client_id,
+                    scope="openid", opponent_id=_cli.provider_info.keys()[0])
+                if _qresp:
+                    self.trace.info("[%s]: %s" % (_qresp.type(),
+                                                  _qresp.to_dict()))
+                    if _qresp.extra():
+                        self.trace.info("### extra claims: %s" % _qresp.extra())
+                    self.response_message = _qresp
+                    self.protocol_response.append((_qresp, self.info))
+                else:
+                    self.response_message = None
+                err = None
+                _errtxt = ""
+            except Exception, err:
+                _errtxt = "%s" % err
+                self.trace.error(_errtxt)
+                self.exception = _errtxt
+
+            if err:
+                if self.accept_exception:
+                    if isinstance(err, self.accept_exception):
+                        self.trace.info("Got expected exception: %s [%s]" % (
+                            err, err.__class__.__name__))
+                    else:
+                        raise
+                else:
+                    raise FatalError(_errtxt)
+            elif self.response_message:
+                self.do_check("response-parse")
+
+        return self.post_process(resp)
+
+    def post_process(self, resp):
+        if self.response_message:
+            try:
+                self.test_sequence(resp.tests["post"])
+            except KeyError:
+                pass
+
+            if isinstance(self.response_message, RegistrationResponse):
+                self.client.registration_response = self.response_message
+                for key in ["client_id", "client_secret",
+                            "registration_access_token",
+                            "registration_client_uri"]:
+                    try:
+                        setattr(self.client, key, self.response_message[key])
+                    except KeyError:
+                        pass
+
+            resp(self, self.response_message)
+
+            return True
+        else:
+            return False
+
+    def collect_extra_args(self):
+        _args = {}
+        for param in ["extra_args", "kwargs_mod"]:
+            try:
+                spec = self.extra_args[param]
+            except KeyError:
+                continue
+            else:
+                try:
+                    _args = {param: spec[self.req.__class__.__name__]}
+                except KeyError:
+                    try:
+                        _args = {param: spec[self.req.request]}
+                    except KeyError:
+                        pass
+        return _args
+
+    def send(self):
+        try:
+            self.test_sequence(self.req.tests["pre"])
+        except KeyError:
+            pass
+
+        try:
+            if self.verbose:
+                print >> sys.stderr, "> %s" % self.req.request
+
+            extra_args = self.collect_extra_args()
+            try:
+                extra_args.update(self.client_config[self.creq.request])
+            except KeyError:
+                pass
+            part = self.req(self.position, self.last_response,
+                            self.last_content, self.features, **extra_args)
+            (self.position, self.last_response, self.last_content) = part
+
+            try:
+                if not self.test_sequence(self.req.tests["post"]):
+                    self.position = None
+            except KeyError:
+                pass
+        except FatalError:
+            raise
+        except UnSupported, err:
+            self.trace.info("%s" % err)
+            self.test_output.append(
+                {"status": 2, "id": "Check support",
+                 "name": "Verifies that a function is supported"})
+            raise
+        except Exception, err:
+            self.err_check("exception", err)

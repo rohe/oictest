@@ -2,6 +2,7 @@ from oic.oauth2 import dynreg, rndstr
 from oic.oauth2 import JSON_ENCODED
 
 from uma import PAT
+from uma import AAT
 from uma.client import UMACONF_PATTERN
 from uma.message import ProviderConfiguration, ResourceSetDescription
 
@@ -23,8 +24,8 @@ from rrtest.request import GetRequest
 from rrtest.request import PostRequest
 from rrtest.request import UrlResponse
 
-from uma.check import RegistrationInfo
-from uma.check import ProviderConfigurationInfo
+from umatest.check import RegistrationInfo
+from umatest.check import ProviderConfigurationInfo
 
 
 class AuthorizationRequest(GetRequest):
@@ -39,10 +40,20 @@ class AuthorizationRequestCode(AuthorizationRequest):
 
 class AuthorizationRequestCodePAT(AuthorizationRequest):
     _request_args = {"response_type": ["code"]}
+    _role = "RS"
 
     def __init__(self, conv):
         super(AuthorizationRequest, self).__init__(conv)
         self.request_args["scope"] = PAT
+
+
+class AuthorizationRequestCodeAAT(AuthorizationRequest):
+    _request_args = {"response_type": ["code"]}
+    _role = "C"
+
+    def __init__(self, conv):
+        super(AuthorizationRequest, self).__init__(conv)
+        self.request_args["scope"] = AAT
 
 
 class AccessTokenRequest(PostRequest):
@@ -60,15 +71,9 @@ class AccessTokenResponse(BodyResponse):
     tests = {"post": [VerifyAccessTokenResponse]}
 
 
-class AccessTokenSecondRequest(AccessTokenRequest):
-    tests = {"post": [VerifyError]}
-
-
-class AccessTokenSecondResponse(AccessTokenResponse):
-    tests = {"post": [CheckSecondCodeUsageErrorResponse]}
-
-
 class AccessTokenResponsePAT(AccessTokenResponse):
+    _role = "RS"
+
     def __call__(self, conv, response):
         uid = conv.kwargs["resource_owner"]
         _key = rndstr()  # Not really sure why I have this but ..
@@ -77,28 +82,15 @@ class AccessTokenResponsePAT(AccessTokenResponse):
                                        _key)
 
 
-class AuthorizationRequestCodeWithState(AuthorizationRequestCode):
-    def __init__(self, conv=None):
-        super(AuthorizationRequestCodeWithState, self).__init__(conv)
+class AccessTokenResponseAAT(AccessTokenResponse):
+    _role = "C"
 
-        self.request_args["state"] = "afdsliLKJ253oiuffaslkj"
-
-
-class AuthorizationResponseWhichForcesState(AuthorizationResponse):
-    tests = {"post": [CheckPresenceOfStateParameter]}
-
-
-class AccessTokenInvalidTypeRequest(AccessTokenRequest):
-    tests = {"post": [VerifyError]}
-
-    def __init__(self, conv):
-        super(AccessTokenInvalidTypeRequest, self).__init__(conv)
-
-        self.request_args["grant_type"] = 'nissesapa'
-
-
-class AccessTokenInvalidTypeResponse(ErrorResponse):
-    tests = {"post": [CheckErrorResponseForInvalidType]}
+    def __call__(self, conv, response):
+        uid = conv.kwargs["resource_owner"]
+        _key = rndstr()  # Not really sure why I have this but ..
+        conv.client.authz_registration(uid, response,
+                                       conv.client.provider_info.keys()[0],
+                                       _key)
 
 
 class RegistrationRequest(PostRequest):
@@ -116,6 +108,14 @@ class RegistrationRequest(PostRequest):
 
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
+
+
+class RegistrationRequestC(RegistrationRequest):
+    _role = "C"
+
+
+class RegistrationRequestRS(RegistrationRequest):
+    _role = "RS"
 
 
 class ProviderConfigurationResponse(BodyResponse):
@@ -192,17 +192,14 @@ class ResourceSetRegistration(Operation):
 
 PHASES = {
     "verify": (ConnectionVerify, AuthzResponse),
-    "login": (AuthorizationRequestCodePAT, AuthorizationResponse),
+    "pat-login": (AuthorizationRequestCodePAT, AuthorizationResponse),
+    "aat-login": (AuthorizationRequestCodeAAT, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-request-pat": (AccessTokenRequest, AccessTokenResponsePAT),
-    "access-token-second-request": (AccessTokenSecondRequest,
-                                    AccessTokenSecondResponse),
-    # "login-with-state": (AuthorizationRequestCodeWithState,
-    #                      AuthorizationResponseWhichForcesState),
-    "access-token-request-invalid-type": (AccessTokenInvalidTypeRequest,
-                                          AccessTokenInvalidTypeResponse),
+    "access-token-request-aat": (AccessTokenRequest, AccessTokenResponseAAT),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
-    "registration": (RegistrationRequest, ClientInfoResponse),
+    "c-registration": (RegistrationRequestC, ClientInfoResponse),
+    "rs-registration": (RegistrationRequestRS, ClientInfoResponse),
     "resource_registration": (ResourceSetRegistration, BodyResponse)
 }
 
@@ -228,7 +225,16 @@ FLOWS = {
         "name": 'Dynamic client registration',
         "descr": ('RS interacts with AS to request and receive client'
                   'credentials dynamically'),
-        "sequence": ["registration"],
+        "sequence": ["rs-registration"],
+        "endpoints": [],
+        "block": ["key_export"],
+        "depends": ['oic-verify'],
+    },
+    'FT-c-get-dyn-client-creds': {
+        "name": 'Dynamic client registration',
+        "descr": ('C interacts with AS to request and receive client'
+                  'credentials dynamically'),
+        "sequence": ["c-registration"],
         "endpoints": [],
         "block": ["key_export"],
         "depends": ['oic-verify'],
@@ -238,7 +244,7 @@ FLOWS = {
         "descr": ('Very basic test of a Provider using the authorization code ',
                   'flow. The test tool acting as a consumer is very relaxed',
                   'and tries to obtain an ID Token.'),
-        "sequence": ["login"],
+        "sequence": ["pat-login"],
         "endpoints": ["authorization_endpoint"]
     },
     'FT-rs-get-pat': {
@@ -247,44 +253,25 @@ FLOWS = {
                   'grant flow (required by the spec) and request for '
                   'protection API'),
         "depends": ["basic-code-authn"],
-        "sequence": ["login", "access-token-request-pat"],
+        "sequence": ["pat-login", "access-token-request-pat"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
-    },
-    'code-idtoken-double_post': {
-        "name": 'Basic Code flow with two requests for ID Token',
-        "descr": ('Tries to use the same access grant twice. ',
-                  'This is according to the standard *not* allowed.'),
-        "depends": ["basic-code-authn"],
-        "sequence": ["login", "access-token-request",
-                     "access-token-second-request"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"]
-    },
-    'code-presence-of-state': {
-        'name':
-            'Basic Code flow with authentication which checks for state parameter',
-        'descr': ('Basic test of a Provider using the authorization code ',
-                  'flow. The test tool acting as a consumer is relaxed but ',
-                  'ensures that the state parameter in the authorization ',
-                  'response is equal to the state given in the authorization ,'
-                  'request.'),
-        'sequence': ['login-with-state']
-    },
-    'code-faulty-grant-type': {
-        'name': 'Basic Code flow with faulty grant_type',
-        'descr': ('Basic test of a Provider which checks that the provider',
-                  'correctly indicates faulty values for the grant_type',
-                  'parameter.'),
-        'sequence': ['login', 'access-token-request-invalid-type'],
     },
     'FT-rs-rsr': {
-        "name": 'RS registers resource sets at AS',
-        "descr": ('Very basic test of a Provider using the authorization code ',
-                  'flow. The test tool acting as a consumer is very relaxed',
-                  'and tries to obtain an ID Token.'),
+        "name": 'RS registers a resource set at AS',
+        "descr": 'RS registers a resource set at the AS',
         "depends": ["code-idtoken_post"],
-        "sequence": ["login", "access-token-request-pat",
+        "sequence": ["pat-login", "access-token-request-pat",
                      "resource_registration"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "resource_set_registration_endpoint"]
+    },
+    'FT-c-get-aat': {
+        "name": 'AS successfully issues AAT to C',
+        "descr": ('AS issues AAT to C given correct OAuth authorization_code '
+                  'grant flow (required by the spec) and request for '
+                  'protection API'),
+        "depends": ["basic-code-authn"],
+        "sequence": ["aat-login", "access-token-request-aat"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
 }
