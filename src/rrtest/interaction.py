@@ -6,6 +6,7 @@ import re
 
 from bs4 import BeautifulSoup
 from mechanize import ParseResponseEx
+from mechanize import AmbiguityError
 from mechanize._form import ControlNotFoundError
 from mechanize._form import ListControl
 
@@ -270,7 +271,7 @@ class Interaction(object):
 
                 try:
                     form[key] = val
-                except ControlNotFoundError:
+                except (ControlNotFoundError, ValueError):
                     pass
                 except TypeError:
                     cntrl = form.find_control(key)
@@ -312,7 +313,7 @@ class Interaction(object):
         return self.httpc.send(url, "GET", trace=_trace)
         #return resp, ""
 
-    def javascript_redirect(self, orig_response, url_regex, **kwargs):
+    def redirect(self, orig_response, url_regex, **kwargs):
         """
         Simulates a JavaScript redirect by extracting the target of the
         redirection from the page content using the given regex
@@ -369,8 +370,8 @@ class Interaction(object):
             return self.chose
         elif _type == "response":
             return self.parse
-        elif _type == "javascript_redirect":
-            return self.javascript_redirect
+        elif _type == "redirect":
+            return self.redirect
         else:
             return no_func
 
