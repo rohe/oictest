@@ -51,6 +51,13 @@ class Request(object):
             kwargs.update(_mod)
             del cargs["kwargs_mod"]
 
+        try:
+            endpoint = kwargs["endpoint"]
+        except KeyError:
+            endpoint = ""
+        else:
+            del kwargs["endpoint"]
+
         kwargs.update(cargs)
         try:
             kwargs["request_args"] = self.request_args.copy()
@@ -82,9 +89,14 @@ class Request(object):
             h_arg = {}
 
         if request:
+            _kwargs = {"method": self.method, "request_args": _req,
+                       "content_type": self.content_type}
+
+            if endpoint:
+                _kwargs["endpoint"] = endpoint
+
             url, body, ht_args, cis = client.uri_and_body(
-                request, cis, method=self.method, request_args=_req,
-                content_type=self.content_type)
+                request, cis, **_kwargs)
             self.conv.cis.append(cis)
             if h_arg:
                 ht_args.update(h_arg)

@@ -17,8 +17,8 @@ __author__ = 'rolandh'
 
 class Conversation(object):
     """
-    :ivar response: The received HTTP messages
-    :ivar protocol_response: List of the received protocol messages
+    :param response: The received HTTP messages
+    :param protocol_response: List of the received protocol messages
     """
     
     def __init__(self, client, config, trace, interaction,
@@ -116,11 +116,11 @@ class Conversation(object):
         else:
             done = False
 
+        rdseq = []
         while not done:
             url = _response.url
             content = _response.text
 
-            rdseq = []
             while _response.status_code in [302, 301, 303]:
                 url = _response.headers["location"]
                 if url in rdseq:
