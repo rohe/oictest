@@ -188,13 +188,13 @@ class OAuth2(object):
                 #testres, trace = do_sequence(oper,
                 self.test_log = conv.test_output
                 tsum = self.test_summation(self.args.flow)
-                print >>sys.stdout, json.dumps(tsum)
                 if tsum["status"] > 1 or self.args.debug:
+                    print >> sys.stdout, json.dumps(tsum)
                     print >> sys.stderr, self.trace
             except (FatalError, UnSupported), err:
                 self.test_log = conv.test_output
                 tsum = self.test_summation(self.args.flow)
-                print >>sys.stdout, json.dumps(tsum)
+                print >> sys.stdout, json.dumps(tsum)
                 print >> sys.stderr, self.trace
                 # try:
                 #     print >> sys.stderr, err.trace
