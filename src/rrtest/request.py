@@ -51,12 +51,14 @@ class Request(object):
             kwargs.update(_mod)
             del cargs["kwargs_mod"]
 
-        try:
-            endpoint = kwargs["endpoint"]
-        except KeyError:
-            endpoint = ""
-        else:
-            del kwargs["endpoint"]
+        e_arg = {}
+        for key in ["endpoint", "http_authz"]:
+            try:
+                e_arg[key] = kwargs[key]
+            except KeyError:
+                e_arg[key] = ""
+            else:
+                del kwargs[key]
 
         kwargs.update(cargs)
         try:
@@ -92,8 +94,8 @@ class Request(object):
             _kwargs = {"method": self.method, "request_args": _req,
                        "content_type": self.content_type}
 
-            if endpoint:
-                _kwargs["endpoint"] = endpoint
+            if e_arg["endpoint"]:
+                _kwargs["endpoint"] = e_arg["endpoint"]
 
             url, body, ht_args, cis = client.uri_and_body(
                 request, cis, **_kwargs)
@@ -106,6 +108,9 @@ class Request(object):
             ht_args = h_arg
             url = kwargs["endpoint"]
             body = ""
+
+        if e_arg["http_authz"]:
+            ht_args["auth"] = e_arg["http_authz"]
 
         self.trace.request("URL: %s" % url)
         self.trace.request("BODY: %s" % body)
@@ -202,3 +207,9 @@ class BodyResponse(Response):
 
 class ErrorResponse(BodyResponse):
     response = "ErrorResponse"
+
+
+class PlainResponse(Response):
+    where = "body"
+    ctype = "text"
+    empty_is_ok = True
