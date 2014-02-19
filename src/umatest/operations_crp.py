@@ -1,4 +1,5 @@
-from oic.oauth2 import dynreg, rndstr
+from oic.oauth2 import dynreg
+from oic.oauth2 import rndstr
 from oic.oauth2 import JSON_ENCODED
 
 from uma import PAT
@@ -20,6 +21,7 @@ from oictest.oic_operations import DResponse
 from rrtest.check import CheckHTTPResponse
 from rrtest.opfunc import Operation
 from rrtest.request import BodyResponse
+from rrtest.request import PlainResponse
 from rrtest.request import Request
 from rrtest.request import GetRequest
 from rrtest.request import PostRequest
@@ -104,6 +106,14 @@ class AuthorizationResponse(UrlResponse):
     tests = {"post": [CheckAuthorizationResponse]}
 
 
+class AuthorizationDataResponse(BodyResponse):
+    response = "AuthorizationDataResponse"
+    empty_is_ok = True
+
+    def __call__(self, conv, response):
+        return True
+
+
 class AccessTokenResponse(BodyResponse):
     response = "AccessTokenResponse"
     tests = {"post": [VerifyAccessTokenResponse]}
@@ -131,19 +141,6 @@ class AccessTokenResponseAAT(AccessTokenResponse):
             conv.client.token[uid]["AAT"] = response
         except KeyError:
             conv.client.token[uid] = {"AAT": response}
-
-
-class AccessTokenResponsePRT(AccessTokenResponse):
-    role = "C"
-
-    def __call__(self, conv, response):
-        uid = conv.resource_owner
-        # should be the same as
-        # uid = atresp["id_token"]["sub"]
-        try:
-            conv.client.token[uid]["PRT"] = response
-        except KeyError:
-            conv.client.token[uid] = {"PRT": response}
 
 
 class RegistrationRequest(PostRequest):
@@ -179,7 +176,18 @@ class ClientInfoResponse(BodyResponse):
     response = "ClientInfoResponse"
 
     def __call__(self, conv, response):
+        self.conv = conv
         conv.client.store_registration_info(response)
+
+    def post_op(self, conv):
+        conv.client.registration_response = conv.response_message
+        for key in ["client_id", "client_secret",
+                    "registration_access_token",
+                    "registration_client_uri"]:
+            try:
+                setattr(conv.client, key, conv.response_message[key])
+            except KeyError:
+                pass
 
 
 class Discover(Operation):
@@ -234,7 +242,6 @@ class PutRequest(Request):
 
 
 class ResourceSetRegistration(PutRequest):
-
     def __call__(self, location="", response="", content="", features=None,
                  **cargs):
         owner = self.conv.resource_owner
@@ -252,9 +259,30 @@ class ResourceSetRegistration(PutRequest):
         return self.do_request(_client, url, content, ht_args)
 
 
+class ResourceSetRegResponse(StatusResponse):
+    response = "StatusResponse"
+    ctype = "json"
+    where = "body"
+
+    def post_op(self, result, conv, args):
+        owner = conv.resource_owner
+        response = conv.last_response
+
+        # StatusResponse
+        assert response["status"] == "created"
+
+        # self.path2rsid[path] = rsid
+        # csi = dict(resource_set_descr=resource_set_descr)
+        # csi["_id"] = response["_id"]
+        # csi["_rev"] = response["_rev"]
+        # csi["rsid"] = rsid
+        # self.permreg.add_resource_set_description(owner, csi)
+
+
 class ResourceSetsRegistration(Operation):
     tests = {}
     request = ResourceSetDescription
+    ctype = "json"
 
     def __init__(self, conv, **kwargs):
         Operation.__init__(self, conv, **kwargs)
@@ -292,16 +320,17 @@ class PermissionRegistrationRequest(PostRequest):
     request = "PermissionRegistrationRequest"
     _kw_args = {"authn_method": "bearer_header"}
     role = "RS"
+    content_type = JSON_ENCODED
 
     def __init__(self, conv):
         super(PostRequest, self).__init__(conv)
         rsets = conv.client.permreg.get(conv.resource_owner, "resource_set")
         rset = rsets[0]
-        self.kw_args["access_token"] = conv.client.token[
-            conv.requester]["RPT"]["access_token"]
-        
-        self.kw_args["request_args"] = {"resource_set_id": rset["rsid"],
-                                        "scopes": [OPER2SCOPE["GET"]]}
+        self.kw_args["access_token"] = conv.client.permreg.get(
+            conv.resource_owner, "pat")["access_token"]
+
+        self.request_args = {"resource_set_id": rset["rsid"],
+                             "scopes": [OPER2SCOPE["GET"]]}
 
 
 class PermissionRegistrationResponse(BodyResponse):
@@ -309,29 +338,34 @@ class PermissionRegistrationResponse(BodyResponse):
 
 
 class AuthorizationDataRequest(PostRequest):
-    request = "PermissionRegistrationRequest"
+    request = "AuthorizationDataRequest"
     _kw_args = {"authn_method": "bearer_header"}
     role = "C"
+    content_type = JSON_ENCODED
 
     def __init__(self, conv):
         super(PostRequest, self).__init__(conv)
-        self.kw_args["access_token"] = conv.client.token[
-            conv.requester]["RPT"]["access_token"]
-        self.kw_args["request_args"] = {"rpt": conv.client.token[
-            conv.requester]["RPT"]["access_token"], "ticket": "ticket"}
+        _rpt = conv.client.token[conv.requester]["RPT"]["rpt"]
+        _aat = conv.client.token[conv.requester]["AAT"]["access_token"]
+        self.kw_args["access_token"] = _aat
+        self.request_args = {
+            "rpt": _rpt,
+            "ticket": conv.response_message["ticket"]}
 
 
 class IntrospectionRequest(PostRequest):
     request = "IntrospectionRequest"
     _kw_args = {"authn_method": "bearer_header"}
     role = "RS"
+    content_type = JSON_ENCODED
 
     def __init__(self, conv):
         super(PostRequest, self).__init__(conv)
-        self.kw_args["access_token"] = conv.client.token[
-            conv.requester]["PAT"]["access_token"]
-        rpt = conv._client["C"].token[conv.requester]["RPT"]["access_token"]
-        self.kw_args["request_args"] = {"rpt": rpt}
+        self.kw_args["access_token"] = conv.client.permreg.get(
+            conv.resource_owner, "pat")["access_token"]
+        rpt = conv.get_client("C").token[conv.requester]["RPT"]["rpt"]
+        self.request_args = {"token": rpt}
+        # "resource_id":
 
 
 class IntrospectionResponseInsuf(BodyResponse):
@@ -342,22 +376,22 @@ class IntrospectionResponseSuf(BodyResponse):
     response = "IntrospectionResponse"
 
 
-class UserSetPermission(PostRequest):
+class UserSetPermission(GetRequest):
     request = "Message"
     _kw_args = {"user_auth": "bearer_header"}
-    role = ""
+    role = "RS"  # so I can get access to necessary information
 
     def __init__(self, conv):
-        super(PostRequest, self).__init__(conv)
+        super(GetRequest, self).__init__(conv)
         rsets = conv.client.permreg.get(conv.resource_owner, "resource_set")
         rset = rsets[0]
         rsd = ResourceSetDescription().from_json(rset["resource_set_descr"])
-        
-        self.kw_args["request_args"] = {
-            "user": "alice", "requestor": "roger",
-            "name": rsd["name"], "scopes": rsd["scopes"]}
-        _as = conv.provider_info.keys()[0]
-        self.kw_args["endpoint"] = "%s/perm_reg" % _as
+
+        self.request_args = {"user": "alice", "requestor": "roger",
+                             "name": rsd["name"], "perm": [OPER2SCOPE["GET"]]}
+        _as = conv.provider_info["C"].keys()[0]
+        self.kw_args["endpoint"] = "%s/permreg" % _as
+        self.kw_args["http_authz"] = ("alice", "krall")
 
 
 # =============================================================================
@@ -374,14 +408,16 @@ PHASES = {
     "rs-provider-discovery": (DiscoverRS, ProviderConfigurationResponse),
     "c-registration": (RegistrationRequestC, ClientInfoResponse),
     "rs-registration": (RegistrationRequestRS, ClientInfoResponse),
-    "resource_registration": (ResourceSetsRegistration, BodyResponse),
+    "resource_set_registration": (ResourceSetsRegistration, BodyResponse),
     "token-request-rpt": (RPTRequest, RPTResponse),
     "introspection-1": (IntrospectionRequest, IntrospectionResponseInsuf),
     "introspection-2": (IntrospectionRequest, IntrospectionResponseSuf),
     "rs-permission-reg": (PermissionRegistrationRequest,
                           PermissionRegistrationResponse),
-    "authorization-data": (AuthorizationDataRequest, AuthorizationResponse),
-    "alice-register": (UserSetPermission, BodyResponse)
+    #"authorization-data": (AuthorizationDataRequest, AuthorizationDataResponse),
+    "alice-register": (UserSetPermission, PlainResponse),
+    "c-authorization-data": (AuthorizationDataRequest,
+                             AuthorizationDataResponse)
 }
 
 # =============================================================================
@@ -470,7 +506,7 @@ FLOWS = {
     },
     'RH-c-get-prt': {
         "name": 'C gets RPT from AS',
-        "descr": 'AS successfully issues PRT to C',
+        "descr": 'AS successfully issues RPT to C',
         "depends": ["FT-c-get-aat"],
         "sequence": ["c-provider-discovery", "c-registration", "aat-login",
                      "access-token-request-aat", "token-request-rpt"],
@@ -478,7 +514,7 @@ FLOWS = {
     },
     'RH-rs-introspection-1': {
         "name": 'C gets RPT from AS',
-        "descr": 'AS successfully issues PRT to C',
+        "descr": 'AS successfully issues RPT to C',
         "depends": ["FT-c-get-aat"],
         "sequence": ["c-provider-discovery", "c-registration", "aat-login",
                      "access-token-request-aat", "token-request-rpt",
@@ -487,17 +523,17 @@ FLOWS = {
                      "introspection-1"],
         "endpoints": ["authorization_endpoint", "token_endpoint"]
     },
-    # 'RH-rs-introspection-2': {
-    #     "name": 'C gets RPT from AS',
-    #     "descr": 'AS successfully issues PRT to C',
-    #     "depends": ["FT-c-get-aat"],
-    #     "sequence": ["c-provider-discovery", "c-registration", "aat-login",
-    #                  "access-token-request-aat", "token-request-rpt",
-    #                  "rs-provider-discovery", "rs-registration", "pat-login",
-    #                  "access-token-request-pat",
-    #                  "alice-register",
-    #                  "introspection-1", "rs-permission-reg",
-    #                  "c-authorization-data", "introspection-2"],
-    #     "endpoints": ["authorization_endpoint", "token_endpoint"]
-    # }
+    'RH-rs-introspection-2': {
+        "name": 'C gets RPT bound to permission from AS',
+        "descr": 'C gets RPT bound to permission from AS',
+        "depends": ["H-rs-introspection-1"],
+        "sequence": ["c-provider-discovery", "c-registration", "aat-login",
+                     "access-token-request-aat", "token-request-rpt",
+                     "rs-provider-discovery", "rs-registration", "pat-login",
+                     "access-token-request-pat", "resource_set_registration",
+                     "alice-register",
+                     "introspection-1", "rs-permission-reg",
+                     "c-authorization-data", "introspection-2"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"]
+    }
 }
