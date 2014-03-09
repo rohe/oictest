@@ -278,8 +278,11 @@ class OAuth2(object):
         # replace pattern with real value
         _h = self.args.host
         if _h:
-            self.cconf["redirect_uris"] = [p % _h for p in
-                                           self.cconf["redirect_uris"]]
+            try:
+                self.cconf["redirect_uris"] = [p % _h for p in
+                                               self.cconf["redirect_uris"]]
+            except TypeError:
+                pass
 
         try:
             self.client.client_prefs = self.cconf["preferences"]
