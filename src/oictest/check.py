@@ -986,6 +986,44 @@ class VerifyAud(Error):
         return {}
 
 
+class VerifyImplicitResponse(Error):
+    cid = "verify-implicit-reponse"
+    msg = "Expected response in fragment"
+
+    def _func(self, conv):
+        _part = urlparse.urlparse(conv.info)
+        # first verify there is a fragment
+        try:
+            assert _part.fragment
+            # The that that is where the response is
+            _resp = AuthorizationResponse().from_urlencoded(_part.fragment)
+            assert _resp
+            # Can't do this check since in the response_message the id_token is
+            # unpacked
+            #assert _resp == conv.response_message
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class CheckNonce(Error):
+    cid = "check-nonce"
+    msg = "Expected same none back as sent"
+
+    def _func(self, conv):
+        try:
+            _nonce = conv.AuthorizationRequest["nonce"]
+            try:
+                assert _nonce == conv.response_message["id_token"]["nonce"]
+            except (AssertionError, KeyError):
+                self._status = self.status
+        except KeyError:
+            pass
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 
