@@ -511,3 +511,109 @@ Now, I still might want to see more specifically what happened in a flow::
     <-- CONTENT: {"client_secret": "f22d86e878a0afa7d8663e099e8e44977e338aa3ec7f14e41dfd2cf6",
                     "client_id": "OXPlZt2Ll3zP", "expires_at": 0}
 
+Create New tests:
+*****************
+
+In order to add a test case to this project begin by extending the file [..]/oictest/src/oictest/oic_operations.py
+
+The file oic_operations.py consists of three essential parts:
+* Flows dictionary
+* Phases dictionary
+* Request or Response classes
+
+Flows and test cases
+====================
+
+Flows is a dictionary containing all test cases which has been defined. An example of Flow dictionary is presented below::
+
+    $ FLOWS = {
+        'oic-verify': {
+            "name": 'Special flow used to find necessary user interactions',
+            "descr": 'Request with response_type=code',
+            "sequence": ["verify"],
+            "endpoints": ["authorization_endpoint"],
+            "block": ["key_export"]
+        },
+
+        'err-01': {
+            "name": "Authorization request containing a random 'response_type' parameter",
+            "sequence": ["oic-random_response_type"],
+            "endpoints": ["authorization_endpoint"],
+            "tests": [("verify-error", {"error": ["invalid_request",
+                                                  "unsupported_response_type"]})],
+            "depends": ['mj-01'],
+        }
+    }
+
+In this example two test cases, oic-verify and oic-discovery has been defined. Note that the keys i the Flow dictionary corresponds to the name of the test case.
+
+Every test is a dictionary which can contain a given number of attributes.
+
+=========  =========
+name       Name of the test
+descr      A description of the test
+sequence   A sequence is a list of strings in which every element should be defined as a key in a dictionary called Phases. Every element in the sequence list should correspond to a key
+           in the Phases dictionary. Every key in the Phases dictionary corresponds to a request and response pair.
+endpoints  A list of strings which contains all endpoints which will be used in the test. The endpoint should correspond to the endpoints in the configurations file.
+           The order of the endpoints in th list does not matter. The purpose of the endpoints should be seen as documentation and doesn't have any other purpose.
+depends    A list with strings where every element in the list corresponds to another test case in the Flows dictionary. When a test case is executed the depending test cases will be
+           executed before the current test case. Which means that if a depending test case fails the current test case doesn't have to be executed.
+tests      A list of tests which will be executed after the current test case has been executed. Note that the tests will be executed in the order in which they have been
+           assigned to the list. There are multiple ways to define a test, for more information read "How to connect a test to a test case or an request/response"
+=========  =========
+
+Phases and sequences
+====================
+A sequence is a list of strings in which every element should be defined as a key in a dictionary called Phases. Every element in the sequence list should correspond to a key in the
+Phases dictionary. Every key in the Phases dictionary corresponds to a request and response pair.
+
+Here is an example of Phases::
+
+    PHASES = {
+        "login": (AuthorizationRequestCode, AuthorizationResponse),
+        "access-token-request": (AccessTokenRequest, AccessTokenResponse)
+    }
+
+In the example above two Phases, login and access-token-request, has been defined. Every Phase (key/value pair the the Phases dictionary) consists of a Name (key) and a request/response
+tuple (value). The first value in the tuple are always a class corresponding to a request. While the second value equals a class responsible for handling the response.
+
+The simples way to handle request and responses are to use the implementations located in:
+
+[..]/oictest/src/rrtest/request.py
+
+Note that both the request and response classes are located in the file named request.py.
+
+If necessary it's possible to write new implementations or extends existing implementations, which is fairly common while writing new test cases.
+
+Create new request class
+========================
+A class which handles request should inherit from either GetRequest or PostRequest, depending on whether a get or post call should be executed. The two classes
+in return inherits from the Request class. Implementations of GetRequest or PostRequest are located in:
+
+[..]/oictest/src/rrtest/request.py
+
+While extending the Request class four parameters could be overridden:
+
+1. Request:
+    Could be a text string with the name of one of classed defined in the dictionary MSG which is located in:
+    [..]/pyoidc/src/oic/oic/message.py.
+    Note that the text string must match one of the key i the MSG dictionary exactly. Use only the classes where the name end with request.
+    It's strongly recommended to use one of the pre defined classes since the one writing the new tests won't need to know how the underlining code works.
+    If a no class contains all the functionally necessary to create a request, we strongly recommend to extend an existing class, extend a class in message
+    or implement a new class. The last alternative is considered advanced programming and aren't recommended since it's easy to make mistakes which could
+    result in misleading results. It's also possible to leave this parameter blank but then the endpoint has to added into the _kw_arg parameter
+
+2. _request_args:
+    A dictionary which should containing the parameters that should be added to the request, in excess of the parameters added by the request parameter above.
+    This parameter could be empty.
+
+3. tests:
+    This parameter should be a dictionary which must follow the format {"pre": [], "post": []}. The key named "pre" should contain tests which should be executed before
+    the requests has been sent. While the key named "post" should contain tests which should be executed after the requests has been sent. More info about possible test
+    notations read "How to connect a test to a test case or an request/response"
+
+4. _kw_arg:
+
+How to connect a test to a test case or an request/response
+===========================================================
+
