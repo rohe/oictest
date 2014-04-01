@@ -59,7 +59,7 @@ class Trace(object):
 
 
 def start_script(path, *args):
-    popen_args = [path]
+    popen_args = ["./" + path]
     popen_args.extend(args)
     return Popen(popen_args, stdout=PIPE, stderr=PIPE)
 
