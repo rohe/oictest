@@ -594,7 +594,7 @@ in return inherits from the Request class. Implementations of GetRequest or Post
 
 While extending the Request class four parameters could be overridden:
 
-1. Request:
+1. request:
     Could be a text string with the name of one of classed defined in the dictionary MSG which is located in:
     [..]/pyoidc/src/oic/oic/message.py.
     Note that the text string must match one of the key i the MSG dictionary exactly. Use only the classes where the name end with request.
@@ -613,7 +613,64 @@ While extending the Request class four parameters could be overridden:
     notations read "How to connect a test to a test case or an request/response"
 
 4. _kw_arg:
+    Extra parameters which will be added to a local dictionary self.kw_args while initializing the class. _kw_arg contains two pre defined parameters/keys;
+    authn_method and endpoint. Use endpoint to specify which URL the request should invoke if no endpoint where defined in the Request parameter. The second
+    pre defined parameter in _kw_arg is authn_method which hold the values:
+
+    * client_secret_basic
+    * client_secret_post
+    * client_secret_jwt
+    * private_key_jwt
+    * bearer_header
+    * bearer_body
+
+    The different values explains how to send the access_tolken to the client. The names of the different values are considered self explanatory
+
+In order to make an more advanced request class it's possible to override the __init__ and __call__ methods. It would then be possible to initialize the parameters
+request, _request_args, tests and _kw_arg in either method.::
+
+    class MyRequest(PostRequest):
+        request = "AuthorizationRequest"
+        _request_args = {}
+        tests = {"pre": [], "post": [CheckHTTPResponse]}
+
+        def __init__(self, conv):
+            PostRequest.__init__(self, conv)
+            #Extra initializations
+
+        def __call__(self, location, response, content, features):
+            #Extra logic could be added here.
+            return PostRequest.__call__(self, location, response,
+                                        content, features)
+
+Create new response class
+=========================
+A class responsible for handling responses should inherit from either UrlResponse or BodyResponse. Both implementations inherits from the Respons class. UrlResponse,
+BodyResponse and Respons are all located in:
+[..]/oictest/src/rrtest/request.py
+
+While extending the Response class two parameters could be overridden:
+
+1. response:
+    Could be a text string with the name of one of classed defined in the dictionary MSG which is located in:
+    [..]/pyoidc/src/oic/oic/message.py.
+    Note that the text string must match one of the key i the MSG dictionary exactly. Use only the classes where the name end with Response.
+    It's strongly recommended to use one of the pre defined classes since the one writing the new tests won't need to know how the underlining code works.
+    If a no class contains all the functionally necessary to create a request, we strongly recommend to extend an existing class, extend a class in message
+    or implement a new class. The last alternative is considered advanced programming and aren't recommended since it's easy to make mistakes which could
+    result in misleading results.
+
+2. tests:
+    This parameter should be a dictionary which must follow the format {"post": []}. The key named "post" should contain tests which should be executed after
+    the requests has been sent. More info about possible test notations read "How to connect a test to a test case or an request/response"
+
+In order to make an more advanced response class it's possible to override the __init__ and __call__ methods.
 
 How to connect a test to a test case or an request/response
 ===========================================================
+As mentioned above it's possible to add tests at different levels, either by adding it in a test case or in a request/response class.
 
+A test could be defied by either a tuple or a single value. A single value could be either a class which is responsible for handling the test or a unique string (cid)
+which could
+
+The first value in a tuple should correspond to

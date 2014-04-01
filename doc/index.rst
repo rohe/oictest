@@ -19,6 +19,14 @@ Contents:
    install
    howto
 
+
+.. automodule:: rrtest
+    :members:
+
+.. autoclass:: check
+    :members:
+
+
 Indices and tables
 ==================
 
