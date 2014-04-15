@@ -106,11 +106,10 @@ html_sidebars = {
 
 html_theme_options = {
    'description': 'OpenID Connect test tool',
-   'github_button': True,
+   'github_button': False,
    'github_user': 'rohe',
    'github_repo': 'oictest',
-   'github_banner': True,
-
+   'github_banner': False,
 }
 
 # Theme options are theme-specific and customize the look and feel of a theme
