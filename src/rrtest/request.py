@@ -83,8 +83,6 @@ class Request(object):
         else:
             cis = Message()
 
-        ht_add = None
-
         if "authn_method" in kwargs:
             h_arg = client.init_authentication_method(cis, **kwargs)
         else:
@@ -102,11 +100,11 @@ class Request(object):
             self.conv.cis.append(cis)
             if h_arg:
                 ht_args.update(h_arg)
-            if ht_add:
-                ht_args.update({"headers": ht_add})
+            # if ht_add:
+            #     ht_args.update({"headers": ht_add})
         else:
             ht_args = h_arg
-            url = kwargs["endpoint"]
+            url = e_arg["endpoint"]
             body = ""
 
         if e_arg["http_authz"]:

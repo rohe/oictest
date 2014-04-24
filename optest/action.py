@@ -140,7 +140,7 @@ class Request(Conversation):
     def send(self):
         # works since there only should be one
         try:
-            self.provider_info = self.client.provider_info.values()[0]
+            self.provider_info = self.client.provider_info
         except IndexError:
             pass
         try:
@@ -227,7 +227,7 @@ class Response(Conversation):
                         else:
                             _msg[key] = val
                 self.client.handle_provider_config(_msg, _issuer)
-                self.client.provider_info[_msg["issuer"]] = _msg
+                self.client.provider_info = _msg
 
             resp(self, self.response_message)
 
@@ -284,7 +284,7 @@ class Response(Conversation):
             _cli = self.client
 
             if _cli.provider_info:
-                kwargs = {"opponent_id": _cli.provider_info.keys()[0]}
+                kwargs = {"opponent_id": _cli.provider_info["issuer"]}
             else:
                 kwargs = {}
 

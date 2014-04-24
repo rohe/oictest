@@ -911,12 +911,12 @@ class Discover(Operation):
     def discover(self, client, orig_response="", content="", issuer="",
                  **kwargs):
         pcr = client.provider_config(issuer)
-        if len(client.provider_info) == 2 and "" in client.provider_info.keys():
-            _di = client.provider_info[""]
-            del client.provider_info[""]
-            client.provider_info.values()[0].update(_di)
-            client.handle_provider_config(pcr, issuer)
-            self.do_postop = False
+        # if len(client.provider_info) == 2 and "" in client.provider_info.keys():
+        #     _di = client.provider_info[""]
+        #     del client.provider_info[""]
+        #     client.provider_info.values()[0].update(_di)
+        #     client.handle_provider_config(pcr, issuer)
+        #     self.do_postop = False
 
         try:
             self.trace.info("%s" % client.keyjar)
