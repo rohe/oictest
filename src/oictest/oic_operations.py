@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from jwkest.jwk import SerializationNotPossible
-from oic.oauth2.exception import UnSupported
+from oic.exception import UnSupported
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
