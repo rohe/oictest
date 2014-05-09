@@ -2,8 +2,9 @@ import cookielib
 import traceback
 from oic.exception import UnSupported
 from oic.oauth2 import Message
-from oic.oic import RegistrationResponse
 import sys
+from umatest.operations_crp import AuthorizationDataResponse
+from rrtest.request import PlainResponse
 from rrtest.opfunc import Operation
 from rrtest import FatalError
 from rrtest.check import INTERACTION
@@ -75,6 +76,9 @@ class Conversation(object):
         self.response_type = None
         self.response_message = None
         self.cis = []
+
+    def get_client(self, typ):
+        return self._clients[typ]
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -240,9 +244,11 @@ class Conversation(object):
         try:
             self.role = self.creq.role
         except AttributeError:
-            # continue with the same if once been used
-            if not self.role:
-                self.role = ROLES[0]  # doesn't matter which one
+            pass
+
+        # continue with the same if once been used
+        if not self.role:
+            self.role = ROLES[0]  # doesn't matter which one
 
         self.trace.info("<< %s >>" % self.role)
         self.client = self._clients[self.role]
@@ -411,21 +417,19 @@ class Conversation(object):
             except KeyError:
                 pass
 
-            if isinstance(self.response_message, RegistrationResponse):
-                self.client.registration_response = self.response_message
-                for key in ["client_id", "client_secret",
-                            "registration_access_token",
-                            "registration_client_uri"]:
-                    try:
-                        setattr(self.client, key, self.response_message[key])
-                    except KeyError:
-                        pass
+            try:
+                resp.post_op(self)
+            except AttributeError:
+                pass
 
             resp(self, self.response_message)
 
             return True
         else:
-            return False
+            try:
+                return resp.empty_is_ok
+            except AttributeError:
+                return False
 
     def collect_extra_args(self):
         _args = {}

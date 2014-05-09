@@ -102,7 +102,7 @@ class Conversation(tool.Conversation):
                 _qresp = self.client.parse_response(
                     response, self.info, resp_type, _cli.state,
                     keyjar=self.keyjar, client_id=_cli.client_id,
-                    scope="openid", opponent_id=_cli.provider_info.keys()[0])
+                    scope="openid", opponent_id=_cli.provider_info["issuer"])
                 if _qresp:
                     self.trace.info("[%s]: %s" % (_qresp.type(),
                                                   _qresp.to_dict()))

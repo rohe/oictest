@@ -832,6 +832,10 @@ class AuthzResponse(UrlResponse):
     tests = {"post": [CheckAuthorizationResponse]}
 
 
+class ImplicitAuthzResponse(AuthzResponse):
+    tests = {"post": [CheckAuthorizationResponse, VerifyImplicitResponse]}
+
+
 class AuthzErrResponse(UrlResponse):
     response = "AuthorizationErrorResponse"
 
@@ -907,12 +911,12 @@ class Discover(Operation):
     def discover(self, client, orig_response="", content="", issuer="",
                  **kwargs):
         pcr = client.provider_config(issuer)
-        if len(client.provider_info) == 2 and "" in client.provider_info.keys():
-            _di = client.provider_info[""]
-            del client.provider_info[""]
-            client.provider_info.values()[0].update(_di)
-            client.handle_provider_config(pcr, issuer)
-            self.do_postop = False
+        # if len(client.provider_info) == 2 and "" in client.provider_info.keys():
+        #     _di = client.provider_info[""]
+        #     del client.provider_info[""]
+        #     client.provider_info.values()[0].update(_di)
+        #     client.handle_provider_config(pcr, issuer)
+        #     self.do_postop = False
 
         try:
             self.trace.info("%s" % client.keyjar)
@@ -986,14 +990,16 @@ PHASES = {
     "oic-login+prompt_none+request": (
         AuthorizationRequestCodePromptNoneWithUserID, None),
     "oic-login+request": (AuthorizationRequestCodeWithUserID, AuthzResponse),
-    "oic-login-token": (AuthorizationRequestToken, AuthzResponse),
-    "oic-login-idtoken": (AuthorizationRequestIDToken, AuthzResponse),
-    "oic-login-code+token": (AuthorizationRequestCodeToken, AuthzResponse),
-    "oic-login-code+idtoken": (AuthorizationRequestCodeIDToken, AuthzResponse),
+    "oic-login-token": (AuthorizationRequestToken, ImplicitAuthzResponse),
+    "oic-login-idtoken": (AuthorizationRequestIDToken, ImplicitAuthzResponse),
+    "oic-login-code+token": (AuthorizationRequestCodeToken,
+                             ImplicitAuthzResponse),
+    "oic-login-code+idtoken": (AuthorizationRequestCodeIDToken,
+                               ImplicitAuthzResponse),
     "oic-login-idtoken+token": (AuthorizationRequestIDTokenToken,
-                                AuthzResponse),
+                                ImplicitAuthzResponse),
     "oic-login-code+idtoken+token": (AuthorizationRequestCodeIDTokenToken,
-                                     AuthzResponse),
+                                     ImplicitAuthzResponse),
     "oic-login-no-redirect": (AuthorizationRequest_No_Redirect_uri,
                               AuthzResponse),
     "oic-login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
@@ -1266,6 +1272,7 @@ FLOWS = {
         "sequence": ['oic-login-code+idtoken'],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
+        "tests": [('check-nonce', {})]
     },
     'mj-06': {
         "name": 'Request with response_type=id_token token',

@@ -28,14 +28,16 @@ setup(
     license="Apache 2.0",
     packages=["oictest", "rptest", "rrtest", "oauth2test", "umatest"],
     package_dir = {"": "src"},
-    classifiers = ["Development Status :: 4 - Beta",
-                   "License :: OSI Approved :: Apache Software License",
-                   "Topic :: Software Development :: Libraries :: Python Modules"],
+    classifiers = [
+        "Development Status :: 4 - Beta",
+        "License :: OSI Approved :: Apache Software License",
+        "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires = [
         "oic",
         "mechanize",
         "argparse",
         "beautifulsoup4",
+        "requests >= 2.0.0"
         #"importlib" only needed for 2.6
         ],
 

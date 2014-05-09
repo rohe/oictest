@@ -157,8 +157,9 @@ class CheckSupported(CriticalError):
         return res
 
     def _supported(self, request_args, provider_info):
+        _provider_info = provider_info
         try:
-            supported = provider_info[self.element]
+            supported = _provider_info[self.element]
         except KeyError:
             if self.default is None:
                 return False
@@ -189,9 +190,10 @@ class CheckResponseType(CheckSupported):
     msg = "Response type not supported"
 
     def _supported(self, request_args, provider_info):
+        _provider_info = provider_info
         try:
             supported = [set(s.split(" ")) for s in
-                         provider_info["response_types_supported"]]
+                         _provider_info["response_types_supported"]]
         except KeyError:
             supported = [set(["code"])]
 
@@ -219,8 +221,9 @@ class CheckAcrSupport(CheckSupported):
     msg = "ACR level not supported"
 
     def _supported(self, request_args, provider_info):
+        _provider_info = provider_info
         try:
-            supported = provider_info["acrs_supported"]
+            supported = _provider_info["acrs_supported"]
         except KeyError:
             return True
 
@@ -241,9 +244,9 @@ class CheckAcrSupport(CheckSupported):
 
 class CheckScopeSupport(CheckSupported):
     """
-    Checks that the asked for acr are among the supported
+    Checks that the asked for scope are among the supported
     """
-    cid = "check-acr-support"
+    cid = "check-scope-support"
     msg = "Scope not supported"
     element = "scopes_supported"
     parameter = "scope"
@@ -389,7 +392,7 @@ class CheckEndpoint(CriticalError):
         cls = conv.request_spec.request
         endpoint = conv.client.request2endpoint[cls]
         try:
-            assert endpoint in conv.client.provider_info.values()[0]
+            assert endpoint in conv.client.provider_info
         except AssertionError:
             self._status = self.status
             self._message = "No '%s' registered" % endpoint
@@ -982,6 +985,44 @@ class VerifyAud(Error):
             assert atr[0]["id_token"]["aud"] == atr[1]["id_token"]["aud"]
         except AssertionError:
             self._status = self.status
+
+        return {}
+
+
+class VerifyImplicitResponse(Error):
+    cid = "verify-implicit-reponse"
+    msg = "Expected response in fragment"
+
+    def _func(self, conv):
+        _part = urlparse.urlparse(conv.info)
+        # first verify there is a fragment
+        try:
+            assert _part.fragment
+            # The that that is where the response is
+            _resp = AuthorizationResponse().from_urlencoded(_part.fragment)
+            assert _resp
+            # Can't do this check since in the response_message the id_token is
+            # unpacked
+            #assert _resp == conv.response_message
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class CheckNonce(Error):
+    cid = "check-nonce"
+    msg = "Expected same none back as sent"
+
+    def _func(self, conv):
+        try:
+            _nonce = conv.AuthorizationRequest["nonce"]
+            try:
+                assert _nonce == conv.response_message["id_token"]["nonce"]
+            except (AssertionError, KeyError):
+                self._status = self.status
+        except KeyError:
+            pass
 
         return {}
 
