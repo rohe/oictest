@@ -872,7 +872,7 @@ class AccessTokenResponse(BodyResponse):
 
     def __init__(self):
         BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse]}
+        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS]}
 
 
 class UserinfoResponse(BodyResponse):

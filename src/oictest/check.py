@@ -1053,6 +1053,25 @@ class CheckResponseMode(CheckSupported):
         return True
 
 
+class VerifyISS(Error):
+    cid = "verify-iss"
+    msg = "Not the same iss/issuer in the id_token as in the Provider Info"
+
+    def _func(self, conv):
+        # Should be two AccessTokenResponses
+        atr = []
+        instance = conv.protocol_response[-1][0]
+        iss = instance["id_token"]["iss"]
+        issuer = conv.provider_info["issuer"]
+
+        try:
+            assert iss == issuer
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 
