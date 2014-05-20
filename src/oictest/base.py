@@ -57,7 +57,18 @@ class Conversation(tool.Conversation):
 
         response = self.last_response
         resp_type = resp.ctype
-        if response:
+
+        err = None
+        if isinstance(response, dict):
+            _cli = self.client
+            _resp = self.msg_factory(resp.response)
+            _qresp = self.client.parse_response(
+                _resp, response, "dict", _cli.state,
+                keyjar=self.keyjar, client_id=_cli.client_id,
+                scope="openid", opponent_id=_cli.provider_info["issuer"])
+            self.response_message = _qresp
+            self.protocol_response.append((_qresp, self.info))
+        else:
             try:
                 ctype = response.headers["content-type"]
                 if ctype == "application/jwt":
@@ -65,71 +76,71 @@ class Conversation(tool.Conversation):
             except (AttributeError, TypeError):
                 pass
 
-        if response.status_code >= 400:
-            pass
-        elif not self.position:
-            if isinstance(self.last_content, Message):
-                self.response_message = self.last_content
-            elif response.status_code == 200:
-                self.info = self.last_content
-        elif resp.where == "url" or response.status_code == 302:
-            try:
-                self.info = response.headers["location"]
-                resp_type = "urlencoded"
-            except KeyError:
+            if response.status_code >= 400:
+                pass
+            elif not self.position:
+                if isinstance(self.last_content, Message):
+                    self.response_message = self.last_content
+                elif response.status_code == 200:
+                    self.info = self.last_content
+            elif resp.where == "url" or response.status_code == 302:
                 try:
-                    _check = getattr(self.creq, "interaction_check", None)
-                except AttributeError:
-                    _check = None
+                    self.info = response.headers["location"]
+                    resp_type = "urlencoded"
+                except KeyError:
+                    try:
+                        _check = getattr(self.creq, "interaction_check", None)
+                    except AttributeError:
+                        _check = None
 
-                if _check:
-                    return False
-                else:
-                    self.do_check("missing-redirect")
-        else:
-            self.do_check("check_content_type_header")
-            self.info = self.last_content
-
-        if self.info and resp.response:
-            if isinstance(resp.response, basestring):
-                response = self.msg_factory(resp.response)
-            else:
-                response = resp.response
-
-            self.response_type = response.__name__
-            try:
-                _cli = self.client
-                _qresp = self.client.parse_response(
-                    response, self.info, resp_type, _cli.state,
-                    keyjar=self.keyjar, client_id=_cli.client_id,
-                    scope="openid", opponent_id=_cli.provider_info["issuer"])
-                if _qresp:
-                    self.trace.info("[%s]: %s" % (_qresp.type(),
-                                                  _qresp.to_dict()))
-                    if _qresp.extra():
-                        self.trace.info("### extra claims: %s" % _qresp.extra())
-                    self.response_message = _qresp
-                    self.protocol_response.append((_qresp, self.info))
-                else:
-                    self.response_message = None
-                err = None
-                _errtxt = ""
-            except Exception, err:
-                _errtxt = "%s" % err
-                self.trace.error(_errtxt)
-                self.exception = _errtxt
-
-            if err:
-                if self.accept_exception:
-                    if isinstance(err, self.accept_exception):
-                        self.trace.info("Got expected exception: %s [%s]" % (
-                            err, err.__class__.__name__))
+                    if _check:
+                        return False
                     else:
-                        raise
+                        self.do_check("missing-redirect")
+            else:
+                self.do_check("check_content_type_header")
+                self.info = self.last_content
+
+            if self.info and resp.response:
+                if isinstance(resp.response, basestring):
+                    response = self.msg_factory(resp.response)
                 else:
-                    raise FatalError(_errtxt)
-            elif self.response_message:
-                self.do_check("response-parse")
+                    response = resp.response
+
+                self.response_type = response.__name__
+                try:
+                    _cli = self.client
+                    _qresp = self.client.parse_response(
+                        response, self.info, resp_type, _cli.state,
+                        keyjar=self.keyjar, client_id=_cli.client_id,
+                        scope="openid", opponent_id=_cli.provider_info["issuer"])
+                    if _qresp:
+                        self.trace.info("[%s]: %s" % (_qresp.type(),
+                                                      _qresp.to_dict()))
+                        if _qresp.extra():
+                            self.trace.info("### extra claims: %s" % _qresp.extra())
+                        self.response_message = _qresp
+                        self.protocol_response.append((_qresp, self.info))
+                    else:
+                        self.response_message = None
+                    err = None
+                    _errtxt = ""
+                except Exception, err:
+                    _errtxt = "%s" % err
+                    self.trace.error(_errtxt)
+                    self.exception = _errtxt
+
+        if err:
+            if self.accept_exception:
+                if isinstance(err, self.accept_exception):
+                    self.trace.info("Got expected exception: %s [%s]" % (
+                        err, err.__class__.__name__))
+                else:
+                    raise
+            else:
+                raise FatalError(_errtxt)
+        elif self.response_message:
+            self.do_check("response-parse")
 
         return self.post_process(resp)
 

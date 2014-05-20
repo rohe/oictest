@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import os
 import time
 from urlparse import urlparse
 from oauth2test import OAuth2
@@ -37,7 +38,7 @@ KEY_EXPORT_ARGS = {
 }
 
 
-def start_key_server(url):
+def start_key_server(url, script_path):
     part = urlparse(url)
     # start the server
     try:
@@ -46,7 +47,11 @@ def start_key_server(url):
         host = part.netloc
         port = 80
 
-    return start_script(KEY_EXPORT_ARGS["script"], host, port)
+    try:
+        return start_script(KEY_EXPORT_ARGS["script"], host, port)
+    except OSError:
+        _script = os.path.join(script_path, KEY_EXPORT_ARGS["script"])
+        return start_script(_script, host, port)
 
 
 URL_TYPES = ["jwks_uri"]
@@ -67,7 +72,9 @@ class OIC(OAuth2):
         self._parser.add_argument(
             '-e', dest="external_server", action='store_true',
             help="A external web server are used to handle key export")
-
+        self._parser.add_argument(
+            '-S', dest="script_path",
+            help="Path to the script running the static web server")
         self.consumer_class = consumer_class
 
     def parse_args(self):
@@ -240,7 +247,8 @@ class OIC(OAuth2):
             pass
 
         if self.args.internal_server:
-            self._pop = start_key_server(self.cconf["_base_url"])
+            self._pop = start_key_server(self.cconf["_base_url"],
+                                         self.args.script_path or None)
             self.environ["keyprovider"] = self._pop
             self.trace.info("Started key provider")
             time.sleep(1)

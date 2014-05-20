@@ -140,7 +140,7 @@ class Parse(CriticalError):
         else:
             _rmsg = conv.response_message
             cname = _rmsg.type()
-            if conv.response_type != cname:
+            if conv.cresp.response != cname:
                 self._status = self.status
                 self._message = (
                     "Didn't get a response of the type I expected:",

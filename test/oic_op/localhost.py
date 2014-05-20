@@ -12,11 +12,22 @@ info["interaction"] = [
     {
         "matches": {
             "url": "https://localhost:8092/authorization",
+            "title": "OAuth test"
         },
         "page-type": "login",
         "control": {
             "type": "form",
             "set": {"login": "diana", "password": "krall"}
+        }
+    },
+    {
+        "matches": {
+            "url": "https://localhost:8092/authorization",
+            "title": "Submit This Form"
+        },
+        "page-type": "other",
+        "control": {
+            "type": "form",
         }
     }
 ]
