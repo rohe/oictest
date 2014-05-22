@@ -12,11 +12,15 @@ oicTest
 Contents:
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
    install
    howto
-   oictest
+
+.. toctree::
+    :maxdepth: 1
+
+    contents
 
 Indices and tables
 ==================
