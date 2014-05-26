@@ -1027,6 +1027,51 @@ class CheckNonce(Error):
         return {}
 
 
+class CheckResponseMode(CheckSupported):
+    """
+    Checks that the asked for response mode are among the supported
+    """
+    cid = "check-response-mode"
+    msg = "Response mode not supported"
+
+    def _supported(self, request_args, provider_info):
+        _provider_info = provider_info
+        try:
+            supported = _provider_info["response_modes_supported"]
+        except KeyError:  # default set
+            supported = ['query', 'fragment']
+
+        try:
+            val = request_args["response_mode"]
+            if val in supported:
+                return True
+            else:
+                return False
+        except KeyError:
+            pass
+
+        return True
+
+
+class VerifyISS(Error):
+    cid = "verify-iss"
+    msg = "Not the same iss/issuer in the id_token as in the Provider Info"
+
+    def _func(self, conv):
+        # Should be two AccessTokenResponses
+        atr = []
+        instance = conv.protocol_response[-1][0]
+        iss = instance["id_token"]["iss"]
+        issuer = conv.provider_info["issuer"]
+
+        try:
+            assert iss == issuer
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 

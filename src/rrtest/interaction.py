@@ -280,6 +280,12 @@ class Interaction(object):
                     else:
                         raise
 
+        if form.action in kwargs["conv"].my_endpoints():
+            _res = {}
+            for cnt in form.controls:
+                _res[cnt.attrs["name"]] = cnt.attrs["value"]
+            return _res
+
         return self.do_click(form, **kwargs)
 
     #noinspection PyUnusedLocal
@@ -349,17 +355,17 @@ class Interaction(object):
         return self.do_click(form, **kwargs)
 
     #noinspection PyUnusedLocal
-    def parse(self, orig_response, **kwargs):
-        # content is a form from which I get the SAMLResponse
-        response = RResponse(orig_response)
-
-        form = self.pick_form(response, **kwargs)
-        #form.backwards_compatible = False
-        if not form:
-            raise InteractionNeeded("Can't pick a form !!")
-
-        return {"SAMLResponse": form["SAMLResponse"],
-                "RelayState": form["RelayState"]}
+    # def parse(self, orig_response, **kwargs):
+    #     # content is a form from which I get the SAMLResponse
+    #     response = RResponse(orig_response)
+    #
+    #     form = self.pick_form(response, **kwargs)
+    #     #form.backwards_compatible = False
+    #     if not form:
+    #         raise InteractionNeeded("Can't pick a form !!")
+    #
+    #     return {"SAMLResponse": form["SAMLResponse"],
+    #             "RelayState": form["RelayState"]}
 
     #noinspection PyUnusedLocal
     def interaction(self, args):
@@ -403,6 +409,7 @@ class Action(object):
         _args["_trace_"] = trace
         _args["location"] = location
         _args["features"] = features
+        _args["conv"] = conv
 
         if trace:
             trace.reply("FUNCTION: %s" % function.__name__)

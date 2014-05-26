@@ -426,6 +426,12 @@ class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
         AuthorizationRequestCodeIDToken.__init__(self, conv)
         self.request_args["response_type"].append("token")
 
+
+class AuthorizationRequestCodeResponseModeFormPost(AuthorizationRequestCode):
+    def __init__(self, conv=None):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["response_mode"] = "form_post"
+
 # =============================================================================
 
 
@@ -657,6 +663,15 @@ class RegistrationRequestSignEncIDtoken(RegistrationRequest):
                                   CheckEncryptedIDTokenSupportENC])
 
 
+class RegistrationRequestJWKS(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        _client = self.conv.client
+        _client.jwks_uri = None
+        self.request_args["jwks"] = {
+            "keys": _client.keyjar.dump_issuer_keys("")}
+
+
 class ReadRegistration(GetRequest):
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
@@ -857,7 +872,7 @@ class AccessTokenResponse(BodyResponse):
 
     def __init__(self):
         BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse]}
+        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS]}
 
 
 class UserinfoResponse(BodyResponse):
@@ -1004,6 +1019,8 @@ PHASES = {
                               AuthzResponse),
     "oic-login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
                                   AuthzErrResponse),
+    "oic-login-formpost": (AuthorizationRequestCodeResponseModeFormPost,
+                           AuthzResponse),
     #
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
@@ -1051,6 +1068,7 @@ PHASES = {
                                            RegistrationResponse),
     "oic-registration-signed+encrypted_idtoken": (
         RegistrationRequestSignEncIDtoken, RegistrationResponse),
+    "oic-registration-jwks": (RegistrationRequestJWKS, RegistrationResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "provider-info": (ProviderRequest, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
@@ -1759,6 +1777,23 @@ FLOWS = {
                      "access-token-request-other-redirect_uri-3"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-69'],
+    },
+    'mj-74': {
+        "name": 'Registration of static keys',
+        "sequence": ["oic-registration-jwks", "oic-login",
+                     "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-37'],
+        #"tests": [("encrypted-idtoken", {})],
+    },
+    'mj-75': {
+        "name": 'Specifying the authn response to be in the form of a'
+                'form post',
+        "sequence": ["oic-login-formpost",
+                     "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+        #"tests": [("encrypted-idtoken", {})],
     },
 }
 
