@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from jwkest.jwk import SerializationNotPossible
 from oic.oauth2.exception import UnSupported
+from oic.utils.keyio import KeyBundle, dump_jwks
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
@@ -8,6 +9,7 @@ from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
+from rrtest.request import Process
 from rrtest.check import CheckHTTPResponse
 from rrtest.check import VerifyBadRequestResponse
 from rrtest.check import VerifyErrorResponse
@@ -66,6 +68,42 @@ def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
         args["redirect_uris"].append("%scb" % _base)
 
     args["sector_identifier_uri"] = sector_identifier_url
+
+
+# -----------------------------------------------------------------------------
+
+
+class Intermission(Process):
+    def __init__(self):
+        self.delay = 2
+
+    def __call__(self, *args, **kwargs):
+        time.sleep(self.delay)
+        return None
+
+
+class RotateKeys(Process):
+    def __init__(self):
+        self.new_keys = {"RSA": "keys/second.key"}
+        self.kid_template = "b%d"
+        self.jwk_name = "static/jwks.json"
+
+    def __call__(self, conv, **kwargs):
+        kid = 0
+        # only one key
+        for typ, file_name in self.new_keys.items():
+            kb = KeyBundle(source="file://%s" % file_name, fileformat="der",
+                           keytype=typ)
+            for k in kb.keys():
+                k.serialize()
+                k.kid = self.kid_template % kid
+                kid += 1
+                conv.client.kid[k.use][k.kty] = k.kid
+            conv.client.keyjar.add_kb("", kb)
+
+        dump_jwks(conv.client.keyjar[""], self.jwk_name)
+
+# -----------------------------------------------------------------------------
 
 
 class ProviderRequest(GetRequest):
@@ -379,7 +417,6 @@ class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
 
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
     def __init__(self, conv):
-        time.sleep(2)
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["max_age"] = 1
 
@@ -388,6 +425,18 @@ class AuthorizationRequestCodeIDTMaxAge10(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["max_age"] = 10
+
+
+class AuthorizationRequestLocale(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["ui_locales"] = ["se"]
+
+
+class AuthorizationRequestLoginHit(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["login-hint"] = conv.login_hint
 
 
 class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
@@ -839,6 +888,20 @@ class RefreshAccessToken(PostRequest):
         return Request.__call__(self, location, response, content, features,
                                 **kwargs)
 
+
+class RefreshAccessTokenPKJWT(PostRequest):
+    request = "RefreshAccessTokenRequest"
+
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        # make sure there is a refresh_token
+        if "refresh_token" not in self.conv.response_message:
+            raise UnSupported("No refresh_token")
+
+        self.kw_args = {"authn_method": "private_key_jwt"}
+
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 # -----------------------------------------------------------------------------
 
 
@@ -913,7 +976,8 @@ class DResponse(object):
 
 
 class Discover(Operation):
-    tests = {"post": [ProviderConfigurationInfo]}
+    tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
+                      CheckEncSigAlgorithms]}
     conv_param = "provider_info"
     request = None
 
@@ -1029,6 +1093,7 @@ PHASES = {
     "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
     "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
     "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
+    "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
@@ -1080,7 +1145,9 @@ PHASES = {
     "access-token-request-other-redirect_uri-2": (
         AccessTokenRequestModRedirectURI2, req.ErrorResponse),
     "access-token-request-other-redirect_uri-3": (
-        AccessTokenRequestModRedirectURI3, req.ErrorResponse)
+        AccessTokenRequestModRedirectURI3, req.ErrorResponse),
+    "intermission": Intermission,
+    "rotate_keys": RotateKeys
 }
 
 OWNER_OPS = []
@@ -1417,7 +1484,7 @@ FLOWS = {
     'mj-25': {
         "name": 'Requesting ID Token with max_age=1 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_pbh", "oic-login+idtc4",
+                     "user-info-request_pbh", "intermission", "oic-login+idtc4",
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
@@ -1795,6 +1862,16 @@ FLOWS = {
         "depends": ['mj-01'],
         #"tests": [("encrypted-idtoken", {})],
     },
+    'mj-76': {
+        "name": 'Request access token, change RSA key and request another'
+                'access token',
+        "sequence": ["oic-registration-ke_csj", "oic-login",
+                     "access-token-request_pkj", "rotate_keys",
+                     "access-token-refresh_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+        #"tests": [("encrypted-idtoken", {})],
+    }
 }
 
 #Providing Aggregated Claims

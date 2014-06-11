@@ -45,7 +45,7 @@ class Trace(object):
         self.trace.append("%f [WARNING] %s" % (delta, msg))
 
     def __str__(self):
-        return "\n". join([t.encode("utf-8") for t in self.trace])
+        return "\n". join([t.encode("utf-8", 'replace') for t in self.trace])
 
     def clear(self):
         self.trace = []

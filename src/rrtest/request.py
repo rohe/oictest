@@ -68,6 +68,9 @@ class Request(object):
             _req = {}
 
         if request:
+            if request.__name__ == "RegistrationRequest":
+                kwargs["request_args"].update(client.behaviour)
+
             cis = getattr(client, "construct_%s" % request.__name__)(request,
                                                                      **kwargs)
             # Remove parameters with None value
@@ -211,3 +214,9 @@ class PlainResponse(Response):
     where = "body"
     ctype = "text"
     empty_is_ok = True
+
+
+class Process(object):
+    pass
+
+

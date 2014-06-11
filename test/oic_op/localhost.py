@@ -12,7 +12,7 @@ info["interaction"] = [
     {
         "matches": {
             "url": "https://localhost:8092/authorization",
-            "title": "OAuth test"
+            "title": "OpenID Connect provider example"
         },
         "page-type": "login",
         "control": {

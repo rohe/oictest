@@ -9,6 +9,7 @@ from rrtest.check import INTERACTION
 from rrtest.interaction import Interaction
 from rrtest.interaction import Action
 from rrtest.interaction import InteractionNeeded
+from rrtest.request import Process
 from rrtest.status import STATUSCODE
 
 
@@ -262,6 +263,11 @@ class Conversation(object):
             pass
 
         for phase in oper["sequence"]:
+            if not isinstance(phase, tuple):
+                _proc = phase()
+                _proc(self)
+                continue
+
             self.init(phase)
             try:
                 self.do_query()

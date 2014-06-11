@@ -73,7 +73,7 @@ class Conversation(tool.Conversation):
                 ctype = response.headers["content-type"]
                 if ctype == "application/jwt":
                     resp_type = "jwt"
-            except (AttributeError, TypeError):
+            except (AttributeError, TypeError, KeyError):
                 pass
 
             if response.status_code >= 400:

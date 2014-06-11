@@ -11,7 +11,7 @@ info["provider"] = {"dynamic": "https://seed.gluu.org"}
 info["interaction"] = [
     {
         "matches": {
-            "url": "https://seed.gluu.org/oxauth/login.seam"
+            "url": "https://seed.gluu.org/oxauth/login"
         },
         "page-type": "login",
         "control": {
@@ -22,7 +22,7 @@ info["interaction"] = [
     },
     {
         "matches": {
-            "url": "https://seed.gluu.org/oxauth/authorize.seam"
+            "url": "https://seed.gluu.org/oxauth/authorize"
         },
         "page-type": "user-consent",
         "control": {
