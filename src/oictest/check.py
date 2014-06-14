@@ -330,6 +330,43 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     parameter = "id_token_encrypted_response_enc"
 
 
+class CheckSupportedTrue(CriticalError):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-X-support"
+    msg = "X not supported"
+    element = "X"
+
+    def _func(self, conv):
+        res = {}
+        try:
+            assert conv.provider_info[self.element] == "true"
+        except (AssertionError, KeyError):
+            self._status = self.status
+            self._message = self.msg
+
+        return res
+
+
+class CheckRequestParameterSupported(CheckSupportedTrue):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-request-parameter-supported-support"
+    msg = "Request parameter not supported"
+    element = "request_parameter_supported"
+
+
+class CheckRequestURIParameterSupported(CriticalError):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-request-parameter-supported-support"
+    msg = "Request parameter not supported"
+    element = "request_uri_parameter_supported"
+
+
 class CheckTokenEndpointAuthMethod(CriticalError):
     """
     Checks that the token endpoint supports the used Auth type
