@@ -9,7 +9,6 @@ from rrtest.check import INTERACTION
 from rrtest.interaction import Interaction
 from rrtest.interaction import Action
 from rrtest.interaction import InteractionNeeded
-from rrtest.request import Process
 from rrtest.status import STATUSCODE
 
 
@@ -50,6 +49,7 @@ class Conversation(object):
         self.provider_info = self.client.provider_info or {}
         self.interact_done = []
         self.ignore_check = []
+        self.login_page = ""
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
