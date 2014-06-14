@@ -278,7 +278,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
+        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
@@ -299,7 +299,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
+        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
@@ -358,32 +358,40 @@ class AuthorizationRequestCodeScopeAll(AuthorizationRequestCode):
 class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
-
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True}}}
+        self.tests["pre"].append(CheckRequestParameterSupported)
 
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Picture and email optional
-        self.request_args["userinfo_claims"] = {"picture": None, "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"picture": None, "email": None}}
 
 
 class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"name": {"essential": True},
-                                                "picture": None,
-                                                "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True},
+                         "picture": None,
+                         "email": None}}
 
 
 class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"name": {"essential": True},
-                                                "picture": None,
-                                                "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True},
+                         "picture": None,
+                         "email": None}}
         self.request_args["scope"].append("address")
 
 
@@ -391,13 +399,16 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must auth_time
-        self.request_args["idtoken_claims"] = {"auth_time": {"essential": True}}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "id_token": {"auth_time": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"acr": {"values": ["2"]}}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": {"values": ["2"]}}}
         self.tests["pre"].append(CheckAcrSupport)
 
 
@@ -405,14 +416,16 @@ class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"acr": {"essential": True}}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"acr": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": None}}
 
 
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
@@ -442,14 +455,16 @@ class AuthorizationRequestLoginHit(AuthorizationRequestCode):
 class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
+        self.request_args["claims"] = {
+            "id_token": {"email": {"essential": True}}}
 
 
 class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
-        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
+        self.request_args["claims"] = {
+            "id_token": {"email": {"essential": True}},
+            "userinfo": {"name": {"essential": True}}}
 
 
 class AuthorizationRequestCodeToken(AuthorizationRequestCode):
@@ -1001,7 +1016,10 @@ class Discover(Operation):
             self.trace.info("%s" % client.keyjar)
         except SerializationNotPossible:
             pass
+
+        self.trace.info("Provider info: %s" % client.provider_info)
         client.match_preferences(pcr)
+        self.trace.info("Client behavior: %s" % client.behaviour)
         return "", DResponse(status=200, ctype="application/json"), pcr
 
     def post_op(self, result, conv, args):
