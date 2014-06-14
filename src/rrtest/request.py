@@ -1,6 +1,9 @@
-from oic.oauth2 import URL_ENCODED, Message
-from oictest.check import CheckEndpoint
 import requests
+
+from oic.oauth2 import URL_ENCODED
+from oic.oauth2 import Message
+from oic.oic import AuthorizationRequest
+from oictest.check import CheckEndpoint
 from rrtest.check import CheckHTTPResponse
 
 __author__ = 'rolandh'
@@ -12,11 +15,13 @@ class Request(object):
     content_type = URL_ENCODED
     lax = False
     _request_args = {}
+    _request_param = False
     _kw_args = {}
     tests = {"post": [CheckHTTPResponse], "pre": []}
 
     def __init__(self, conv):
         self.request_args = self._request_args.copy()
+        self.request_param = self._request_param
         self.kw_args = self._kw_args.copy()
         self.conv = conv
         self.trace = conv.trace
@@ -66,6 +71,13 @@ class Request(object):
             _req = kwargs["request_args"].copy()
         except KeyError:
             _req = {}
+
+        if request == AuthorizationRequest:
+            try:
+                if self.request_param:
+                    kwargs["request_param"] = self.request_param
+            except KeyError:
+                pass
 
         if request:
             if request.__name__ == "RegistrationRequest":
