@@ -1,6 +1,7 @@
 import json
 import argparse
 import sys
+from oic.exception import PyoidcError
 from oic.oauth2 import UnSupported
 from oic.utils import exception_trace
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -173,6 +174,9 @@ class OAuth2(object):
                     except KeyError:
                         args[arg] = {}
 
+                self.trace.info(
+                    "client preferences: %s" % self.client.client_prefs)
+
                 conv = self.conversation_cls(self.client, self.cconf,
                                              self.trace, interact,
                                              msg_factory=self.msg_factory,
@@ -202,6 +206,12 @@ class OAuth2(object):
                 #     pass
                 # print err
                 #exception_trace("RUN", err)
+            except PyoidcError, err:
+                if err.message:
+                    self.trace.info("Protocol message: %s" % err.message)
+                print >> sys.stderr, self.trace
+                print err
+                exception_trace("RUN", err)
             except Exception, err:
                 print >> sys.stderr, self.trace
                 print err
