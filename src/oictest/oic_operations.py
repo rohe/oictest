@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 from jwkest.jwk import SerializationNotPossible
 from oic.exception import UnSupported
-from oic.utils.keyio import KeyBundle, dump_jwks
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import dump_jwks
+from oic.oauth2.message import SchemeError
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
@@ -1027,7 +1029,15 @@ class Discover(Operation):
             pass
 
         self.trace.info("Provider info: %s" % client.provider_info.to_dict())
-        pcr.verify()
+
+        try:
+            pcr.verify()
+        except SchemeError:
+            if client.allow["no_https_issuer"]:
+                pass
+            else:
+                raise
+
         client.match_preferences(pcr)
         self.trace.info("Client behavior: %s" % client.behaviour)
         return "", DResponse(status=200, ctype="application/json"), pcr
