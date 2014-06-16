@@ -23,6 +23,7 @@ import time
 
 from urllib import urlencode
 from oic.oauth2 import JSON_ENCODED
+from oic.oauth2.message import MissingRequiredAttribute
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -428,6 +429,14 @@ class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
         self.request_args["claims"] = {"id_token": {"acr": None}}
 
 
+class AuthorizationRequestCodeIDTClaimX(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        # Must acr
+        self.request_args["claims"] = {
+            "id_token": {"auth_time": {"essential": True}}}
+
+
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
@@ -656,9 +665,10 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
 
 
 class RegistrationRequest_with_id_token_signed_response_alg(
-    RegistrationRequest):
+        RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
+        conv.client.behaviour["id_token_signed_response_alg"] = "HS256"
         self.request_args["id_token_signed_response_alg"] = "HS256"
         self.tests["pre"].append(CheckSignedIdTokenSupport)
 
@@ -1017,7 +1027,8 @@ class Discover(Operation):
         except SerializationNotPossible:
             pass
 
-        self.trace.info("Provider info: %s" % client.provider_info)
+        self.trace.info("Provider info: %s" % client.provider_info.to_dict())
+        pcr.verify()
         client.match_preferences(pcr)
         self.trace.info("Client behavior: %s" % client.behaviour)
         return "", DResponse(status=200, ctype="application/json"), pcr
@@ -1074,6 +1085,7 @@ PHASES = {
     "oic-login+idtc4": (AuthorizationRequestCodeIDTMaxAge1, AuthzResponse),
     "oic-login+idtc5": (AuthorizationRequestCodeIDTMaxAge10, AuthzResponse),
     "oic-login+idtc7": (AuthorizationRequestCodeIDTEmail, AuthzResponse),
+    "oic-login+idtcX": (AuthorizationRequestCodeIDTClaimX, AuthzResponse),
 
     "oic-login+disp_page": (AuthorizationRequestCodeDisplayPage, AuthzResponse),
     "oic-login+disp_popup": (AuthorizationRequestCodeDisplayPopUp,
@@ -1889,7 +1901,17 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
         #"tests": [("encrypted-idtoken", {})],
-    }
+    },
+    'mj-77': {
+        "name": 'Requesting ID Token with Optional acr Claim',
+        "sequence": ["oic-login+idtcX", "access-token-request",
+                     "user-info-request_pbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-id-token", {"auth_time": "essential"})],
+        "depends": ['mj-01'],
+    },
+
 }
 
 #Providing Aggregated Claims
