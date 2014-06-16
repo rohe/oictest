@@ -374,9 +374,11 @@ class Interaction(object):
             return self.select_form
         elif _type == "link":
             return self.chose
-        elif _type == "response":
-            return self.parse
+        #elif _type == "response":
+        #    return self.parse
         elif _type == "redirect":
+            return self.redirect
+        elif _type == "javascript_redirect":
             return self.redirect
         else:
             return no_func
