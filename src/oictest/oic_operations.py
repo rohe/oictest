@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from jwkest.jwk import SerializationNotPossible
-from oic.oauth2.exception import UnSupported
+from oic.exception import UnSupported
 from oic.utils.keyio import KeyBundle, dump_jwks
 
 import rrtest.request as req
@@ -23,7 +23,6 @@ import time
 
 from urllib import urlencode
 from oic.oauth2 import JSON_ENCODED
-from oic.oauth2.message import MissingRequiredAttribute
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
