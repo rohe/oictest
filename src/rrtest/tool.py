@@ -1,6 +1,7 @@
 import cookielib
 import sys
 import traceback
+from oic.exception import PyoidcError
 
 from rrtest.opfunc import Operation
 from rrtest import FatalError
@@ -49,6 +50,7 @@ class Conversation(object):
         self.provider_info = self.client.provider_info or {}
         self.interact_done = []
         self.ignore_check = []
+        self.login_page = ""
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -199,6 +201,10 @@ class Conversation(object):
                 raise
             except Exception, err:
                 self.err_check("exception", err, False)
+                self.test_output.append(
+                    {"status": 3, "id": "Communication error",
+                     "message": "%s" % err})
+                raise FatalError
 
         self.last_response = _response
         try:
@@ -262,6 +268,11 @@ class Conversation(object):
             pass
 
         for phase in oper["sequence"]:
+            if not isinstance(phase, tuple):
+                _proc = phase()
+                _proc(self)
+                continue
+
             self.init(phase)
             try:
                 self.do_query()
@@ -274,7 +285,11 @@ class Conversation(object):
                 break
             except FatalError:
                 raise
-            except Exception, err:
+            except PyoidcError as err:
+                if err.message:
+                    self.trace.info("Protocol message: %s" % err.message)
+                raise FatalError
+            except Exception as err:
                 #self.err_check("exception", err)
                 raise
 

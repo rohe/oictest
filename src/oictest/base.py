@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from oic.exception import PyoidcError
 from oic.oauth2 import UnSupported
 
 __author__ = 'rohe0002'
@@ -73,7 +74,7 @@ class Conversation(tool.Conversation):
                 ctype = response.headers["content-type"]
                 if ctype == "application/jwt":
                     resp_type = "jwt"
-            except (AttributeError, TypeError):
+            except (AttributeError, TypeError, KeyError):
                 pass
 
             if response.status_code >= 400:
@@ -129,6 +130,10 @@ class Conversation(tool.Conversation):
                     _errtxt = "%s" % err
                     self.trace.error(_errtxt)
                     self.exception = _errtxt
+                    self.test_output.append(
+                        {"status": 4, "id": "OIDC error",
+                         "message": "%s" % err})
+                    raise FatalError
 
         if err:
             if self.accept_exception:
@@ -216,5 +221,12 @@ class Conversation(tool.Conversation):
                 {"status": 2, "id": "Check support",
                  "name": "Verifies that a function is supported"})
             raise
+        except PyoidcError as err:
+            if err.message:
+                self.trace.info("Protocol message: %s" % err.message)
+            self.test_output.append(
+                {"status": 3, "id": "OIDC error",
+                 "message": "%s" % err})
+            raise FatalError
         except Exception, err:
             self.err_check("exception", err)

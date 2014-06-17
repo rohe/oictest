@@ -6,13 +6,15 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-info["provider"] = {"dynamic": "https://localhost:8092/"}
+BASE = "http://localhost:8092"
+
+info["provider"] = {"dynamic": "%s/" % BASE}
 
 info["interaction"] = [
     {
         "matches": {
-            "url": "https://localhost:8092/authorization",
-            "title": "OAuth test"
+            "url": "%s/authorization" % BASE,
+            "title": "OpenID Connect provider example"
         },
         "page-type": "login",
         "control": {
@@ -22,7 +24,7 @@ info["interaction"] = [
     },
     {
         "matches": {
-            "url": "https://localhost:8092/authorization",
+            "url": "%s/authorization" % BASE,
             "title": "Submit This Form"
         },
         "page-type": "other",
@@ -32,4 +34,5 @@ info["interaction"] = [
     }
 ]
 
+info["deviate"] = ["no_https_issuer"]
 print json.dumps(info)

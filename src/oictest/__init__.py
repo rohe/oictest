@@ -190,8 +190,11 @@ class OIC(OAuth2):
 
         if _register:
             for sq in _seq:
-                if sq[0].request == "RegistrationRequest":
-                    _register = False
+                try:
+                    if sq[0].request == "RegistrationRequest":
+                        _register = False
+                except TypeError:
+                    pass
             if _register:
                 _ext = self.operations_mod.PHASES["oic-registration"]
                 _seq.insert(0, _ext)
@@ -199,9 +202,12 @@ class OIC(OAuth2):
                                  "args": {"request": self.register_args()}})
         else:  # don't try to register
             for sq in _seq:
-                if sq[0].request == "RegistrationRequest":
-                    raise Exception(
-                        "RegistrationRequest in the test should not be run")
+                try:
+                    if sq[0].request == "RegistrationRequest":
+                        raise Exception(
+                            "RegistrationRequest in the test should not be run")
+                except TypeError:
+                    pass
 
         if "discovery" not in block:
             if "discovery" in self.features and self.features["discovery"]:
@@ -222,6 +228,11 @@ class OIC(OAuth2):
 
             else:
                 self.trace.info("SERVER CONFIGURATION: %s" % self.pinfo)
+                self.client.provider_info = ProviderConfigurationResponse(
+                    **self.pinfo)
+                if _register:
+                    self.client.prefs = self.json_config["client"]["preferences"]
+                    self.client.match_preferences()
 
     def export(self):
         # has to be there
@@ -231,12 +242,19 @@ class OIC(OAuth2):
             self.client.keyjar = KeyJar()
 
         kbl = []
+        kid_template = "a%d"
+        kid = 0
         for typ, info in self.cconf["keys"].items():
             kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
                            keytype=typ)
+
             for k in kb.keys():
                 k.serialize()
+                k.kid = kid_template % kid
+                kid += 1
+                self.client.kid[k.use][k.kty] = k.kid
             self.client.keyjar.add_kb("", kb)
+
             kbl.append(kb)
 
         try:

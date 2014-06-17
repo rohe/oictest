@@ -22,10 +22,10 @@ DEFAULT = {
         },
         "preferences":{
             "subject_type": "public",
-            "request_object_signing_algs": [
+            "request_object_signing_alg": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],
-            "token_endpoint_auth_methods": [
+            "token_endpoint_auth_method": [
                 "client_secret_basic", "client_secret_post",
                 "client_secret_jwt", "private_key_jwt"],
             "response_types": [
@@ -34,10 +34,10 @@ DEFAULT = {
             ],
             "grant_types":["authorization_code", "implicit", "refresh_token",
                            "urn:ietf:params:oauth:grant-type:jwt-bearer:"],
-            "userinfo_signed_response_algs": [
+            "userinfo_signed_response_alg": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],
-            "id_token_signed_response_algs": [
+            "id_token_signed_response_alg": [
                 "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
             ],
             "default_max_age": 3600,

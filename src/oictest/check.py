@@ -6,10 +6,18 @@ from jwkest.jwe import JWE_RSA
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
+from oictest.regalg import MTI_JWS_ALG
+from oictest.regalg import MTI_JWE_ALG
+from oictest.regalg import MTI_JWE_ENC
+from oictest.regalg import REGISTERED_JWS_ALGORITHMS
+from oictest.regalg import REGISTERED_JWE_alg_ALGORITHMS
+from oictest.regalg import REGISTERED_JWE_enc_ALGORITHMS
 from rrtest import check
 from rrtest import Unknown
 
-from rrtest.check import Check, WARNING
+from rrtest.check import Check
+from rrtest.check import Information
+from rrtest.check import WARNING
 from rrtest.check import CONT_JSON
 from rrtest.check import CONT_JWT
 from rrtest.check import CriticalError
@@ -320,6 +328,43 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     msg = "Id Token enc method not supported"
     element = "id_token_encryption_enc_values_supported"
     parameter = "id_token_encrypted_response_enc"
+
+
+class CheckSupportedTrue(CriticalError):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-X-support"
+    msg = "X not supported"
+    element = "X"
+
+    def _func(self, conv):
+        res = {}
+        try:
+            assert conv.provider_info[self.element] == "true"
+        except (AssertionError, KeyError):
+            self._status = self.status
+            self._message = self.msg
+
+        return res
+
+
+class CheckRequestParameterSupported(CheckSupportedTrue):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-request-parameter-supported-support"
+    msg = "Request parameter not supported"
+    element = "request_parameter_supported"
+
+
+class CheckRequestURIParameterSupported(CriticalError):
+    """
+    Checks that the request parameter is supported
+    """
+    cid = "check-request-parameter-supported-support"
+    msg = "Request parameter not supported"
+    element = "request_uri_parameter_supported"
 
 
 class CheckTokenEndpointAuthMethod(CriticalError):
@@ -1067,6 +1112,120 @@ class VerifyISS(Error):
         try:
             assert iss == issuer
         except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class VerfyMTIEncSigAlgorithms(Information):
+    """
+    Verify that the MTI algorithms appear.
+    """
+    cid = "verify-mti-enc-sig-algorithms"
+    msg = "MTI encryption/signature algorithm missing"
+    status = WARNING
+
+    def _func(self, conv):
+        _provider_info = conv.provider_info
+
+        missing = []
+        for typ in ["id_token", "userinfo", "request_object",
+                    "token_endpoint_auth"]:
+            _claim = "%s_signing_alg_values_supported" % typ
+            for alg in MTI_JWS_ALG:
+                try:
+                    assert alg in _provider_info[_claim]
+                except AssertionError:
+                    _alg = "jws_alg:%s" % alg
+                    if _alg not in missing:
+                        missing.append(_alg)
+
+        for typ in ["id_token", "userinfo", "request_object"]:
+            _claim = "%s_encryption_alg_values_supported" % typ
+            for alg in MTI_JWE_ALG:
+                try:
+                    assert alg in _provider_info[_claim]
+                except AssertionError:
+                    _alg = "jwe_alg:%s" % alg
+                    if _alg not in missing:
+                        missing.append(_alg)
+
+        for typ in ["id_token", "userinfo", "request_object"]:
+            _claim = "%s_encryption_enc_values_supported" % typ
+            for alg in MTI_JWE_ENC:
+                try:
+                    assert alg in _provider_info[_claim]
+                except AssertionError:
+                    _alg = "jwe_enc:%s" % alg
+                    if _alg not in missing:
+                        missing.append(_alg)
+
+        if missing:
+            self._message = "The following MTI algorithms was missing :%s" % (
+                missing,)
+            self._status = self.status
+
+        return {}
+
+
+class CheckEncSigAlgorithms(Information):
+    """
+    Verify that the ENC/SIG algorithms listed are officially registered.
+    """
+    cid = "check-enc-sig-algorithms"
+    msg = "Unofficial algorithm"
+
+    def _func(self, conv):
+        _provider_info = conv.provider_info
+
+        unknown_jws = []
+        for typ in ["id_token", "userinfo", "request_object",
+                    "token_endpoint_auth"]:
+            _claim = "%s_signing_alg_values_supported" % typ
+            for alg in _provider_info[_claim]:
+                try:
+                    assert alg in REGISTERED_JWS_ALGORITHMS
+                except AssertionError:
+                    if alg not in unknown_jws:
+                        unknown_jws.append(alg)
+
+        unknown_jwe_alg = []
+        for typ in ["id_token", "userinfo", "request_object"]:
+            _claim = "%s_encryption_alg_values_supported" % typ
+            for alg in _provider_info[_claim]:
+                try:
+                    assert alg in REGISTERED_JWE_alg_ALGORITHMS
+                except AssertionError:
+                    if alg not in unknown_jwe_alg:
+                        unknown_jwe_alg.append(alg)
+
+        unknown_jwe_enc = []
+        for typ in ["id_token", "userinfo", "request_object"]:
+            _claim = "%s_encryption_enc_values_supported" % typ
+            for alg in _provider_info[_claim]:
+                try:
+                    assert alg in REGISTERED_JWE_enc_ALGORITHMS
+                except AssertionError:
+                    if alg not in unknown_jwe_enc:
+                        unknown_jwe_enc.append(alg)
+
+        if unknown_jws or unknown_jwe_alg or unknown_jwe_enc:
+            _txt = "Used algorithms that are not registered: "
+            flag = False
+            if unknown_jws:
+                _txt += "JWS algorithms:%s" % (unknown_jws,)
+                flag = True
+            if unknown_jwe_alg:
+                if flag:
+                    _txt += ", "
+                _txt += "JWE alg algorithms:%s" % (unknown_jwe_alg,)
+                flag = True
+            if unknown_jwe_enc:
+                if flag:
+                    _txt += ", "
+                _txt += "JWE enc algorithms:%s" % (unknown_jwe_enc,)
+
+            self._message = _txt
             self._status = self.status
 
         return {}

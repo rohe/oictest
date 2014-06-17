@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 from jwkest.jwk import SerializationNotPossible
 from oic.exception import UnSupported
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import dump_jwks
+from oic.oauth2.message import SchemeError
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
@@ -8,6 +11,7 @@ from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
+from rrtest.request import Process
 from rrtest.check import CheckHTTPResponse
 from rrtest.check import VerifyBadRequestResponse
 from rrtest.check import VerifyErrorResponse
@@ -66,6 +70,42 @@ def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
         args["redirect_uris"].append("%scb" % _base)
 
     args["sector_identifier_uri"] = sector_identifier_url
+
+
+# -----------------------------------------------------------------------------
+
+
+class Intermission(Process):
+    def __init__(self):
+        self.delay = 2
+
+    def __call__(self, *args, **kwargs):
+        time.sleep(self.delay)
+        return None
+
+
+class RotateKeys(Process):
+    def __init__(self):
+        self.new_keys = {"RSA": "keys/second.key"}
+        self.kid_template = "b%d"
+        self.jwk_name = "static/jwks.json"
+
+    def __call__(self, conv, **kwargs):
+        kid = 0
+        # only one key
+        for typ, file_name in self.new_keys.items():
+            kb = KeyBundle(source="file://%s" % file_name, fileformat="der",
+                           keytype=typ)
+            for k in kb.keys():
+                k.serialize()
+                k.kid = self.kid_template % kid
+                kid += 1
+                conv.client.kid[k.use][k.kty] = k.kid
+            conv.client.keyjar.add_kb("", kb)
+
+        dump_jwks(conv.client.keyjar[""], self.jwk_name)
+
+# -----------------------------------------------------------------------------
 
 
 class ProviderRequest(GetRequest):
@@ -240,7 +280,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
+        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
@@ -261,7 +301,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
 
         jso = json.loads(unpack(idt)[1])
         user_id = jso["sub"]
-        self.request_args["idtoken_claims"] = {"sub": {"value": user_id}}
+        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
@@ -320,32 +360,40 @@ class AuthorizationRequestCodeScopeAll(AuthorizationRequestCode):
 class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
-
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True}}}
+        self.tests["pre"].append(CheckRequestParameterSupported)
 
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Picture and email optional
-        self.request_args["userinfo_claims"] = {"picture": None, "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"picture": None, "email": None}}
 
 
 class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"name": {"essential": True},
-                                                "picture": None,
-                                                "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True},
+                         "picture": None,
+                         "email": None}}
 
 
 class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must name, may picture and email
-        self.request_args["userinfo_claims"] = {"name": {"essential": True},
-                                                "picture": None,
-                                                "email": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True},
+                         "picture": None,
+                         "email": None}}
         self.request_args["scope"].append("address")
 
 
@@ -353,13 +401,16 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must auth_time
-        self.request_args["idtoken_claims"] = {"auth_time": {"essential": True}}
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "id_token": {"auth_time": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"acr": {"values": ["2"]}}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": {"values": ["2"]}}}
         self.tests["pre"].append(CheckAcrSupport)
 
 
@@ -367,19 +418,28 @@ class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"acr": {"essential": True}}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         # Must acr
-        self.request_args["idtoken_claims"] = {"acr": None}
+        self.request_param = "request"
+        self.request_args["claims"] = {"id_token": {"acr": None}}
+
+
+class AuthorizationRequestCodeIDTClaimX(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        # Must acr
+        self.request_args["claims"] = {
+            "id_token": {"auth_time": {"essential": True}}}
 
 
 class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
     def __init__(self, conv):
-        time.sleep(2)
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["max_age"] = 1
 
@@ -390,17 +450,31 @@ class AuthorizationRequestCodeIDTMaxAge10(AuthorizationRequestCode):
         self.request_args["max_age"] = 10
 
 
+class AuthorizationRequestLocale(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["ui_locales"] = ["se"]
+
+
+class AuthorizationRequestLoginHit(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["login-hint"] = conv.login_hint
+
+
 class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
+        self.request_args["claims"] = {
+            "id_token": {"email": {"essential": True}}}
 
 
 class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["idtoken_claims"] = {"email": {"essential": True}}
-        self.request_args["userinfo_claims"] = {"name": {"essential": True}}
+        self.request_args["claims"] = {
+            "id_token": {"email": {"essential": True}},
+            "userinfo": {"name": {"essential": True}}}
 
 
 class AuthorizationRequestCodeToken(AuthorizationRequestCode):
@@ -592,9 +666,10 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
 
 
 class RegistrationRequest_with_id_token_signed_response_alg(
-    RegistrationRequest):
+        RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
+        conv.client.behaviour["id_token_signed_response_alg"] = "HS256"
         self.request_args["id_token_signed_response_alg"] = "HS256"
         self.tests["pre"].append(CheckSignedIdTokenSupport)
 
@@ -839,6 +914,20 @@ class RefreshAccessToken(PostRequest):
         return Request.__call__(self, location, response, content, features,
                                 **kwargs)
 
+
+class RefreshAccessTokenPKJWT(PostRequest):
+    request = "RefreshAccessTokenRequest"
+
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
+        # make sure there is a refresh_token
+        if "refresh_token" not in self.conv.response_message:
+            raise UnSupported("No refresh_token")
+
+        self.kw_args = {"authn_method": "private_key_jwt"}
+
+        return Request.__call__(self, location, response, content, features,
+                                **kwargs)
 # -----------------------------------------------------------------------------
 
 
@@ -913,7 +1002,8 @@ class DResponse(object):
 
 
 class Discover(Operation):
-    tests = {"post": [ProviderConfigurationInfo]}
+    tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
+                      CheckEncSigAlgorithms]}
     conv_param = "provider_info"
     request = None
 
@@ -937,7 +1027,22 @@ class Discover(Operation):
             self.trace.info("%s" % client.keyjar)
         except SerializationNotPossible:
             pass
+
+        self.trace.info("Provider info: %s" % client.provider_info.to_dict())
+
+        try:
+            pcr.verify()
+        except SchemeError:
+            try:
+                if client.allow["no_https_issuer"]:
+                    pass
+                else:
+                    raise
+            except KeyError:
+                raise
+
         client.match_preferences(pcr)
+        self.trace.info("Client behavior: %s" % client.behaviour)
         return "", DResponse(status=200, ctype="application/json"), pcr
 
     def post_op(self, result, conv, args):
@@ -992,6 +1097,7 @@ PHASES = {
     "oic-login+idtc4": (AuthorizationRequestCodeIDTMaxAge1, AuthzResponse),
     "oic-login+idtc5": (AuthorizationRequestCodeIDTMaxAge10, AuthzResponse),
     "oic-login+idtc7": (AuthorizationRequestCodeIDTEmail, AuthzResponse),
+    "oic-login+idtcX": (AuthorizationRequestCodeIDTClaimX, AuthzResponse),
 
     "oic-login+disp_page": (AuthorizationRequestCodeDisplayPage, AuthzResponse),
     "oic-login+disp_popup": (AuthorizationRequestCodeDisplayPopUp,
@@ -1029,6 +1135,7 @@ PHASES = {
     "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
     "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
     "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
+    "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
@@ -1080,7 +1187,9 @@ PHASES = {
     "access-token-request-other-redirect_uri-2": (
         AccessTokenRequestModRedirectURI2, req.ErrorResponse),
     "access-token-request-other-redirect_uri-3": (
-        AccessTokenRequestModRedirectURI3, req.ErrorResponse)
+        AccessTokenRequestModRedirectURI3, req.ErrorResponse),
+    "intermission": Intermission,
+    "rotate_keys": RotateKeys
 }
 
 OWNER_OPS = []
@@ -1417,7 +1526,7 @@ FLOWS = {
     'mj-25': {
         "name": 'Requesting ID Token with max_age=1 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_pbh", "oic-login+idtc4",
+                     "user-info-request_pbh", "intermission", "oic-login+idtc4",
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
@@ -1795,6 +1904,26 @@ FLOWS = {
         "depends": ['mj-01'],
         #"tests": [("encrypted-idtoken", {})],
     },
+    'mj-76': {
+        "name": 'Request access token, change RSA key and request another'
+                'access token',
+        "sequence": ["oic-registration-ke_csj", "oic-login",
+                     "access-token-request_pkj", "rotate_keys",
+                     "access-token-refresh_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+        #"tests": [("encrypted-idtoken", {})],
+    },
+    'mj-77': {
+        "name": 'Requesting ID Token with Optional acr Claim',
+        "sequence": ["oic-login+idtcX", "access-token-request",
+                     "user-info-request_pbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("verify-id-token", {"auth_time": "essential"})],
+        "depends": ['mj-01'],
+    },
+
 }
 
 #Providing Aggregated Claims
