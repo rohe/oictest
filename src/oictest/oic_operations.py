@@ -1033,9 +1033,12 @@ class Discover(Operation):
         try:
             pcr.verify()
         except SchemeError:
-            if client.allow["no_https_issuer"]:
-                pass
-            else:
+            try:
+                if client.allow["no_https_issuer"]:
+                    pass
+                else:
+                    raise
+            except KeyError:
                 raise
 
         client.match_preferences(pcr)
