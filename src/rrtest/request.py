@@ -114,7 +114,11 @@ class Request(object):
                 request, cis, **_kwargs)
             self.conv.cis.append(cis)
             if h_arg:
-                ht_args.update(h_arg)
+                for key in h_arg:
+                    if key in ht_args:
+                        ht_args[key].update(h_arg[key])
+                    else:
+                        ht_args[key] = h_arg[key]
             # if ht_add:
             #     ht_args.update({"headers": ht_add})
         else:
