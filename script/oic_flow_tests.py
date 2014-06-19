@@ -132,7 +132,7 @@ def test(node, who, host, csv=False):
     #print ">> %s" % node.name
 
     p1 = Popen(["./%s.py" % who], stdout=PIPE)
-    cmd2 = [OICC, "-J", "-", "-H", host, node.name]
+    cmd2 = [OICC, "-e", "-J", "-", "-H", host, node.name]
 
     p2 = Popen(cmd2, stdin=p1.stdout, stdout=PIPE, stderr=PIPE)
     p1.stdout.close()
@@ -198,10 +198,10 @@ def test_all(graph, who, host, csv=False):
 from oictest import KEY_EXPORT_ARGS
 
 
-def run_key_server(server_url, host):
+def run_key_server(server_url, host, script_path="", wdir=""):
     kj = KeyJar()
     _ = key_export(server_url % host, keyjar=kj, **KEY_EXPORT_ARGS)
-    return start_key_server(server_url)
+    return start_key_server(server_url % host, wdir, script_path)
 
 if __name__ == "__main__":
     from oictest.oic_operations import FLOWS
@@ -212,6 +212,10 @@ if __name__ == "__main__":
     _parser.add_argument('-e', dest='extkeysrv', action='store_true')
     _parser.add_argument('-c', dest='csv', action='store_true')
     _parser.add_argument('-l', dest='list', action='store_true')
+    _parser.add_argument('-E', dest='export_path', default="")
+    _parser.add_argument(
+        '-S', dest="script_path",
+        help="Path to the script running the static web server")
     _parser.add_argument('server', nargs=1)
     args = _parser.parse_args()
 
@@ -224,7 +228,13 @@ if __name__ == "__main__":
     if args.extkeysrv:
         _pop = None
     elif "key_export" in _cnf["features"] and _cnf["features"]["key_export"]:
-        _pop = run_key_server(_cnf["client"]["key_export_url"], args.host)
+        if args.script_path:
+            _pop = run_key_server(_cnf["client"]["key_export_url"], args.host,
+                                  script_path=args.script_path,
+                                  wdir=args.export_path)
+        else:
+            _pop = run_key_server(_cnf["client"]["key_export_url"], args.host,
+                                  wdir=args.export_path)
         time.sleep(1)
     else:
         _pop = None
