@@ -1149,7 +1149,7 @@ PHASES = {
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
     "user-info-request_pbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
-                              UserinfoResponse),
+                                   UserinfoResponse),
     "user-info-request_pbb": (UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err": (UserInfoRequestPostBearerHeader_err,
                               req.ErrorResponse),
@@ -1934,7 +1934,16 @@ FLOWS = {
         "tests": [("verify-id-token", {"auth_time": "essential"})],
         "depends": ['mj-01'],
     },
+    'mj-78': {
+        "name": "RP wants signed UserInfo returned",
+        "sequence": ["oic-registration-signed_userinfo", "oic-login",
+                     "access-token-request", "user-info-request_pbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "tests": [("asym-signed-userinfo", {})],
+        "depends": ['mj-01'],
 
+    }
 }
 
 #Providing Aggregated Claims
