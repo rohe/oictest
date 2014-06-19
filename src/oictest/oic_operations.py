@@ -883,6 +883,15 @@ class UserInfoRequestPostBearerHeader(PostRequest):
         self.kw_args = {"authn_method": "bearer_header"}
 
 
+class UserInfoRequestPostBearerHeaderJOSE(PostRequest):
+    request = "UserInfoRequest"
+    accept = "application/jwt"
+
+    def __init__(self, conv):
+        PostRequest.__init__(self, conv)
+        self.kw_args = {"authn_method": "bearer_header"}
+
+
 class UserInfoRequestPostBearerBody(PostRequest):
     request = "UserInfoRequest"
 
@@ -1138,6 +1147,8 @@ PHASES = {
     "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
     #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
+                              UserinfoResponse),
+    "user-info-request_pbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
                               UserinfoResponse),
     "user-info-request_pbb": (UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err": (UserInfoRequestPostBearerHeader_err,
@@ -1773,7 +1784,7 @@ FLOWS = {
     'mj-60': {
         "name": "RP wants signed UserInfo returned",
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", "user-info-request_pbh_jose"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("asym-signed-userinfo", {})],
