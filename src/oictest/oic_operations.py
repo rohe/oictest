@@ -576,7 +576,7 @@ class RegistrationRequest_KeyExpCSJ(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_method"] = "client_secret_jwt"
+        conv.client.behaviour["token_endpoint_auth_method"] = "client_secret_jwt"
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
@@ -596,7 +596,7 @@ class RegistrationRequest_KeyExpCSP(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_method"] = "client_secret_post"
+        conv.client.behaviour["token_endpoint_auth_method"] = "client_secret_post"
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
@@ -616,7 +616,7 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["token_endpoint_auth_method"] = "private_key_jwt"
+        conv.client.behaviour["token_endpoint_auth_method"] = "private_key_jwt"
         self.tests["pre"].append(CheckTokenEndpointAuthMethod)
         #self.export_server = "http://%s:8090/export" % socket.gethostname()
 
@@ -646,21 +646,21 @@ class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
 class RegistrationRequest_with_public_userid(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["subject_type"] = "public"
+        conv.client.behaviour["subject_type"] = "public"
         self.tests["pre"].append(CheckUserIdSupport)
 
 
 class RegistrationRequest_with_userinfo_signed(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["userinfo_signed_response_alg"] = "RS256"
+        conv.client.behaviour["userinfo_signed_response_alg"] = "RS256"
         self.tests["pre"].append(CheckSignedUserInfoSupport)
 
 
 class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        self.request_args["subject_type"] = "pairwise"
+        conv.client.behaviour["subject_type"] = "pairwise"
         self.tests["pre"].append(CheckUserIdSupport)
         store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
 
