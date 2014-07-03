@@ -6,9 +6,7 @@ from jwkest.jwe import JWE_RSA
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
-from oictest.regalg import MTI_JWS_ALG
-from oictest.regalg import MTI_JWE_ALG
-from oictest.regalg import MTI_JWE_ENC
+from oictest.regalg import MTI
 from oictest.regalg import REGISTERED_JWS_ALGORITHMS
 from oictest.regalg import REGISTERED_JWE_alg_ALGORITHMS
 from oictest.regalg import REGISTERED_JWE_enc_ALGORITHMS
@@ -27,6 +25,7 @@ from rrtest.check import ResponseInfo
 from rrtest.check import CRITICAL
 from rrtest.check import ERROR
 from rrtest.check import INTERACTION
+from rrtest.check import INFORMATION
 
 __author__ = 'rohe0002'
 
@@ -1122,40 +1121,18 @@ class VerfyMTIEncSigAlgorithms(Information):
     """
     cid = "verify-mti-enc-sig-algorithms"
     msg = "MTI encryption/signature algorithm missing"
-    status = WARNING
+    status = INFORMATION
 
     def _func(self, conv):
         _provider_info = conv.provider_info
 
         missing = []
-        for typ in ["id_token", "userinfo", "request_object",
-                    "token_endpoint_auth"]:
-            _claim = "%s_signing_alg_values_supported" % typ
-            for alg in MTI_JWS_ALG:
+        for key, algs in MTI.items():
+            for alg in algs:
                 try:
-                    assert alg in _provider_info[_claim]
-                except AssertionError:
-                    _alg = "jws_alg:%s" % alg
-                    if _alg not in missing:
-                        missing.append(_alg)
-
-        for typ in ["id_token", "userinfo", "request_object"]:
-            _claim = "%s_encryption_alg_values_supported" % typ
-            for alg in MTI_JWE_ALG:
-                try:
-                    assert alg in _provider_info[_claim]
-                except AssertionError:
-                    _alg = "jwe_alg:%s" % alg
-                    if _alg not in missing:
-                        missing.append(_alg)
-
-        for typ in ["id_token", "userinfo", "request_object"]:
-            _claim = "%s_encryption_enc_values_supported" % typ
-            for alg in MTI_JWE_ENC:
-                try:
-                    assert alg in _provider_info[_claim]
-                except AssertionError:
-                    _alg = "jwe_enc:%s" % alg
+                    assert alg in _provider_info[key]
+                except (AssertionError, KeyError):
+                    _alg = "%s:%s" % (key, alg)
                     if _alg not in missing:
                         missing.append(_alg)
 

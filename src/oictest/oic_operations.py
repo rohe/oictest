@@ -4,6 +4,7 @@ from oic.exception import UnSupported
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.oauth2.message import SchemeError
+from oic.utils.webfinger import OIC_ISSUER, WebFinger
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
@@ -24,7 +25,7 @@ __author__ = 'rohe0002'
 import time
 
 from urllib import urlencode
-from oic.oauth2 import JSON_ENCODED
+from oic.oauth2 import JSON_ENCODED, PBase
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -753,6 +754,20 @@ class RegistrationRequestJWKS(RegistrationRequest):
             "keys": _client.keyjar.dump_issuer_keys("")}
 
 
+class RegistrationRequestNoResponseTypes(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        del conv.client.behaviour["response_types"]
+        #self.request_args["response_types"] = None
+
+
+class RegistrationRequestResponseTypesToken(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        conv.client.behaviour["response_types"] = ["token"]
+        self.request_args["response_types"] = ["token"]
+
+
 class ReadRegistration(GetRequest):
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
@@ -1030,13 +1045,13 @@ class Discover(Operation):
 
     def discover(self, client, orig_response="", content="", issuer="",
                  **kwargs):
+        # Allow statically over-riding dynamic info
+        over_ride = client.provider_info
         pcr = client.provider_config(issuer)
-        # if len(client.provider_info) == 2 and "" in client.provider_info.keys():
-        #     _di = client.provider_info[""]
-        #     del client.provider_info[""]
-        #     client.provider_info.values()[0].update(_di)
-        #     client.handle_provider_config(pcr, issuer)
-        #     self.do_postop = False
+        if over_ride:
+            pcr.update(over_ride)
+            for key, val in over_ride.items():
+                setattr(client, key, val)
 
         try:
             self.trace.info("%s" % client.keyjar)
@@ -1071,6 +1086,23 @@ class Discover(Operation):
                 setattr(conv, self.conv_param, result[2].to_dict())
             else:
                 attr.update(result[2].to_dict())
+
+
+class Webfinger(Operation):
+    #tests = {"post": [OidcIssuer]}
+    request = None
+
+    def __init__(self, conv, **kwargs):
+        Operation.__init__(self, conv, **kwargs)
+        self.request = "WebFinger"
+        self.function = self.discover
+        self.do_postop = False
+
+    @staticmethod
+    def discover(*arg, **kwargs):
+        wf = WebFinger(OIC_ISSUER)
+        wf.httpd = PBase()
+        wf.discovery_query(kwargs["principal"])
 
 # ===========================================================================
 
@@ -1193,6 +1225,10 @@ PHASES = {
     "oic-registration-signed+encrypted_idtoken": (
         RegistrationRequestSignEncIDtoken, RegistrationResponse),
     "oic-registration-jwks": (RegistrationRequestJWKS, RegistrationResponse),
+    "oic-registration-no_response_type": (RegistrationRequestNoResponseTypes,
+                                          RegistrationResponse),
+    "oic-registration-response_type-token": (
+        RegistrationRequestResponseTypesToken, RegistrationResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "provider-info": (ProviderRequest, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
