@@ -1003,8 +1003,7 @@ class CheckSignedEncryptedIDToken(Error):
                     break
 
                 dkeys = client.keyjar.get_decrypt_key(owner="")
-                txt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key,
-                                        "private")
+                txt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
                 _tmp = unpack(txt)[0]
                 try:
                     assert _tmp["alg"] == "RS256"

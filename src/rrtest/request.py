@@ -13,6 +13,7 @@ class Request(object):
     request = ""
     method = ""
     content_type = URL_ENCODED
+    accept = None
     lax = False
     _request_args = {}
     _request_param = False
@@ -105,7 +106,8 @@ class Request(object):
 
         if request:
             _kwargs = {"method": self.method, "request_args": _req,
-                       "content_type": self.content_type}
+                       "content_type": self.content_type,
+                       "accept": self.accept}
 
             if e_arg["endpoint"]:
                 _kwargs["endpoint"] = e_arg["endpoint"]
@@ -114,7 +116,11 @@ class Request(object):
                 request, cis, **_kwargs)
             self.conv.cis.append(cis)
             if h_arg:
-                ht_args.update(h_arg)
+                for key in h_arg:
+                    if key in ht_args:
+                        ht_args[key].update(h_arg[key])
+                    else:
+                        ht_args[key] = h_arg[key]
             # if ht_add:
             #     ht_args.update({"headers": ht_add})
         else:

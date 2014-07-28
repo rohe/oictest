@@ -72,7 +72,7 @@ class Conversation(tool.Conversation):
         else:
             try:
                 ctype = response.headers["content-type"]
-                if ctype == "application/jwt":
+                if "application/jwt" in ctype:
                     resp_type = "jwt"
             except (AttributeError, TypeError, KeyError):
                 pass

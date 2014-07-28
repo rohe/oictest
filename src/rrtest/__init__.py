@@ -58,14 +58,17 @@ class Trace(object):
             yield line
 
 
-def start_script(path, *args):
+def start_script(path, wdir="", *args):
     if not path.startswith("/"):
         popen_args = ["./" + path]
     else:
         popen_args = [path]
 
     popen_args.extend(args)
-    return Popen(popen_args, stdout=PIPE, stderr=PIPE)
+    if wdir:
+        return Popen(popen_args, stdout=PIPE, stderr=PIPE, cwd=wdir)
+    else:
+        return Popen(popen_args, stdout=PIPE, stderr=PIPE)
 
 
 def stop_script_by_name(name):

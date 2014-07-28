@@ -38,7 +38,15 @@ KEY_EXPORT_ARGS = {
 }
 
 
-def start_key_server(url, script_path):
+def start_key_server(url, wdir="", script_path=""):
+    """
+
+    :param url: Export URL
+    :param wdir: Working directory for the web server
+    :param script_path: Where the script that starts the web server can be
+    found
+    :return:
+    """
     part = urlparse(url)
     # start the server
     try:
@@ -47,11 +55,16 @@ def start_key_server(url, script_path):
         host = part.netloc
         port = 80
 
-    try:
-        return start_script(KEY_EXPORT_ARGS["script"], host, port)
-    except OSError:
+    if script_path:
         _script = os.path.join(script_path, KEY_EXPORT_ARGS["script"])
-        return start_script(_script, host, port)
+    else:
+        _script = KEY_EXPORT_ARGS["script"]
+
+    try:
+        return start_script(_script, wdir, host, port)
+    except OSError:
+        wdir = os.getcwd()
+        return start_script(_script, wdir, host, port)
 
 
 URL_TYPES = ["jwks_uri"]
