@@ -36,22 +36,22 @@ class OAuth2(object):
                                   help="Print runtime information")
         self._parser.add_argument(
             '-C', dest="ca_certs",
-            help=("CA certs to use to verify HTTPS server certificates,",
-                  "if HTTPS is used and no server CA certs are defined then",
-                  " no cert verification is done"))
+            help="CA certs to use to verify HTTPS server certificates,"
+                 "if HTTPS is used and no server CA certs are defined then"
+                 " no cert verification is done")
         self._parser.add_argument('-J', dest="json_config_file",
                                   help="Script configuration")
         self._parser.add_argument(
             '-I', dest="interactions",
-            help=("Extra interactions not defined in the script ",
-                  "configuration file"))
+            help="Extra interactions not defined in the script "
+                 "configuration file")
         self._parser.add_argument(
             "-l", dest="list", action="store_true",
             help="List all the test flows as a JSON object")
         self._parser.add_argument(
             "-H", dest="host",
-            help=("Which host the script is running on, used to construct the ",
-                  "key export URL"))
+            help="Which host the script is running on, used to construct the "
+                 "key export URL")
         self._parser.add_argument(
             "-x", dest="not_verify_ssl", action="store_true",
             help="Don't verify SSL certificates")
