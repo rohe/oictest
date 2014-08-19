@@ -49,8 +49,17 @@ REGISTERED_ALGORITHMS = REGISTERED_JWS_ALGORITHMS.keys()
 REGISTERED_ALGORITHMS.extend(REGISTERED_JWE_alg_ALGORITHMS.keys())
 REGISTERED_ALGORITHMS.extend(REGISTERED_JWE_enc_ALGORITHMS.keys())
 
-MTI_JWS_ALG = ["RS256", "none"]
-MTI_JWE_ALG = []
-MTI_JWE_ENC = ["A128CBC-HS256"]
+MTI = {
+    "id_token_signing_alg_values_supported": ["RS256"],
+    "id_token_encryption_alg_values_supported": [],
+    "id_token_encryption_enc_values_supported": ["A128CBC-HS256"],
+    "userinfo_signing_alg_values_supported": [],
+    "userinfo_encryption_alg_values_supported": [],
+    "userinfo_encryption_enc_values_supported": [],
+    "request_object_signing_alg_values_supported": ["RS256", "none"],
+    "request_object_encryption_alg_values_supported": [],
+    "request_object_encryption_enc_values_supported": ["A128CBC-HS256"],
+    "token_endpoint_auth_signing_alg_values_supported": ["RS256"]
+}
 
 # Self-issued OP request RSA1_5
