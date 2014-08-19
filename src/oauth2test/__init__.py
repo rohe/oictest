@@ -55,6 +55,21 @@ class OAuth2(object):
         self._parser.add_argument(
             "-x", dest="not_verify_ssl", action="store_true",
             help="Don't verify SSL certificates")
+        self._parser.add_argument(
+            '-B', dest="bailout",
+            help="When user interaction is needed but not supported: break and"
+                 "dump state to file")
+        self._parser.add_argument(
+            '-Ki', dest="cookie_imp",
+            help="File from which to import authentication/authz cookies"
+        )
+        self._parser.add_argument(
+            '-Ke', dest="cookie_exp",
+            help="File to export authentication/authz cookies to"
+        )
+        self._parser.add_argument(
+            '-R', dest="restart",
+            help="Restart test flow, resetting state to what's in the file")
         self._parser.add_argument("flow", nargs="?",
                                   help="Which test flow to run")
 
@@ -67,6 +82,8 @@ class OAuth2(object):
         self.test_log = []
         self.environ = {}
         self._pop = None
+        self.json_config = None
+        self.features = {}
 
     def parse_args(self):
         self.json_config = self.json_config_file()
@@ -74,7 +91,7 @@ class OAuth2(object):
         try:
             self.features = self.json_config["features"]
         except KeyError:
-            self.features = {}
+            pass
 
         self.pinfo = self.provider_info()
 
@@ -144,10 +161,11 @@ class OAuth2(object):
 
             self.parse_args()
             _spec = self.make_sequence()
+            _spec["flow"] = flow_spec["sequence"]
             interact = self.get_interactions()
 
             try:
-                self.do_features(interact, _spec["sequence"], block)
+                self.do_features(interact, _spec, block)
             except Exception, exc:
                 exception_trace("do_features", exc)
                 return
@@ -167,7 +185,15 @@ class OAuth2(object):
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
 
-                args = {}
+                args = {"break": self.args.bailout}
+                for arg in ["cookie_imp", "cookie_exp"]:
+                    try:
+                        val = getattr(self.args, arg)
+                    except AttributeError:
+                        continue
+                    else:
+                        args[arg] = val
+
                 for arg in ["extra_args", "kwargs_mod"]:
                     try:
                         args[arg] = self.json_config[arg]
@@ -187,6 +213,9 @@ class OAuth2(object):
                     conv.ignore_check = self.json_config["ignore_check"]
                 except KeyError:
                     pass
+
+                if self.args.restart:
+                    conv.restore_state(self.args.restart)
 
                 conv.do_sequence(_spec)
                 #testres, trace = do_sequence(oper,

@@ -1,7 +1,9 @@
 import cookielib
+import json
 import sys
 import traceback
 from oic.exception import PyoidcError
+from oic.oic import ProviderConfigurationResponse, RegistrationResponse
 
 from rrtest.opfunc import Operation
 from rrtest import FatalError
@@ -37,9 +39,9 @@ class Conversation(object):
         self.expect_exception = expect_exception
         self.extra_args = extra_args
 
-        self.cjar = {"browser": cookielib.CookieJar(),
-                     "rp": cookielib.CookieJar(),
-                     "service": cookielib.CookieJar()}
+        self.cjar = {"browser": cookielib.MozillaCookieJar(),
+                     "rp": cookielib.MozillaCookieJar(),
+                     "service": cookielib.MozillaCookieJar()}
 
         self.protocol_response = []
         self.last_response = None
@@ -51,6 +53,15 @@ class Conversation(object):
         self.interact_done = []
         self.ignore_check = []
         self.login_page = ""
+        self.sequence = {}
+        self.flow_index = 0
+        self.position = None
+        self.request_args = {}
+        self.args = {}
+        self.creq = None
+        self.cresp = None
+        self.req = None
+        self.request_spec = None
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -168,6 +179,10 @@ class Conversation(object):
                 #    raise InteractionNeeded("Same interaction twice")
                 #self.interact_done.append(_spec)
             except InteractionNeeded:
+                if self.extra_args["break"]:
+                    self.dump_state(self.extra_args["break"])
+                    exit(2)
+
                 self.position = url
                 self.trace.error("Page Content: %s" % content)
                 raise
@@ -197,6 +212,7 @@ class Conversation(object):
 
                 if _response.status_code >= 400:
                     break
+
             except (FatalError, InteractionNeeded):
                 raise
             except Exception, err:
@@ -262,18 +278,29 @@ class Conversation(object):
             self.handle_result()
 
     def do_sequence(self, oper):
+        self.sequence = oper
         try:
             self.test_sequence(oper["tests"]["pre"])
         except KeyError:
             pass
 
-        for phase in oper["sequence"]:
+        for i in range(self.flow_index, len(oper["sequence"])):
+            phase = oper["sequence"][i]
+            flow = oper["flow"][i]
+            self.flow_index = i
+
+            self.trace.info(flow)
             if not isinstance(phase, tuple):
                 _proc = phase()
                 _proc(self)
                 continue
 
             self.init(phase)
+            if self.extra_args["cookie_imp"]:
+                if self.creq.request == "AuthorizationRequest":
+                    self.client.load_cookies_from_file(
+                        self.extra_args["cookie_imp"])
+
             try:
                 self.do_query()
             except InteractionNeeded:
@@ -292,8 +319,70 @@ class Conversation(object):
             except Exception as err:
                 #self.err_check("exception", err)
                 raise
+            else:
+                if self.extra_args["cookie_exp"]:
+                    if self.request_spec.request == "AuthorizationRequest":
+                        self.cjar["browser"].save(
+                            self.extra_args["cookie_exp"], ignore_discard=True)
 
         try:
             self.test_sequence(oper["tests"]["post"])
         except KeyError:
             pass
+
+    def dump_state(self, filename):
+        state = {
+            "client": {
+                "behaviour": self.client.behaviour,
+                "keyjar": self.client.keyjar.dump(),
+                "provider_info": self.client.provider_info.to_json(),
+                "client_id": self.client.client_id,
+                "client_secret": self.client.client_secret,
+            },
+            "trace_log": {"start": self.trace.start, "trace": self.trace.trace},
+            "sequence": self.sequence["flow"],
+            "flow_index": self.flow_index,
+            "client_config": self.client_config,
+            "test_output": self.test_output
+        }
+
+        try:
+            state["client"][
+                "registration_resp"] = self.client.registration_response.to_json()
+        except AttributeError:
+            pass
+
+        txt = json.dumps(state)
+        _fh = open(filename, "w")
+        _fh.write(txt)
+        _fh.close()
+
+    def restore_state(self, filename):
+        txt = open(filename).read()
+        state = json.loads(txt)
+        self.trace.start = state["trace_log"]["start"]
+        self.trace.trace = state["trace_log"]["trace"]
+        self.flow_index = state["flow_index"]
+        self.client_config = state["client_config"]
+        self.test_output = state["test_output"]
+
+        self.client.behaviour = state["client"]["behaviour"]
+        self.client.keyjar.restore(state["client"]["keyjar"])
+        pcr = ProviderConfigurationResponse().from_json(
+            state["client"]["provider_info"])
+        self.client.provider_info = pcr
+        self.client.client_id = state["client"]["client_id"]
+        self.client.client_secret = state["client"]["client_secret"]
+
+        for key, val in pcr.items():
+            if key.endswith("_endpoint"):
+                setattr(self.client, key, val)
+
+        try:
+            self.client.registration_response = RegistrationResponse().from_json(
+                state["client"]["registration_resp"])
+        except KeyError:
+            pass
+
+    def restart(self, state):
+        pass
