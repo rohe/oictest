@@ -1429,12 +1429,12 @@ FLOWS = {
     #        "sequence": ["oic-login-nonce"],
     #        "endpoints": ["authorization_endpoint"]
     #    },
-    'mj-02': {
-        "name": 'Request with response_type=token',
-        "sequence": ["oic-login-token"],
-        "endpoints": ["authorization_endpoint"],
-        "depends": ['mj-01']
-    },
+    # 'mj-02': {
+    #     "name": 'Request with response_type=token',
+    #     "sequence": ["oic-login-token"],
+    #     "endpoints": ["authorization_endpoint"],
+    #     "depends": ['mj-01']
+    # },
     'mj-03': {
         "name": 'Request with response_type=id_token',
         "sequence": ["oic-login-idtoken"],
@@ -1753,7 +1753,7 @@ FLOWS = {
         "name": 'Login no nonce',
         "sequence": ["oic-login-no-nonce"],
         "endpoints": ["authorization_endpoint"],
-        "depends": ['mj-02'],
+        "depends": ['mj-01'],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
     },
