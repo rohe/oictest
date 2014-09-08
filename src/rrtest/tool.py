@@ -23,7 +23,7 @@ class Conversation(object):
     :param response: The received HTTP messages
     :param protocol_response: List of the received protocol messages
     """
-    
+
     def __init__(self, client, config, trace, interaction,
                  check_factory=None, msg_factory=None,
                  features=None, verbose=False, expect_exception=None,
@@ -62,6 +62,7 @@ class Conversation(object):
         self.cresp = None
         self.req = None
         self.request_spec = None
+        self.last_url = ""
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -153,13 +154,15 @@ class Conversation(object):
                     break
                 else:
                     try:
-                        _response = self.client.send(url, "GET")
+                        _response = self.client.send(
+                            url, "GET", headers={"Referer": self.last_url})
                     except Exception, err:
                         raise FatalError("%s" % err)
 
                     content = _response.text
                     self.trace.reply("CONTENT: %s" % content)
                     self.position = url
+                    self.last_url = url
                     self.last_content = content
                     self.response = _response
 
