@@ -306,6 +306,10 @@ class Conversation(object):
                             self.extra_args["cookie_imp"])
                     except Exception:
                         self.trace.error("Could not import cookies from file")
+            if self.extra_args["login_cookies"]:
+                self.client.cookiejar = self.cjar["browser"]
+                self.client.load_cookies_from_file(
+                    self.extra_args["login_cookies"].name)
 
             try:
                 self.do_query()

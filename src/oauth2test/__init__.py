@@ -1,4 +1,5 @@
 import json
+from tempfile import NamedTemporaryFile
 import argparse
 import sys
 from oic.exception import PyoidcError
@@ -194,6 +195,10 @@ class OAuth2(object):
                     else:
                         args[arg] = val
 
+                cf = self.get_login_cookies()
+                if cf:
+                    args["login_cookies"] = cf
+
                 for arg in ["extra_args", "kwargs_mod"]:
                     try:
                         args[arg] = self.json_config[arg]
@@ -370,14 +375,21 @@ class OAuth2(object):
             except KeyError:
                 pass
 
-        #if self.args.interactions:
-        #    _int = self.args.interactions.replace("\'", '"')
-        #    if interactions:
-        #        interactions.update(json.loads(_int))
-        #    else:
-        #        interactions = json.loads(_int)
-
         return interactions
+
+    def get_login_cookies(self):
+        ntf = None
+
+        if self.json_config:
+            try:
+                cookies = self.json_config["login_cookies"]
+                ntf = NamedTemporaryFile(suffix="")
+                ntf.write(cookies)
+                ntf.seek(0)
+            except KeyError:
+                pass
+
+        return ntf
 
     def get_test(self):
         if self.args.flow:
