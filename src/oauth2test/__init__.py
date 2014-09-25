@@ -1,4 +1,5 @@
 import json
+from tempfile import NamedTemporaryFile
 import argparse
 import sys
 from oic.exception import PyoidcError
@@ -36,25 +37,40 @@ class OAuth2(object):
                                   help="Print runtime information")
         self._parser.add_argument(
             '-C', dest="ca_certs",
-            help=("CA certs to use to verify HTTPS server certificates,",
-                  "if HTTPS is used and no server CA certs are defined then",
-                  " no cert verification is done"))
+            help="CA certs to use to verify HTTPS server certificates,"
+                 "if HTTPS is used and no server CA certs are defined then"
+                 " no cert verification is done")
         self._parser.add_argument('-J', dest="json_config_file",
                                   help="Script configuration")
         self._parser.add_argument(
             '-I', dest="interactions",
-            help=("Extra interactions not defined in the script ",
-                  "configuration file"))
+            help="Extra interactions not defined in the script "
+                 "configuration file")
         self._parser.add_argument(
             "-l", dest="list", action="store_true",
             help="List all the test flows as a JSON object")
         self._parser.add_argument(
             "-H", dest="host",
-            help=("Which host the script is running on, used to construct the ",
-                  "key export URL"))
+            help="Which host the script is running on, used to construct the "
+                 "key export URL")
         self._parser.add_argument(
             "-x", dest="not_verify_ssl", action="store_true",
             help="Don't verify SSL certificates")
+        self._parser.add_argument(
+            '-B', dest="bailout",
+            help="When user interaction is needed but not supported: break and"
+                 "dump state to file")
+        self._parser.add_argument(
+            '-Ki', dest="cookie_imp",
+            help="File from which to import authentication/authz cookies"
+        )
+        self._parser.add_argument(
+            '-Ke', dest="cookie_exp",
+            help="File to export authentication/authz cookies to"
+        )
+        self._parser.add_argument(
+            '-R', dest="restart",
+            help="Restart test flow, resetting state to what's in the file")
         self._parser.add_argument("flow", nargs="?",
                                   help="Which test flow to run")
 
@@ -67,6 +83,8 @@ class OAuth2(object):
         self.test_log = []
         self.environ = {}
         self._pop = None
+        self.json_config = None
+        self.features = {}
 
     def parse_args(self):
         self.json_config = self.json_config_file()
@@ -74,7 +92,7 @@ class OAuth2(object):
         try:
             self.features = self.json_config["features"]
         except KeyError:
-            self.features = {}
+            pass
 
         self.pinfo = self.provider_info()
 
@@ -144,10 +162,11 @@ class OAuth2(object):
 
             self.parse_args()
             _spec = self.make_sequence()
+            _spec["flow"] = flow_spec["sequence"]
             interact = self.get_interactions()
 
             try:
-                self.do_features(interact, _spec["sequence"], block)
+                self.do_features(interact, _spec, block)
             except Exception, exc:
                 exception_trace("do_features", exc)
                 return
@@ -167,7 +186,19 @@ class OAuth2(object):
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
 
-                args = {}
+                args = {"break": self.args.bailout}
+                for arg in ["cookie_imp", "cookie_exp"]:
+                    try:
+                        val = getattr(self.args, arg)
+                    except AttributeError:
+                        continue
+                    else:
+                        args[arg] = val
+
+                cf = self.get_login_cookies()
+                if cf:
+                    args["login_cookies"] = cf
+
                 for arg in ["extra_args", "kwargs_mod"]:
                     try:
                         args[arg] = self.json_config[arg]
@@ -187,6 +218,9 @@ class OAuth2(object):
                     conv.ignore_check = self.json_config["ignore_check"]
                 except KeyError:
                     pass
+
+                if self.args.restart:
+                    conv.restore_state(self.args.restart)
 
                 conv.do_sequence(_spec)
                 #testres, trace = do_sequence(oper,
@@ -341,14 +375,21 @@ class OAuth2(object):
             except KeyError:
                 pass
 
-        #if self.args.interactions:
-        #    _int = self.args.interactions.replace("\'", '"')
-        #    if interactions:
-        #        interactions.update(json.loads(_int))
-        #    else:
-        #        interactions = json.loads(_int)
-
         return interactions
+
+    def get_login_cookies(self):
+        ntf = None
+
+        if self.json_config:
+            try:
+                cookies = self.json_config["login_cookies"]
+                ntf = NamedTemporaryFile(suffix="")
+                ntf.write(cookies)
+                ntf.seek(0)
+            except KeyError:
+                pass
+
+        return ntf
 
     def get_test(self):
         if self.args.flow:

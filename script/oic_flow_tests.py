@@ -72,7 +72,7 @@ def sort_flows_into_graph(flows, grp):
     else:
         remains = flows.keys()
     while remains:
-        for flow in remains:
+        for flow in remains[:]:
             spec = flows[flow]
             if "depends" in spec:
                 flag = False
@@ -185,7 +185,7 @@ def recursively_test(node, who, host, csv=False):
 
     #print "node.state: %s" % node.state
 
-    if node.state == STATUSCODE[1]:
+    if node.state in STATUSCODE[0:3]:
         test_all(node.children, who, host, csv)
 
 

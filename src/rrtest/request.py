@@ -128,6 +128,7 @@ class Request(object):
             url = e_arg["endpoint"]
             body = ""
 
+        self.conv.last_url = url
         if e_arg["http_authz"]:
             ht_args["auth"] = e_arg["http_authz"]
 

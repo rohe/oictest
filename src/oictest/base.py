@@ -211,7 +211,7 @@ class Conversation(tool.Conversation):
             try:
                 if not self.test_sequence(self.req.tests["post"]):
                     self.position = None
-            except KeyError:
+            except KeyError as err:
                 pass
         except FatalError:
             raise

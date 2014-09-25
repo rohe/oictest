@@ -175,7 +175,7 @@ class OIC(OAuth2):
 
             self.trace.info("REGISTRATION INFORMATION: %s" % self.reg_resp)
 
-    def do_features(self, interact, _seq, block):
+    def do_features(self, interact, _spec, block):
         try:
             self.cconf["_base_url"] = self.cconf["key_export_url"] % (
                 self.args.host,)
@@ -201,6 +201,8 @@ class OIC(OAuth2):
         else:
             _register = False
 
+        _seq = _spec["sequence"]
+        _flow = _spec["flow"]
         if _register:
             for sq in _seq:
                 try:
@@ -211,6 +213,7 @@ class OIC(OAuth2):
             if _register:
                 _ext = self.operations_mod.PHASES["oic-registration"]
                 _seq.insert(0, _ext)
+                _flow.insert(0, "oic-registration")
                 interact.append({"matches": {"class": "RegistrationRequest"},
                                  "args": {"request": self.register_args()}})
         else:  # don't try to register
@@ -234,6 +237,7 @@ class OIC(OAuth2):
                 op_spec = self.operations_mod.PHASES["provider-discovery"]
                 if op_spec not in _seq:
                     _seq.insert(0, op_spec)
+                    _flow.insert(0, "provider-discovery")
                 interact.append({
                     "matches": {"class": op_spec[0].__name__},
                     "args": {"issuer":

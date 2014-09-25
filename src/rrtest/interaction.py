@@ -231,7 +231,8 @@ class Interaction(object):
         else:
             request = form.click()
 
-        headers = {}
+        headers = {"Referer": kwargs["location"]}
+
         for key, val in request.unredirected_hdrs.items():
             headers[key] = val
 
