@@ -1,9 +1,8 @@
 
 .. _install:
 
-*******************
-Quick install guide
-*******************
+Install
+*******
 
 Installing OICTest should be straight forward
 

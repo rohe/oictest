@@ -334,6 +334,7 @@ This is the documentation of the scripts arguments::
       -i                   Whether or not an internal web server to handle key
                            export should be forked
       -e                   A external web server are used to handle key export
+      -x                   Turns the verification of the target certificates off.
 
 Interpreting the test output
 ============================
