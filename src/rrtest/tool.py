@@ -302,14 +302,17 @@ class Conversation(object):
             if self.extra_args["cookie_imp"]:
                 if self.creq.request == "AuthorizationRequest":
                     try:
-                        self.client.load_cookies_from_file(
-                            self.extra_args["cookie_imp"])
+                        self.cjar['browser'].load(self.extra_args["cookie_imp"])
                     except Exception:
                         self.trace.error("Could not import cookies from file")
-            if self.extra_args["login_cookies"]:
-                self.client.cookiejar = self.cjar["browser"]
-                self.client.load_cookies_from_file(
-                    self.extra_args["login_cookies"].name)
+
+            try:
+                if self.extra_args["login_cookies"]:
+                    self.client.cookiejar = self.cjar["browser"]
+                    self.client.load_cookies_from_file(
+                        self.extra_args["login_cookies"].name)
+            except KeyError:
+                pass
 
             try:
                 self.do_query()
