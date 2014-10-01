@@ -1257,7 +1257,7 @@ FLOWS = {
     },
 
     'oic-discovery': {
-        "name": 'Support WebFinger discovery',
+        "name": 'Provider configuration discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
         "sequence": [],  # discovery will be auto-magically added
         "endpoints": [],
@@ -1525,7 +1525,7 @@ FLOWS = {
         "depends": ['mj-12'],
     },
     'mj-19': {
-        "name": 'Claims Request with Essential name Claim',
+        "name": 'OpenID Request Object with Required name Claim',
         "sequence": ["oic-login+spec1", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1533,7 +1533,7 @@ FLOWS = {
         "depends": ['mj-12'],
     },
     'mj-20': {
-        "name": 'Claims Request with Voluntary email and picture Claims',
+        "name": 'OpenID Request Object with Optional email and picture Claim',
         "sequence": ["oic-login+spec2", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1542,7 +1542,7 @@ FLOWS = {
     },
     'mj-21': {
         "name": (
-            'Claims Request with Required name and Voluntary email and picture Claims'),
+            'OpenID Request Object with Required name and Optional email and picture Claim'),
         "sequence": ["oic-login+spec3", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1550,7 +1550,7 @@ FLOWS = {
         "depends": ['mj-12'],
     },
     'mj-22': {
-        "name": 'Requesting ID Token with Essential auth_time Claim',
+        "name": 'Requesting ID Token with auth_time Claim',
         "sequence": ["oic-login+idtc1", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1568,7 +1568,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-24': {
-        "name": 'Requesting ID Token with Voluntary acr Claim',
+        "name": 'Requesting ID Token with Optional acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1709,7 +1709,7 @@ FLOWS = {
         "depends": ["mj-00"],
     },
     'mj-43': {
-        "name": "No redirect_uri in request, one registered",
+        "name": "No redirect_uri in request",
         "sequence": ["oic-registration", "oic-login-no-redirect-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "depends": ["oic-code-token"]
@@ -1723,7 +1723,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-46': {
-        "name": 'Registration of wish for public sub',
+        "name": 'Registration of wish for public user_id',
         "sequence": ["oic-registration-public_id", "oic-login",
                      "access-token-request"],
         "endpoints": ["registration_endpoint"],
@@ -1742,7 +1742,7 @@ FLOWS = {
         "depends": ['mj-47'],
     },
     'mj-49': {
-        "name": 'Registration of wish for pairwise sub',
+        "name": 'Registration of wish for pairwise user_id',
         "sequence": ["oic-registration-pairwise_id", "oic-login",
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["registration_endpoint", "authorization_endpoint",
@@ -1765,7 +1765,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     "mj-53": {
-        "name": 'Using prompt=none with user hint through Id_token',
+        "name": 'Using prompt=none with user hint through IdToken',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+prompt_none+idtoken"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1773,7 +1773,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     "mj-54": {
-        "name": 'Using prompt=none with user hint through sub in request',
+        "name": 'Using prompt=none with user hint through user_id in request',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+prompt_none+request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1788,8 +1788,7 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-56': {
-        "name": "Supports Combining Claims Requested with scope and claims "
-                "Request Parameter",
+        "name": "Supports Combining Claims Requested with scope and Request Object",
         "sequence": ["oic-login-combine_claims", "access-token-request",
                      "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
@@ -1797,8 +1796,8 @@ FLOWS = {
         "depends": ['mj-22'],
         "tests": [("verify-userinfo", {})]
     },
-    'request_uri-support': {
-        "name": 'Support request_uri Request Parameter',
+    'mj-57': {
+        "name": 'Support Request File',
         "sequence": ["oic-login-reqfile"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-00'],
@@ -1834,7 +1833,7 @@ FLOWS = {
 
     },
     'mj-61': {
-        "name": "RP wants symmetric ID Token signature",
+        "name": "RP wants symmetric IdToken signature",
         "sequence": ["oic-registration-signed_idtoken", "oic-login",
                      "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
