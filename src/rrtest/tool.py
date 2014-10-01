@@ -299,20 +299,25 @@ class Conversation(object):
                 continue
 
             self.init(phase)
-            if self.extra_args["cookie_imp"]:
+
+            try:
+                _cimp = self.extra_args["cookie_imp"]
+            except KeyError:
+                pass
+            else:
                 if self.creq.request == "AuthorizationRequest":
                     try:
-                        self.cjar['browser'].load(self.extra_args["cookie_imp"])
+                        self.cjar['browser'].load(_cimp)
                     except Exception:
                         self.trace.error("Could not import cookies from file")
 
             try:
-                if self.extra_args["login_cookies"]:
-                    self.client.cookiejar = self.cjar["browser"]
-                    self.client.load_cookies_from_file(
-                        self.extra_args["login_cookies"].name)
+                _kaka = self.extra_args["login_cookies"]
             except KeyError:
                 pass
+            else:
+                self.client.cookiejar = self.cjar["browser"]
+                self.client.load_cookies_from_file(_kaka.name)
 
             try:
                 self.do_query()
