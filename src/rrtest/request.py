@@ -92,7 +92,10 @@ class Request(object):
             #         del cis[key]
 
             if request == AuthorizationRequest:
-                cis['acr_values'] = client.behaviour['default_acr_values']
+                try:
+                    cis['acr_values'] = client.behaviour['default_acr_values']
+                except KeyError:
+                    pass
 
             setattr(self.conv, request.__name__, cis)
             try:
