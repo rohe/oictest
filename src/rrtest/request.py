@@ -1,10 +1,10 @@
 import requests
+import copy
 
 from oic.oauth2 import URL_ENCODED
 from oic.oauth2 import Message
 from oic.oic import AuthorizationRequest
 from oictest.check import CheckEndpoint
-from rrtest.check import CheckHTTPResponse
 
 __author__ = 'rolandh'
 
@@ -18,7 +18,7 @@ class Request(object):
     _request_args = {}
     _request_param = False
     _kw_args = {}
-    tests = {"post": [CheckHTTPResponse], "pre": []}
+    _tests = {"post": [], "pre": []}
 
     def __init__(self, conv):
         self.request_args = self._request_args.copy()
@@ -26,6 +26,7 @@ class Request(object):
         self.kw_args = self._kw_args.copy()
         self.conv = conv
         self.trace = conv.trace
+        self.tests = copy.deepcopy(self._tests)
 
     def construct_request(self, client, **cargs):
         """
@@ -66,12 +67,19 @@ class Request(object):
             else:
                 del kwargs[key]
 
-        kwargs.update(cargs)
         try:
             kwargs["request_args"] = self.request_args.copy()
+            try:
+                kwargs["request_args"].update(cargs["request_args"])
+            except KeyError:
+                pass
+            else:
+                del cargs["request_args"]
             _req = kwargs["request_args"].copy()
         except KeyError:
             _req = {}
+
+        kwargs.update(cargs)
 
         if request == AuthorizationRequest:
             try:
@@ -92,7 +100,10 @@ class Request(object):
             #         del cis[key]
 
             if request == AuthorizationRequest:
-                cis['acr_values'] = client.behaviour['default_acr_values']
+                try:
+                    cis['acr_values'] = client.behaviour['default_acr_values']
+                except KeyError:
+                    pass
 
             setattr(self.conv, request.__name__, cis)
             try:
@@ -165,10 +176,13 @@ class Request(object):
 
         return url, response, response.text
 
+    def call_setup(self):
+        pass
+
     def __call__(self, location, response="", content="", features=None,
                  **cargs):
         _client = self.conv.client
-
+        self.call_setup()
         url, body, ht_args = self.construct_request(_client, **cargs)
 
         return self.do_request(_client, url, body, ht_args)
@@ -204,7 +218,7 @@ class GetRequest(Request):
 
 class PostRequest(Request):
     method = "POST"
-    tests = {"pre": [CheckEndpoint], "post": [CheckHTTPResponse]}
+    tests = {"pre": [CheckEndpoint], "post": []}
 
 
 class Response(object):
