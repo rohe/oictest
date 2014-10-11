@@ -1,5 +1,6 @@
 import time
 import traceback
+#from oic.oauth2 import HTTP_ERROR
 import requests
 from subprocess import Popen, PIPE
 import sys

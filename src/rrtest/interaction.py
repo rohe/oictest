@@ -128,9 +128,6 @@ class Interaction(object):
                 elif attr == "content":
                     if unic and val in unic:
                         _match += 1
-                elif attr == "class":
-                    if req and val == req:
-                        _match += 1
 
             if _match == len(interaction["matches"]):
                 return interaction
