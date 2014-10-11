@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from oic.exception import PyoidcError
-from oic.oauth2 import UnSupported
+from oic.oauth2 import UnSupported, rndstr
 
 __author__ = 'rohe0002'
 
@@ -31,7 +31,7 @@ class Conversation(tool.Conversation):
                                    features, verbose, expect_exception,
                                    **extra_args)
         self.cis = []
-        #self.item = []
+        # self.item = []
         self.keyjar = self.client.keyjar
         self.position = ""
         self.last_response = None
@@ -42,6 +42,7 @@ class Conversation(tool.Conversation):
         self.msg_factory = msg_factory
         self.login_page = None
         self.response_message = None
+        self.info = None
 
     def my_endpoints(self):
         return self.client.redirect_uris
@@ -60,11 +61,12 @@ class Conversation(tool.Conversation):
         resp_type = resp.ctype
 
         err = None
+        _errtxt = ""
         if isinstance(response, dict):
             _cli = self.client
             _resp = self.msg_factory(resp.response)
             _qresp = self.client.parse_response(
-                _resp, response, "dict", _cli.state,
+                _resp, response, "dict", self.state,
                 keyjar=self.keyjar, client_id=_cli.client_id,
                 scope="openid", opponent_id=_cli.provider_info["issuer"])
             self.response_message = _qresp
@@ -112,14 +114,16 @@ class Conversation(tool.Conversation):
                 try:
                     _cli = self.client
                     _qresp = self.client.parse_response(
-                        response, self.info, resp_type, _cli.state,
+                        response, self.info, resp_type, self.state,
                         keyjar=self.keyjar, client_id=_cli.client_id,
-                        scope="openid", opponent_id=_cli.provider_info["issuer"])
+                        scope="openid",
+                        opponent_id=_cli.provider_info["issuer"])
                     if _qresp:
                         self.trace.info("[%s]: %s" % (_qresp.type(),
                                                       _qresp.to_dict()))
                         if _qresp.extra():
-                            self.trace.info("### extra claims: %s" % _qresp.extra())
+                            self.trace.info(
+                                "### extra claims: %s" % _qresp.extra())
                         self.response_message = _qresp
                         self.protocol_response.append((_qresp, self.info))
                     else:
@@ -200,6 +204,11 @@ class Conversation(tool.Conversation):
                 print >> sys.stderr, "> %s" % self.req.request
 
             extra_args = self.collect_extra_args()
+            try:
+                extra_args["request_args"].update({"state": self.state})
+            except KeyError:
+                extra_args = {"request_args": {"state": self.state}}
+
             try:
                 extra_args.update(self.client_config[self.creq.request])
             except KeyError:

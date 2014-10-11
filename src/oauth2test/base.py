@@ -40,7 +40,7 @@ class Conversation(tool.Conversation):
         self.response_type = response.__name__
         try:
             _qresp = self.client.parse_response(
-                response, self.info, resp_type, self.client.state,
+                response, self.info, resp_type, self.state,
                 client_id=self.client.client_id)
             self.trace.info("[%s]: %s" % (_qresp.type(), _qresp.to_dict()))
             #item.append(qresp)

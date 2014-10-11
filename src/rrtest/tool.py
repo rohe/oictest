@@ -3,6 +3,7 @@ import json
 import sys
 import traceback
 from oic.exception import PyoidcError
+from oic.oauth2 import rndstr
 from oic.oic import ProviderConfigurationResponse, RegistrationResponse
 
 from rrtest.opfunc import Operation
@@ -63,6 +64,7 @@ class Conversation(object):
         self.req = None
         self.request_spec = None
         self.last_url = ""
+        self.state = rndstr()
 
     def check_severity(self, stat):
         if stat["status"] >= 4:
@@ -305,7 +307,7 @@ class Conversation(object):
             except KeyError:
                 pass
             else:
-                if self.creq.request == "AuthorizationRequest":
+                if self.creq.request == "AuthorizationRequest" and _cimp:
                     try:
                         self.cjar['browser'].load(_cimp)
                     except Exception:

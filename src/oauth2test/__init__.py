@@ -171,9 +171,6 @@ class OAuth2(object):
                 exception_trace("do_features", exc)
                 return
 
-            #tests = self.get_test()
-            self.client.state = "STATE0"
-
             try:
                 expect_exception = flow_spec["expect_exception"]
             except KeyError:
