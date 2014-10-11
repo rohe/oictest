@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import copy
 from jwkest.jwk import SerializationNotPossible
 from oic.exception import UnSupported
 from oic.utils.keyio import KeyBundle
@@ -40,7 +41,10 @@ def _get_base(cconf=None):
     """
     Make sure a '/' terminated URL is returned
     """
-    part = urlparse(cconf["_base_url"])
+    try:
+        part = urlparse(cconf["_base_url"])
+    except KeyError:
+        part = urlparse(cconf["base_url"])
     #part = urlparse(cconf["redirect_uris"][0])
 
     if part.path:
@@ -519,10 +523,17 @@ class RegistrationRequest(PostRequest):
         PostRequest.__init__(self, conv)
 
         for arg in message.RegistrationRequest().parameters():
-            if arg in conv.client_config:
-                self.request_args[arg] = conv.client_config[arg]
-            elif arg in conv.client_config["preferences"]:
-                self.request_args[arg] = conv.client_config["preferences"][arg]
+            try:
+                val = conv.client_config[arg]
+            except KeyError:
+                try:
+                    val = conv.client_config["preferences"][arg]
+                except KeyError:
+                    try:
+                        val = conv.client_config["client_info"][arg]
+                    except KeyError:
+                        continue
+            self.request_args[arg] = copy.copy(val)
         try:
             del self.request_args["key_export_url"]
         except KeyError:
@@ -769,15 +780,12 @@ class RegistrationRequestResponseTypesToken(RegistrationRequest):
 
 
 class ReadRegistration(GetRequest):
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         _client = self.conv.client
         self.request_args["access_token"] = _client.registration_access_token
         self.kw_args["authn_method"] = "bearer_header"
         self.kw_args["endpoint"] = _client.registration_response[
             "registration_client_uri"]
-        return GetRequest.__call__(self, location, response, content, features,
-                                   **kwargs)
 
 
 # =============================================================================
@@ -791,8 +799,7 @@ class AccessTokenRequest(PostRequest):
         self.tests["post"] = [CheckHTTPResponse]
         #self.kw_args = {"authn_method": "client_secret_basic"}
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         if "authn_method" not in self.kw_args:
             _pinfo = self.conv.provider_info
             if "token_endpoint_auth_methods_supported" in _pinfo:
@@ -803,8 +810,6 @@ class AccessTokenRequest(PostRequest):
                         break
             else:
                 self.kw_args = {"authn_method": "client_secret_basic"}
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
 
 
 class AccessTokenRequestCSPost(AccessTokenRequest):
@@ -843,15 +848,12 @@ class AccessTokenRequestModRedirectURI1(AccessTokenRequest):
         AccessTokenRequest.__init__(self, conv)
         self.tests["post"] = [CheckErrorResponse]
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         _client = self.conv.client
         _uri = _client.redirect_uris[0]
         # Mess with the redirect_uri dynamically
         _uri += "/xlevel"
         self.request_args["redirect_uri"] = _uri
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
 
 
 class AccessTokenRequestModRedirectURI2(AccessTokenRequest):
@@ -859,15 +861,12 @@ class AccessTokenRequestModRedirectURI2(AccessTokenRequest):
         AccessTokenRequest.__init__(self, conv)
         self.tests["post"] = [CheckErrorResponse]
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         _client = self.conv.client
         _uri = _client.redirect_uris[0]
         # Mess with the redirect_uri dynamically
         _uri += "?query=foo"
         self.request_args["redirect_uri"] = _uri
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
 
 
 class AccessTokenRequestModRedirectURI3(AccessTokenRequest):
@@ -875,16 +874,13 @@ class AccessTokenRequestModRedirectURI3(AccessTokenRequest):
         AccessTokenRequest.__init__(self, conv)
         self.tests["post"] = [CheckErrorResponse]
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         _client = self.conv.client
         _uri = _client.redirect_uris[0]
         # Mess with the redirect_uri dynamically
         part = urlparse(_uri)
         _uri = _uri.replace(part.path, "/")
         self.request_args["redirect_uri"] = _uri
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
 
 
 class UserInfoRequestPostBearerHeader_err(PostRequest):
@@ -924,8 +920,7 @@ class UserInfoRequestPostBearerBody(PostRequest):
 class RefreshAccessToken(PostRequest):
     request = "RefreshAccessTokenRequest"
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         # make sure there is a refresh_token
         if "refresh_token" not in self.conv.response_message:
             raise UnSupported("No refresh_token")
@@ -941,23 +936,17 @@ class RefreshAccessToken(PostRequest):
             else:
                 self.kw_args = {"authn_method": "client_secret_basic"}
 
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
-
 
 class RefreshAccessTokenPKJWT(PostRequest):
     request = "RefreshAccessTokenRequest"
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         # make sure there is a refresh_token
         if "refresh_token" not in self.conv.response_message:
             raise UnSupported("No refresh_token")
 
         self.kw_args = {"authn_method": "private_key_jwt"}
 
-        return Request.__call__(self, location, response, content, features,
-                                **kwargs)
 # -----------------------------------------------------------------------------
 
 
@@ -1058,7 +1047,7 @@ class Discover(Operation):
         except SerializationNotPossible:
             pass
 
-        self.trace.info("Provider info: %s" % client.provider_info.to_dict())
+        self.trace.info("Provider info: %s" % pcr.to_dict())
 
         try:
             pcr.verify()
@@ -1122,7 +1111,7 @@ PHASES = {
     "oic-login": (AuthorizationRequestCode, AuthzResponse),
     "oic-login-uri": (AuthorizationRequestCodeUri, AuthzResponse),
     "oic-login-reqfile": (AuthorizationRequestCodeRequestInFile, AuthzResponse),
-    #"oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
+    "oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
     "oic-login+profile": (AuthorizationRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
     "oic-login+phone": (AuthorizationRequestCodeScopePhone, AuthzResponse),
@@ -1259,23 +1248,23 @@ FLOWS = {
     'oic-discovery': {
         "name": 'Provider configuration discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
-        "sequence": [],  # discovery will be auto-magically added
+        "sequence": [],
         "endpoints": [],
         "block": ["registration", "key_export"],
         "depends": ['oic-verify'],
     },
 
     # -------------------------------------------------------------------------
-    #    'oic-code+nonce-token': {
-    #        "name": 'Simple authorization grant flow',
-    #        "descr": ("1) Request with response_type=code",
-    #                  "scope = ['openid']",
-    #                  "2) AccessTokenRequest",
-    #                  "Authentication method used is 'client_secret_post'"),
-    #        "depends": ['mj-01'],
-    #        "sequence": ["oic-login-nonce", "access-token-request"],
-    #        "endpoints": ["authorization_endpoint", "token_endpoint"],
-    #        },
+    'oic-code+nonce-token': {
+        "name": 'Simple authorization grant flow',
+        "descr": ("1) Request with response_type=code",
+                  "scope = ['openid']",
+                  "2) AccessTokenRequest",
+                  "Authentication method used is 'client_secret_post'"),
+        "depends": ['mj-01'],
+        "sequence": ["oic-login-nonce", "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+    },
     'oic-code+token-token': {
         "name": "Flow with response_type='code token'",
         "descr": ("1) Request with response_type='code token'",
@@ -1378,7 +1367,7 @@ FLOWS = {
     # -------------------------------------------------------------------------
     # beared body authentication
     'oic-code-token-userinfo_bb': {
-        "name": """Authorization grant flow response_type='code token',
+        "name": """Authorization grant flow response_type='code',
     UserInfo request using POST and bearer body authentication""",
         "descr": ("1) Request with response_type='code'",
                   "2) AccessTokenRequest",
