@@ -1,10 +1,11 @@
 class Node():
-    def __init__(self, name="", desc=""):
+    def __init__(self, name="", desc="", fid=""):
         self.name = name
         self.desc = desc
+        self.fid = fid
         self.children = {}
         self.parent = []
-        self.state = STATUSCODE[0]
+        self.state = 0
 
 
 def add_to_tree(root, parents, cnode):
@@ -27,42 +28,43 @@ def add_to_tree(root, parents, cnode):
 
 
 def in_tree(root, item):
-    if not item:
-        return False
-    elif item in root:
-        return True
+    if item in root:
+        return root[item]
     else:
         for key, branch in root.items():
-            if in_tree(branch.children, item):
-                return True
-    return False
+            _node = in_tree(branch.children, item)
+            if _node:
+                return _node
+    return None
 
 
-def sort_flows_into_graph(flows, grp):
+def _depends(flows, flow, result, remains):
+    spec = flows[flow]
+    _node = Node(flow, spec["name"], flow)
+    if "depends" in spec:
+        for dep in spec["depends"]:
+            _parent = in_tree(result, dep)
+            if _parent:
+                pass
+            else:
+                _parent = _depends(flows, dep, result, remains)
+            _parent.children[_node.name] = _node
+    else:
+        result[flow] = _node  # root test
+
+    remains.remove(flow)
+    return _node
+
+
+def sort_flows_into_graph(flows, grp=""):
     result = {}
     if grp:
         remains = [k for k in flows.keys() if k.startswith(grp)]
     else:
         remains = flows.keys()
     while remains:
-        for flow in remains[:]:
-            spec = flows[flow]
-            if "depends" in spec:
-                flag = False
-                for dep in spec["depends"]:
-                    if in_tree(result, dep):
-                        flag = True
-                    else:
-                        flag = False
-                        break
-
-                if flag:
-                    remains.remove(flow)
-                    node = Node(flow, spec["name"])
-                    add_to_tree(result, spec["depends"], node)
-            else:
-                remains.remove(flow)
-                result[flow] = Node(flow, spec["name"])
+        flow = remains[0]
+        _depends(flows, flow, result,remains)
 
     return result
 
@@ -99,3 +101,14 @@ def print_graph(root, inx=""):
         print_graph(branch.children, next_inx)
 
 
+def flatten(root):
+    """
+
+    :param graph: dictionary
+    :return:
+    """
+    _list = []
+    for key, node in root.items():
+        _list.append(node)
+        _list.extend(flatten(node.children))
+    return _list
