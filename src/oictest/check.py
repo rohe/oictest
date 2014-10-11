@@ -434,12 +434,16 @@ class CheckEndpoint(CriticalError):
 
     def _func(self, conv=None):
         cls = conv.request_spec.request
-        endpoint = conv.client.request2endpoint[cls]
         try:
-            assert endpoint in conv.client.provider_info
-        except AssertionError:
-            self._status = self.status
-            self._message = "No '%s' registered" % endpoint
+            endpoint = conv.client.request2endpoint[cls]
+        except KeyError:
+            pass
+        else:
+            try:
+                assert endpoint in conv.client.provider_info
+            except AssertionError:
+                self._status = self.status
+                self._message = "No '%s' registered" % endpoint
 
         return {}
 
@@ -617,10 +621,12 @@ class verifyIDToken(CriticalError):
 
         idtoken_claims = {}
         req = get_authz_request(conv)
-        if "idtoken_claims" in req:
-            for key, val in req["idtoken_claims"]["claims"].items():
-                idtoken_claims[key] = val
-                #self._kwargs["claims"].items()
+        try:
+            id_claims = req["claims"]["id_token"]
+        except KeyError:
+            pass
+        else:
+            idtoken_claims = id_claims.copy()
 
         for item, msg in conv.protocol_response:
             if self._status == self.status or done:
