@@ -193,14 +193,10 @@ class ResourceSetRegistration(Operation):
 PHASES = {
     "verify": (ConnectionVerify, AuthzResponse),
     "pat-login": (AuthorizationRequestCodePAT, AuthorizationResponse),
-    "aat-login": (AuthorizationRequestCodeAAT, AuthorizationResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-request-pat": (AccessTokenRequest, AccessTokenResponsePAT),
-    "access-token-request-aat": (AccessTokenRequest, AccessTokenResponseAAT),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
-    "c-registration": (RegistrationRequestC, ClientInfoResponse),
     "rs-registration": (RegistrationRequestRS, ClientInfoResponse),
-    "resource_registration": (ResourceSetRegistration, BodyResponse)
 }
 
 # =============================================================================

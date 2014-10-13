@@ -202,12 +202,12 @@ class CheckResponseType(CheckSupported):
             supported = [set(s.split(" ")) for s in
                          _provider_info["response_types_supported"]]
         except KeyError:
-            supported = [set(["code"])]
+            supported = [{"code"}]
 
         try:
             val = request_args["response_type"]
             if isinstance(val, basestring):
-                rt = set([val])
+                rt = {val}
             else:
                 rt = set(val)
             for sup in supported:
@@ -1061,17 +1061,20 @@ class VerifyImplicitResponse(Error):
 
 class CheckNonce(Error):
     cid = "check-nonce"
-    msg = "Expected same none back as sent"
+    msg = "Expected same nonce back as sent"
 
     def _func(self, conv):
         try:
             _nonce = conv.AuthorizationRequest["nonce"]
-            try:
-                assert _nonce == conv.response_message["id_token"]["nonce"]
-            except (AssertionError, KeyError):
-                self._status = self.status
         except KeyError:
             pass
+        else:
+            for instance, msg in conv.protocol_response:
+                if instance.type() == "AuthorizationResponse":
+                    try:
+                        assert _nonce == instance["id_token"]["nonce"]
+                    except (AssertionError, KeyError):
+                        self._status = self.status
 
         return {}
 

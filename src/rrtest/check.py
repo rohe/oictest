@@ -304,7 +304,7 @@ class VerifyBadRequestResponse(ExpectedError):
         return res
 
 
-class  VerifyRandomRequestResponse(ExpectedError):
+class VerifyRandomRequestResponse(ExpectedError):
     cid = "verify-random-request-response"
     msg = "OP error"
 
@@ -325,6 +325,7 @@ class  VerifyRandomRequestResponse(ExpectedError):
             self._status = CRITICAL
 
         return res
+
 
 class VerifyUnknownClientIdResponse(ExpectedError):
     cid = "verify-unknown-client-id-response"

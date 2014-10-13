@@ -8,7 +8,7 @@ from subprocess import PIPE
 
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import key_export
-from oictest.graph import Node
+from oictest.graph import Node, flatten
 from oictest.graph import sort_flows_into_graph
 from rrtest.check import STATUSCODE
 from oictest import start_key_server
@@ -148,6 +148,7 @@ if __name__ == "__main__":
             test(node, args.server, args.host, args.csv)
     else:
         flow_graph = sort_flows_into_graph(FLOWS, args.group)
+        _l = flatten(flow_graph)
         test_all(flow_graph, args.server, args.host, args.csv)
 
     if _pop:

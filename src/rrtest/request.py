@@ -21,9 +21,9 @@ class Request(object):
     _tests = {"post": [], "pre": []}
 
     def __init__(self, conv):
-        self.request_args = self._request_args.copy()
-        self.request_param = self._request_param
-        self.kw_args = self._kw_args.copy()
+        self.request_args = copy.deepcopy(self._request_args)
+        self.request_param = copy.deepcopy(self._request_param)
+        self.kw_args = copy.deepcopy(self._kw_args)
         self.conv = conv
         self.trace = conv.trace
         self.tests = copy.deepcopy(self._tests)

@@ -1,24 +1,6 @@
 <%!
-def op_choice(base, nodes):
-    """
-    Creates a dropdown list of test flows
-    """
-    #colordict = {
-    #    "OK":'<img src="static/green.png" alt="Green">',
-    #    "WARNING":'<img src="static/yellow.png" alt="Yellow">',
-    #    "ERROR":'<img src="static/red.png" alt="Red">',
-    #    "CRITICAL":'<img src="static/red.png" alt="Red">'
-    #}
-    color = ['<img src="static/black.png" alt="Black">',
-             '<img src="static/green.png" alt="Green">',
-             '<img src="static/red.png" alt="Red">',
-             '<img src="static/yellow.png" alt="Yellow">']
-    element = "<ul>"
-    for node in nodes:
-        element += "<li><a href='%s%s'>%s</a>%s (%s) " % (
-            base, node.name, color[node.state], node.desc, node.name)
-    element += "</select>"
-    return element
+    def mk_button(url):
+        return "<a href='%s'>button</a>" % url
 %>
 
 <!DOCTYPE html>
@@ -42,8 +24,11 @@ def op_choice(base, nodes):
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OICTEST</h1>
-          <h3>Chose the next test flow you want to run from this list: </h3>
-            ${op_choice(base, flows)}
+          At this point you have to remove all cookies you have received from
+        the OpenID Connect Provider <i>${op}</i>. This since this test is simulating you
+        login in from a second device while still being logged in at the first.
+        So please remove the cookies and then hit this
+        ${button(url)} to continue.
       </div>
 
     </div> <!-- /container -->

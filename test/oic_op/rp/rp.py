@@ -12,12 +12,12 @@ from oic.utils.http_util import Redirect
 
 import logging
 import sys
-from oictest.graph import flatten, in_tree
+from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oictest.check import factory as check_factory
-from oictest.testflows import Discover
+from oictest.testflows import Discover, Notice
 from rrtest import Trace
 from script.oic_flow_tests import sort_flows_into_graph
 
@@ -160,6 +160,24 @@ def clear_session(session):
     session.invalidate()
 
 
+def session_setup(session, path, index=0):
+    ots = OIDCTestSetup(CONF, testflows)
+    session["testid"] = path
+    session["node"] = in_tree(session["graph"], path)
+    sequence_info = ots.make_sequence(path)
+    sequence_info = ots.add_init(sequence_info)
+    session["seq_info"] = sequence_info
+    trace = Trace()
+    client_conf = ots.config.CLIENT
+    conv = Conversation(ots.client, client_conf, trace, None,
+                        message_factory, check_factory)
+    session["ots"] = ots
+    session["conv"] = conv
+    session["index"] = index
+
+    return conv, sequence_info, ots, trace, index
+
+
 def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
                  trace, index):
     while index < len(sequence_info["sequence"]):
@@ -168,7 +186,12 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
             req_c, resp_c = sequence_info["sequence"][index]
         except (ValueError, TypeError):  # Not a tuple
             req = sequence_info["sequence"][index]()
-            req(conv)
+            if isinstance(req, Notice):
+                return req(LOOKUP, environ, start_response,
+                           **{"url": "%scontinue" % CONF.BASE,
+                              "op": conv.client.provider_info["issuer"]})
+            else:
+                req(conv)
         else:
             req = req_c(conv)
             try:
@@ -185,7 +208,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 conv.provider_info = ots.client.provider_info
             else:
                 if req.request == "AuthorizationRequest":
-                    kwargs = {"request_args":{"state": session["state"]}}
+                    session["state"] = rndstr()  # New state for each request
+                    kwargs = {"request_args": {"state": session["state"]}}
                 elif req.request in ["AccessTokenRequest", "UserInfoRequest",
                                      "RefreshAccessTokenRequest"]:
                     kwargs = {"state": session["state"]}
@@ -200,10 +224,13 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     resp = Redirect(str(url))
                     return resp(environ, start_response)
                 else:
+                    _kwargs = {"http_args": ht_args}
+                    if "state" in session:
+                        _kwargs["state"] = session["state"]
+
                     response = request_and_return(
                         conv, url, message_factory(resp_c.response), req.method,
-                        body, resp_c.ctype, state=session["state"],
-                        http_args=ht_args)
+                        body, resp_c.ctype, **_kwargs)
                     trace.info(response.to_dict())
                     if resp_c.response == "RegistrationResponse":
                         ots.client.store_registration_info(response)
@@ -240,30 +267,38 @@ def application(environ, start_response):
         graph = sort_flows_into_graph(testflows.FLOWS)
         session["graph"] = graph
         session["tests"] = [x for x in flatten(graph)]
+        session["tests"].sort(node_cmp)
         session["flow_names"] = [x.name for x in session["tests"]]
         return flow_list(environ, start_response, session["tests"])
 
+    if path == "continue":
+        try:
+            sequence_info = session["seq_info"]
+        except KeyError:  # Cookie delete broke session
+            query = parse_qs(environ["QUERY_STRING"])
+            path = query["path"][0]
+            index = query["index"][0]
+            conv, sequence_info, ots, trace, index = session_setup(session,
+                                                                   path, index)
+        else:
+            index = session["index"]
+            ots = session["ots"]
+            conv = session["conv"]
+
+        index += 1
+        try:
+            return run_sequence(sequence_info, session, conv, ots, environ,
+                                start_response, conv.trace, index)
+        except Exception, err:
+            return test_error(environ, start_response, conv, err)
     # expected path format: /<testid>[/<endpoint>]
-    if path in session["flow_names"]:
-        ots = OIDCTestSetup(CONF, testflows)
-        session["testid"] = path
-        session["node"] = in_tree(session["graph"], path)
-        sequence_info = ots.make_sequence(path)
-        sequence_info = ots.add_init(sequence_info)
-        session["seq_info"] = sequence_info
-        trace = Trace()
-        client_conf = ots.config.CLIENT
-        conv = Conversation(ots.client, client_conf, trace, None,
-                            message_factory, check_factory)
-        index = 0
-        session["ots"] = ots
-        session["conv"] = conv
+    elif path in session["flow_names"]:
+        conv, sequence_info, ots, trace, index = session_setup(session, path)
         try:
             conv.test_sequence(sequence_info["tests"]["pre"])
         except KeyError:
             pass
 
-        session["state"] = rndstr()
         try:
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, trace, index)

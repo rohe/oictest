@@ -1,33 +1,78 @@
+import importlib
 import json
 import argparse
 import sys
+import time
+
+from mako.lookup import TemplateLookup
 from oic.oauth2 import UnSupported
 from oic.utils import exception_trace
+from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.keyio import KeyJar, KeyBundle, dump_jwks
-import time
+from oic.utils.authn.client import verify_client
+from oic.utils.authz import Implicit
+from oic.utils.keyio import dump_jwks
+from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import KeyJar
+from uma.keyjar import init_keyjar
 from oictest import start_key_server
-from rrtest import Trace, FatalError
+from rrtest import FatalError
+from rrtest import Trace
 
 __author__ = 'rolandh'
+
+
+def lookup(root):
+    return TemplateLookup(directories=[root + 'templates', root + 'htdocs'],
+                          module_directory=root + 'modules',
+                          input_encoding='utf-8', output_encoding='utf-8')
 
 
 def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
     return [operations.PHASES[phase] for phase in flow["sequence"]]
 
-ROLES = ["C", "RS"]
+
+def as_setup(jconf):
+
+    _module = importlib.import_module('oic.utils.authn.user')
+    ab = AuthnBroker()
+    for _id, authn in jconf["authn"].items():
+        cls = getattr(_module, authn["class"])
+        if "template_lookup" in authn["kwargs"]:
+            authn["kwargs"]["template_lookup"] = lookup(jconf["template_root"])
+
+        ci = cls(None, **authn["kwargs"])
+        ab.add(_id, ci, authn["level"], authn["authn_authority"])
+
+    _base = jconf["configuration"]["issuer"]
+    cauth = dict([(x, CLIENT_AUTHN_METHOD[x]) for x in jconf["client_auth_methods"]])
+
+    return {
+        "name": _base,
+        "sdb": {},
+        "cdb": {},
+        "authn_broker": ab,
+        "authz": Implicit("PERMISSION"),
+        "client_authn": verify_client,
+        "symkey": "1234567890123456",
+        "client_authn_methods": cauth,
+        "client_info_url": jconf["client_info_url"],
+        "default_acr": jconf["default_acr"],
+        "keyjar": None
+        }
 
 
-class UMACRS(object):
+class UMACombo(object):
     client_args = ["client_id", "redirect_uris", "password", "client_secret"]
 
-    def __init__(self, operations_mod, uma_c, uma_rs, msg_factory, chk_factory,
+    def __init__(self, operations_mod, combo, msg_factory, chk_factory,
                  conversation_cls):
         self.operations_mod = operations_mod
 
-        self.uma = {"C": uma_c, "RS": uma_rs}
-        self.client = {}
+        self.uma = combo
+        self.roles = combo.keys()
+        self.entity = {}
         self.cconf = {}
         self.pinfo = {}
 
@@ -84,7 +129,7 @@ class UMACRS(object):
     def parse_args(self):
         self.json_config = self.json_config_file()
 
-        for role in ROLES:
+        for role in self.roles:
             try:
                 self.features[role] = self.json_config[role]["features"]
             except KeyError:
@@ -92,7 +137,7 @@ class UMACRS(object):
 
             self.pinfo[role] = self.provider_info(role)
 
-            self.cconf[role] = self.client_conf(role, self.client_args)
+            self.cconf[role] = self.entity_conf(role, self.client_args)
 
     def json_config_file(self):
         if self.args.json_config_file == "-":
@@ -169,8 +214,8 @@ class UMACRS(object):
                 return
 
             #tests = self.get_test()
-            for role in ROLES:
-                self.client[role].state = "STATE0"
+            for role in self.roles:
+                self.entity[role].state = "STATE0"
 
             try:
                 expect_exception = flow_spec["expect_exception"]
@@ -179,9 +224,9 @@ class UMACRS(object):
 
             conv = None
             try:
-                # for role in ROLES:
+                # for role in self.roles:
                 #     for key, val in self.pinfo[role].items():
-                #         self.client[role][key].provider_info = {"": val}
+                #         self.entity[role][key].provider_info = {"": val}
 
                 if self.args.verbose:
                     print >> sys.stderr, "Set up done, running sequence"
@@ -194,7 +239,7 @@ class UMACRS(object):
                         args[arg] = {}
 
                 conv = self.conversation_cls(
-                    self.client, self.cconf, self.trace, interact,
+                    self.entity, self.cconf, self.trace, interact,
                     resource_owner=self.json_config["RS"]["resource_owner"],
                     requester=self.json_config["C"]["requester"],
                     msg_factory=self.msg_factory,
@@ -319,11 +364,11 @@ class UMACRS(object):
                 self.trace.info("SERVER CONFIGURATION: %s" % pinfo)
 
     def do_features(self, interact, _seq, block):
-        for role in ROLES:
+        for role in self.roles:
             self._features(interact[role], _seq, block,
                            self.cconf[role], self.features[role],
                            self.json_config[role], self.pinfo[role],
-                           self.client[role], role)
+                           self.entity[role], role)
 
     def export(self, client, cconf, role):
         # has to be there
@@ -363,8 +408,8 @@ class UMACRS(object):
         ci = getattr(_module, conf["cls"][1])
         return ci(**conf["args"])
 
-    def client_conf(self, role, cprop):
-        kwargs = {"client_authn_method": CLIENT_AUTHN_METHOD}
+    def entity_conf(self, role, cprop):
+        kwargs = {"client_authn_methods": CLIENT_AUTHN_METHOD}
 
         if self.args.ca_certs:
             kwargs["ca_certs"] = self.args.ca_certs
@@ -375,9 +420,12 @@ class UMACRS(object):
             kwargs["dataset"] = self.init_dataset(
                 self.json_config["RS"]["dataset"])
 
-        self.client[role] = self.uma[role](**kwargs)
+        if role == "AS":  # needs lot of stuff
+            kwargs.update(as_setup(self.json_config["AS"]))
 
-        _client = self.client[role]
+        self.entity[role] = self.uma[role](**kwargs)
+
+        _client = self.entity[role]
 
         if self.args.not_verify_ssl:
             _client.verify_ssl = False
@@ -396,29 +444,34 @@ class UMACRS(object):
         except KeyError:
             pass
 
-        # Client configuration
-        _cconf = self.json_config[role]["client"]
-        # replace pattern with real value
-        _h = self.args.host
-        if _h:
-            _uris = _cconf["registration_info"]["redirect_uris"]
-            _cconf["registration_info"]["redirect_uris"] = [p % _h for p in
-                                                            _uris]
+        _cconf = self.json_config[role]
 
-        try:
-            _client.client_prefs = _cconf["preferences"]
-        except KeyError:
-            pass
+        if role == "C":
+            # Client configuration
+            # replace pattern with real value
+            _h = self.args.host
+            if _h:
+                _uris = _cconf["registration_info"]["redirect_uris"]
+                _cconf["registration_info"]["redirect_uris"] = [p % _h for p in
+                                                                _uris]
 
-        # set necessary information in the Client
-        for prop in cprop:
             try:
-                if prop == "client_secret":
-                    _client.set_client_secret(_cconf[prop])
-                else:
-                    setattr(_client, prop, _cconf[prop])
+                _client.client_prefs = _cconf["preferences"]
             except KeyError:
                 pass
+
+            if "keys" in _cconf:
+                init_keyjar(_client, _cconf["keys"], "static/jwk_as.json")
+
+            # set necessary information in the Client
+            for prop in cprop:
+                try:
+                    if prop == "client_secret":
+                        _client.set_client_secret(_cconf[prop])
+                    else:
+                        setattr(_client, prop, _cconf[prop])
+                except KeyError:
+                    pass
 
         return _cconf
 

@@ -6,6 +6,7 @@ from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.oauth2.message import SchemeError
 from oic.utils.webfinger import OIC_ISSUER, WebFinger
+from oic.utils.http_util import Response
 
 import rrtest.request as req
 from rrtest.request import BodyResponse
@@ -91,7 +92,7 @@ def response_claim(conv, respcls, claim):
 # -----------------------------------------------------------------------------
 
 
-class Intermission(Process):
+class TimeDelay(Process):
     def __init__(self):
         self.delay = 2
         self.tests = {"post": [], "pre": []}
@@ -99,6 +100,35 @@ class Intermission(Process):
     def __call__(self, *args, **kwargs):
         time.sleep(self.delay)
         return None
+
+
+class Notice(Process):
+    def __init__(self):
+        self.tests = {"post": [], "pre": []}
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class ExpectError(Process):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "expect_err.mako"
+
+    def __call__(self, *args, **kwargs):
+        pass
+
+
+class RmCookie(Notice):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "rmcookie.mako"
+
+    def __call__(self, lookup, environ, start_response, **kwargs):
+        resp = Response(mako_template=self.template,
+                        template_lookup=lookup,
+                        headers=[])
+        return resp(environ, start_response, **kwargs)
 
 
 class RotateKeys(Process):
@@ -259,7 +289,7 @@ class AuthorizationRequestCodePromptNone(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
-        self.tests["post"] = [VerifyErrorResponse]
+        #self.tests["post"] = [VerifyErrorResponse]
 
 
 class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
@@ -270,12 +300,12 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
 
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
-
-        idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
-        self.request_args["id_token"] = idt
-
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
+
+    def call_setup(self):
+        idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
+        self.request_args["id_token"] = idt
 
 
 class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
@@ -284,8 +314,7 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyPromptNoneResponse]
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
         if not idt:
             raise MissingResponseClaim("id_token in access token response")
@@ -294,6 +323,8 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
         user_id = jso["sub"]
         self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
 
@@ -302,8 +333,7 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
 
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
+    def call_setup(self):
         idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
         if not idt:
             raise MissingResponseClaim("id_token in access token response")
@@ -312,6 +342,8 @@ class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
         user_id = jso["sub"]
         self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
 
+    def __call__(self, location, response="", content="", features=None,
+                 **kwargs):
         return AuthorizationRequestCode.__call__(self, location, response,
                                                  content, features, **kwargs)
 
@@ -965,6 +997,12 @@ class AuthzResponse(UrlResponse):
     _tests = {"post": [CheckAuthorizationResponse]}
 
 
+class AuthzFormResponse(UrlResponse):
+    response = "AuthorizationResponse"
+    where = "body"
+    _tests = {"post": [CheckAuthorizationResponse]}
+
+
 class ImplicitAuthzResponse(AuthzResponse):
     _tests = {"post": [CheckAuthorizationResponse, VerifyImplicitResponse]}
 
@@ -1173,7 +1211,7 @@ PHASES = {
     "oic-login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
                                   AuthzErrResponse),
     "oic-login-formpost": (AuthorizationRequestCodeResponseModeFormPost,
-                           AuthzResponse),
+                           AuthzFormResponse),
     #
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
@@ -1241,28 +1279,22 @@ PHASES = {
         AccessTokenRequestModRedirectURI2, req.ErrorResponse),
     "access-token-request-other-redirect_uri-3": (
         AccessTokenRequestModRedirectURI3, req.ErrorResponse),
-    "intermission": Intermission,
-    "rotate_keys": RotateKeys
+    "intermission": TimeDelay,
+    "rotate_keys": RotateKeys,
+    "notice": Notice,
+    "rm_cookie": RmCookie,
+    "expect_err": ExpectError
 }
 
 OWNER_OPS = []
 
 FLOWS = {
-    'oic-verify': {
-        "name": 'Special flow used to find necessary user interactions',
-        "descr": 'Request with response_type=code',
-        "sequence": ["verify"],
-        "endpoints": ["authorization_endpoint"],
-        "block": ["key_export"]
-    },
-
     'oic-discovery': {
         "name": 'Provider configuration discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
         "sequence": [],
         "endpoints": [],
         "block": ["registration", "key_export"],
-        "depends": ['oic-verify'],
     },
 
     # -------------------------------------------------------------------------
@@ -1603,7 +1635,7 @@ FLOWS = {
     },
     'mj-28': {
         "name": 'Request with prompt=none',
-        "sequence": ["oic-login+prompt_none"],
+        "sequence": ["rm_cookie", "oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
         "tests": [("verify-error", {"error": ["login_required",
                                               "interaction_required",
@@ -1612,9 +1644,10 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-29': {
-        "name": 'Request with prompt=login',
-        "sequence": ["oic-login+prompt_login", "access-token-request",
-                     "user-info-request_pbh"],
+        "name": 'Request with prompt=login means it SHOULD prompt the End-User '
+                'for reauthentication',
+        "sequence": ["oic-login+prompt_login",
+                     "access-token-request", "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
     },
@@ -1657,7 +1690,7 @@ FLOWS = {
     },
     'mj-35': {
         "name": "Authorization request missing the 'response_type' parameter",
-        "sequence": ["oic-missing_response_type"],
+        "sequence": ["expect_err", "oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
@@ -1665,7 +1698,7 @@ FLOWS = {
     },
     'mj-36': {
         "name": "The sent redirect_uri does not match the registered",
-        "sequence": ["login-redirect-fault"],
+        "sequence": ["expect_err", "login-redirect-fault"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
     },
@@ -1710,7 +1743,8 @@ FLOWS = {
     },
     'mj-43': {
         "name": "No redirect_uri in request",
-        "sequence": ["oic-registration", "oic-login-no-redirect-err"],
+        "sequence": ["oic-registration", "expect_err",
+                     "oic-login-no-redirect-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "depends": ["oic-code-token"]
     },
@@ -1751,7 +1785,7 @@ FLOWS = {
     },
     'mj-51': {
         "name": 'Login no nonce',
-        "sequence": ["oic-login-no-nonce"],
+        "sequence": ["expect_err", "oic-login-no-nonce"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
         "tests": [("verify-error", {"error": ["invalid_request",
@@ -1766,7 +1800,7 @@ FLOWS = {
     },
     "mj-53": {
         "name": 'Using prompt=none with user hint through IdToken',
-        "sequence": ["oic-login", "access-token-request",
+        "sequence": ["oic-login", "access-token-request", 'rm_cookie',
                      "oic-login+prompt_none+idtoken"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
@@ -1774,7 +1808,7 @@ FLOWS = {
     },
     "mj-54": {
         "name": 'Using prompt=none with user hint through user_id in request',
-        "sequence": ["oic-login", "access-token-request",
+        "sequence": ["oic-login", "access-token-request", 'rm_cookie',
                      "oic-login+prompt_none+request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
@@ -1782,7 +1816,7 @@ FLOWS = {
     },
     'non-matching-redirect_uri': {
         "name": 'Rejects redirect_uri when Query Parameter Does Not Match',
-        "sequence": ["oic-registration-wqc", "login-ruwqc-err"],
+        "sequence": ["oic-registration-wqc", 'expect_err', "login-ruwqc-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31#section-3.1.2",
         "depends": ['mj-01'],

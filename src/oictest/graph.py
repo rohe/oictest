@@ -1,12 +1,14 @@
 class Node():
-    def __init__(self, name="", desc="", fid=""):
+    def __init__(self, name="", desc=""):
         self.name = name
         self.desc = desc
-        self.fid = fid
         self.children = {}
         self.parent = []
         self.state = 0
 
+
+def node_cmp(n1, n2):
+    return cmp(n1.name, n2.name)
 
 def add_to_tree(root, parents, cnode):
     to_place = parents[:]
@@ -40,7 +42,7 @@ def in_tree(root, item):
 
 def _depends(flows, flow, result, remains):
     spec = flows[flow]
-    _node = Node(flow, spec["name"], flow)
+    _node = Node(flow, spec["name"])
     if "depends" in spec:
         for dep in spec["depends"]:
             _parent = in_tree(result, dep)
@@ -104,7 +106,7 @@ def print_graph(root, inx=""):
 def flatten(root):
     """
 
-    :param graph: dictionary
+    :param root: dictionary
     :return:
     """
     _list = []
