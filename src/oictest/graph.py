@@ -1,14 +1,17 @@
 class Node():
-    def __init__(self, name="", desc=""):
+    def __init__(self, name, desc, rmc=False, experr=False):
         self.name = name
         self.desc = desc
         self.children = {}
         self.parent = []
         self.state = 0
+        self.rmc = rmc
+        self.experr = experr
 
 
 def node_cmp(n1, n2):
     return cmp(n1.name, n2.name)
+
 
 def add_to_tree(root, parents, cnode):
     to_place = parents[:]
@@ -42,7 +45,9 @@ def in_tree(root, item):
 
 def _depends(flows, flow, result, remains):
     spec = flows[flow]
-    _node = Node(flow, spec["name"])
+    _node = Node(flow, spec["name"],
+                 "rm_cookie" in spec["sequence"],
+                 "expect_err" in spec["sequence"])
     if "depends" in spec:
         for dep in spec["depends"]:
             _parent = in_tree(result, dep)
@@ -66,7 +71,7 @@ def sort_flows_into_graph(flows, grp=""):
         remains = flows.keys()
     while remains:
         flow = remains[0]
-        _depends(flows, flow, result,remains)
+        _depends(flows, flow, result, remains)
 
     return result
 

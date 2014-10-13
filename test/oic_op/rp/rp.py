@@ -174,6 +174,7 @@ def session_setup(session, path, index=0):
     session["ots"] = ots
     session["conv"] = conv
     session["index"] = index
+    session["response_type"] = ""
 
     return conv, sequence_info, ots, trace, index
 

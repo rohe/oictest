@@ -17,6 +17,10 @@ def op_choice(base, nodes):
     for node in nodes:
         element += "<li><a href='%s%s'>%s</a>%s (%s) " % (
             base, node.name, color[node.state], node.desc, node.name)
+        if node.rmc:
+            element += '<img src="static/delete-icon.png">'
+        if node.experr:
+            element += '<img src="static/beware.png">'
     element += "</select>"
     return element
 %>
