@@ -1,5 +1,5 @@
 <%!
-    def mk_button(url):
+    def button(url):
         return "<a href='%s'>button</a>" % url
 %>
 
