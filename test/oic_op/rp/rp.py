@@ -18,7 +18,7 @@ from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oictest.check import factory as check_factory
 from oictest.testflows import Discover, Notice
-from rrtest import Trace
+from rrtest import Trace, exception_trace
 from script.oic_flow_tests import sort_flows_into_graph
 
 LOGGER = logging.getLogger("")
@@ -217,6 +217,17 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 else:
                     kwargs = {}
 
+                # Extra arguments outside the OIDC spec
+                try:
+                    _extra = ots.config.CLIENT["extra"][req.request]
+                except KeyError:
+                    pass
+                else:
+                    try:
+                        kwargs["request_args"].update(_extra)
+                    except KeyError:
+                        kwargs["request_args"] = _extra
+
                 req.call_setup()
                 url, body, ht_args = req.construct_request(ots.client, **kwargs)
 
@@ -251,6 +262,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     return opresult(environ, start_response, conv, session)
 
 
+def session_init(session):
+    graph = sort_flows_into_graph(testflows.FLOWS)
+    session["graph"] = graph
+    session["tests"] = [x for x in flatten(graph)]
+    session["tests"].sort(node_cmp)
+    session["flow_names"] = [x.name for x in session["tests"]]
+
+
 def application(environ, start_response):
     session = environ['beaker.session']
 
@@ -265,12 +284,10 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     if path == "":  # list
-        graph = sort_flows_into_graph(testflows.FLOWS)
-        session["graph"] = graph
-        session["tests"] = [x for x in flatten(graph)]
-        session["tests"].sort(node_cmp)
-        session["flow_names"] = [x.name for x in session["tests"]]
+        session_init(session)
         return flow_list(environ, start_response, session["tests"])
+    elif "flow_names" not in session:
+        session_init(session)
 
     if path == "continue":
         try:
@@ -305,6 +322,7 @@ def application(environ, start_response):
                                 start_response, trace, index)
         except Exception, err:
             session["node"].state = 3
+            exception_trace("run_sequence", err, trace)
             return test_error(environ, start_response, conv, err)
     else:
         if path != "authz_post":
@@ -354,6 +372,7 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('-m', dest='mailaddr')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 

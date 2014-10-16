@@ -168,7 +168,7 @@ class OIDCTestSetup(object):
             f = open("export/jwk.json", "w")
             f.write(json.dumps(jwks))
             f.close()
-            client.jwks_uri = "%sexport/jwk.json" % self.config.BASE
+            client.jwks_uri = self.config.CLIENT["key_export_url"]
 
         self.test_features = _key_set
 
@@ -183,8 +183,10 @@ class OIDCTestSetup(object):
             client.redirect_uris = self.config.CLIENT[
                 "client_info"]["redirect_uris"]
         elif "client_registration" in _key_set:
-            client.redirect_uris = self.config.CLIENT[
-                "client_registration"]["redirect_uris"]
+            reg_info = self.config.CLIENT["client_registration"]
+            client.redirect_uris = reg_info["redirect_uris"]
+            client.client_id = reg_info["client_id"]
+            client.client_secret = reg_info["client_secret"]
 
         return client
 
