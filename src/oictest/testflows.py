@@ -105,30 +105,25 @@ class TimeDelay(Process):
 class Notice(Process):
     def __init__(self):
         self.tests = {"post": [], "pre": []}
-
-    def __call__(self, *args, **kwargs):
-        pass
-
-
-class ExpectError(Process):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "expect_err.mako"
-
-    def __call__(self, *args, **kwargs):
-        pass
-
-
-class RmCookie(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "rmcookie.mako"
+        self.template = ""
 
     def __call__(self, lookup, environ, start_response, **kwargs):
         resp = Response(mako_template=self.template,
                         template_lookup=lookup,
                         headers=[])
         return resp(environ, start_response, **kwargs)
+
+
+class ExpectError(Notice):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "expect_err.mako"
+
+
+class RmCookie(Notice):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "rmcookie.mako"
 
 
 class RotateKeys(Process):
