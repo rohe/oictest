@@ -149,11 +149,12 @@ class CheckSupported(CriticalError):
     element = "X_supported"
     parameter = "X"
     default = None
+    required = False
 
     def _func(self, conv):
         res = {}
         try:
-            _sup = self._supported(conv.request_args,
+            _sup = self._supported(conv.req.request_args,
                                    conv.provider_info)
             if not _sup:
                 self._status = self.status
@@ -169,7 +170,10 @@ class CheckSupported(CriticalError):
             supported = _provider_info[self.element]
         except KeyError:
             if self.default is None:
-                return False
+                if self.required:
+                    return False
+                else:
+                    return True
             else:
                 supported = self.default
 
