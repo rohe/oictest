@@ -26,8 +26,8 @@ CLIENT = {
         "contacts": ["roland.hedberg@umu.se"],
         "redirect_uris": ["%sauthz_cb" % BASE],
         "post_logout_redirect_uris": ["%slogout" % BASE],
-        "key_export_url": "%sexport/jwk.json" % BASE
     },
+    "key_export_url": "%sexport/jwk.json" % BASE,
     "behaviour": {
         "response_type": "code",
         "scope": ["openid", "profile", "email", "address", "phone"],

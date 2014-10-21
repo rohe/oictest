@@ -17,6 +17,9 @@ from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oictest.check import factory as check_factory
+from oictest.oidcrp import test_summation
+from oictest.oidcrp import OIDCTestSetup
+from oictest.oidcrp import request_and_return
 from oictest.testflows import Discover, Notice
 from rrtest import Trace, exception_trace
 from script.oic_flow_tests import sort_flows_into_graph
@@ -344,11 +347,13 @@ def application(environ, start_response):
             else:  # resp_c.where == "body"
                 info = get_post(environ)
 
+            LOGGER.info("Response: %s" % info)
             resp_cls = message_factory(resp_c.response)
             response = ots.client.parse_response(resp_cls, info, resp_c.ctype,
                                                  session["state"],
                                                  keyjar=ots.client.keyjar)
 
+            LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
 
         try:
@@ -367,7 +372,6 @@ def application(environ, start_response):
             return test_error(environ, start_response, conv, err)
 
 if __name__ == '__main__':
-    from oidc import OIDCTestSetup, request_and_return, test_summation
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
 

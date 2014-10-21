@@ -1,12 +1,12 @@
 import copy
 import json
-from oic.utils.http_util import Redirect
+
 from oic import oic
-from oic.oauth2 import rndstr
-from oic.oauth2 import ErrorResponse
-from oic.oic import AuthorizationResponse
-from oic.oic import RegistrationRequest
-from oic.oic import AuthorizationRequest
+# from oic.utils.http_util import Redirect
+# from oic.oauth2 import rndstr
+# from oic.oauth2 import ErrorResponse
+# from oic.oic import AuthorizationResponse
+# from oic.oic import AuthorizationRequest
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
@@ -36,92 +36,92 @@ class Client(oic.Client):
         if behaviour:
             self.behaviour = behaviour
 
-    def create_authn_request(self, session, acr_value=None):
-        session["state"] = rndstr()
-        session["nonce"] = rndstr()
-        request_args = {
-            "response_type": self.behaviour["response_type"],
-            "scope": self.behaviour["scope"],
-            "state": session["state"],
-            "nonce": session["nonce"],
-            "redirect_uri": self.registration_response["redirect_uris"][0]
-        }
-
-        if acr_value is not None:
-            request_args["acr_values"] = acr_value
-
-        cis = self.construct_AuthorizationRequest(request_args=request_args)
-        logger.debug("request: %s" % cis)
-
-        url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
-                                                    method="GET",
-                                                    request_args=request_args)
-
-        logger.debug("body: %s" % body)
-        logger.info("URL: %s" % url)
-        logger.debug("ht_args: %s" % ht_args)
-
-        resp = Redirect(str(url))
-        if ht_args:
-            resp.headers.extend([(a, b) for a, b in ht_args.items()])
-        logger.debug("resp_headers: %s" % resp.headers)
-        return resp
-
-    def callback(self, response):
-        """
-        This is the method that should be called when an AuthN response has been
-        received from the OP.
-
-        :param response: The URL returned by the OP
-        :return:
-        """
-        authresp = self.parse_response(AuthorizationResponse, response,
-                                       sformat="dict", keyjar=self.keyjar)
-
-        if isinstance(authresp, ErrorResponse):
-            return OIDCError("Access denied")
-
-        try:
-            self.id_token[authresp["state"]] = authresp["id_token"]
-        except KeyError:
-            pass
-
-        if self.behaviour["response_type"] == "code":
-            # get the access token
-            try:
-                args = {
-                    "code": authresp["code"],
-                    "redirect_uri": self.registration_response[
-                        "redirect_uris"][0],
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret
-                }
-
-                atresp = self.do_access_token_request(
-                    scope="openid", state=authresp["state"], request_args=args,
-                    authn_method=self.registration_response[
-                        "token_endpoint_auth_method"])
-            except Exception as err:
-                logger.error("%s" % err)
-                raise
-
-            if isinstance(atresp, ErrorResponse):
-                raise OIDCError("Invalid response %s." % atresp["error"])
-
-        inforesp = self.do_user_info_request(state=authresp["state"])
-
-        if isinstance(inforesp, ErrorResponse):
-            raise OIDCError("Invalid response %s." % inforesp["error"])
-
-        userinfo = inforesp.to_dict()
-
-        logger.debug("UserInfo: %s" % inforesp)
-
-        return userinfo
+    # def create_authn_request(self, session, acr_value=None):
+    #     session["state"] = rndstr()
+    #     session["nonce"] = rndstr()
+    #     request_args = {
+    #         "response_type": self.behaviour["response_type"],
+    #         "scope": self.behaviour["scope"],
+    #         "state": session["state"],
+    #         "nonce": session["nonce"],
+    #         "redirect_uri": self.registration_response["redirect_uris"][0]
+    #     }
+    #
+    #     if acr_value is not None:
+    #         request_args["acr_values"] = acr_value
+    #
+    #     cis = self.construct_AuthorizationRequest(request_args=request_args)
+    #     logger.debug("request: %s" % cis)
+    #
+    #     url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
+    #                                                 method="GET",
+    #                                                 request_args=request_args)
+    #
+    #     logger.debug("body: %s" % body)
+    #     logger.info("URL: %s" % url)
+    #     logger.debug("ht_args: %s" % ht_args)
+    #
+    #     resp = Redirect(str(url))
+    #     if ht_args:
+    #         resp.headers.extend([(a, b) for a, b in ht_args.items()])
+    #     logger.debug("resp_headers: %s" % resp.headers)
+    #     return resp
+    #
+    # def callback(self, response):
+    #     """
+    #     This is the method that should be called when an AuthN response has been
+    #     received from the OP.
+    #
+    #     :param response: The URL returned by the OP
+    #     :return:
+    #     """
+    #     authresp = self.parse_response(AuthorizationResponse, response,
+    #                                    sformat="dict", keyjar=self.keyjar)
+    #
+    #     if isinstance(authresp, ErrorResponse):
+    #         return OIDCError("Access denied")
+    #
+    #     try:
+    #         self.id_token[authresp["state"]] = authresp["id_token"]
+    #     except KeyError:
+    #         pass
+    #
+    #     if self.behaviour["response_type"] == "code":
+    #         # get the access token
+    #         try:
+    #             args = {
+    #                 "code": authresp["code"],
+    #                 "redirect_uri": self.registration_response[
+    #                     "redirect_uris"][0],
+    #                 "client_id": self.client_id,
+    #                 "client_secret": self.client_secret
+    #             }
+    #
+    #             atresp = self.do_access_token_request(
+    #                 scope="openid", state=authresp["state"], request_args=args,
+    #                 authn_method=self.registration_response[
+    #                     "token_endpoint_auth_method"])
+    #         except Exception as err:
+    #             logger.error("%s" % err)
+    #             raise
+    #
+    #         if isinstance(atresp, ErrorResponse):
+    #             raise OIDCError("Invalid response %s." % atresp["error"])
+    #
+    #     inforesp = self.do_user_info_request(state=authresp["state"])
+    #
+    #     if isinstance(inforesp, ErrorResponse):
+    #         raise OIDCError("Invalid response %s." % inforesp["error"])
+    #
+    #     userinfo = inforesp.to_dict()
+    #
+    #     logger.debug("UserInfo: %s" % inforesp)
+    #
+    #     return userinfo
 
 
 class OIDCTestSetup(object):
-    def __init__(self, config, oic_operations):
+    def __init__(self, config, test_defs):
         """
 
         :param config: Imported configuration module
@@ -131,7 +131,7 @@ class OIDCTestSetup(object):
         self.config = config
         self.test_features = []
         self.client = self.create_client(**config.CLIENT)
-        self.oic_operations = oic_operations
+        self.test_defs = test_defs
 
     def create_client(self, **kwargs):
         """
@@ -246,21 +246,21 @@ class OIDCTestSetup(object):
         :return: test sequence and test definitions
         """
 
-        sequence = flow2sequence(self.oic_operations, flow)
+        sequence = flow2sequence(self.test_defs, flow)
 
         res = {"sequence": sequence,
                "tests": {"pre": [], "post": []},
                "flow": [flow],
-               "block": []}
+               "block": [],
+               "mode": "",
+               "expect_exception": False}
 
-        try:
-            res["tests"]["post"] = self.oic_operations.FLOWS[flow]["tests"]
-        except KeyError:
-                pass
+        _flow = self.test_defs.FLOWS[flow]
 
-        try:
-            res["block"] = self.oic_operations.FLOWS[flow]["block"]
-        except KeyError:
+        for param in ["tests", "block", "mode", "expect_exception"]:
+            try:
+                res[param] = _flow[param]
+            except KeyError:
                 pass
 
         return res
@@ -286,12 +286,12 @@ class OIDCTestSetup(object):
                 except TypeError:
                     pass
             if _register:
-                _ext = self.oic_operations.PHASES["oic-registration"]
+                _ext = self.test_defs.PHASES["oic-registration"]
                 _seq.insert(0, _ext)
                 _flow.insert(0, "oic-registration")
 
         if "srv_discovery_url" in self.test_features:
-            op_spec = self.oic_operations.PHASES["provider-discovery"]
+            op_spec = self.test_defs.PHASES["provider-discovery"]
             if op_spec not in _seq:
                 _seq.insert(0, op_spec)
                 _flow.insert(0, "provider-discovery")
