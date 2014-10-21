@@ -25,6 +25,7 @@ class Request(object):
         self.request_param = copy.deepcopy(self._request_param)
         self.kw_args = copy.deepcopy(self._kw_args)
         self.conv = conv
+        self.conv.req = self
         self.trace = conv.trace
         self.tests = copy.deepcopy(self._tests)
 

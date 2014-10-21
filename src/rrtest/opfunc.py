@@ -368,18 +368,17 @@ class Operation(object):
     def post_op(self, result, environ, args):
         pass
 
-    def __call__(self, location, response, content, feature=None, **kwargs):
+    def __call__(self, **kwargs):
         try:
             _args = self.args.copy()
         except (KeyError, AttributeError):
             _args = {}
 
-        _args["location"] = location
+        _args.update(kwargs)
 
         self.trace.reply("FUNCTION: %s" % self.function.__name__)
         self.trace.reply("ARGS: %s" % (_args,))
 
-        result = self.function(self.conv.client, response=response,
-                               content=content, **_args)
+        result = self.function(self.conv.client, **_args)
         self.post_op(result, self.conv, _args)
         return result
