@@ -41,6 +41,10 @@ class MissingResponseClaim(Exception):
     pass
 
 
+class NotSupported(Exception):
+    pass
+
+
 def _get_base(cconf=None):
     """
     Make sure a '/' terminated URL is returned
@@ -831,16 +835,33 @@ class AccessTokenRequest(PostRequest):
         #self.kw_args = {"authn_method": "client_secret_basic"}
 
     def call_setup(self):
+        _pinfo = self.conv.client.provider_info
+        try:
+            _supported = _pinfo["token_endpoint_auth_methods_supported"]
+        except KeyError:
+            _supported = None
+
         if "authn_method" not in self.kw_args:
-            _pinfo = self.conv.provider_info
-            if "token_endpoint_auth_methods_supported" in _pinfo:
+            if _supported:
                 for meth in ["client_secret_basic", "client_secret_post",
                              "client_secret_jwt", "private_key_jwt"]:
-                    if meth in _pinfo["token_endpoint_auth_methods_supported"]:
+                    if meth in _supported:
                         self.kw_args = {"authn_method": meth}
                         break
             else:
                 self.kw_args = {"authn_method": "client_secret_basic"}
+        elif _supported:
+            try:
+                assert self.kw_args["authn_method"] in _supported
+            except AssertionError:
+                raise NotSupported("Authn_method '%s' not supported" % (
+                    self.kw_args["authn_method"]))
+
+
+class AccessTokenRequestCSB(AccessTokenRequest):
+    def __init__(self, conv):
+        AccessTokenRequest.__init__(self, conv)
+        self.kw_args = {"authn_method": "client_secret_basic"}
 
 
 class AccessTokenRequestCSPost(AccessTokenRequest):
@@ -921,6 +942,14 @@ class UserInfoRequestPostBearerHeader_err(PostRequest):
         PostRequest.__init__(self, conv)
         self.kw_args = {"authn_method": "bearer_header"}
         self.tests["post"] = [CheckErrorResponse]
+
+
+class UserInfoRequestGetBearerHeader(GetRequest):
+    request = "UserInfoRequest"
+
+    def __init__(self, conv):
+        GetRequest.__init__(self, conv)
+        self.kw_args = {"authn_method": "bearer_header"}
 
 
 class UserInfoRequestPostBearerHeader(PostRequest):
@@ -1208,6 +1237,7 @@ PHASES = {
     "oic-login-formpost": (AuthorizationRequestCodeResponseModeFormPost,
                            AuthzFormResponse),
     #
+    "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "access-token-request_csj": (AccessTokenRequestCSJWT, AccessTokenResponse),
@@ -1216,7 +1246,7 @@ PHASES = {
     "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
     "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
     "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
-    #"user-info-request_pbh":(UserInfoRequestGetBearerHeader, UserinfoResponse),
+    "user-info-request_gbh": (UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
     "user-info-request_pbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
@@ -1493,7 +1523,43 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", ],
         "depends": ['mj-01'],
     },
+    'mj-08': {
+        "name": 'Access token request with client_secret_basic authentication',
+        # Should register token_endpoint_auth_method=client_secret_basic
+        "sequence": ["oic-login", "access-token-request_csb"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+    },
+    'mj-09': {
+        "name": 'Access token request with client_secret_post authentication',
+        # Should register token_endpoint_auth_method=client_secret_post
+        "sequence": ["oic-login", "access-token-request_csp"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+    },
+    'mj-10': {
+        "name": 'Access token request with client_secret_jwt authentication',
+        "sequence": ["oic-registration-ke_csj", "oic-login",
+                     "access-token-request_csj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+    },
+    'mj-11': {
+        "name": 'Access token request with public_key_jwt authentication',
+        "sequence": ["oic-registration-ke_pkj", "oic-login",
+                     "access-token-request_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+    },
     # -------------------------------------------------------------------------
+    'mj-12a': {
+        "name": 'UserInfo Endpoint Access with GET and bearer_header',
+        "sequence": ["oic-login", "access-token-request",
+                     "user-info-request_gbh"],
+        "endpoints": ["authorization_endpoint", "token_endpoint",
+                      "userinfo_endpoint"],
+        "depends": ['mj-01'],
+    },
     'mj-12': {
         "name": 'UserInfo Endpoint Access with POST and bearer_header',
         "sequence": ["oic-login", "access-token-request",
@@ -1647,13 +1713,6 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     # ---------------------------------------------------------------------
-    'mj-30': {
-        "name": 'Access token request with client_secret_post authentication',
-        # Should register token_endpoint_auth_method=client_secret_post
-        "sequence": ["oic-login", "access-token-request_csp"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "depends": ['mj-01'],
-    },
     'mj-31': {
         "name": 'Request with response_type=code and extra query component',
         "sequence": ["login-wqc"],
@@ -1695,20 +1754,6 @@ FLOWS = {
         "name": "The sent redirect_uri does not match the registered",
         "sequence": ["expect_err", "login-redirect-fault"],
         "endpoints": ["authorization_endpoint"],
-        "depends": ['mj-01'],
-    },
-    'mj-37': {
-        "name": 'Access token request with client_secret_jwt authentication',
-        "sequence": ["oic-registration-ke_csj", "oic-login",
-                     "access-token-request_csj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "depends": ['mj-01'],
-    },
-    'mj-38': {
-        "name": 'Access token request with public_key_jwt authentication',
-        "sequence": ["oic-registration-ke_pkj", "oic-login",
-                     "access-token-request_pkj"],
-        "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
     },
     'mj-39': {
@@ -1903,15 +1948,15 @@ FLOWS = {
         "depends": ['mj-60'],
         "tests": [("encrypted-userinfo", {})],
     },
-    'mj-66': {
-        "name": 'Can Provide Encrypted ID Token Response',
-        "sequence": ["oic-registration-encrypted_idtoken", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
-        "endpoints": ["authorization_endpoint", "token_endpoint",
-                      "userinfo_endpoint"],
-        "depends": ['mj-60'],
-        "tests": [("encrypted-idtoken", {})],
-    },
+    # 'mj-66': {
+    #     "name": 'Can Provide Encrypted ID Token Response',
+    #     "sequence": ["oic-registration-encrypted_idtoken", "oic-login",
+    #                  "access-token-request", "user-info-request_pbh"],
+    #     "endpoints": ["authorization_endpoint", "token_endpoint",
+    #                   "userinfo_endpoint"],
+    #     "depends": ['mj-60'],
+    #     "tests": [("encrypted-idtoken", {})],
+    # },
     'mj-67': {
         "name": 'Can Provide Signed and Encrypted ID Token Response',
         "sequence": ["oic-registration-signed+encrypted_idtoken", "oic-login",
@@ -1973,7 +2018,7 @@ FLOWS = {
         "sequence": ["oic-registration-jwks", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
-        "depends": ['mj-37'],
+        "depends": ['mj-10'],
         #"tests": [("encrypted-idtoken", {})],
     },
     'mj-75': {
