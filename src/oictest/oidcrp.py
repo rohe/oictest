@@ -7,6 +7,7 @@ from oic import oic
 # from oic.oauth2 import ErrorResponse
 # from oic.oic import AuthorizationResponse
 # from oic.oic import AuthorizationRequest
+from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import KeyJar
 from oic.utils.keyio import KeyBundle
@@ -35,89 +36,6 @@ class Client(oic.Client):
                             client_authn_method, keyjar, verify_ssl)
         if behaviour:
             self.behaviour = behaviour
-
-    # def create_authn_request(self, session, acr_value=None):
-    #     session["state"] = rndstr()
-    #     session["nonce"] = rndstr()
-    #     request_args = {
-    #         "response_type": self.behaviour["response_type"],
-    #         "scope": self.behaviour["scope"],
-    #         "state": session["state"],
-    #         "nonce": session["nonce"],
-    #         "redirect_uri": self.registration_response["redirect_uris"][0]
-    #     }
-    #
-    #     if acr_value is not None:
-    #         request_args["acr_values"] = acr_value
-    #
-    #     cis = self.construct_AuthorizationRequest(request_args=request_args)
-    #     logger.debug("request: %s" % cis)
-    #
-    #     url, body, ht_args, cis = self.uri_and_body(AuthorizationRequest, cis,
-    #                                                 method="GET",
-    #                                                 request_args=request_args)
-    #
-    #     logger.debug("body: %s" % body)
-    #     logger.info("URL: %s" % url)
-    #     logger.debug("ht_args: %s" % ht_args)
-    #
-    #     resp = Redirect(str(url))
-    #     if ht_args:
-    #         resp.headers.extend([(a, b) for a, b in ht_args.items()])
-    #     logger.debug("resp_headers: %s" % resp.headers)
-    #     return resp
-    #
-    # def callback(self, response):
-    #     """
-    #     This is the method that should be called when an AuthN response has been
-    #     received from the OP.
-    #
-    #     :param response: The URL returned by the OP
-    #     :return:
-    #     """
-    #     authresp = self.parse_response(AuthorizationResponse, response,
-    #                                    sformat="dict", keyjar=self.keyjar)
-    #
-    #     if isinstance(authresp, ErrorResponse):
-    #         return OIDCError("Access denied")
-    #
-    #     try:
-    #         self.id_token[authresp["state"]] = authresp["id_token"]
-    #     except KeyError:
-    #         pass
-    #
-    #     if self.behaviour["response_type"] == "code":
-    #         # get the access token
-    #         try:
-    #             args = {
-    #                 "code": authresp["code"],
-    #                 "redirect_uri": self.registration_response[
-    #                     "redirect_uris"][0],
-    #                 "client_id": self.client_id,
-    #                 "client_secret": self.client_secret
-    #             }
-    #
-    #             atresp = self.do_access_token_request(
-    #                 scope="openid", state=authresp["state"], request_args=args,
-    #                 authn_method=self.registration_response[
-    #                     "token_endpoint_auth_method"])
-    #         except Exception as err:
-    #             logger.error("%s" % err)
-    #             raise
-    #
-    #         if isinstance(atresp, ErrorResponse):
-    #             raise OIDCError("Invalid response %s." % atresp["error"])
-    #
-    #     inforesp = self.do_user_info_request(state=authresp["state"])
-    #
-    #     if isinstance(inforesp, ErrorResponse):
-    #         raise OIDCError("Invalid response %s." % inforesp["error"])
-    #
-    #     userinfo = inforesp.to_dict()
-    #
-    #     logger.debug("UserInfo: %s" % inforesp)
-    #
-    #     return userinfo
 
 
 class OIDCTestSetup(object):
@@ -187,6 +105,14 @@ class OIDCTestSetup(object):
             client.redirect_uris = reg_info["redirect_uris"]
             client.client_id = reg_info["client_id"]
             client.client_secret = reg_info["client_secret"]
+
+        if "provider_info" in _key_set:
+            client.provider_info = ProviderConfigurationResponse(
+                **self.config.CLIENT["provider_info"])
+
+            for key, val in self.config.CLIENT["provider_info"].items():
+                if key.endswith("_endpoint"):
+                    setattr(client, key, val)
 
         return client
 
@@ -316,6 +242,10 @@ def request_and_return(conv, url, response=None, method="GET", body=None,
     if http_args is None:
         http_args = {}
 
+    logger.debug("request.headers: %s" % http_args)
+    logger.debug("request.body: %s" % body)
+    logger.debug("request.url: %s" % url)
+    logger.debug("request.method: %s" % method)
     _cli = conv.client
     try:
         _resp = _cli.http_request(url, method, data=body, **http_args)
