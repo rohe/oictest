@@ -127,6 +127,16 @@ class Request(object):
             if e_arg["endpoint"]:
                 _kwargs["endpoint"] = e_arg["endpoint"]
 
+            try:
+                extras = self.conv.client_config["extra_args"][self.request]
+            except KeyError:
+                pass
+            else:
+                for key, val in extras.items():
+                    if val is None:
+                        val = getattr(self.conv.client, key)
+                    cis[key] = val
+
             url, body, ht_args, cis = client.uri_and_body(
                 request, cis, **_kwargs)
             self.conv.cis.append(cis)
