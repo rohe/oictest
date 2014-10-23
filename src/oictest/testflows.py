@@ -2051,7 +2051,8 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-78': {
-        "name": "RP wants signed UserInfo returned",
+        "name": 'RP registers userinfo_signed_response_alg to signal that it '
+                'wants signed UserInfo returned',
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
                      "access-token-request", "user-info-request_pbh"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
