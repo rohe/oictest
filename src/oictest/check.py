@@ -437,7 +437,7 @@ class CheckEndpoint(CriticalError):
     msg = "Endpoint missing"
 
     def _func(self, conv=None):
-        cls = conv.request_spec.request
+        cls = conv.req.request
         try:
             endpoint = conv.client.request2endpoint[cls]
         except KeyError:
