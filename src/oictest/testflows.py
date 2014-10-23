@@ -1897,7 +1897,8 @@ FLOWS = {
         "depends": ['mj-25'],
     },
     'mj-60': {
-        "name": 'RP wants signed UserInfo returned',
+        "name": 'RP signals that it wants signed UserInfo returned by '
+                'setting the HTTP accept header to "application/jwt"',
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
                      "access-token-request", "user-info-request_pbh_jose"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
