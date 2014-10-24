@@ -1,7 +1,7 @@
 <%!
 def op_choice(base, nodes):
     """
-    Creates a dropdown list of test flows
+    Creates a list of test flows
     """
     #colordict = {
     #    "OK":'<img src="static/green.png" alt="Green">',
@@ -12,10 +12,11 @@ def op_choice(base, nodes):
     color = ['<img src="static/black.png" alt="Black">',
              '<img src="static/green.png" alt="Green">',
              '<img src="static/red.png" alt="Red">',
-             '<img src="static/yellow.png" alt="Yellow">']
+             '<img src="static/yellow.png" alt="Yellow">',
+             '<img src="static/greybutton" alt="Grey">']
     element = "<ul>"
     for node in nodes:
-        element += "<li><a href='%s%s'>%s</a>%s (%s) " % (
+        element += "<li><a id='%s' href='%s%s'>%s</a>%s (%s) " % (node.name,
             base, node.name, color[node.state], node.desc, node.name)
         if node.rmc:
             element += '<img src="static/delete-icon.png">'

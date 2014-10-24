@@ -79,7 +79,7 @@ class Conversation(object):
             except KeyError:
                 pass
 
-            raise FatalError
+            raise FatalError(stat["message"])
 
     def do_check(self, test, **kwargs):
         if isinstance(test, basestring):

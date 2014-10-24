@@ -559,7 +559,7 @@ class RegistrationRequest(PostRequest):
 
         for arg in message.RegistrationRequest().parameters():
             try:
-                val = conv.client_config[arg]
+                val = conv.client_config["provider_info"][arg]
             except KeyError:
                 try:
                     val = conv.client_config["preferences"][arg]
@@ -567,7 +567,10 @@ class RegistrationRequest(PostRequest):
                     try:
                         val = conv.client_config["client_info"][arg]
                     except KeyError:
-                        continue
+                        try:
+                            val = conv.client_config["client_registration"][arg]
+                        except KeyError:
+                            continue
             self.request_args[arg] = copy.copy(val)
         try:
             del self.request_args["key_export_url"]

@@ -3,9 +3,10 @@ def test_output(output):
     """
 
     """
-    element = []
+    element = ["<h3>Test output</h3><pre><code>"]
     for item in output:
-        element.append("<p>%s</p>" % item)
+        element.append("%s\n" % item)
+    element.append("</code></pre>")
     return "\n".join(element)
 %>
 
@@ -41,13 +42,9 @@ def trace_output(trace):
 
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
-      <div class="jumbotron">
-        <form class="form-signin" action="rp" method="get">
-        <h2>Result</h2>
-          ${test_output(output)}
-          ${trace_output(trace)}
-        </form>
-      </div>
+     <h2>Result</h2>
+       ${test_output(output)}
+       ${trace_output(trace)}
 
     </div> <!-- /container -->
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

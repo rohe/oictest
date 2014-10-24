@@ -16,13 +16,13 @@ from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
-from oictest.check import factory as check_factory
+from oictest.check import factory as check_factory, CheckSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 from oictest.testflows import Discover, Notice
 from rrtest import Trace, exception_trace
-from script.oic_flow_tests import sort_flows_into_graph
+from oictest.graph import sort_flows_into_graph
 
 LOGGER = logging.getLogger("")
 LOGFILE_NAME = 'rp.log'
@@ -182,6 +182,26 @@ def session_setup(session, path, index=0):
     return conv, sequence_info, ots, trace, index
 
 
+def verify_support(conv, ots, graph):
+    for key, val in ots.test_defs.FLOWS.items():
+        sequence_info = ots.make_sequence(key)
+        for op in sequence_info["sequence"]:
+            try:
+                req, resp = op
+            except TypeError:
+                continue
+
+            conv.req = req(conv)
+            if "pre" in conv.req.tests:
+                for test in conv.req.tests["pre"]:
+                    if issubclass(test, CheckSupported):
+                        chk = test()
+                        res = chk(conv)
+                        if res["status"] > 1:
+                            node = in_tree(graph, key)
+                            node.state = 4
+
+
 def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
                  trace, index):
     while index < len(sequence_info["sequence"]):
@@ -209,7 +229,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 _r = req.discover(
                     ots.client, issuer=ots.config.CLIENT["srv_discovery_url"])
                 conv.position, conv.last_response, conv.last_content = _r
-                conv.provider_info = ots.client.provider_info
+                logging.debug("Provider info: %s" % conv.last_content._dict)
+                verify_support(conv, ots, session["graph"])
             else:
                 if req.request == "AuthorizationRequest":
                     session["state"] = rndstr()  # New state for each request
@@ -236,6 +257,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
                 if req.request == "AuthorizationRequest":
                     session["response_type"] = req.request_args["response_type"]
+                    LOGGER.info("redirect.url: %s" % url)
+                    LOGGER.info("redirect.header: %s" % ht_args)
                     resp = Redirect(str(url))
                     return resp(environ, start_response)
                 else:
@@ -247,6 +270,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         conv, url, message_factory(resp_c.response), req.method,
                         body, resp_c.ctype, **_kwargs)
                     trace.info(response.to_dict())
+                    LOGGER.info(response.to_dict())
                     if resp_c.response == "RegistrationResponse":
                         ots.client.store_registration_info(response)
 
@@ -271,6 +295,7 @@ def session_init(session):
     session["tests"] = [x for x in flatten(graph)]
     session["tests"].sort(node_cmp)
     session["flow_names"] = [x.name for x in session["tests"]]
+    session["response_type"] = []
 
 
 def application(environ, start_response):

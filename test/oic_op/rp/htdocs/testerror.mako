@@ -3,9 +3,10 @@ def test_output(list):
     """
 
     """
-    element = []
+    element = ["<h3>Test output</h3>", "<pre><code>"]
     for item in list:
-        element.append("<p>%s</p>" % item)
+        element.append("%s" % item)
+    element.append("</code></pre>")
     return "\n".join(element)
 %>
 
@@ -14,9 +15,10 @@ def trace_output(trace):
     """
 
     """
-    element = []
+    element = ["<h3>Trace output</h3>", "<pre><code>"]
     for item in trace:
-        element.append("<p>%s</p>" % item)
+        element.append("%s" % item)
+    element.append("</code></pre>")
     return "\n".join(element)
 %>
 
@@ -40,13 +42,11 @@ def trace_output(trace):
 
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
-      <div class="jumbotron">
-        <h3>${exception}</h3>
+        <h2>${exception}</h2>
         <hr>
         ${test_output(output)}
         <hr>
         ${trace_output(trace)}
-      </div>
     </div> <!-- /container -->
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="/static/jquery.min.1.9.1.js"></script>
