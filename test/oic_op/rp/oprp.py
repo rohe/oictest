@@ -394,6 +394,7 @@ def application(environ, start_response):
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, conv.trace, index)
         except Exception, err:
+            LOGGER.error("%s" % err)
             return test_error(environ, start_response, conv, err)
 
 if __name__ == '__main__':

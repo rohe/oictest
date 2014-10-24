@@ -295,6 +295,7 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
+        # verify that the same sub is returned as present in the IdToken
         self.tests["post"] = [VerifyPromptNoneResponse]
 
     def __call__(self, location, response="", content="", features=None,
@@ -1309,6 +1310,8 @@ PHASES = {
         AccessTokenRequestModRedirectURI3, req.ErrorResponse),
     "intermission": TimeDelay,
     "rotate_keys": RotateKeys,
+    #"rotate_sign_keys": RotateSignKeys,
+    #"rotate_enc_keys": RotateEncKeys,
     "notice": Notice,
     "rm_cookie": RmCookie,
     "expect_err": ExpectError
