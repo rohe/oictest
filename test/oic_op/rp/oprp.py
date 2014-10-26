@@ -25,18 +25,6 @@ from rrtest import Trace, exception_trace
 from oictest.graph import sort_flows_into_graph
 
 LOGGER = logging.getLogger("")
-LOGFILE_NAME = 'rp.log'
-hdlr = logging.FileHandler(LOGFILE_NAME)
-base_formatter = logging.Formatter(
-    "%(asctime)s %(name)s:%(levelname)s %(message)s")
-
-CPC = ('%(asctime)s %(name)s:%(levelname)s '
-       '[%(client)s,%(path)s,%(cid)s] %(message)s')
-cpc_formatter = logging.Formatter(CPC)
-
-hdlr.setFormatter(base_formatter)
-LOGGER.addHandler(hdlr)
-LOGGER.setLevel(logging.DEBUG)
 
 LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         module_directory='modules',
@@ -44,6 +32,16 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         output_encoding='utf-8')
 
 SERVER_ENV = {}
+
+
+def setup_logging(logfile):
+    hdlr = logging.FileHandler(logfile)
+    base_formatter = logging.Formatter(
+        "%(asctime)s %(name)s:%(levelname)s %(message)s")
+
+    hdlr.setFormatter(base_formatter)
+    LOGGER.addHandler(hdlr)
+    LOGGER.setLevel(logging.DEBUG)
 
 
 #noinspection PyUnresolvedReferences
@@ -419,6 +417,8 @@ if __name__ == '__main__':
     CONF = importlib.import_module(sys.argv[1])
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
+
+    setup_logging("rp_%s.log" % CONF.PORT)
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
