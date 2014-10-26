@@ -16,7 +16,6 @@ from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
 from rrtest.request import Process
 from rrtest.check import VerifyBadRequestResponse
-from rrtest.check import VerifyErrorResponse
 from rrtest.check import CheckErrorResponse
 
 __author__ = 'rohe0002'
@@ -1253,7 +1252,7 @@ PHASES = {
     "user-info-request_gbh": (UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
-    "user-info-request_pbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
+    "user-info-request_gbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
                                    UserinfoResponse),
     "user-info-request_pbb": (UserInfoRequestPostBearerBody, UserinfoResponse),
     "user-info-request_err": (UserInfoRequestPostBearerHeader_err,
@@ -1318,6 +1317,7 @@ PHASES = {
 }
 
 OWNER_OPS = []
+USERINFO_REQUEST_AUTH_METHOD = "user-info-request_gbh"
 
 FLOWS = {
     'oic-discovery': {
@@ -1374,7 +1374,7 @@ FLOWS = {
     #               "2) UserinfoRequest",
     #               "  'bearer_body' authentication used"),
     #     "depends": ['mj-02'],
-    #     "sequence": ['oic-login-token', "user-info-request_pbh"],
+    #     "sequence": ['oic-login-token', USERINFO_REQUEST_AUTH_METHOD],
     #     "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     # },
     'oic-code+token-userinfo': {
@@ -1383,7 +1383,7 @@ FLOWS = {
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
         "depends": ['mj-04'],
-        "sequence": ['oic-login-code+token', "user-info-request_pbh"],
+        "sequence": ['oic-login-code+token', USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     'oic-code+idtoken-token-userinfo': {
@@ -1393,7 +1393,7 @@ FLOWS = {
                   "  'bearer_body' authentication used"),
         "depends": ['oic-code+idtoken-token'],
         "sequence": ['oic-login-code+idtoken', "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
     },
@@ -1403,17 +1403,17 @@ FLOWS = {
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
         "depends": ['mj-06'],
-        "sequence": ['oic-login-idtoken+token', "user-info-request_pbh"],
+        "sequence": ['oic-login-idtoken+token', USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     'oic-code+idtoken+token-userinfo': {
-        "name":
-            """Flow with response_type='code idtoken token' and Userinfo request""",
+        "name": 'Flow with response_type="code idtoken token" and Userinfo '
+                'request',
         "descr": ("1) Request with response_type='code id_token token'",
                   "2) UserinfoRequest",
                   "  'bearer_body' authentication used"),
         "depends": ["mj-07"],
-        "sequence": ['oic-login-code+idtoken+token', "user-info-request_pbh"],
+        "sequence": ['oic-login-code+idtoken+token', USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "userinfo_endpoint"],
     },
     'oic-code+idtoken+token-token-userinfo': {
@@ -1427,7 +1427,7 @@ FLOWS = {
                   "  'bearer_body' authentication used"),
         "depends": ['oic-code+idtoken+token-token'],
         "sequence": ["oic-login-code+idtoken+token", "access-token-request",
-                     'user-info-request_pbh'],
+                     'user-info-request_gbh'],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
     },
@@ -1586,7 +1586,7 @@ FLOWS = {
     'mj-14': {
         "name": 'Scope Requesting profile Claims',
         "sequence": ["oic-login+profile", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1594,7 +1594,7 @@ FLOWS = {
     'mj-15': {
         "name": 'Scope Requesting email Claims',
         "sequence": ["oic-login+email", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1602,7 +1602,7 @@ FLOWS = {
     'mj-16': {
         "name": 'Scope Requesting address Claims',
         "sequence": ["oic-login+address", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1610,7 +1610,7 @@ FLOWS = {
     'mj-17': {
         "name": 'Scope Requesting phone Claims',
         "sequence": ["oic-login+phone", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1618,7 +1618,7 @@ FLOWS = {
     'mj-18': {
         "name": 'Scope Requesting all Claims',
         "sequence": ["oic-login+all", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1626,7 +1626,7 @@ FLOWS = {
     'mj-19': {
         "name": 'Claims Request with Essential name Claim',
         "sequence": ["oic-login+spec1", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1634,16 +1634,17 @@ FLOWS = {
     'mj-20': {
         "name": 'Claims Request with Voluntary email and picture Claims',
         "sequence": ["oic-login+spec2", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
     },
     'mj-21': {
         "name": (
-            'Claims Request with Essential name and Voluntary email and picture Claims'),
+            'Claims Request with Essential name and Voluntary email and '
+            'picture Claims'),
         "sequence": ["oic-login+spec3", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1651,7 +1652,7 @@ FLOWS = {
     'mj-22': {
         "name": 'Requesting ID Token with Voluntary auth_time Claim',
         "sequence": ["oic-login+idtc1", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"auth_time": None})],
@@ -1660,7 +1661,7 @@ FLOWS = {
     'mj-23': {
         "name": 'Requesting ID Token with Essential specific acr Claim',
         "sequence": ["oic-login+idtc2", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"acr": {"values": ["2"]}})],
@@ -1669,7 +1670,7 @@ FLOWS = {
     'mj-24': {
         "name": 'Requesting ID Token with Voluntary acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"acr": "essential"})],
@@ -1678,8 +1679,8 @@ FLOWS = {
     'mj-25': {
         "name": 'Requesting ID Token with max_age=1 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_pbh", "intermission", "oic-login+idtc4",
-                     "access-token-request", "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD, "intermission", "oic-login+idtc4",
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("multiple-sign-on", {})],
@@ -1689,14 +1690,14 @@ FLOWS = {
     'mj-26': {
         "name": 'Request with display=page',
         "sequence": ["oic-login+disp_page", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
     },
     'mj-27': {
         "name": 'Request with display=popup',
         "sequence": ["oic-login+disp_popup", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
     },
@@ -1714,7 +1715,7 @@ FLOWS = {
         "name": 'Request with prompt=login means it SHOULD prompt the End-User '
                 'for reauthentication',
         "sequence": ["oic-login+prompt_login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
     },
@@ -1824,7 +1825,7 @@ FLOWS = {
     'mj-49': {
         "name": 'Registration of wish for pairwise sub',
         "sequence": ["oic-registration-pairwise_id", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["registration_endpoint", "authorization_endpoint",
                       "token_endpoint", "userinfo_endpoint"],
         "depends": ['mj-47'],
@@ -1868,9 +1869,10 @@ FLOWS = {
         "depends": ['mj-01'],
     },
     'mj-56': {
-        "name": 'Supports Combining Claims Requested with scope and claims Request Parameter',
+        "name": 'Supports Combining Claims Requested with scope and claims '
+                'Request Parameter',
         "sequence": ["oic-login-combine_claims", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-22'],
@@ -1885,7 +1887,7 @@ FLOWS = {
     'mj-58': {
         "name": 'Requesting ID Token with Essential acr Claim',
         "sequence": ["oic-login+idtc6", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         #"tests": [("verify-id-token", {"acr": None})],
@@ -1894,8 +1896,8 @@ FLOWS = {
     'mj-59': {
         "name": 'Requesting ID Token with max_age=10 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
-                     "user-info-request_pbh", "oic-login+idtc5",
-                     "access-token-request", "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD, "oic-login+idtc5",
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("single-sign-on", {}),
@@ -1906,7 +1908,7 @@ FLOWS = {
         "name": 'RP signals that it wants signed UserInfo returned by '
                 'setting the HTTP accept header to "application/jwt"',
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
-                     "access-token-request", "user-info-request_pbh_jose"],
+                     "access-token-request", "user-info-request_gbh_jose"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("asym-signed-userinfo", {})],
@@ -1929,9 +1931,10 @@ FLOWS = {
     #        "depends": ['mj-01'],
     #        },
     'mj-63': {
-        "name": 'Supports Returning Different Claims in ID Token and UserInfo Endpoint',
+        "name": 'Supports Returning Different Claims in ID Token and UserInfo '
+                'Endpoint',
         "sequence": ["oic-login-mixed_claims", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {}), ("verify-userinfo", {})],
@@ -1940,7 +1943,7 @@ FLOWS = {
     'mj-64': {
         "name": 'Can Provide Encrypted UserInfo Response',
         "sequence": ["oic-registration-encrypted_userinfo", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-12'],
@@ -1949,7 +1952,7 @@ FLOWS = {
     'mj-65': {
         "name": 'Can Provide Signed and Encrypted UserInfo Response',
         "sequence": ["oic-registration-signed+encrypted_userinfo", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-60'],
@@ -1958,7 +1961,7 @@ FLOWS = {
     # 'mj-66': {
     #     "name": 'Can Provide Encrypted ID Token Response',
     #     "sequence": ["oic-registration-encrypted_idtoken", "oic-login",
-    #                  "access-token-request", "user-info-request_pbh"],
+    #                  "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
     #     "endpoints": ["authorization_endpoint", "token_endpoint",
     #                   "userinfo_endpoint"],
     #     "depends": ['mj-60'],
@@ -1967,7 +1970,7 @@ FLOWS = {
     'mj-67': {
         "name": 'Can Provide Signed and Encrypted ID Token Response',
         "sequence": ["oic-registration-signed+encrypted_idtoken", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-60'],
@@ -1991,7 +1994,7 @@ FLOWS = {
     'mj-70': {
         "name": 'Offline_access scope',
         "sequence": ["oic-login+offline", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "depends": ['mj-69'],
@@ -2050,7 +2053,7 @@ FLOWS = {
     'mj-77': {
         "name": 'Requesting ID Token with Essential auth_time Claim',
         "sequence": ["oic-login+idtcX", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"auth_time": "essential"})],
@@ -2060,7 +2063,7 @@ FLOWS = {
         "name": 'RP registers userinfo_signed_response_alg to signal that it '
                 'wants signed UserInfo returned',
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
-                     "access-token-request", "user-info-request_pbh"],
+                     "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("asym-signed-userinfo", {})],
@@ -2079,7 +2082,7 @@ NEW = {
     'x-30': {
         "name": 'Scope Requesting profile Claims with aggregated Claims',
         "sequence": ["oic-login+profile", "access-token-request",
-                     "user-info-request_pbh"],
+                     USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
         "tests": [("unpack-aggregated-claims", {})]

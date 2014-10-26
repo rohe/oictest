@@ -16,11 +16,12 @@ from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
-from oictest.check import factory as check_factory, CheckSupported
+from oictest.check import factory as check_factory, CheckSupported, \
+    CheckTokenEndpointAuthMethod
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
-from oictest.testflows import Discover, Notice
+from oictest.testflows import Discover, Notice, AccessTokenRequest
 from rrtest import Trace, exception_trace
 from oictest.graph import sort_flows_into_graph
 
@@ -190,14 +191,28 @@ def verify_support(conv, ots, graph):
                 continue
 
             conv.req = req(conv)
+            if issubclass(req, AccessTokenRequest):
+                chk = CheckTokenEndpointAuthMethod()
+                res = chk(conv)
+                if res["status"] > 1:
+                    node = in_tree(graph, key)
+                    node.state = 4
+
             if "pre" in conv.req.tests:
                 for test in conv.req.tests["pre"]:
-                    if issubclass(test, CheckSupported):
-                        chk = test()
-                        res = chk(conv)
-                        if res["status"] > 1:
-                            node = in_tree(graph, key)
-                            node.state = 4
+                    if issubclass(req, AccessTokenRequest) and \
+                            issubclass(test, CheckTokenEndpointAuthMethod):
+                                pass
+                    elif issubclass(test, CheckSupported):
+                        pass
+                    else:
+                        continue
+
+                    chk = test()
+                    res = chk(conv)
+                    if res["status"] > 1:
+                        node = in_tree(graph, key)
+                        node.state = 4
 
 
 def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
