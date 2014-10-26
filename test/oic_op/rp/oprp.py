@@ -17,7 +17,8 @@ from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oictest.check import factory as check_factory, CheckSupported, \
-    CheckTokenEndpointAuthMethod, CheckSupportedTrue, CheckEndpoint
+    CheckTokenEndpointAuthMethod, CheckSupportedTrue, CheckEndpoint, \
+    CheckRequestURIParameterSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
@@ -202,7 +203,9 @@ def verify_support(conv, ots, graph):
                 for test in conv.req.tests["pre"]:
                     do_check = False
                     for check in [CheckTokenEndpointAuthMethod, CheckSupported,
-                                  CheckSupportedTrue, CheckEndpoint]:
+                                  CheckSupportedTrue, CheckEndpoint,
+                                  CheckRequestURIParameterSupported,
+                                  CheckTokenEndpointAuthMethod]:
                         if issubclass(test, check):
                             do_check = True
                             break
