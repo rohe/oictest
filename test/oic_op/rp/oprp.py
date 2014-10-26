@@ -17,7 +17,7 @@ from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oictest.check import factory as check_factory, CheckSupported, \
-    CheckTokenEndpointAuthMethod
+    CheckTokenEndpointAuthMethod, CheckSupportedTrue, CheckEndpoint
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
@@ -200,19 +200,19 @@ def verify_support(conv, ots, graph):
 
             if "pre" in conv.req.tests:
                 for test in conv.req.tests["pre"]:
-                    if issubclass(req, AccessTokenRequest) and \
-                            issubclass(test, CheckTokenEndpointAuthMethod):
-                                pass
-                    elif issubclass(test, CheckSupported):
-                        pass
-                    else:
-                        continue
+                    do_check = False
+                    for check in [CheckTokenEndpointAuthMethod, CheckSupported,
+                                  CheckSupportedTrue, CheckEndpoint]:
+                        if issubclass(test, check):
+                            do_check = True
+                            break
 
-                    chk = test()
-                    res = chk(conv)
-                    if res["status"] > 1:
-                        node = in_tree(graph, key)
-                        node.state = 4
+                    if do_check:
+                        chk = test()
+                        res = chk(conv)
+                        if res["status"] > 1:
+                            node = in_tree(graph, key)
+                            node.state = 4
 
 
 def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
