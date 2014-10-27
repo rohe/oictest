@@ -39,6 +39,13 @@ from oic.oic.message import OpenIDSchema
 from oic.utils import time_util
 
 
+def get_provider_info(conv):
+    _pi = conv.client.provider_info
+    if not _pi:
+        _pi = conv.provider_info
+    return _pi
+
+
 class CmpIdtoken(Other):
     """
     Compares the JSON received as a CheckID response with my own
@@ -155,7 +162,7 @@ class CheckSupported(CriticalError):
         res = {}
         try:
             _sup = self._supported(conv.req.request_args,
-                                   conv.provider_info)
+                                   get_provider_info(conv))
             if not _sup:
                 self._status = self.status
                 self._message = self.msg
@@ -165,9 +172,8 @@ class CheckSupported(CriticalError):
         return res
 
     def _supported(self, request_args, provider_info):
-        _provider_info = provider_info
         try:
-            supported = _provider_info[self.element]
+            supported = provider_info[self.element]
         except KeyError:
             if self.default is None:
                 if self.required:
@@ -201,10 +207,9 @@ class CheckResponseType(CheckSupported):
     msg = "Response type not supported"
 
     def _supported(self, request_args, provider_info):
-        _provider_info = provider_info
         try:
             supported = [set(s.split(" ")) for s in
-                         _provider_info["response_types_supported"]]
+                         provider_info["response_types_supported"]]
         except KeyError:
             supported = [{"code"}]
 
@@ -232,9 +237,8 @@ class CheckAcrSupport(CheckSupported):
     msg = "ACR level not supported"
 
     def _supported(self, request_args, provider_info):
-        _provider_info = provider_info
         try:
-            supported = _provider_info["acrs_supported"]
+            supported = provider_info["acrs_supported"]
         except KeyError:
             return True
 
@@ -333,6 +337,16 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     parameter = "id_token_encrypted_response_enc"
 
 
+class CheckClaimsSupport(CheckSupported):
+    """
+    Checks that the asked for scope are among the supported
+    """
+    cid = "check-scope-support"
+    msg = "Claims not supported"
+    element = "claims_supported"
+    parameter = "claims"
+
+
 class CheckSupportedTrue(CriticalError):
     """
     Checks that the request parameter is supported
@@ -343,8 +357,9 @@ class CheckSupportedTrue(CriticalError):
 
     def _func(self, conv):
         res = {}
+
         try:
-            assert conv.provider_info[self.element] == "true"
+            assert get_provider_info(conv)[self.element] == "true"
         except (AssertionError, KeyError):
             self._status = self.status
             self._message = self.msg
@@ -384,9 +399,9 @@ class CheckTokenEndpointAuthMethod(CriticalError):
                 _met = conv.request_args["token_endpoint_auth_method"]
             else:
                 _met = conv.args["authn_method"]
-            _pi = conv.provider_info
 
             try:
+                _pi = get_provider_info(conv)
                 _sup = _pi["token_endpoint_auth_methods_supported"]
             except KeyError:
                 _sup = None
@@ -444,10 +459,44 @@ class CheckEndpoint(CriticalError):
             pass
         else:
             try:
-                assert endpoint in conv.client.provider_info
+                assert endpoint in get_provider_info(conv)
             except AssertionError:
                 self._status = self.status
                 self._message = "No '%s' registered" % endpoint
+
+        return {}
+
+
+class CheckHasJwksURI(Error):
+    """
+    Check that the jwks_uri claim is in the provider_info
+    """
+    cid = "providerinfo-has-jwks_uri"
+    msg = "jwks_uri claims missing"
+
+    def _func(self, conv):
+        try:
+            jwks_uri = get_provider_info(conv)["jwks_uri"]
+        except KeyError:
+            self._status = self.status
+            self._message = "No 'jwks_uri' registered"
+
+        return {}
+
+
+class CheckHasClaimsSupported(Error):
+    """
+    Check that the claims_supported claim is in the provider_info
+    """
+    cid = "providerinfo-has-claims_supported"
+    msg = "claims_supported claims missing"
+
+    def _func(self, conv):
+        try:
+            jwks_uri = get_provider_info(conv)["claims_supported"]
+        except KeyError:
+            self._status = self.status
+            self._message = "No 'claims_supported' registered"
 
         return {}
 
@@ -1091,9 +1140,8 @@ class CheckResponseMode(CheckSupported):
     msg = "Response mode not supported"
 
     def _supported(self, request_args, provider_info):
-        _provider_info = provider_info
         try:
-            supported = _provider_info["response_modes_supported"]
+            supported = provider_info["response_modes_supported"]
         except KeyError:  # default set
             supported = ['query', 'fragment']
 
@@ -1118,7 +1166,7 @@ class VerifyISS(Error):
         atr = []
         instance = conv.protocol_response[-1][0]
         iss = instance["id_token"]["iss"]
-        issuer = conv.provider_info["issuer"]
+        issuer = get_provider_info(conv)["issuer"]
 
         try:
             assert iss == issuer
@@ -1137,13 +1185,13 @@ class VerfyMTIEncSigAlgorithms(Information):
     status = INFORMATION
 
     def _func(self, conv):
-        _provider_info = conv.provider_info
+        _pi = get_provider_info(conv)
 
         missing = []
         for key, algs in MTI.items():
             for alg in algs:
                 try:
-                    assert alg in _provider_info[key]
+                    assert alg in _pi[key]
                 except (AssertionError, KeyError):
                     _alg = "%s:%s" % (key, alg)
                     if _alg not in missing:
@@ -1165,13 +1213,13 @@ class CheckEncSigAlgorithms(Information):
     msg = "Unofficial algorithm"
 
     def _func(self, conv):
-        _provider_info = conv.provider_info
+        _pi = get_provider_info(conv)
 
         unknown_jws = []
         for typ in ["id_token", "userinfo", "request_object",
                     "token_endpoint_auth"]:
             _claim = "%s_signing_alg_values_supported" % typ
-            for alg in _provider_info[_claim]:
+            for alg in _pi[_claim]:
                 try:
                     assert alg in REGISTERED_JWS_ALGORITHMS
                 except AssertionError:
@@ -1181,7 +1229,7 @@ class CheckEncSigAlgorithms(Information):
         unknown_jwe_alg = []
         for typ in ["id_token", "userinfo", "request_object"]:
             _claim = "%s_encryption_alg_values_supported" % typ
-            for alg in _provider_info[_claim]:
+            for alg in _pi[_claim]:
                 try:
                     assert alg in REGISTERED_JWE_alg_ALGORITHMS
                 except AssertionError:
@@ -1191,7 +1239,7 @@ class CheckEncSigAlgorithms(Information):
         unknown_jwe_enc = []
         for typ in ["id_token", "userinfo", "request_object"]:
             _claim = "%s_encryption_enc_values_supported" % typ
-            for alg in _provider_info[_claim]:
+            for alg in _pi[_claim]:
                 try:
                     assert alg in REGISTERED_JWE_enc_ALGORITHMS
                 except AssertionError:

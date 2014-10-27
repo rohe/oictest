@@ -129,10 +129,10 @@ class RmCookie(Notice):
         self.template = "rmcookie.mako"
 
 
-class RotateKeys(Process):
+class RotateSignKeys(Process):
     def __init__(self):
-        self.new_keys = {"RSA": "../keys/second.key"}
-        self.kid_template = "b%d"
+        self.new_keys = {"RSA": "../keys/second_sign.key"}
+        self.kid_template = "sig%d"
         self.jwk_name = "export/jwk.json"
         self.tests = {"post": [], "pre": []}
 
@@ -150,6 +150,15 @@ class RotateKeys(Process):
             conv.client.keyjar.add_kb("", kb)
 
         dump_jwks(conv.client.keyjar[""], self.jwk_name)
+
+
+class RotateEncKeys(Process):
+    def __init__(self):
+        self.new_keys = {"RSA": "../keys/second_enc.key"}
+        self.kid_template = "enc%d"
+        self.jwk_name = "export/jwk.json"
+        self.tests = {"post": [], "pre": []}
+
 
 # -----------------------------------------------------------------------------
 
@@ -261,6 +270,15 @@ class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.kw_args["base_path"] = _get_base(conv.client_config) + "export/"
+        self.tests["pre"].append(CheckRequestURIParameterSupported)
+
+
+class AuthorizationRequestCodeRequestParameter(AuthorizationRequestCode):
+    _kw_args = {"request_method": "parameter"}
+
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.tests["pre"].append(CheckRequestParameterSupported)
 
 
 class ConnectionVerify(GetRequest):
@@ -404,6 +422,7 @@ class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True}}}
         self.tests["pre"].append(CheckRequestParameterSupported)
+        self.tests["pre"].append(CheckClaimsSupport)
 
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
@@ -412,6 +431,7 @@ class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
         self.request_param = "request"
         self.request_args["claims"] = {
             "userinfo": {"picture": None, "email": None}}
+        self.tests["pre"].append(CheckClaimsSupport)
 
 
 class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
@@ -423,6 +443,7 @@ class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
             "userinfo": {"name": {"essential": True},
                          "picture": None,
                          "email": None}}
+        self.tests["pre"].append(CheckClaimsSupport)
 
 
 class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
@@ -435,6 +456,7 @@ class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
                          "picture": None,
                          "email": None}}
         self.request_args["scope"].append("address")
+        self.tests["pre"].append(CheckClaimsSupport)
 
 
 class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
@@ -444,6 +466,7 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
         self.request_param = "request"
         self.request_args["claims"] = {
             "id_token": {"auth_time": {"essential": True}}}
+        self.tests["pre"].append(CheckClaimsSupport)
 
 
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
@@ -1187,6 +1210,8 @@ PHASES = {
     "oic-login": (AuthorizationRequestCode, AuthzResponse),
     "oic-login-uri": (AuthorizationRequestCodeUri, AuthzResponse),
     "oic-login-reqfile": (AuthorizationRequestCodeRequestInFile, AuthzResponse),
+    "oic-login-request": (AuthorizationRequestCodeRequestParameter,
+                          AuthzResponse),
     "oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
     "oic-login+profile": (AuthorizationRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
@@ -1308,9 +1333,9 @@ PHASES = {
     "access-token-request-other-redirect_uri-3": (
         AccessTokenRequestModRedirectURI3, req.ErrorResponse),
     "intermission": TimeDelay,
-    "rotate_keys": RotateKeys,
-    #"rotate_sign_keys": RotateSignKeys,
-    #"rotate_enc_keys": RotateEncKeys,
+    #"rotate_keys": RotateKeys,
+    "rotate_sign_keys": RotateSignKeys,
+    "rotate_enc_keys": RotateEncKeys,
     "notice": Notice,
     "rm_cookie": RmCookie,
     "expect_err": ExpectError
@@ -2041,10 +2066,10 @@ FLOWS = {
         #"tests": [("encrypted-idtoken", {})],
     },
     'mj-76': {
-        "name": 'Request access token, change RSA key and request another '
+        "name": 'Request access token, change RSA sign key and request another '
                 'access token',
         "sequence": ["oic-registration-ke_csj", "oic-login",
-                     "access-token-request_pkj", "rotate_keys",
+                     "access-token-request_pkj", "rotate_sign_keys",
                      "access-token-refresh_pkj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "depends": ['mj-01'],
@@ -2069,7 +2094,32 @@ FLOWS = {
         "tests": [("asym-signed-userinfo", {})],
         "depends": ['mj-01'],
 
-    }
+    },
+    'mj-79': {
+        # where is the RPs encryption key used => userinfo encryption
+        # How do I get the OP to use the new enc key ?
+        "name": 'Request encrypted user info, change RSA enc key and request '
+                'user info again',
+        "sequence": ["oic-registration-ke_csj", "oic-login",
+                     "access-token-request_pkj", "rotate_enc_keys",
+                     "access-token-refresh_pkj"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "depends": ['mj-01'],
+        #"tests": [("encrypted-idtoken", {})],
+    },
+    'mj-80': {
+        "name": 'Verify that jwks_uri and claims_supported are published',
+        "sequence": ["oic-registration"],
+        "depends": ['mj-01'],
+        "tests": [("providerinfo-has-jwks_uri", {}),
+                  ("providerinfo-has-claims_supported", {})],
+    },
+    'mj-81': {
+        "name": 'Support request Request Parameter',
+        "sequence": ["oic-login-request"],
+        "endpoints": ["authorization_endpoint"],
+        "depends": ['mj-00'],
+    },
 }
 
 #Providing Aggregated Claims
