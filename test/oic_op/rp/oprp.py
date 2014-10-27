@@ -4,7 +4,7 @@ import argparse
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, ResponseError
 
 from oic.utils.http_util import NotFound, get_post
 from oic.utils.http_util import Response
@@ -390,9 +390,13 @@ def application(environ, start_response):
 
             LOGGER.info("Response: %s" % info)
             resp_cls = message_factory(resp_c.response)
-            response = ots.client.parse_response(resp_cls, info, resp_c.ctype,
-                                                 session["state"],
-                                                 keyjar=ots.client.keyjar)
+            try:
+                response = ots.client.parse_response(
+                    resp_cls, info, resp_c.ctype, session["state"],
+                    keyjar=ots.client.keyjar)
+            except ResponseError as err:
+                LOGGER.error("%s" % err)
+                return test_error(environ, start_response, conv, err)
 
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
