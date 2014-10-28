@@ -279,6 +279,7 @@ class AuthorizationRequestCodeRequestParameter(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.tests["pre"].append(CheckRequestParameterSupported)
+        self.tests["pre"].append(CheckRequestClaimsSupport)
 
 
 class ConnectionVerify(GetRequest):
@@ -422,7 +423,7 @@ class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True}}}
         self.tests["pre"].append(CheckRequestParameterSupported)
-        self.tests["pre"].append(CheckClaimsSupport)
+        self.tests["pre"].append(CheckRequestClaimsSupport)
 
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):

@@ -158,6 +158,9 @@ class CheckSupported(CriticalError):
     default = None
     required = False
 
+    def _requested(self, request_args):
+        return request_args[self.parameter]
+
     def _func(self, conv):
         res = {}
         try:
@@ -184,7 +187,7 @@ class CheckSupported(CriticalError):
                 supported = self.default
 
         try:
-            required = request_args[self.parameter]
+            required = self._requested(request_args)
             if isinstance(required, basestring):
                 if required in supported:
                     return True
@@ -347,6 +350,20 @@ class CheckClaimsSupport(CheckSupported):
     parameter = "claims"
 
 
+class CheckRequestClaimsSupport(CheckSupported):
+    """
+    Checks that the asked for scope are among the supported
+    """
+    cid = "check-scope-support"
+    msg = "Claims not supported"
+    element = "claims_supported"
+    parameter = "claims"
+
+    def _requested(self, request_args):
+        _req = CheckSupported._requested(self, request_args)
+        return _req["userinfo"].keys()
+
+
 class CheckSupportedTrue(CriticalError):
     """
     Checks that the request parameter is supported
@@ -383,6 +400,17 @@ class CheckRequestURIParameterSupported(CriticalError):
     cid = "check-request-parameter-supported-support"
     msg = "Request parameter not supported"
     element = "request_uri_parameter_supported"
+
+
+class CheckIdTokenSignedResponseAlgSupport(CheckSupported):
+    """
+    Checks that the asked for id_token_signed_response_alg are among the
+    supported
+    """
+    cid = "check-id_token_signed_response_alg-support"
+    msg = "Id_token_signed_response_alg not supported"
+    element = "id_token_signed_response_alg_supported"
+    parameter = "id_token_signed_response_alg"
 
 
 class CheckTokenEndpointAuthMethod(CriticalError):
