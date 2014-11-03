@@ -298,6 +298,12 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         index += 1
 
     # wrap it up
+    # Any after the fact tests ?
+    try:
+        conv.test_sequence(sequence_info["tests"])
+    except KeyError:
+        pass
+
     try:
         conv.test_sequence(sequence_info["tests"]["post"])
     except KeyError:
@@ -356,10 +362,6 @@ def application(environ, start_response):
     # expected path format: /<testid>[/<endpoint>]
     elif path in session["flow_names"]:
         conv, sequence_info, ots, trace, index = session_setup(session, path)
-        try:
-            conv.test_sequence(sequence_info["tests"]["pre"])
-        except KeyError:
-            pass
 
         try:
             return run_sequence(sequence_info, session, conv, ots, environ,

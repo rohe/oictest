@@ -425,6 +425,17 @@ class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
         self.tests["pre"].append(CheckRequestParameterSupported)
         self.tests["pre"].append(CheckRequestClaimsSupport)
 
+
+class AuthorizationRequestCodeUIClaim1Enc(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_param = "request"
+        self.request_args["claims"] = {
+            "userinfo": {"name": {"essential": True}}}
+        self.tests["pre"].append(CheckRequestParameterSupported)
+        self.tests["pre"].append(CheckRequestClaimsSupport)
+
+
 class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
