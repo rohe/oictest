@@ -321,6 +321,7 @@ def session_init(session):
 
 
 def application(environ, start_response):
+    LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
     session = environ['beaker.session']
 
     path = environ.get('PATH_INFO', '').lstrip('/')
