@@ -16,9 +16,12 @@ from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
-from oictest.check import factory as check_factory, CheckSupported, \
-    CheckTokenEndpointAuthMethod, CheckSupportedTrue, CheckEndpoint, \
-    CheckRequestURIParameterSupported
+from oictest.check import factory as check_factory
+from oictest.check import CheckEndpoint
+from oictest.check import CheckTokenEndpointAuthMethod
+from oictest.check import CheckSupportedTrue
+from oictest.check import CheckRequestURIParameterSupported
+from oictest.check import CheckOPSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
@@ -202,7 +205,8 @@ def verify_support(conv, ots, graph):
             if "pre" in conv.req.tests:
                 for test in conv.req.tests["pre"]:
                     do_check = False
-                    for check in [CheckTokenEndpointAuthMethod, CheckSupported,
+                    for check in [CheckTokenEndpointAuthMethod,
+                                  CheckOPSupported,
                                   CheckSupportedTrue, CheckEndpoint,
                                   CheckRequestURIParameterSupported,
                                   CheckTokenEndpointAuthMethod]:
@@ -227,8 +231,10 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         except (ValueError, TypeError):  # Not a tuple
             req = sequence_info["sequence"][index]()
             if isinstance(req, Notice):
+                url = "%scontinue?path=%s&index=%d" % (
+                    CONF.BASE, session["testid"], session["index"])
                 return req(LOOKUP, environ, start_response,
-                           **{"url": "%scontinue" % CONF.BASE,
+                           **{"url": url,
                               "op": conv.client.provider_info["issuer"]})
             else:
                 req(conv)
@@ -236,7 +242,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
             req = req_c(conv)
             try:
                 conv.test_sequence(req.tests["pre"])
-            except KeyError, err:
+            except KeyError:
                 pass
 
             conv.request_spec = req
@@ -304,10 +310,6 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     except KeyError:
         pass
 
-    try:
-        conv.test_sequence(sequence_info["tests"]["post"])
-    except KeyError:
-        pass
     return opresult(environ, start_response, conv, session)
 
 
@@ -346,7 +348,7 @@ def application(environ, start_response):
         except KeyError:  # Cookie delete broke session
             query = parse_qs(environ["QUERY_STRING"])
             path = query["path"][0]
-            index = query["index"][0]
+            index = int(query["index"][0])
             conv, sequence_info, ots, trace, index = session_setup(session,
                                                                    path, index)
         else:

@@ -20,6 +20,10 @@ CLIENT = {
     },
     "base_url": BASE,
     "srv_discovery_url": "https://localhost:8092/",
+    "webfinger_subject": "diana@localhost:8092",
+    # "login_hint": "diana@localhost:8092",
+    "ui_locales": ["se"],
+    # "acr_values":["1"],
     "client_info": {
         "application_type": "web",
         "application_name": "OIC test tool",

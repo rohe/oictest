@@ -222,6 +222,12 @@ class Request(object):
 
         return res
 
+    def set_request_args(self, dic):
+        for key, val in dic.items():
+            self.request_args[key] = val
+            if key in self.conv.client.behaviour:
+                self.conv.client.behaviour[key] = val
+
 
 class GetRequest(Request):
     method = "GET"

@@ -175,7 +175,7 @@ class OIDCTestSetup(object):
         sequence = flow2sequence(self.test_defs, flow)
 
         res = {"sequence": sequence,
-               "tests": {"pre": [], "post": []},
+               #"tests": [],
                "flow": [flow],
                "block": [],
                "mode": "",

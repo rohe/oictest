@@ -189,20 +189,24 @@ class CheckSupported(CriticalError):
         try:
             required = self._requested(request_args)
             if isinstance(required, basestring):
-                if required in supported:
-                    return True
+                if required not in supported:
+                    return False
             else:
                 for value in required:
-                    if value in supported:
-                        return True
-            return False
+                    if value not in supported:
+                        return False
+            return True
         except KeyError:
             pass
 
         return True
 
 
-class CheckResponseType(CheckSupported):
+class CheckOPSupported(CheckSupported):
+    pass
+
+
+class CheckResponseType(CheckOPSupported):
     """
     Checks that the asked for response type are among the supported
     """
@@ -232,7 +236,7 @@ class CheckResponseType(CheckSupported):
         return True
 
 
-class CheckAcrSupport(CheckSupported):
+class CheckAcrSupport(CheckOPSupported):
     """
     Checks that the asked for acr are among the supported
     """
@@ -260,7 +264,7 @@ class CheckAcrSupport(CheckSupported):
         return True
 
 
-class CheckScopeSupport(CheckSupported):
+class CheckScopeSupport(CheckOPSupported):
     """
     Checks that the asked for scope are among the supported
     """
@@ -270,7 +274,7 @@ class CheckScopeSupport(CheckSupported):
     parameter = "scope"
 
 
-class CheckUserIdSupport(CheckSupported):
+class CheckUserIdSupport(CheckOPSupported):
     """
     Checks that the asked for acr are among the supported
     """
@@ -300,12 +304,22 @@ class CheckSignedIdTokenSupport(CheckSupported):
     parameter = "id_token_signed_response_alg"
 
 
+class CheckSignedRequestObjectSupport(CheckSupported):
+    """
+    Checks that the asked for signature algorithms are among the supported
+    """
+    cid = "check-signed-request_object-support"
+    msg = "Signed request object algorithm not supported"
+    element = "request_object_signing_alg_values_supported"
+    parameter = "request_object_signed_alg"
+
+
 class CheckEncryptedUserInfoSupportALG(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
     cid = "check-signed-userinfo-alg-support"
-    msg = "Userinfo alg algorithm not supported"
+    msg = "Userinfo encryption alg algorithm not supported"
     element = "userinfo_encryption_alg_values_supported"
     parameter = "userinfo_encrypted_response_alg"
 
@@ -314,8 +328,8 @@ class CheckEncryptedUserInfoSupportENC(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    cid = "check-signed-userinfo-enc-support"
-    msg = "UserInfo enc algorithm not supported"
+    cid = "check-encrypt-userinfo-enc-support"
+    msg = "UserInfo encryption enc algorithm not supported"
     element = "userinfo_encryption_enc_values_supported"
     parameter = "userinfo_encrypted_response_enc"
 
@@ -324,8 +338,8 @@ class CheckEncryptedIDTokenSupportALG(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    cid = "check-signed-idtoken-alg-support"
-    msg = "Id Token alg algorithm not supported"
+    cid = "check-encrypt-idtoken-alg-support"
+    msg = "Id Token encryption alg algorithm not supported"
     element = "id_token_encryption_alg_values_supported"
     parameter = "id_token_encrypted_response_alg"
 
@@ -334,23 +348,33 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     """
     Checks that the asked for encryption algorithm are among the supported
     """
-    cid = "check-signed-idtoken-enc-support"
-    msg = "Id Token enc method not supported"
+    cid = "check-encrypt-idtoken-enc-support"
+    msg = "Id Token encryption enc method not supported"
     element = "id_token_encryption_enc_values_supported"
     parameter = "id_token_encrypted_response_enc"
 
 
-class CheckClaimsSupport(CheckSupported):
+class CheckEncryptedRequestObjectSupportALG(CheckSupported):
     """
-    Checks that the asked for scope are among the supported
+    Checks that the asked for encryption algorithm are among the supported
     """
-    cid = "check-scope-support"
-    msg = "Claims not supported"
-    element = "claims_supported"
-    parameter = "claims"
+    cid = "check-encrypt-request_object-alg-support"
+    msg = "Request_object encryption alg algorithm not supported"
+    element = "request_object_encryption_alg_values_supported"
+    parameter = "request_object_encryption_alg"
 
 
-class CheckRequestClaimsSupport(CheckSupported):
+class CheckEncryptedRequestObjectSupportENC(CheckSupported):
+    """
+    Checks that the asked for encryption algorithm are among the supported
+    """
+    cid = "check-encrypt-idtoken-enc-support"
+    msg = "Request_object encryption enc algorithm not supported"
+    element = "request_object_encryption_enc_values_supported"
+    parameter = "request_object_encryption_enc"
+
+
+class CheckClaimsSupport(CheckOPSupported):
     """
     Checks that the asked for scope are among the supported
     """
@@ -360,7 +384,21 @@ class CheckRequestClaimsSupport(CheckSupported):
     parameter = "claims"
 
     def _requested(self, request_args):
-        _req = CheckSupported._requested(self, request_args)
+        _req = request_args[self.parameter]
+        return _req["userinfo"].keys()
+
+
+class CheckRequestClaimsSupport(CheckOPSupported):
+    """
+    Checks that the asked for scope are among the supported
+    """
+    cid = "check-scope-support"
+    msg = "Claims not supported"
+    element = "claims_supported"
+    parameter = "claims"
+
+    def _requested(self, request_args):
+        _req = CheckOPSupported._requested(self, request_args)
         return _req["userinfo"].keys()
 
 
@@ -1089,10 +1127,10 @@ class CheckSignedEncryptedIDToken(Error):
                     break
 
                 dkeys = client.keyjar.get_decrypt_key(owner="")
-                txt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
-                _tmp = unpack(txt)[0]
+                jwt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
+                _header = unpack(jwt)[0]
                 try:
-                    assert _tmp["alg"] == "RS256"
+                    assert _header["alg"] in ["RS256", "HS256"]
                 except AssertionError:
                     self._status = self.status
                 break
@@ -1160,7 +1198,7 @@ class CheckNonce(Error):
         return {}
 
 
-class CheckResponseMode(CheckSupported):
+class CheckResponseMode(CheckOPSupported):
     """
     Checks that the asked for response mode are among the supported
     """
@@ -1292,6 +1330,90 @@ class CheckEncSigAlgorithms(Information):
 
             self._message = _txt
             self._status = self.status
+
+        return {}
+
+
+class VerifyOPEndpointsUseHTTPS(Information):
+    """
+    Verify that all OP endpoints uses https
+    """
+    cid = "verify-op-endpoints-use-https"
+    msg = "Some OP endpoints are not using HTTPS"
+
+    def _func(self, conv):
+        _pi = get_provider_info(conv)
+        for param, val in _pi.items():
+            if param.endswith("_endpoint"):
+                try:
+                    assert val.startswith("https://")
+                except AssertionError:
+                    self._status = self.status
+                    break
+
+        return {}
+
+
+class VerifyOPHasRegistrationEndpoint(Information):
+    """
+    Verify that all OP endpoints uses https
+    """
+    cid = "verify-op-has-registration-endpoint"
+    msg = "No registration endpoint"
+
+    def _func(self, conv):
+        _pi = get_provider_info(conv)
+        try:
+            assert "registration_endpoint" in _pi
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class VerifyIDTokenUserInfoSubSame(Information):
+    """
+    Verify that all OP endpoints uses https
+    """
+    cid = "verify-id_token-userinfo-same-sub"
+    msg = "Sub identifier differs between the IdToken and the UserInfo"
+
+    def _func(self, conv):
+        ui_sub = idt_sub = ""
+
+        # The userinfo sub
+        for instance, msg in conv.protocol_response:
+            if isinstance(instance, message.OpenIDSchema):
+                ui_sub = instance["sub"]
+        # The IdToken sub
+        for instance, msg in conv.protocol_response:
+            if isinstance(instance, message.AccessTokenResponse):
+                if "id_token" in instance:
+                    idt_sub = instance["id_token"]["sub"]
+                    break
+            elif isinstance(instance, message.AuthorizationResponse):
+                if "id_token" in instance:
+                    idt_sub = instance["id_token"]["sub"]
+                    break
+
+        try:
+            assert ui_sub == idt_sub
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class VerifyState(Information):
+    """
+    Verifies that the State variable is the same returned as was sent
+    """
+    cid = "verify-state"
+    msg = "The State variable in not the same as sent"
+
+    def _func(self, conv):
+        # The send state
+        # the received state
 
         return {}
 
