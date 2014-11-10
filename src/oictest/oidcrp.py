@@ -1,16 +1,11 @@
 import copy
 import json
+from urlparse import urlparse
 
 from oic import oic
-# from oic.utils.http_util import Redirect
-# from oic.oauth2 import rndstr
-# from oic.oauth2 import ErrorResponse
-# from oic.oic import AuthorizationResponse
-# from oic.oic import AuthorizationRequest
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
-from oic.utils.keyio import KeyJar
-from oic.utils.keyio import KeyBundle
+from oic.utils.keyio import keyjar_init
 
 __author__ = 'roland'
 
@@ -39,7 +34,7 @@ class Client(oic.Client):
 
 
 class OIDCTestSetup(object):
-    def __init__(self, config, test_defs):
+    def __init__(self, config, test_defs, port):
         """
 
         :param config: Imported configuration module
@@ -48,8 +43,9 @@ class OIDCTestSetup(object):
         self.client_cls = Client
         self.config = config
         self.test_features = []
-        self.client = self.create_client(**config.CLIENT)
         self.test_defs = test_defs
+        self._port = port
+        self.client = self.create_client(**config.CLIENT)
 
     def create_client(self, **kwargs):
         """
@@ -78,15 +74,16 @@ class OIDCTestSetup(object):
             _key_set.discard("allow")
 
         try:
-            jwks = self.construct_jwks(client, kwargs["keys"])
+            jwks = keyjar_init(client, kwargs["keys"])
         except KeyError:
             pass
         else:
             # export JWKS
-            f = open("export/jwk.json", "w")
+            p = urlparse(self.config.CLIENT["key_export_url"] % self._port)
+            f = open("."+p.path, "w")
             f.write(json.dumps(jwks))
             f.close()
-            client.jwks_uri = self.config.CLIENT["key_export_url"]
+            client.jwks_uri = p.geturl()
 
         self.test_features = _key_set
 
@@ -116,54 +113,6 @@ class OIDCTestSetup(object):
 
         return client
 
-    @staticmethod
-    def construct_jwks(client, key_conf):
-        """
-        Construct the jwks
-        """
-        if client.keyjar is None:
-            client.keyjar = KeyJar()
-
-        kbl = []
-        kid_template = "a%d"
-        kid = 0
-        for typ, info in key_conf.items():
-            kb = KeyBundle(source="file://%s" % info["key"], fileformat="der",
-                           keytype=typ)
-
-            for k in kb.keys():
-                k.serialize()
-                k.kid = kid_template % kid
-                kid += 1
-                client.kid[k.use][k.kty] = k.kid
-            client.keyjar.add_kb("", kb)
-
-            kbl.append(kb)
-
-        jwks = {"keys": []}
-        for kb in kbl:
-            # ignore simple keys
-            jwks["keys"].extend([k.to_dict()
-                                 for k in kb.keys() if k.kty != 'oct'])
-
-        return jwks
-
-    # @staticmethod
-    # def register_args(client_reg_conf):
-    #     """
-    #     Filter client registration arguments so no extras are slipped in.
-    #
-    #     :param client_reg_conf:
-    #     :return:
-    #     """
-    #     info = {}
-    #     for prop in RegistrationRequest.c_param.keys():
-    #         try:
-    #             info[prop] = client_reg_conf[prop]
-    #         except KeyError:
-    #             pass
-    #     return info
-
     def make_sequence(self, flow):
         """
         Translate a flow name into a sequence of request/responses.
@@ -183,7 +132,7 @@ class OIDCTestSetup(object):
 
         _flow = self.test_defs.FLOWS[flow]
 
-        for param in ["tests", "block", "mode", "expect_exception"]:
+        for param in ["tests", "block", "mode", "expect_exception", "note"]:
             try:
                 res[param] = _flow[param]
             except KeyError:

@@ -130,35 +130,69 @@ class RmCookie(Notice):
         self.template = "rmcookie.mako"
 
 
-class RotateSignKeys(Process):
+class Note(Notice):
     def __init__(self):
-        self.new_keys = {"RSA": "../keys/second_sign.key"}
-        self.kid_template = "sig%d"
+        Notice.__init__(self)
+        self.template = "note.mako"
+
+
+class DisplayUserInfo(Notice):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "userinfo.mako"
+
+
+class RotateKeys(Process):
+    def __init__(self):
         self.jwk_name = "export/jwk.json"
         self.tests = {"post": [], "pre": []}
+        self.new_key = {}
+        self.kid_template = "_%d"
+        self.key_usage = ""
 
     def __call__(self, conv, **kwargs):
+        # find the old key for this key usage and mark that as inactive
+        for kb in conv.client.keyjar.issuer_keys[""]:
+            for key in kb.keys():
+                if key.use in self.new_key["use"]:
+                    key.inactive = True
+
         kid = 0
         # only one key
-        for typ, file_name in self.new_keys.items():
-            kb = KeyBundle(source="file://%s" % file_name, fileformat="der",
-                           keytype=typ)
-            for k in kb.keys():
-                k.serialize()
-                k.kid = self.kid_template % kid
-                kid += 1
-                conv.client.kid[k.use][k.kty] = k.kid
-            conv.client.keyjar.add_kb("", kb)
+        _nk = self.new_key
+        _typ = _nk["type"].upper()
+
+        if _typ == "RSA":
+            kb = KeyBundle(source="file://%s" % _nk["key"],
+                           fileformat="der", keytype=_typ,
+                           keyusage=_nk["use"])
+        else:
+            kb = {}
+
+        for k in kb.keys():
+            k.serialize()
+            k.kid = self.kid_template % kid
+            kid += 1
+            conv.client.kid[k.use][k.kty] = k.kid
+        conv.client.keyjar.add_kb("", kb)
 
         dump_jwks(conv.client.keyjar[""], self.jwk_name)
 
 
-class RotateEncKeys(Process):
+class RotateSigKeys(RotateKeys):
     def __init__(self):
-        self.new_keys = {"RSA": "../keys/second_enc.key"}
+        RotateKeys.__init__(self)
+        self.new_key = {"type": "RSA", "key": "../keys/second_sig.key",
+                        "use": ["sig"]}
+        self.kid_template = "sig%d"
+
+
+class RotateEncKeys(RotateKeys):
+    def __init__(self):
+        RotateKeys.__init__(self)
+        self.new_key = {"type": "RSA", "key": "../keys/second_enc.key",
+                        "use": ["enc"]}
         self.kid_template = "enc%d"
-        self.jwk_name = "export/jwk.json"
-        self.tests = {"post": [], "pre": []}
 
 
 # -----------------------------------------------------------------------------
@@ -248,7 +282,7 @@ class AuthorizationRequest_Mismatching_Redirect_uri(AuthorizationRequestCode):
 class AuthorizationRequest_No_Redirect_uri(AuthorizationRequestCode):
     def __init__(self, conv=None):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["redirect_uri"] = None
+        self.request_args["redirect_uri"] = ""
         self.tests["post"] = [VerifyBadRequestResponse]
 
 
@@ -258,10 +292,18 @@ class AuthorizationRequestCodeWithNonce(AuthorizationRequestCode):
         self.request_args["nonce"] = "12nonce34"
 
 
-class AuthorizationRequest_without_nonce(AuthorizationRequestToken):
+class AuthorizationRequestCodeWithoutNonce(AuthorizationRequestCode):
+    # return_type = "code", nonce not required
     def __init__(self, conv=None):
-        AuthorizationRequestToken.__init__(self, conv)
-        self.request_args["nonce"] = None
+        AuthorizationRequestCode.__init__(self, conv)
+        self.request_args["nonce"] = ""
+
+
+class AuthorizationRequestWithoutNonce(AuthorizationRequestIDToken):
+    # return_type = "id_token", nonce required
+    def __init__(self, conv=None):
+        AuthorizationRequestIDToken.__init__(self, conv)
+        self.request_args["nonce"] = ""
         self.tests["post"] = [VerifyBadRequestResponse]
 
 
@@ -539,14 +581,32 @@ class AuthorizationRequestCodeIDTMaxAge1000(AuthorizationRequestCode):
 class AuthorizationRequestUILocale(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.set_request_args({"ui_locales": ["se"]})  # Should be configurable
+        # Just so something can be seen
+        self.request_args["scope"].extend(["phone", "address", "email",
+                                           "profile"])
+        self.set_request_args({"scope": self.request_args["scope"]})
+        try:
+            uil = conv.client_config["ui_locales"]
+        except KeyError:
+            try:
+                uil = conv.client_config["locales"]
+            except KeyError:
+                uil = ["se"]
+
+        self.set_request_args({"ui_locales": uil})
 
 
 class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        # Should be configurable
-        self.set_request_args({"claims_locales": ["se"]})
+        try:
+            loc = conv.client_config["claims_locales"]
+        except KeyError:
+            try:
+                loc = conv.client_config["locales"]
+            except KeyError:
+                loc = ["se"]
+        self.set_request_args({"claims_locales": loc})
 
 
 class AuthorizationRequestLoginHit(AuthorizationRequestCode):
@@ -557,7 +617,7 @@ class AuthorizationRequestLoginHit(AuthorizationRequestCode):
             raise MissingResponseClaim("id_token in access token response")
 
         p = urlparse(self.conv.client.authorization_endpoint)
-        domain = p.hostname
+        domain = p.netloc
         self.set_request_args({"login-hint": "%s@%s" % (idt["sub"], domain)})
 
     def __init__(self, conv):
@@ -756,7 +816,7 @@ class RegistrationRequest_KeyExpPKJ(RegistrationRequest):
                                     content, features, **kwargs)
 
 
-class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
+class RegistrationRequestPolicyLogoTos(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
 
@@ -767,6 +827,8 @@ class RegistrationRequest_with_policy_and_logo(RegistrationRequest):
                                                           "static/policy.html")
         self.request_args["logo_uri"] = "%s://%s/%s" % (p.scheme, p.netloc,
                                                         "static/logo.png")
+        self.request_args["tos_uri"] = "%s://%s/%s" % (p.scheme, p.netloc,
+                                                        "static/tos.html")
 
 
 class RegistrationRequest_with_public_userid(RegistrationRequest):
@@ -796,6 +858,13 @@ class RegistrationRequest_with_id_token_signed_response_alg(
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.set_request_args({"id_token_signed_response_alg": "HS256"})
+        self.tests["pre"].append(CheckSignedIdTokenSupport)
+
+
+class RegistrationRequestWithUnSignedIDToken(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        self.set_request_args({"id_token_signed_response_alg": "none"})
         self.tests["pre"].append(CheckSignedIdTokenSupport)
 
 
@@ -844,6 +913,13 @@ class RegistrationRequestSignEncUserinfo(RegistrationRequest):
             "userinfo_encrypted_response_enc": "A128CBC-HS256"})
         self.tests["pre"].extend([CheckEncryptedUserInfoSupportALG,
                                   CheckEncryptedUserInfoSupportENC])
+
+
+class RegistrationRequestESSigIDtoken(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        self.set_request_args({"id_token_signed_response_alg": "ES256"})
+        self.tests["pre"].extend([CheckSignedRequestObjectSupport])
 
 
 class RegistrationRequestEncIDtoken(RegistrationRequest):
@@ -1137,7 +1213,7 @@ class RefreshAccessTokenPKJWT(PostRequest):
 
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
-    _tests = {"post": [CheckAuthorizationResponse]}
+    _tests = {"post": [CheckAuthorizationResponse, VerifyState]}
 
 
 class AuthzFormResponse(UrlResponse):
@@ -1147,7 +1223,7 @@ class AuthzFormResponse(UrlResponse):
 
 
 class ImplicitAuthzResponse(AuthzResponse):
-    _tests = {"post": [CheckAuthorizationResponse, VerifyImplicitResponse]}
+    _tests = {"post": [CheckAuthorizationResponse]}
 
 
 class AuthzErrResponse(UrlResponse):
@@ -1171,7 +1247,19 @@ class AccessTokenResponse(BodyResponse):
 
     def __init__(self):
         BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS]}
+        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS,
+                               VerifySignedIdTokenHasKID, VerifySignedIdToken,
+                               VerifyNonce]}
+
+
+class AccessTokenResponseUnsigned(BodyResponse):
+    response = "AccessTokenResponse"
+
+    def __init__(self):
+        BodyResponse.__init__(self)
+        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS,
+                               VerifySignedIdTokenHasKID, VerifyUnSignedIdToken,
+                               VerifyNonce]}
 
 
 class UserinfoResponse(BodyResponse):
@@ -1286,6 +1374,8 @@ class Webfinger(Operation):
         wf.httpd = PBase()
         wf.discovery_query(kwargs["principal"])
 
+    def call_setup(self, conv):
+        pass
 
 # ===========================================================================
 
@@ -1297,7 +1387,7 @@ PHASES = {
     "login-ruwqc-err": (AuthorizationRequestCode_RUWQC_Err, AuthzErrResponse),
     "login-redirect-fault": (AuthorizationRequest_Mismatching_Redirect_uri,
                              AuthorizationErrorResponse),
-    "oic-login-no-nonce": (AuthorizationRequest_without_nonce,
+    "oic-login-implicit-no-nonce": (AuthorizationRequestWithoutNonce,
                            AuthorizationErrorResponse),
     #    "login-no-redirect-err": (AuthorizationRequest_No_Redirect_uri,
     #                             AuthorizationErrorResponse),
@@ -1308,6 +1398,8 @@ PHASES = {
     "oic-login-request": (AuthorizationRequestCodeRequestParameter,
                           AuthzResponse),
     "oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
+    "oic-login-code-no-nonce": (AuthorizationRequestCodeWithoutNonce,
+                                AuthzResponse),
     "oic-login+profile": (AuthorizationRequestCodeScopeProfile, AuthzResponse),
     "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
     "oic-login+phone": (AuthorizationRequestCodeScopePhone, AuthzResponse),
@@ -1362,11 +1454,11 @@ PHASES = {
                                   AuthzErrResponse),
     "oic-login-formpost": (AuthorizationRequestCodeResponseModeFormPost,
                            AuthzFormResponse),
-    "oic-login-ui_locale": (AuthorizationRequestUILocale, AuthzFormResponse),
+    "oic-login-ui_locale": (AuthorizationRequestUILocale, AuthzResponse),
     "oic-login-claims_locale": (AuthorizationRequestClaimsLocale,
-                                AuthzFormResponse),
-    "oic-login-login_hint": (AuthorizationRequestLoginHit, AuthzFormResponse),
-    "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzFormResponse),
+                                AuthzResponse),
+    "oic-login-login_hint": (AuthorizationRequestLoginHit, AuthzResponse),
+    "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzResponse),
     #
     "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
@@ -1377,6 +1469,8 @@ PHASES = {
     "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
     "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
     "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
+    "access-token-request-unsigned": (AccessTokenRequest,
+                                      AccessTokenResponseUnsigned),
     "user-info-request_gbh": (UserInfoRequestGetBearerHeader, UserinfoResponse),
     "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
                               UserinfoResponse),
@@ -1395,7 +1489,7 @@ PHASES = {
                                 RegistrationResponse),
     "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
                                 RegistrationResponse),
-    "oic-registration-policy+logo": (RegistrationRequest_with_policy_and_logo,
+    "oic-registration-policy+logo": (RegistrationRequestPolicyLogoTos,
                                      RegistrationResponse),
     "oic-registration-public_id": (RegistrationRequest_with_public_userid,
                                    RegistrationResponse),
@@ -1407,6 +1501,8 @@ PHASES = {
         RegistrationRequest_with_userinfo_signed, RegistrationResponse),
     "oic-registration-sector_id-err": (RegistrationRequest_SectorID_Err,
                                        ClientRegistrationErrorResponse),
+    "oic-registration-unsigned_idtoken": (
+        RegistrationRequestWithUnSignedIDToken, RegistrationResponse),
     "oic-registration-signed_idtoken": (
         RegistrationRequest_with_id_token_signed_response_alg,
         RegistrationResponse),
@@ -1418,6 +1514,8 @@ PHASES = {
                                            RegistrationResponse),
     "oic-registration-signed+encrypted_idtoken": (
         RegistrationRequestSignEncIDtoken, RegistrationResponse),
+    "oic-registration-es-signed_idtoken": (RegistrationRequestESSigIDtoken,
+                                           RegistrationResponse),
     "oic-registration-jwks": (RegistrationRequestJWKS, RegistrationResponse),
     "oic-registration-no_response_type": (RegistrationRequestNoResponseTypes,
                                           RegistrationResponse),
@@ -1445,12 +1543,13 @@ PHASES = {
         AccessTokenRequestModRedirectURI3, req.ErrorResponse),
     "intermission": TimeDelay,
     #"rotate_keys": RotateKeys,
-    "rotate_sign_keys": RotateSignKeys,
+    "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,
-    "notice": Notice,
+    "note": Note,
     "rm_cookie": RmCookie,
     "expect_err": ExpectError,
     "webfinger": (Webfinger, None),
+    "display_userinfo": DisplayUserInfo
 }
 
 OWNER_OPS = []
@@ -1897,17 +1996,21 @@ FLOWS = {
     },
     'mj-35': {
         "name": 'Authorization request missing the response_type parameter',
-        "sequence": ["expect_err", "oic-missing_response_type"],
+        "sequence": ["note", "oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
         "depends": ['mj-01'],
+        "note": "The next request should result in the OpenID Connect Provider "
+                "returning an error message to your web browser."
     },
     'mj-36': {
         "name": 'The sent redirect_uri does not match the registered',
-        "sequence": ["expect_err", "login-redirect-fault"],
+        "sequence": ["note", "login-redirect-fault"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
+        "note": "The next request should result in the OpenID Connect Provider "
+                "returning an error message to your web browser."
     },
     'mj-39': {
         "name": 'Trying to use access code twice should result in an error',
@@ -1979,12 +2082,18 @@ FLOWS = {
         "depends": ['mj-47'],
     },
     'mj-51': {
-        "name": 'Login no nonce',
-        "sequence": ["expect_err", "oic-login-no-nonce"],
+        "name": 'Login no nonce, implicit flow',
+        "sequence": ["expect_err", "oic-login-implicit-no-nonce"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
+    },
+    'mj-51b': {
+        "name": 'Login no nonce, code flow',
+        "sequence": ["oic-login-code-no-nonce", "access-token-request"],
+        "endpoints": ["authorization_endpoint"],
+        "depends": ['mj-01'],
     },
     'mj-52': {
         "name": 'Requesting ID Token with Email claims',
@@ -2066,13 +2175,14 @@ FLOWS = {
         "tests": [("sym-signed-idtoken", {})],
         "depends": ['mj-01'],
     },
-    #    'mj-62': {
-    #        "name": 'Requesting ID Token with auth_time Claim',
-    #        "sequence": ["oic-login+spec2", "access-token-request"],
-    #        "endpoints": ["authorization_endpoint", "token_endpoint",
-    #                      "userinfo_endpoint"],
-    #        "depends": ['mj-01'],
-    #        },
+    'mj-62': {
+        "name": 'RP wants asymmetric elliptic IdToken signature',
+        "sequence": ["oic-registration-es-signed_idtoken", "oic-login",
+                     "access-token-request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "tests": [("es-signed-idtoken", {})],
+        "depends": ['mj-01'],
+    },
     'mj-63': {
         "name": 'Supports Returning Different Claims in ID Token and UserInfo '
                 'Endpoint',
@@ -2262,14 +2372,14 @@ FLOWS = {
         "depends": ['mj-00'],
     },
     'mj-85': {
-        "name": 'Support request_uri Request Parameter with unSigned Request',
+        "name": 'Support request Request Parameter with unSigned Request',
         "sequence": ["oic-registration-unsigned_request",
                      "oic-login-request"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-00'],
     },
     'mj-86': {
-        "name": 'Support request_uri Request Parameter with Signed Request',
+        "name": 'Support request Request Parameter with Signed Request',
         "sequence": ["oic-registration-signed_request",
                      "oic-login-request"],
         "endpoints": ["authorization_endpoint"],
@@ -2277,15 +2387,19 @@ FLOWS = {
     },
     'mj-87': {
         "name": 'ui_locales',
-        "sequence": ["oic-login-ui_locale"],
+        "sequence": ['note', "oic-login-ui_locale", "access-token-request",
+                     USERINFO_REQUEST_AUTH_METHOD, 'display_userinfo'],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
+        "note": "The userinfo may now be returned in the locale of choice"
     },
     'mj-88': {
         "name": 'claims_locales',
-        "sequence": ["oic-login-claims_locale"],
+        "sequence": ["note",
+                     "oic-login-claims_locale"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
+        "note": "Claims may now be returned in the locale of choice"
     },
     'mj-89': {
         "name": 'login_hint',
@@ -2297,6 +2411,13 @@ FLOWS = {
     'mj-90': {
         "name": 'acr_values',
         "sequence": ["oic-login-acr_values"],
+        "endpoints": ["authorization_endpoint"],
+        "depends": ['mj-01'],
+    },
+    'mj-91': {
+        "name": 'Unsecured ID Token signature with none',
+        "sequence": ["oic-registration-unsigned_idtoken",
+                     "oic-login", "access-token-request-unsigned"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
     },

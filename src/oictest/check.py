@@ -46,6 +46,14 @@ def get_provider_info(conv):
     return _pi
 
 
+def get_protocol_response(conv, cls):
+    res = []
+    for instance, msg in conv.protocol_response:
+        if isinstance(instance, cls):
+            res.append((instance, msg))
+    return res
+
+
 class CmpIdtoken(Other):
     """
     Compares the JSON received as a CheckID response with my own
@@ -55,10 +63,7 @@ class CmpIdtoken(Other):
 
     def _func(self, conv):
         res = {}
-        instance = None
-        for instance, msg in conv.protocol_response:
-            if instance.type() == "AuthorizationResponse":
-                break
+        instance, msg = get_protocol_response(conv, AuthorizationResponse)[0]
 
         kj = conv.client.keyjar
         keys = {}
@@ -703,23 +708,23 @@ class VerifyClaims(Error):
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
 
-        # last item should be the UserInfoResponse
-        resp = conv.response_message
+        # Get the UserInfoResponse, should only be one
+        inst, txt = get_protocol_response(conv, OpenIDSchema)[0]
         if userinfo_claims:
             for key, restr in userinfo_claims.items():
-                if key in resp:
+                if key in inst:
                     pass
                 else:
                     if restr == {"essential": True}:
                         self._status = self.status
                         self._message = "required attribute '%s' missing" % key
-                        return {"returned claims": resp.keys()}
+                        return {"returned claims": inst.keys()}
 
-        for key in resp.keys():
+        for key in inst.keys():
             if key not in userinfo_claims:
                 self._status = WARNING
                 self._message = "Unexpected %s claim in response" % key
-                return {"returned claims": resp.keys()}
+                return {"returned claims": inst.keys()}
 
         return {}
 
@@ -856,7 +861,7 @@ class VerifyAccessTokenResponse(Error):
               "openid-connect-messages-1_0.html#access_token_response"
 
     def _func(self, conv=None):
-        resp = conv.response_message
+        resp, text = get_protocol_response(conv, message.AccessTokenResponse)[0]
 
         #This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
@@ -995,10 +1000,8 @@ class CheckUserID(Error):
 
     def _func(self, conv=None):
         sub = []
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, OpenIDSchema):
-                _dict = json.loads(msg)
-                sub.append(_dict["sub"])
+        for instance, msg in get_protocol_response(conv, OpenIDSchema):
+            sub.append(instance["sub"])
 
         try:
             assert len(sub) == 2
@@ -1044,14 +1047,12 @@ class CheckAsymSignedUserInfo(Error):
     msg = "User info was not signed"
 
     def _func(self, conv):
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.OpenIDSchema):
-                header = json.loads(b64d(str(msg.split(".")[0])))
-                try:
-                    assert header["alg"].startswith("RS")
-                except AssertionError:
-                    self._status = self.status
-                break
+        instance, msg = get_protocol_response(conv, OpenIDSchema)[0]
+        header = json.loads(b64d(str(msg.split(".")[0])))
+        try:
+            assert header["alg"].startswith("RS")
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
@@ -1061,33 +1062,47 @@ class CheckSymSignedIdToken(Error):
     msg = "Incorrect signature type"
 
     def _func(self, conv):
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.AccessTokenResponse):
-                _dict = json.loads(msg)
-                jwt = _dict["id_token"]
-                header = json.loads(b64d(str(jwt.split(".")[0])))
-                try:
-                    assert header["alg"].startswith("HS")
-                except AssertionError:
-                    self._status = self.status
-                break
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        try:
+            assert header["alg"].startswith("HS")
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
+
+class CheckESSignedIdToken(Error):
+    cid = "es-signed-idtoken"
+    msg = "Incorrect signature type"
+
+    def _func(self, conv):
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        try:
+            assert header["alg"].startswith("ES")
+        except AssertionError:
+            self._status = self.status
+
+        return {}
 
 class CheckEncryptedUserInfo(Error):
     cid = "encrypted-userinfo"
     msg = "User info was not encrypted"
 
     def _func(self, conv):
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.OpenIDSchema):
-                header = json.loads(b64d(str(msg.split(".")[0])))
-                try:
-                    assert header["alg"].startswith("RSA")
-                except AssertionError:
-                    self._status = self.status
-                break
+        instance, msg = get_protocol_response(conv, OpenIDSchema)[0]
+        header = json.loads(b64d(str(msg.split(".")[0])))
+        try:
+            assert header["alg"].startswith("RSA")
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
@@ -1097,15 +1112,14 @@ class CheckEncryptedIDToken(Error):
     msg = "ID Token was not encrypted"
 
     def _func(self, conv):
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.AccessTokenResponse):
-                _dic = json.loads(msg)
-                header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
-                try:
-                    assert header["alg"].startswith("RSA")
-                except AssertionError:
-                    self._status = self.status
-                break
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dic = json.loads(msg)
+        header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+        try:
+            assert header["alg"].startswith("RSA")
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
@@ -1116,24 +1130,22 @@ class CheckSignedEncryptedIDToken(Error):
 
     def _func(self, conv):
         client = conv.client
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.AccessTokenResponse):
-                _dic = json.loads(msg)
-                header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
-                try:
-                    assert header["alg"].startswith("RSA")
-                except AssertionError:
-                    self._status = self.status
-                    break
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dic = json.loads(msg)
+        header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+        try:
+            assert header["alg"].startswith("RSA")
+        except AssertionError:
+            self._status = self.status
 
-                dkeys = client.keyjar.get_decrypt_key(owner="")
-                jwt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
-                _header = unpack(jwt)[0]
-                try:
-                    assert _header["alg"] in ["RS256", "HS256"]
-                except AssertionError:
-                    self._status = self.status
-                break
+        dkeys = client.keyjar.get_decrypt_key(owner="")
+        jwt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
+        _header = unpack(jwt)[0]
+        try:
+            assert _header["alg"] in ["RS256", "HS256"]
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
@@ -1145,9 +1157,9 @@ class VerifyAud(Error):
     def _func(self, conv):
         # Should be two AccessTokenResponses
         atr = []
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.AccessTokenResponse):
-                atr.append(instance)
+        for instance, msg in get_protocol_response(
+                conv, message.AccessTokenResponse):
+            atr.append(instance)
 
         try:
             assert atr[0]["id_token"]["aud"] == atr[1]["id_token"]["aud"]
@@ -1188,12 +1200,13 @@ class CheckNonce(Error):
         except KeyError:
             pass
         else:
-            for instance, msg in conv.protocol_response:
-                if instance.type() == "AuthorizationResponse":
-                    try:
-                        assert _nonce == instance["id_token"]["nonce"]
-                    except (AssertionError, KeyError):
-                        self._status = self.status
+            instance, msg = get_protocol_response(conv,
+                                                  AuthorizationResponse)[0]
+
+            try:
+                assert _nonce == instance["id_token"]["nonce"]
+            except (AssertionError, KeyError):
+                self._status = self.status
 
         return {}
 
@@ -1412,8 +1425,98 @@ class VerifyState(Information):
     msg = "The State variable in not the same as sent"
 
     def _func(self, conv):
+        _send_state = _recv_state = ""
+
         # The send state
+        _send_state = conv.AuthorizationRequest["state"]
         # the received state
+        inst, txt = get_protocol_response(conv, AuthorizationResponse)[-1]
+        _recv_state = inst["state"]
+
+        try:
+            assert _send_state == _recv_state
+        except AssertionError:
+            self.status = self._status
+
+        return {}
+
+
+class VerifySignedIdTokenHasKID(Error):
+    cid = "verify-signed-idtoken-has-kid"
+    msg = "Signed IdToken has no kid"
+
+    def _func(self, conv):
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        if header["alg"].startswith("RS"):
+            try:
+                assert "kid" in header
+            except AssertionError:
+                self._status = self.status
+
+        return {}
+
+
+class VerifySignedIdToken(Error):
+    cid = "verify-idtoken-is-signed"
+    msg = "Unsigned IdToken"
+
+    def _func(self, conv):
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        try:
+            assert header["alg"] != "none"
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class VerifyNonce(Error):
+    cid = "verify-nonce"
+    msg = "Not the same nonce in the id_token as in the authorization request"
+
+    def _func(self, conv):
+        try:
+            ar_nonce = conv.AuthorizationRequest["nonce"]
+        except KeyError:
+            ar_nonce = ""
+
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        try:
+            idt_nonce = instance["id_token"]["nonce"]
+        except KeyError:
+            idt_nonce = ""
+
+        try:
+            assert ar_nonce == idt_nonce
+        except AssertionError:
+            self._status = self.status
+
+        return {}
+
+
+class VerifyUnSignedIdToken(Error):
+    cid = "unsigned-idtoken"
+    msg = "Unsigned IdToken"
+
+    def _func(self, conv):
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        try:
+            assert header["alg"] == "none"
+        except AssertionError:
+            self._status = self.status
 
         return {}
 

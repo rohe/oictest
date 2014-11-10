@@ -1,6 +1,6 @@
 <%!
-    def button(url):
-        return "<a href='%s'>button</a>" % url
+    def link(url):
+        return "<a href='%s'>link</a>" % url
 %>
 
 <!DOCTYPE html>
@@ -24,11 +24,10 @@
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OICTEST</h1>
-        At this point you have to remove all cookies you have received from
-        the OpenID Connect Provider <i>${op}</i>. This since this test is simulating you
-        login in from a second device while still being logged in at the first.
-        So please remove the cookies and then hit this
-        ${button(url)} to continue.
+        ${note}
+        <br>
+        To continue click this ${link(url)}.<br>
+        To go back click this ${link(back)}.
       </div>
 
     </div> <!-- /container -->

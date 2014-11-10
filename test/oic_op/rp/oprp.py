@@ -15,7 +15,7 @@ import sys
 from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
-from oic.oic.message import factory as message_factory
+from oic.oic.message import factory as message_factory, OpenIDSchema
 from oictest.check import factory as check_factory
 from oictest.check import CheckEndpoint
 from oictest.check import CheckTokenEndpointAuthMethod
@@ -25,7 +25,8 @@ from oictest.check import CheckOPSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
-from oictest.testflows import Discover, Notice, AccessTokenRequest
+from oictest.testflows import Discover, Notice, AccessTokenRequest, \
+    DisplayUserInfo
 from rrtest import Trace, exception_trace
 from oictest.graph import sort_flows_into_graph
 
@@ -149,8 +150,8 @@ def test_error(environ, start_response, conv, exc):
 
 
 #
-def get_id_token(client, session):
-    return client.grant[session["state"]].get_id_token()
+def get_id_token(client, conv):
+    return client.grant[conv.AuthorizationRequest["state"]].get_id_token()
 
 
 # Produce a JWS, a signed JWT, containing a previously received ID token
@@ -167,7 +168,16 @@ def clear_session(session):
 
 
 def session_setup(session, path, index=0):
-    ots = OIDCTestSetup(CONF, testflows)
+    _keys = session.keys()
+    for key in _keys:
+        if key.startswith("_"):
+            continue
+        elif key in ["tests", "graph", "flow_names", "response_type"]:
+            continue
+        else:
+            del session[key]
+
+    ots = OIDCTestSetup(CONF, testflows, str(CONF.PORT))
     session["testid"] = path
     session["node"] = in_tree(session["graph"], path)
     sequence_info = ots.make_sequence(path)
@@ -222,6 +232,24 @@ def verify_support(conv, ots, graph):
                             node.state = 4
 
 
+def post_tests(conv, req_c, resp_c):
+    try:
+        inst = req_c(conv)
+        _tests = inst.tests["post"]
+    except KeyError:
+        pass
+    else:
+        conv.test_sequence(_tests)
+
+    try:
+        inst = resp_c()
+        _tests = inst.tests["post"]
+    except KeyError:
+        pass
+    else:
+        conv.test_sequence(_tests)
+
+
 def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
                  trace, index):
     while index < len(sequence_info["sequence"]):
@@ -231,11 +259,23 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         except (ValueError, TypeError):  # Not a tuple
             req = sequence_info["sequence"][index]()
             if isinstance(req, Notice):
-                url = "%scontinue?path=%s&index=%d" % (
-                    CONF.BASE, session["testid"], session["index"])
-                return req(LOOKUP, environ, start_response,
-                           **{"url": url,
-                              "op": conv.client.provider_info["issuer"]})
+                kwargs = {
+                    "url": "%scontinue?path=%s&index=%d" % (
+                        CONF.BASE, session["testid"], session["index"]),
+                    "op": conv.client.provider_info["issuer"],
+                    "back": CONF.BASE}
+                try:
+                    kwargs["note"] = sequence_info["note"]
+                except KeyError:
+                    pass
+
+                if isinstance(req, DisplayUserInfo):
+                    for presp, txt in conv.protocol_response:
+                        if isinstance(presp, OpenIDSchema):
+                            kwargs["table"] = presp
+                            break
+
+                return req(LOOKUP, environ, start_response, **kwargs)
             else:
                 req(conv)
         else:
@@ -255,11 +295,11 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 verify_support(conv, ots, session["graph"])
             else:
                 if req.request == "AuthorizationRequest":
-                    session["state"] = rndstr()  # New state for each request
-                    kwargs = {"request_args": {"state": session["state"]}}
+                    # New state for each request
+                    kwargs = {"request_args": {"state": rndstr()}}
                 elif req.request in ["AccessTokenRequest", "UserInfoRequest",
                                      "RefreshAccessTokenRequest"]:
-                    kwargs = {"state": session["state"]}
+                    kwargs = {"state": conv.AuthorizationRequest["state"]}
                 else:
                     kwargs = {}
 
@@ -285,8 +325,10 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     return resp(environ, start_response)
                 else:
                     _kwargs = {"http_args": ht_args}
-                    if "state" in session:
-                        _kwargs["state"] = session["state"]
+                    try:
+                        _kwargs["state"] = conv.AuthorizationRequest["state"]
+                    except AttributeError:
+                        pass
 
                     response = request_and_return(
                         conv, url, message_factory(resp_c.response), req.method,
@@ -296,10 +338,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     if resp_c.response == "RegistrationResponse":
                         ots.client.store_registration_info(response)
 
-        try:
-            conv.test_sequence(req.tests["post"])
-        except KeyError:
-            pass
+            post_tests(conv, req_c, resp_c)
 
         index += 1
 
@@ -329,6 +368,8 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
+    elif path == "favicon.ico":
+        return static(environ, start_response, LOGGER, "static/favicon.ico")
 
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
@@ -397,7 +438,8 @@ def application(environ, start_response):
             resp_cls = message_factory(resp_c.response)
             try:
                 response = ots.client.parse_response(
-                    resp_cls, info, resp_c.ctype, session["state"],
+                    resp_cls, info, resp_c.ctype,
+                    conv.AuthorizationRequest["state"],
                     keyjar=ots.client.keyjar)
             except ResponseError as err:
                 LOGGER.error("%s" % err)
@@ -406,20 +448,15 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
 
-        try:
-            req = req_c(conv)
-            _tests = req.tests["post"][:]  # make a copy
-        except KeyError:
-            pass
-        else:
-            conv.test_sequence(_tests)
+        post_tests(conv, req_c, resp_c)
 
         index += 1
         try:
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, conv.trace, index)
-        except Exception, err:
+        except Exception as err:
             LOGGER.error("%s" % err)
+            exception_trace("application", err, conv.trace)
             return test_error(environ, start_response, conv, err)
 
 if __name__ == '__main__':

@@ -240,10 +240,10 @@ class PostRequest(Request):
 
 class Response(object):
     response = ""
-    tests = {}
+    _tests = {}
 
     def __init__(self):
-        pass
+        self.tests = copy.deepcopy(self._tests)
 
     def __call__(self, conv, response):
         pass
