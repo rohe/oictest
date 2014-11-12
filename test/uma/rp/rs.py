@@ -14,7 +14,7 @@ from rp import test_error
 from rp import opresult_fragment
 from rrtest import exception_trace
 from uma.message import factory
-import rsa_tests
+import rs_vs_as_tests
 
 __author__ = 'roland'
 
@@ -52,10 +52,10 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     if path == "":  # list
-        session_init(session, CONF, LOOKUP, testflows=rsa_tests)
+        session_init(session, CONF, LOOKUP, testflows=rs_vs_as_tests)
         return flow_list(environ, start_response, session["tests"], session)
     elif "flow_names" not in session:
-        session_init(session, CONF, LOOKUP, testflows=rsa_tests)
+        session_init(session, CONF, LOOKUP, testflows=rs_vs_as_tests)
 
     if path == "continue":
         try:

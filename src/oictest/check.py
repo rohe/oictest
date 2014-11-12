@@ -1521,6 +1521,47 @@ class VerifyUnSignedIdToken(Error):
         return {}
 
 
+class CheckSubConfig(Error):
+    cid = "sub-claim-configured"
+    msg = "Sub claim not configured"
+
+    def _func(self, conv):
+        try:
+            _ = conv.client_config["sub"]
+        except KeyError:
+            self._status = self.status
+
+        return {}
+
+
+class VerifySubValue(Error):
+    cid = "verify-sub-value"
+    msg = "Unexpected sub value"
+
+    def _func(self, conv):
+        _pattern = conv.client_config["sub"]
+        instance, msg = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+        atr_sub = instance["id_token"]["sub"]
+        for key, val in _pattern.items():
+            if key == "essential":  # doesn't really make any sense
+                pass
+            elif key == "value":
+                try:
+                    assert atr_sub == val
+                except AssertionError:
+                    self._status = self.status
+                    break
+            elif key == "values":
+                try:
+                    assert atr_sub in val
+                except AssertionError:
+                    self._status = self.status
+                    break
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 

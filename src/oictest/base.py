@@ -213,8 +213,9 @@ class Conversation(tool.Conversation):
                 extra_args.update(self.client_config[self.creq.request])
             except KeyError:
                 pass
-            part = self.req(self.position, self.last_response,
-                            self.last_content, self.features, **extra_args)
+            part = self.req(location=self.position, response=self.last_response,
+                            content=self.last_content, features=self.features,
+                            **extra_args)
             (self.position, self.last_response, self.last_content) = part
 
             try:

@@ -609,6 +609,17 @@ class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
         self.set_request_args({"claims_locales": loc})
 
 
+class AuthorizationRequestSubClaims(AuthorizationRequestCode):
+    def __init__(self, conv):
+        AuthorizationRequestCode.__init__(self, conv)
+        subpat = conv.client_config["sub"]
+
+        self.request_args["claims"] = {"id_token": {"sub": subpat},
+                                       "userinfo": {"sub": subpat}}
+        self.tests["pre"].append(CheckSubConfig)
+        self.tests["post"].append(VerifySubValue)
+
+
 class AuthorizationRequestLoginHit(AuthorizationRequestCode):
     def call_setup(self):
         # assumes the IdToken was delivered from the token endpoint
@@ -726,6 +737,13 @@ class RegistrationRequest_MULREDIR_mult_host(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.request_args["redirect_uris"].append("https://example.org/cb")
+
+
+class RegistrationRequestHTTPREDIR(RegistrationRequest):
+    def __init__(self, conv):
+        RegistrationRequest.__init__(self, conv)
+        base_url = self.conv.client.redirect_uris[0].replace("https", "http")
+        self.request_args["redirect_uris"] = [base_url]
 
 
 class RegistrationRequest_WQC(RegistrationRequest):
@@ -1459,6 +1477,7 @@ PHASES = {
                                 AuthzResponse),
     "oic-login-login_hint": (AuthorizationRequestLoginHit, AuthzResponse),
     "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzResponse),
+    "oic-login-sub-claims": (AuthorizationRequestSubClaims, AuthzResponse),
     #
     "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
@@ -1529,6 +1548,8 @@ PHASES = {
                                          RegistrationResponse),
     "oic-registration-encrypted_request": (RegistrationRequestSigEnc,
                                            RegistrationResponse),
+    "oic-registration-http-redirecturi": (RegistrationRequestHTTPREDIR,
+                                          req.ErrorResponse),
     "provider-discovery": (Discover, ProviderConfigurationResponse),
     "provider-info": (ProviderRequest, ProviderConfigurationResponse),
     "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
@@ -2418,6 +2439,18 @@ FLOWS = {
         "name": 'Unsecured ID Token signature with none',
         "sequence": ["oic-registration-unsigned_idtoken",
                      "oic-login", "access-token-request-unsigned"],
+        "endpoints": ["authorization_endpoint"],
+        "depends": ['mj-01'],
+    },
+    'mj-92': {
+        "name": 'Reject registration with invalid redirect_uris',
+        "sequence": ["oic-registration-http-redirecturi"],
+        "endpoints": [],
+        "depends": ['mj-01'],
+    },
+    'mj-93': {
+        "name": 'Support claims request specifying sub value',
+        "sequence": ["oic-login-sub-claims"],
         "endpoints": ["authorization_endpoint"],
         "depends": ['mj-01'],
     },

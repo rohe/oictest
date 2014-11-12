@@ -6,8 +6,10 @@ CLIENT = {
     "base_url": BASE,
     "srv_discovery_url": "https://localhost:8092/",
     "webfinger_subject": "diana@localhost:8092",
-    # "login_hint": "diana@localhost:8092",
-    "ui_locales": ["se"],
+    # "login_hint": "diana",
+    "sub_claim": {"value": "diana"},
+    "ui_locales": "se",
+    "claims_locales": "se",
     # "acr_values":["1"],
     "client_info": {
         "application_type": "web",
