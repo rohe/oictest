@@ -1992,12 +1992,12 @@ FLOWS = {
         "profile": ["dyn"]
     },
     # =====================================================================
-    'm-01': {
-        "name": '',
-        "sequence": [""],
-        "block": [],
-        "profile": ["bas", "imp", "hyb", "sel", "dyn"]
-    },
+    # 'm-01': {
+    #     "name": '',
+    #     "sequence": [""],
+    #     "block": [],
+    #     "profile": ["bas", "imp", "hyb", "sel", "dyn"]
+    # },
     'm-02': {
         "name": 'Registration with policy_uri and logo_uri',
         "sequence": ["oic-registration-policy+logo", "oic-login-uri"],
@@ -2043,9 +2043,9 @@ FLOWS = {
                       "token_endpoint", "userinfo_endpoint"],
     },
     # =====================================================================
-    'o-01': {
-        "profile": ["cfg", "dyn"]
-    },
+    # 'o-01': {
+    #     "profile": ["cfg", "dyn"]
+    # },
     'o-02': {
         "name": 'Request access token, change RSA sign key and request another '
                 'access token',
