@@ -708,6 +708,14 @@ class VerifyClaims(Error):
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
 
+        try:
+            _userinfo_claims = req["claims"]["userinfo"]
+        except KeyError:
+            pass
+        else:
+            for key, val in _userinfo_claims.items():
+                userinfo_claims[key] = val
+
         # Get the UserInfoResponse, should only be one
         inst, txt = get_protocol_response(conv, OpenIDSchema)[0]
         if userinfo_claims:
@@ -1451,7 +1459,8 @@ class VerifySignedIdTokenHasKID(Error):
         _dict = json.loads(msg)
         jwt = _dict["id_token"]
         header = json.loads(b64d(str(jwt.split(".")[0])))
-        if header["alg"].startswith("RS"):
+        # doesn't verify signing kid if JWT is signed and then encrypted
+        if not "enc" in header and header["alg"].startswith("RS"):
             try:
                 assert "kid" in header
             except AssertionError:

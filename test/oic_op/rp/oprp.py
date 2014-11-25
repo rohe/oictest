@@ -6,7 +6,7 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.oauth2 import rndstr, ResponseError
 
-from oic.utils.http_util import NotFound, get_post
+from oic.utils.http_util import NotFound, get_post, BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 
@@ -25,8 +25,10 @@ from oictest.check import CheckOPSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
-from oictest.testflows import Discover, Notice, AccessTokenRequest, \
-    DisplayUserInfo
+from oictest.testflows import Discover
+from oictest.testflows import Notice
+from oictest.testflows import AccessTokenRequest
+from oictest.testflows import DisplayUserInfo
 from rrtest import Trace, exception_trace
 from oictest.graph import sort_flows_into_graph
 
@@ -187,6 +189,7 @@ def session_setup(session, path, index=0):
     client_conf = ots.config.CLIENT
     conv = Conversation(ots.client, client_conf, trace, None,
                         message_factory, check_factory)
+    conv.cache = CACHE
     session["ots"] = ots
     session["conv"] = conv
     session["index"] = index
@@ -262,11 +265,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 kwargs = {
                     "url": "%scontinue?path=%s&index=%d" % (
                         CONF.BASE, session["testid"], session["index"]),
-                    "op": conv.client.provider_info["issuer"],
                     "back": CONF.BASE}
                 try:
                     kwargs["note"] = sequence_info["note"]
                 except KeyError:
+                    pass
+                try:
+                    kwargs["op"] = conv.client.provider_info["issuer"]
+                except (KeyError, TypeError):
                     pass
 
                 if isinstance(req, DisplayUserInfo):
@@ -274,6 +280,13 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         if isinstance(presp, OpenIDSchema):
                             kwargs["table"] = presp
                             break
+
+                try:
+                    key = req.cache(CACHE, conv, sequence_info["cache"])
+                except KeyError:
+                    pass
+                else:
+                    kwargs["url"] += "&key=%s" % key
 
                 return req(LOOKUP, environ, start_response, **kwargs)
             else:
@@ -349,17 +362,21 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     except KeyError:
         pass
 
-    return opresult(environ, start_response, conv, session)
+    resp = Redirect("%s/opresult#%s" % (CONF.BASE, session["testid"][0]))
+    return resp(environ, start_response)
 
 
 def session_init(session):
-    graph = sort_flows_into_graph(testflows.FLOWS)
-    session["graph"] = graph
-    session["tests"] = [x for x in flatten(graph)]
-    session["tests"].sort(node_cmp)
-    session["flow_names"] = [x.name for x in session["tests"]]
-    session["response_type"] = []
-
+    if "graph" not in session:
+        graph = sort_flows_into_graph(testflows.FLOWS)
+        session["graph"] = graph
+        session["tests"] = [x for x in flatten(graph)]
+        session["tests"].sort(node_cmp)
+        session["flow_names"] = [x.name for x in session["tests"]]
+        session["response_type"] = []
+        return True
+    else:
+        return False
 
 def application(environ, start_response):
     LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
@@ -371,6 +388,7 @@ def application(environ, start_response):
     elif path == "favicon.ico":
         return static(environ, start_response, LOGGER, "static/favicon.ico")
 
+
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
@@ -378,10 +396,21 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, path)
 
     if path == "":  # list
-        session_init(session)
-        return flow_list(environ, start_response, session["tests"])
+        if session_init(session):
+            return flow_list(environ, start_response, session["tests"])
+        else:
+            try:
+                resp = Redirect("%s/opresult#%s" % (CONF.BASE,
+                                                    session["testid"][0]))
+            except KeyError:
+                return flow_list(environ, start_response, session["tests"])
+            else:
+                return resp(environ, start_response)
     elif "flow_names" not in session:
         session_init(session)
+    elif path == "reset":
+        session_init(session)
+        return flow_list(environ, start_response, session["tests"])
 
     if path == "continue":
         try:
@@ -392,6 +421,10 @@ def application(environ, start_response):
             index = int(query["index"][0])
             conv, sequence_info, ots, trace, index = session_setup(session,
                                                                    path, index)
+            try:
+                conv.cache_key = query["key"][0]
+            except KeyError:
+                pass
         else:
             index = session["index"]
             ots = session["ots"]
@@ -403,6 +436,9 @@ def application(environ, start_response):
                                 start_response, conv.trace, index)
         except Exception, err:
             return test_error(environ, start_response, conv, err)
+    elif path == "opresult":
+        conv = session["conv"]
+        return opresult(environ, start_response, conv, session)
     # expected path format: /<testid>[/<endpoint>]
     elif path in session["flow_names"]:
         conv, sequence_info, ots, trace, index = session_setup(session, path)
@@ -414,7 +450,7 @@ def application(environ, start_response):
             session["node"].state = 3
             exception_trace("run_sequence", err, trace)
             return test_error(environ, start_response, conv, err)
-    else:
+    elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if not session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
@@ -458,6 +494,9 @@ def application(environ, start_response):
             LOGGER.error("%s" % err)
             exception_trace("application", err, conv.trace)
             return test_error(environ, start_response, conv, err)
+    else:
+        resp = BadRequest()
+        return resp(environ, start_response)
 
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
@@ -477,6 +516,8 @@ if __name__ == '__main__':
         'session.auto': True,
         'session.timeout': 900
     }
+
+    CACHE = {}
 
     CONF = importlib.import_module(sys.argv[1])
 

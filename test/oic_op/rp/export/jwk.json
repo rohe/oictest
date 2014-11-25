@@ -1,16 +1,1 @@
-{"keys": [
-    {
-        "use": "enc",
-        "n": "1uEIILfdysUFLySlD-vcCS5tP2hOVqAgAlcG0J-4et3HKop5GdwYK7Z5WDecQmSDWimYhypi5nII6uFkyGGSuZ-IWfvwKZh9A-KQ5VAO7frabRG7wgUnm7IMfO0h2BeL6AI75FloT45Yg65CXZLru4zECSk2g4vjzo7AigjsVdXMwKPkDgkG6e_70a9IrHGSRnlujBE8GHWgPIP51q5LuY9BLoQ2YW8PyWE4q1fFB3yFd2HX9NA1BeGLqO7Uj0WGW-v3ZDPvtkYKYAy0WcmK0k9RDmvcx_B5qQyK6oq32E-mdkmvhGSG3-Wie07LreQX4Z2xZZyVMpUGV8TxBBPHIQ",
-        "e": "AQAB",
-        "kty": "RSA",
-        "kid": "a0"
-    },
-    {
-        "use": "sig",
-        "n": "tAAzYdbiWDAKI8Q3s1crQRuVp0QXpyGgnzx_sGItC2rhdug68gE9v5mfK-7SJCBpuZXzX1YevJ25B0LhNQSWqvb6gYwlNHs33G8VmSzjpqFazItnhKMPnEehCXmPl7iFi8VV0NCC5_uH9xP61TClWsE8B7i4CV6y9B0hZI22p2M",
-        "e": "AQAB",
-        "kty": "RSA",
-        "kid": "a1"
-    }
-]}
+{"keys": [{"use": "enc", "e": "AQAB", "kty": "RSA", "n": "1uEIILfdysUFLySlD-vcCS5tP2hOVqAgAlcG0J-4et3HKop5GdwYK7Z5WDecQmSDWimYhypi5nII6uFkyGGSuZ-IWfvwKZh9A-KQ5VAO7frabRG7wgUnm7IMfO0h2BeL6AI75FloT45Yg65CXZLru4zECSk2g4vjzo7AigjsVdXMwKPkDgkG6e_70a9IrHGSRnlujBE8GHWgPIP51q5LuY9BLoQ2YW8PyWE4q1fFB3yFd2HX9NA1BeGLqO7Uj0WGW-v3ZDPvtkYKYAy0WcmK0k9RDmvcx_B5qQyK6oq32E-mdkmvhGSG3-Wie07LreQX4Z2xZZyVMpUGV8TxBBPHIQ"}, {"use": "sig", "n": "tAAzYdbiWDAKI8Q3s1crQRuVp0QXpyGgnzx_sGItC2rhdug68gE9v5mfK-7SJCBpuZXzX1YevJ25B0LhNQSWqvb6gYwlNHs33G8VmSzjpqFazItnhKMPnEehCXmPl7iFi8VV0NCC5_uH9xP61TClWsE8B7i4CV6y9B0hZI22p2M", "e": "AQAB", "kty": "RSA", "kid": "a1"}, {"use": "sig", "crv": "P-256", "kty": "EC", "y": "AxlqF4Z-Au5wI77vS8poTH8Kp7D-uxpEVY5w5E6Dtd8", "x": "OusOgmxEB5xdvSoY9c_ewCds9sAj2g7u2RoXyZineCU", "kid": "a2"}, {"use": "enc", "crv": "P-256", "kty": "EC", "y": "WYZoSjVsdoDRgTlnZs0wPAsXKFRtcHeKiE1lPTELH5I", "x": "PGG4OB6jEYakUfTkld43MJcDNpC8jl3cmDKp0y3UFZI", "kid": "a3"}, {"use": "sig", "n": "zfZzttF7HmnTYwSMPdxKs5AoczbNS2mOPz-tN1g4ljqI_F1DG8cgQDcN_VDufxoFGRERo2FK6WEN41LhbGEyP6uL6wW6Cy29qE9QZcvY5mXrncndRSOkNcMizvuEJes_fMYrmP_lPiC6kWiqItTk9QBWqJfiYKhCx9cSDXsBmJXn3KWQCVHvj1ANFWW0CWLMKlWN-_NMNLIWJN_pEAocTZMzxSFBK1b5_5J8ZS7hfWRF6MQmjsJcz2jzA21SQZNpre3kwnTGRSwo05sAS-TyeadDqQPWgbqX69UzcGq5irhzN8cpZ_JaTk3Y_uV6owanTZLVvCgdjaAnMYeZhb0KFw", "e": "AQAB", "kty": "RSA", "kid": "sig0"}]}

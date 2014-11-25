@@ -1,5 +1,6 @@
 import requests
 import copy
+import urllib
 
 from oic.oauth2 import URL_ENCODED
 from oic.oauth2 import Message
@@ -8,6 +9,7 @@ from oictest.check import CheckEndpoint
 
 __author__ = 'rolandh'
 
+DUMMY_URL = "https://remove.this.url/"
 
 class Request(object):
     request = ""
@@ -92,6 +94,14 @@ class Request(object):
         if request:
             if request.__name__ == "RegistrationRequest":
                 kwargs["request_args"].update(client.behaviour)
+            elif request.__name__ == "AuthorizationRequest":
+                try:
+                    _ruri = kwargs["request_args"]["redirect_uri"]
+                except KeyError:
+                    pass
+                else:
+                    if _ruri == "":
+                        kwargs["request_args"]["redirect_uri"] = DUMMY_URL
 
             cis = getattr(client, "construct_%s" % request.__name__)(request,
                                                                      **kwargs)
@@ -152,6 +162,18 @@ class Request(object):
             ht_args = h_arg
             url = e_arg["endpoint"]
             body = ""
+
+        if request and request.__name__ == "AuthorizationRequest":
+            try:
+                if kwargs["request_args"]["redirect_uri"] == DUMMY_URL:
+                    _str = "redirect_uri=%s" % urllib.quote_plus(DUMMY_URL)
+                    # Can be first or last
+                    if url.find("&"+_str):
+                        url = url.replace("&"+_str, "")
+                    else:
+                        url = url.replace(_str+"&", "")
+            except KeyError:
+                pass
 
         self.conv.last_url = url
         if e_arg["http_authz"]:

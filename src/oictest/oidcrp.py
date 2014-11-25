@@ -6,6 +6,7 @@ from oic import oic
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
+from oictest.testflows import RmCookie
 
 __author__ = 'roland'
 
@@ -132,13 +133,33 @@ class OIDCTestSetup(object):
 
         _flow = self.test_defs.FLOWS[flow]
 
-        for param in ["tests", "block", "mode", "expect_exception", "note"]:
+        for param in ["tests", "block", "mode", "expect_exception",
+                      "note", "cache"]:
             try:
                 res[param] = _flow[param]
             except KeyError:
                 pass
 
         return res
+
+    @staticmethod
+    def _insert(seq, ext):
+        """
+        Add a step to the flow sequence
+
+        :param seq: The flow sequence
+        :param ext: The extra step, should be added to the top and then after
+        every RmCookie
+        :return: The new extended flow sequence
+        """
+        rseq = [ext]
+        for n in range(0, len(seq)):
+            if seq[n] == RmCookie:
+                rseq.append(seq[n])
+                rseq.append(ext)
+            else:
+                rseq.append(seq[n])
+        return rseq
 
     def add_init(self, test_spec):
         """
@@ -162,14 +183,12 @@ class OIDCTestSetup(object):
                     pass
             if _register:
                 _ext = self.test_defs.PHASES["oic-registration"]
-                _seq.insert(0, _ext)
-                _flow.insert(0, "oic-registration")
-
+                test_spec["sequence"] = self._insert(_seq, _ext)
+                _seq = test_spec["sequence"]
         if "srv_discovery_url" in self.test_features:
             op_spec = self.test_defs.PHASES["provider-discovery"]
             if op_spec not in _seq:
-                _seq.insert(0, op_spec)
-                _flow.insert(0, "provider-discovery")
+                test_spec["sequence"] = self._insert(_seq, op_spec)
 
         return test_spec
 
@@ -210,6 +229,11 @@ def request_and_return(conv, url, response=None, method="GET", body=None,
 
     _response = _cli.parse_request_response(_resp, response, body_type, state,
                                             **kwargs)
+
+    # Need special handling of id_token
+    if "id_token" in _response:
+        _dict = json.loads(_resp.text)
+        conv.id_token = _dict["id_token"]
 
     conv.protocol_response.append((_response, _resp.content))
 

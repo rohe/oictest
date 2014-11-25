@@ -1,4 +1,27 @@
 <%!
+
+DESC = {
+    "A": "Response Type & Response Mode",
+    "B": "ID Token",
+    "C": "Userinfo Endpoint",
+    "D": "nonce Request Parameter",
+    "E": "scope Request Parameter",
+    "F": "display Request Parameter",
+    "G": "prompt Request Parameter",
+    "H": "Misc Request Parameters",
+    "I": "OAuth behaviors",
+    "J": "redirect_uri",
+    "K": "Client Authentication",
+    "L" : "Discovery",
+    "M": "Dynamic Client Registration",
+    "N": "Key Rollover",
+    "O": "request_uri Request Parameter",
+    "P": "request Request Parameter",
+    "Q": "claims Request Parameter",
+    "R": "Third Party initiated Login",
+    "S": "Session Management"
+    }
+
 def op_choice(base, nodes):
     """
     Creates a list of test flows
@@ -9,6 +32,7 @@ def op_choice(base, nodes):
     #    "ERROR":'<img src="static/red.png" alt="Red">',
     #    "CRITICAL":'<img src="static/red.png" alt="Red">'
     #}
+    _id = "_"
     color = ['<img src="static/black.png" alt="Black">',
              '<img src="static/green.png" alt="Green">',
              '<img src="static/red.png" alt="Red">',
@@ -16,8 +40,11 @@ def op_choice(base, nodes):
              '<img src="static/greybutton" alt="Grey">']
     element = "<ul>"
     for node in nodes:
-        element += "<li><a id='%s' href='%s%s'>%s</a>%s (%s) " % (node.name,
-            base, node.name, color[node.state], node.desc, node.name)
+        if not node.name.startswith(_id):
+            _id = node.name[0]
+            element += "<hr size=2><h3 id='%s'>%s</h3>" % (_id, DESC[_id])
+        element += "<li><a href='%s%s'>%s</a>%s (%s) " % (base,
+            node.name, color[node.state], node.desc, node.name)
         if node.rmc:
             element += '<img src="static/delete-icon.png">'
         if node.experr:
