@@ -96,7 +96,7 @@ def opchoice(environ, start_response, clients):
 def opresult(environ, start_response, conv, session):
     _sum = test_summation(conv, session["testid"])
     session["node"].state = _sum["status"]
-    if _sum["status"] <= 1:
+    if _sum["status"] <= 2:  # don't break for warning
         resp = Response(mako_template="flowlist.mako",
                         template_lookup=LOOKUP,
                         headers=[])
