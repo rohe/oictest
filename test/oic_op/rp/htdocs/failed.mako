@@ -1,11 +1,22 @@
 <%!
-def test_output(output):
+
+ORDER = ["status", "name", "message"]
+
+def test_output(out):
     """
 
     """
-    element = ["<h3>Test output</h3><pre><code>"]
-    for item in output:
-        element.append("%s\n" % item)
+    element = ["<h3>Test output</h3>", "<pre><code>"]
+    for item in out:
+        if isinstance(item, tuple):
+            element.append("__%s:%s__" % item)
+        else:
+            element.append("[%s]" % item["id"])
+            for param in ORDER:
+                try:
+                    element.append("\t%s: %s" % (param, item[param]))
+                except KeyError:
+                    pass
     element.append("</code></pre>")
     return "\n".join(element)
 %>
