@@ -1,6 +1,6 @@
 <%!
 
-ORDER = ["status", "name", "message"]
+from rrtest.check import STATUSCODE
 
 def test_output(out):
     """
@@ -12,11 +12,15 @@ def test_output(out):
             element.append("__%s:%s__" % item)
         else:
             element.append("[%s]" % item["id"])
-            for param in ORDER:
-                try:
-                    element.append("\t%s: %s" % (param, item[param]))
-                except KeyError:
-                    pass
+            element.append("\tstatus: %s" % STATUSCODE[item["status"]])
+            try:
+                element.append("\tdescription: %s" % (item["name"]))
+            except KeyError:
+                pass
+            try:
+                element.append("\tinfo: %s" % (item["message"]))
+            except KeyError:
+                pass
     element.append("</code></pre>")
     return "\n".join(element)
 %>
