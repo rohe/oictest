@@ -35,8 +35,8 @@ def op_choice(base, nodes, test_info):
     _id = "_"
     color = ['<img src="static/black.png" alt="Black">',
              '<img src="static/green.png" alt="Green">',
-             '<img src="static/red.png" alt="Red">',
              '<img src="static/yellow.png" alt="Yellow">',
+             '<img src="static/red.png" alt="Red">',
              '<img src="static/greybutton" alt="Grey">']
     element = "<ul>"
     for node in nodes:
