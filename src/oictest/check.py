@@ -1348,32 +1348,47 @@ class CheckEncSigAlgorithms(Information):
         for typ in ["id_token", "userinfo", "request_object",
                     "token_endpoint_auth"]:
             _claim = "%s_signing_alg_values_supported" % typ
-            for alg in _pi[_claim]:
-                try:
-                    assert alg in REGISTERED_JWS_ALGORITHMS
-                except AssertionError:
-                    if alg not in unknown_jws:
-                        unknown_jws.append(alg)
+            try:
+                algs = _pi[_claim]
+            except KeyError:
+                unknown_jws = REGISTERED_JWS_ALGORITHMS[:]
+            else:
+                for alg in algs:
+                    try:
+                        assert alg in REGISTERED_JWS_ALGORITHMS
+                    except AssertionError:
+                        if alg not in unknown_jws:
+                            unknown_jws.append(alg)
 
         unknown_jwe_alg = []
         for typ in ["id_token", "userinfo", "request_object"]:
             _claim = "%s_encryption_alg_values_supported" % typ
-            for alg in _pi[_claim]:
-                try:
-                    assert alg in REGISTERED_JWE_alg_ALGORITHMS
-                except AssertionError:
-                    if alg not in unknown_jwe_alg:
-                        unknown_jwe_alg.append(alg)
+            try:
+                algs = _pi[_claim]
+            except KeyError:
+                unknown_jwe_alg = REGISTERED_JWE_alg_ALGORITHMS[:]
+            else:
+                for alg in algs:
+                    try:
+                        assert alg in REGISTERED_JWE_alg_ALGORITHMS
+                    except AssertionError:
+                        if alg not in unknown_jwe_alg:
+                            unknown_jwe_alg.append(alg)
 
         unknown_jwe_enc = []
         for typ in ["id_token", "userinfo", "request_object"]:
             _claim = "%s_encryption_enc_values_supported" % typ
-            for alg in _pi[_claim]:
-                try:
-                    assert alg in REGISTERED_JWE_enc_ALGORITHMS
-                except AssertionError:
-                    if alg not in unknown_jwe_enc:
-                        unknown_jwe_enc.append(alg)
+            try:
+                algs = _pi[_claim]
+            except KeyError:
+                unknown_jwe_enc = REGISTERED_JWE_enc_ALGORITHMS[:]
+            else:
+                for alg in algs:
+                    try:
+                        assert alg in REGISTERED_JWE_enc_ALGORITHMS
+                    except AssertionError:
+                        if alg not in unknown_jwe_enc:
+                            unknown_jwe_enc.append(alg)
 
         if unknown_jws or unknown_jwe_alg or unknown_jwe_enc:
             _txt = "Used algorithms that are not registered: "
