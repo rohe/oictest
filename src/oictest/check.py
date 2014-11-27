@@ -1237,6 +1237,10 @@ class VerifyImplicitResponse(Error):
 
 
 class CheckNonce(Error):
+    """
+    Verify that I in the IDToken gets back the nonce I included in the
+    Authorization Request.
+    """
     cid = "check-nonce"
     msg = "Expected same nonce back as sent"
 
