@@ -1351,7 +1351,7 @@ class CheckEncSigAlgorithms(Information):
             try:
                 algs = _pi[_claim]
             except KeyError:
-                unknown_jws = REGISTERED_JWS_ALGORITHMS[:]
+                pass
             else:
                 for alg in algs:
                     try:
@@ -1366,7 +1366,7 @@ class CheckEncSigAlgorithms(Information):
             try:
                 algs = _pi[_claim]
             except KeyError:
-                unknown_jwe_alg = REGISTERED_JWE_alg_ALGORITHMS[:]
+                pass
             else:
                 for alg in algs:
                     try:
@@ -1381,7 +1381,7 @@ class CheckEncSigAlgorithms(Information):
             try:
                 algs = _pi[_claim]
             except KeyError:
-                unknown_jwe_enc = REGISTERED_JWE_enc_ALGORITHMS[:]
+                pass
             else:
                 for alg in algs:
                     try:
