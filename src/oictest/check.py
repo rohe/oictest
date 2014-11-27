@@ -3,6 +3,8 @@ import json
 from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwe import JWE_RSA
+from jwkest.jwk import RSAKey, ECKey
+from jwkest.jwk import base64url_to_long
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
@@ -864,6 +866,9 @@ class ChangedSecret(Error):
 
 
 class VerifyAccessTokenResponse(Error):
+    """
+    Checks the Access Token response
+    """
     cid = "verify-access-token-response"
     section = "http://openid.bitbucket.org/" + \
               "openid-connect-messages-1_0.html#access_token_response"
@@ -932,6 +937,11 @@ class MultipleSignOn(Error):
 
 
 class VerifyRedirect_uriQueryComponent(Error):
+    """
+    Checks that a query component in the redirect_uri value that was
+    specified in the Authorization request are present in the
+    URL used by the OP for the response.
+    """
     cid = "verify-redirect_uri-query_component"
 
     def _func(self, conv):
@@ -1003,6 +1013,10 @@ class VerifyLogoURLs(Error):
 
 
 class CheckUserID(Error):
+    """
+    Verifies that the sub value differs between public and pairwise
+    subject types.
+    """
     cid = "different_sub"
     msg = "sub not changed between public and pairwise"
 
@@ -1021,6 +1035,11 @@ class CheckUserID(Error):
 
 
 class VerifyUserInfo(Error):
+    """
+    Checks that all required information are in the UserInfo.
+    Note that it's not an error on the OPs behalf if not all information
+    is there.
+    """
     cid = "verify-userinfo"
     msg = "Essential User info missing"
 
@@ -1051,6 +1070,9 @@ class VerifyUserInfo(Error):
 
 
 class CheckAsymSignedUserInfo(Error):
+    """
+    Verifies that the UserInfo was signed with a RSA key
+    """
     cid = "asym-signed-userinfo"
     msg = "User info was not signed"
 
@@ -1066,6 +1088,9 @@ class CheckAsymSignedUserInfo(Error):
 
 
 class CheckSymSignedIdToken(Error):
+    """
+    Verifies that the IDToken was signed with a symmetric key
+    """
     cid = "sym-signed-idtoken"
     msg = "Incorrect signature type"
 
@@ -1084,6 +1109,9 @@ class CheckSymSignedIdToken(Error):
 
 
 class CheckESSignedIdToken(Error):
+    """
+    Verifies that the IdToken was signed with a EC key
+    """
     cid = "es-signed-idtoken"
     msg = "Incorrect signature type"
 
@@ -1100,7 +1128,11 @@ class CheckESSignedIdToken(Error):
 
         return {}
 
+
 class CheckEncryptedUserInfo(Error):
+    """
+    Verifies that the UserInfo returned was encrypted
+    """
     cid = "encrypted-userinfo"
     msg = "User info was not encrypted"
 
@@ -1116,6 +1148,9 @@ class CheckEncryptedUserInfo(Error):
 
 
 class CheckEncryptedIDToken(Error):
+    """
+    Verifies that a IDToken was encrypted
+    """
     cid = "encrypted-idtoken"
     msg = "ID Token was not encrypted"
 
@@ -1133,6 +1168,9 @@ class CheckEncryptedIDToken(Error):
 
 
 class CheckSignedEncryptedIDToken(Error):
+    """
+    Verifies that a IDToken was signed and then encrypted
+    """
     cid = "signed-encrypted-idtoken"
     msg = "ID Token was not signed and encrypted"
 
@@ -1186,7 +1224,7 @@ class VerifyImplicitResponse(Error):
         # first verify there is a fragment
         try:
             assert _part.fragment
-            # The that that is where the response is
+            # The is where the response is
             _resp = AuthorizationResponse().from_urlencoded(_part.fragment)
             assert _resp
             # Can't do this check since in the response_message the id_token is
@@ -1245,6 +1283,10 @@ class CheckResponseMode(CheckOPSupported):
 
 
 class VerifyISS(Error):
+    """
+    verify that the iss value given in the discovery response is the
+    same as the issuer in an IDToken.
+    """
     cid = "verify-iss"
     msg = "Not the same iss/issuer in the id_token as in the Provider Info"
 
@@ -1377,7 +1419,7 @@ class VerifyOPEndpointsUseHTTPS(Information):
 
 class VerifyOPHasRegistrationEndpoint(Information):
     """
-    Verify that all OP endpoints uses https
+    Verify that the OP has a registration endpoint
     """
     cid = "verify-op-has-registration-endpoint"
     msg = "No registration endpoint"
@@ -1394,7 +1436,8 @@ class VerifyOPHasRegistrationEndpoint(Information):
 
 class VerifyIDTokenUserInfoSubSame(Information):
     """
-    Verify that all OP endpoints uses https
+    Verify that the sub claim in the IdToken is the same as is provider in
+    the userinfo
     """
     cid = "verify-id_token-userinfo-same-sub"
     msg = "Sub identifier differs between the IdToken and the UserInfo"
@@ -1450,6 +1493,9 @@ class VerifyState(Information):
 
 
 class VerifySignedIdTokenHasKID(Error):
+    """
+    Verifies that the header of a signed IDToken includes a kid claim.
+    """
     cid = "verify-signed-idtoken-has-kid"
     msg = "Signed IdToken has no kid"
 
@@ -1460,16 +1506,20 @@ class VerifySignedIdTokenHasKID(Error):
         jwt = _dict["id_token"]
         header = json.loads(b64d(str(jwt.split(".")[0])))
         # doesn't verify signing kid if JWT is signed and then encrypted
-        if not "enc" in header and header["alg"].startswith("RS"):
-            try:
-                assert "kid" in header
-            except AssertionError:
-                self._status = self.status
+        if "enc" not in header:
+            if header["alg"].startswith("RS"):
+                try:
+                    assert "kid" in header
+                except AssertionError:
+                    self._status = self.status
 
         return {}
 
 
 class VerifySignedIdToken(Error):
+    """
+    Verifies that an IdToken is signed
+    """
     cid = "verify-idtoken-is-signed"
     msg = "Unsigned IdToken"
 
@@ -1488,6 +1538,10 @@ class VerifySignedIdToken(Error):
 
 
 class VerifyNonce(Error):
+    """
+    Verifies that the nonce recceived in the IDToken is the same as was
+    given in the Authorization Request
+    """
     cid = "verify-nonce"
     msg = "Not the same nonce in the id_token as in the authorization request"
 
@@ -1513,6 +1567,10 @@ class VerifyNonce(Error):
 
 
 class VerifyUnSignedIdToken(Error):
+    """
+    Verifies that an IDToken is in fact unsigned, that is signed with the
+    'none' algorithm.
+    """
     cid = "unsigned-idtoken"
     msg = "Unsigned IdToken"
 
@@ -1544,6 +1602,10 @@ class CheckSubConfig(Error):
 
 
 class VerifySubValue(Error):
+    """
+    Verifies that the sub claim returned in the id_token matched the
+    asked for.
+    """
     cid = "verify-sub-value"
     msg = "Unexpected sub value"
 
@@ -1570,6 +1632,45 @@ class VerifySubValue(Error):
 
         return {}
 
+
+class VerifyBase64URL(Check):
+    """
+    Verifies that the base64 encoded parts of a JWK is in fact base64url
+    encoded and not just base64 encoded
+    """
+    cid = "verify-jwks"
+    msg = "JWKS not accoding to spec"
+
+    def _func(self, conv):
+        # There should be two entrie in the KeyJar, one is myself and the
+        # other the OP
+        for issuer, kbs in conv.client.keyjar.issuer_keys.items():
+            if issuer == "":  # myself
+                continue
+            else:
+                for kb in kbs:
+                    if kb.imp_jwks is not None:
+                        for key in kb.imp_jwks["keys"]:
+                            if key["kty"] == "RSA":
+                                _longs = RSAKey.longs
+                            elif key["kty"] == "EC":
+                                _longs = ECKey.longs
+                            else:
+                                _longs = []
+                            for p in _longs:
+                                try:
+                                    _val = key[p]
+                                except KeyError:
+                                    pass
+                                else:
+                                    if _val:
+                                        try:
+                                            _ = base64url_to_long(_val)
+                                        except ValueError:
+                                            self._status = WARNING
+                                            break
+
+        return {}
 
 CLASS_CACHE = {}
 

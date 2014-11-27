@@ -22,7 +22,7 @@ DESC = {
     "S": "Session Management"
     }
 
-def op_choice(base, nodes):
+def op_choice(base, nodes, test_info):
     """
     Creates a list of test flows
     """
@@ -49,6 +49,9 @@ def op_choice(base, nodes):
             element += '<img src="static/delete-icon.png">'
         if node.experr:
             element += '<img src="static/beware.png">'
+        if node.name in test_info:
+            element += "<a href='%stest_info/%s'><img src='static/info32.png'></a>" % (
+                base, node.name)
     element += "</select>"
     return element
 %>
@@ -75,7 +78,7 @@ def op_choice(base, nodes):
       <div class="jumbotron">
         <h1>OICTEST</h1>
           <h3>Chose the next test flow you want to run from this list: </h3>
-            ${op_choice(base, flows)}
+            ${op_choice(base, flows, test_info)}
       </div>
 
     </div> <!-- /container -->

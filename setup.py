@@ -6,7 +6,7 @@
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
 #
-#      http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
@@ -21,27 +21,28 @@ __author__ = 'rohe0002'
 
 setup(
     name="oictest",
-    version="0.2.1",
-    description="Tools to test OAuth2, UMA and/or OpenID Connect implementations",
-    author = "Roland Hedberg",
-    author_email = "roland.hedberg@adm.umu.se",
+    version="0.3.0",
+    description="Tools to test OAuth2, UMA and/or OpenID Connect "
+                "implementations",
+    author="Roland Hedberg",
+    author_email="roland.hedberg@adm.umu.se",
     license="Apache 2.0",
     packages=["oictest", "rptest", "rrtest", "oauth2test", "umatest"],
-    package_dir = {"": "src"},
-    classifiers = [
+    package_dir={"": "src"},
+    classifiers=[
         "Development Status :: 4 - Beta",
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
-    install_requires = [
+    install_requires=[
         "oic>=0.6.0",
         "mechanize",
         "argparse",
         "beautifulsoup4",
         "requests >= 2.0.0"
         #"importlib" only needed for 2.6
-        ],
+    ],
 
     zip_safe=False,
     scripts=["script/oauth2c.py", "script/oicc.py", "script/oicrp.py",
              "script/oic_flow_tests.py", "script/static_provider.py"],
-    )
+)

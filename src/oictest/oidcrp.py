@@ -243,6 +243,8 @@ def request_and_return(conv, url, response=None, method="GET", body=None,
 def test_summation(conv, sid):
     status = 0
     for item in conv.test_output:
+        if isinstance(item, tuple):
+            continue
         if item["status"] > status:
             status = item["status"]
 

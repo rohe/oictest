@@ -25,7 +25,8 @@ __author__ = 'rohe0002'
 import time
 
 from urllib import urlencode
-from oic.oauth2 import JSON_ENCODED, PBase
+from oic.oauth2 import JSON_ENCODED
+from oic.oauth2 import PBase
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
@@ -153,6 +154,12 @@ class DisplayUserInfo(Notice):
     def __init__(self):
         Notice.__init__(self)
         self.template = "userinfo.mako"
+
+
+class DisplayIDToken(Notice):
+    def __init__(self):
+        Notice.__init__(self)
+        self.template = "idtoken.mako"
 
 
 class RotateKeys(Process):
@@ -1345,9 +1352,10 @@ class DResponse(object):
 
 class Discover(Operation):
     _tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
-                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS]}
+                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS,
+                       VerifyBase64URL]}
     conv_param = "provider_info"
-    request = None
+    request = "DiscoveryRequest"
 
     def __init__(self, conv, **kwargs):
         Operation.__init__(self, conv, **kwargs)
@@ -1594,7 +1602,8 @@ PHASES = {
     "rm_cookie": RmCookie,
     "expect_err": ExpectError,
     "webfinger": (Webfinger, None),
-    "display_userinfo": DisplayUserInfo
+    "display_userinfo": DisplayUserInfo,
+    "display_idtoken": DisplayIDToken
 }
 
 OWNER_OPS = []
@@ -1885,16 +1894,15 @@ FLOWS = {
     },
     'H-04': {
         "name": 'ui_locales',
-        "sequence": ['note', "oic-login-ui_locale", "access-token-request",
-                     USERINFO_REQUEST_AUTH_METHOD, 'display_userinfo'],
+        "sequence": ['rm_cookie', 'note', "oic-login-ui_locale"],
         "endpoints": ["authorization_endpoint"],
-        "note": "The userinfo may now be returned in the locale of choice",
+        "note": "The user interface may now use the locale of choice",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
     'H-05': {
         "name": 'claims_locales',
-        "sequence": ["note",
-                     "oic-login-claims_locale"],
+        "sequence": ["note", "oic-login-claims_locale", "access-token-request",
+                     USERINFO_REQUEST_AUTH_METHOD, 'display_userinfo'],
         "endpoints": ["authorization_endpoint"],
         "note": "Claims may now be returned in the locale of choice",
         "profile": ["bas", "imp", "hyb", "sel"]

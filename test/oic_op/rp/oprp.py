@@ -6,17 +6,21 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.oauth2 import rndstr, ResponseError
 
-from oic.utils.http_util import NotFound, get_post, BadRequest
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import get_post
+from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
+from oic.oic.message import AccessTokenResponse
 
 import logging
 import sys
 from oictest.graph import flatten, in_tree, node_cmp
 from oictest import testflows
 from oictest.base import Conversation
-from oic.oic.message import factory as message_factory, OpenIDSchema
-from oictest.check import factory as check_factory
+from oic.oic.message import factory as message_factory
+from oic.oic.message import OpenIDSchema
+from oictest.check import factory as check_factory, get_protocol_response
 from oictest.check import CheckEndpoint
 from oictest.check import CheckTokenEndpointAuthMethod
 from oictest.check import CheckSupportedTrue
@@ -25,10 +29,11 @@ from oictest.check import CheckOPSupported
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
-from oictest.testflows import Discover
+from oictest.testflows import Discover, ExpectError
 from oictest.testflows import Notice
 from oictest.testflows import AccessTokenRequest
 from oictest.testflows import DisplayUserInfo
+from oictest.testflows import DisplayIDToken
 from rrtest import Trace, exception_trace
 from oictest.graph import sort_flows_into_graph
 
@@ -98,6 +103,7 @@ def opresult(environ, start_response, conv, session):
         argv = {
             "flows": session["tests"],
             "flow": session["testid"],
+            "test_info": session["test_info"].keys(),
             "base": CONF.BASE
         }
     else:
@@ -133,7 +139,7 @@ def flow_list(environ, start_response, flows):
     resp = Response(mako_template="flowlist.mako",
                     template_lookup=LOOKUP,
                     headers=[])
-    argv = {"base": CONF.BASE, "flows": flows, "flow": ""}
+    argv = {"base": CONF.BASE, "flows": flows, "flow": "", "test_info": []}
 
     return resp(environ, start_response, **argv)
 
@@ -149,6 +155,25 @@ def test_error(environ, start_response, conv, exc):
     }
 
     return resp(environ, start_response, **argv)
+
+
+def test_info(environ, start_response, testid, info):
+    resp = Response(mako_template="testinfo.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "id": testid,
+        "trace": info["trace"],
+        "output": info["test_output"],
+    }
+
+    return resp(environ, start_response, **argv)
+
+
+def not_found(environ, start_response):
+    """Called if no URL matches."""
+    resp = NotFound()
+    return resp(environ, start_response)
 
 
 #
@@ -174,7 +199,8 @@ def session_setup(session, path, index=0):
     for key in _keys:
         if key.startswith("_"):
             continue
-        elif key in ["tests", "graph", "flow_names", "response_type"]:
+        elif key in ["tests", "graph", "flow_names", "response_type",
+                     "test_info"]:
             continue
         else:
             del session[key]
@@ -242,7 +268,9 @@ def post_tests(conv, req_c, resp_c):
     except KeyError:
         pass
     else:
-        conv.test_sequence(_tests)
+        if _tests:
+            conv.test_output.append((req_c.request, "post"))
+            conv.test_sequence(_tests)
 
     try:
         inst = resp_c()
@@ -250,10 +278,12 @@ def post_tests(conv, req_c, resp_c):
     except KeyError:
         pass
     else:
-        conv.test_sequence(_tests)
+        if _tests:
+            conv.test_output.append((resp_c.response, "post"))
+            conv.test_sequence(_tests)
 
 
-def run_sequence(sequence_info, session, conv, ots, environ, start_response, 
+def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                  trace, index):
     while index < len(sequence_info["sequence"]):
         session["index"] = index
@@ -280,6 +310,10 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         if isinstance(presp, OpenIDSchema):
                             kwargs["table"] = presp
                             break
+                elif isinstance(req, DisplayIDToken):
+                    instance, _ = get_protocol_response(
+                        conv, AccessTokenResponse)[0]
+                    kwargs["table"] = instance["id_token"]
 
                 try:
                     key = req.cache(CACHE, conv, sequence_info["cache"])
@@ -294,7 +328,9 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         else:
             req = req_c(conv)
             try:
-                conv.test_sequence(req.tests["pre"])
+                if req.tests["pre"]:
+                    conv.test_output.append((req.request, "pre"))
+                    conv.test_sequence(req.tests["pre"])
             except KeyError:
                 pass
 
@@ -354,15 +390,24 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
             post_tests(conv, req_c, resp_c)
 
         index += 1
+        _tid = session["testid"]
+        session["test_info"][_tid] = {"trace": conv.trace,
+                                      "test_output": conv.test_output}
 
     # wrap it up
     # Any after the fact tests ?
     try:
-        conv.test_sequence(sequence_info["tests"])
+        if sequence_info["tests"]:
+            conv.test_output.append(("After completing the test",""))
+            conv.test_sequence(sequence_info["tests"])
     except KeyError:
         pass
 
-    resp = Redirect("%s/opresult#%s" % (CONF.BASE, session["testid"][0]))
+    _tid = session["testid"]
+    session["test_info"][_tid] = {"trace": conv.trace,
+                                  "test_output": conv.test_output}
+
+    resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[0]))
     return resp(environ, start_response)
 
 
@@ -374,9 +419,11 @@ def session_init(session):
         session["tests"].sort(node_cmp)
         session["flow_names"] = [x.name for x in session["tests"]]
         session["response_type"] = []
+        session["test_info"] = {}
         return True
     else:
         return False
+
 
 def application(environ, start_response):
     LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
@@ -387,7 +434,6 @@ def application(environ, start_response):
         return static(environ, start_response, LOGGER, "static/robots.txt")
     elif path == "favicon.ico":
         return static(environ, start_response, LOGGER, "static/favicon.ico")
-
 
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
@@ -400,7 +446,7 @@ def application(environ, start_response):
             return flow_list(environ, start_response, session["tests"])
         else:
             try:
-                resp = Redirect("%s/opresult#%s" % (CONF.BASE,
+                resp = Redirect("%sopresult#%s" % (CONF.BASE,
                                                     session["testid"][0]))
             except KeyError:
                 return flow_list(environ, start_response, session["tests"])
@@ -411,7 +457,13 @@ def application(environ, start_response):
     elif path == "reset":
         session_init(session)
         return flow_list(environ, start_response, session["tests"])
-
+    elif path.startswith("test_info"):
+        p = path.split("/")
+        try:
+            return test_info(environ, start_response, p[1],
+                             session["test_info"][p[1]])
+        except KeyError as err:
+            return not_found(environ, start_response)
     if path == "continue":
         try:
             sequence_info = session["seq_info"]
