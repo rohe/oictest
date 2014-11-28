@@ -573,7 +573,12 @@ class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
 class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["claims"] = {"id_token": {"acr": {"values": ["2"]}}}
+        try:
+            _acrs = conv.client_config["acr_values"]
+        except KeyError:
+            _acrs = ["2"]
+
+        self.request_args["claims"] = {"id_token": {"acr": {"values": _acrs}}}
         self.tests["pre"].append(CheckAcrSupport)
 
 

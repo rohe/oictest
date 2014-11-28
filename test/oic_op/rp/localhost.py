@@ -10,7 +10,7 @@ CLIENT = {
     "sub_claim": {"value": "diana"},
     "ui_locales": "se",
     "claims_locales": "se",
-    # "acr_values":["1"],
+    "acr_values": ["1"],
     "client_info": {
         "application_type": "web",
         "application_name": "OIC test tool",
