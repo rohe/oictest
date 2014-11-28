@@ -1613,6 +1613,7 @@ PHASES = {
 
 OWNER_OPS = []
 USERINFO_REQUEST_AUTH_METHOD = "user-info-request_gbh"
+UNKNOWN = []
 
 FLOWS = {
     #'A-01': {
@@ -2252,7 +2253,7 @@ FLOWS = {
                      USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "tests": [("verify-id-token", {"acr": {"values": ["2"]}})],
+        "tests": [("verify-id-token", {"acr": {"values": UNKNOWN}})],
     },
     # =====================================================================
     # =====================================================================
