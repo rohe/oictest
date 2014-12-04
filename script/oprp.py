@@ -1,41 +1,41 @@
 #!/usr/bin/env python
 import importlib
 import argparse
+import logging
+import sys
+
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
-from oic.oauth2 import rndstr, ResponseError
 
+from oic.oauth2 import rndstr
+from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import get_post
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 from oic.oic.message import AccessTokenResponse
-
-import logging
-import sys
-from oictest.graph import flatten, in_tree, node_cmp
-from oictest import testflows
-from oictest.base import Conversation
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
-from oictest.check import factory as check_factory, get_protocol_response
+
+from oictest.graph import flatten
+from oictest.graph import in_tree
+from oictest.graph import node_cmp
+from oictest.base import Conversation
+from oictest.check import factory as check_factory
 from oictest.check import CheckEndpoint
 from oictest.check import CheckTokenEndpointAuthMethod
 from oictest.check import CheckSupportedTrue
 from oictest.check import CheckRequestURIParameterSupported
+from oictest.check import get_protocol_response
 from oictest.check import CheckOPSupported
+from oictest.graph import sort_flows_into_graph
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
-from oictest.testflows import Discover, ExpectError
-from oictest.testflows import Notice
-from oictest.testflows import AccessTokenRequest
-from oictest.testflows import DisplayUserInfo
-from oictest.testflows import DisplayIDToken
+
 from rrtest import Trace, exception_trace
-from oictest.graph import sort_flows_into_graph
 
 LOGGER = logging.getLogger("")
 
@@ -57,7 +57,6 @@ def setup_logging(logfile):
     LOGGER.setLevel(logging.DEBUG)
 
 
-#noinspection PyUnresolvedReferences
 def static(environ, start_response, logger, path):
     logger.info("[static]sending: %s" % (path,))
 
@@ -205,7 +204,7 @@ def session_setup(session, path, index=0):
         else:
             del session[key]
 
-    ots = OIDCTestSetup(CONF, testflows, str(CONF.PORT))
+    ots = OIDCTestSetup(CONF, TEST_FLOWS, str(CONF.PORT))
     session["testid"] = path
     session["node"] = in_tree(session["graph"], path)
     sequence_info = ots.make_sequence(path)
@@ -225,6 +224,15 @@ def session_setup(session, path, index=0):
 
 
 def verify_support(conv, ots, graph):
+    """
+    Verifies whether a OP is likely to be able to pass a specific test.
+    All based on the checks that are run before the requests within a
+    slow is sent.
+
+    :param conv: The conversation
+    :param ots: The OIDC RP setup.
+    :param graph: A graph representation of the possible test flows.
+    """
     for key, val in ots.test_defs.FLOWS.items():
         sequence_info = ots.make_sequence(key)
         for op in sequence_info["sequence"]:
@@ -234,7 +242,7 @@ def verify_support(conv, ots, graph):
                 continue
 
             conv.req = req(conv)
-            if issubclass(req, AccessTokenRequest):
+            if issubclass(req, TEST_FLOWS.AccessTokenRequest):
                 chk = CheckTokenEndpointAuthMethod()
                 res = chk(conv)
                 if res["status"] > 1:
@@ -283,6 +291,49 @@ def post_tests(conv, req_c, resp_c):
             conv.test_sequence(_tests)
 
 
+def none_request_response(sequence_info, index, session, conv, environ,
+                          start_response):
+    req = sequence_info["sequence"][index]()
+    if isinstance(req, TEST_FLOWS.Notice):
+        kwargs = {
+            "url": "%scontinue?path=%s&index=%d" % (
+                CONF.BASE, session["testid"], session["index"]),
+            "back": CONF.BASE}
+        try:
+            kwargs["note"] = sequence_info["note"]
+        except KeyError:
+            pass
+        try:
+            kwargs["op"] = conv.client.provider_info["issuer"]
+        except (KeyError, TypeError):
+            pass
+
+        if isinstance(req, TEST_FLOWS.DisplayUserInfo):
+            for presp, _ in conv.protocol_response:
+                if isinstance(presp, OpenIDSchema):
+                    kwargs["table"] = presp
+                    break
+        elif isinstance(req, TEST_FLOWS.DisplayIDToken):
+            instance, _ = get_protocol_response(
+                conv, AccessTokenResponse)[0]
+            kwargs["table"] = instance["id_token"]
+
+        try:
+            key = req.cache(CACHE, conv, sequence_info["cache"])
+        except KeyError:
+            pass
+        else:
+            kwargs["url"] += "&key=%s" % key
+
+        return req(LOOKUP, environ, start_response, **kwargs)
+    else:
+        try:
+            req(conv)
+            return None
+        except TEST_FLOWS.RequirementsNotMet as err:
+            return test_error(environ, start_response, conv, err)
+
+
 def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                  trace, index):
     while index < len(sequence_info["sequence"]):
@@ -290,41 +341,10 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         try:
             req_c, resp_c = sequence_info["sequence"][index]
         except (ValueError, TypeError):  # Not a tuple
-            req = sequence_info["sequence"][index]()
-            if isinstance(req, Notice):
-                kwargs = {
-                    "url": "%scontinue?path=%s&index=%d" % (
-                        CONF.BASE, session["testid"], session["index"]),
-                    "back": CONF.BASE}
-                try:
-                    kwargs["note"] = sequence_info["note"]
-                except KeyError:
-                    pass
-                try:
-                    kwargs["op"] = conv.client.provider_info["issuer"]
-                except (KeyError, TypeError):
-                    pass
-
-                if isinstance(req, DisplayUserInfo):
-                    for presp, txt in conv.protocol_response:
-                        if isinstance(presp, OpenIDSchema):
-                            kwargs["table"] = presp
-                            break
-                elif isinstance(req, DisplayIDToken):
-                    instance, _ = get_protocol_response(
-                        conv, AccessTokenResponse)[0]
-                    kwargs["table"] = instance["id_token"]
-
-                try:
-                    key = req.cache(CACHE, conv, sequence_info["cache"])
-                except KeyError:
-                    pass
-                else:
-                    kwargs["url"] += "&key=%s" % key
-
-                return req(LOOKUP, environ, start_response, **kwargs)
-            else:
-                req(conv)
+            ret = none_request_response(sequence_info, index, session, conv,
+                                        environ, start_response)
+            if ret:
+                return ret
         else:
             req = req_c(conv)
             try:
@@ -336,7 +356,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
             conv.request_spec = req
 
-            if req_c == Discover:  # Special since it's just a GET on a URL
+            if req_c == TEST_FLOWS.Discover:
+                # Special since it's just a GET on a URL
                 _r = req.discover(
                     ots.client, issuer=ots.config.CLIENT["srv_discovery_url"])
                 conv.position, conv.last_response, conv.last_content = _r
@@ -398,7 +419,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     # Any after the fact tests ?
     try:
         if sequence_info["tests"]:
-            conv.test_output.append(("After completing the test",""))
+            conv.test_output.append(("After completing the test", ""))
             conv.test_sequence(sequence_info["tests"])
     except KeyError:
         pass
@@ -413,7 +434,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
 def session_init(session):
     if "graph" not in session:
-        graph = sort_flows_into_graph(testflows.FLOWS)
+        graph = sort_flows_into_graph(TEST_FLOWS.FLOWS)
         session["graph"] = graph
         session["tests"] = [x for x in flatten(graph)]
         session["tests"].sort(node_cmp)
@@ -447,7 +468,7 @@ def application(environ, start_response):
         else:
             try:
                 resp = Redirect("%sopresult#%s" % (CONF.BASE,
-                                                    session["testid"][0]))
+                                                   session["testid"][0]))
             except KeyError:
                 return flow_list(environ, start_response, session["tests"])
             else:
@@ -462,7 +483,7 @@ def application(environ, start_response):
         try:
             return test_info(environ, start_response, p[1],
                              session["test_info"][p[1]])
-        except KeyError as err:
+        except KeyError:
             return not_found(environ, start_response)
     if path == "continue":
         try:
@@ -556,6 +577,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
+    parser.add_argument('-t', dest='testflows')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -570,8 +592,13 @@ if __name__ == '__main__':
     }
 
     CACHE = {}
-
+    sys.path.insert(0, ".")
     CONF = importlib.import_module(sys.argv[1])
+
+    if args.testflows:
+        TEST_FLOWS = importlib.import_module(args.testflows)
+    else:
+        TEST_FLOWS = importlib.import_module("oictest.testflows")
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 
@@ -586,9 +613,13 @@ if __name__ == '__main__':
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
+        extra = " using SSL/TLS"
+    else:
+        extra = ""
 
-    LOGGER.info("RP server starting listening on port:%s" % CONF.PORT)
-    print "RP server starting listening on port:%s" % CONF.PORT
+    txt = "RP server starting listening on port:%s%s" % (CONF.PORT, extra)
+    LOGGER.info(txt)
+    print txt
     try:
         SRV.start()
     except KeyboardInterrupt:
