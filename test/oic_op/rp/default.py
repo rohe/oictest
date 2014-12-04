@@ -1,10 +1,3 @@
-
-# If BASE is https these has to be specified
-SERVER_CERT = "certs/server.crt"
-SERVER_KEY = "certs/server.key"
-CA_BUNDLE = None
-VERIFY_SSL = False
-
 CLIENT = {
     "keys": [
         {
@@ -24,7 +17,7 @@ CLIENT = {
         "response_type": "code",
         "scope": ["openid", "profile", "email", "address", "phone"],
     },
-    "preferences":{
+    "preferences": {
         "subject_type": "public",
         "request_object_signing_alg": [
             "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
@@ -36,8 +29,8 @@ CLIENT = {
             "code", "token", "id_token", "token id_token",
             "code id_token", "code token", "code token id_token"
         ],
-        "grant_types":["authorization_code", "implicit", "refresh_token",
-                       "urn:ietf:params:oauth:grant-type:jwt-bearer:"],
+        "grant_types": ["authorization_code", "implicit", "refresh_token",
+                        "urn:ietf:params:oauth:grant-type:jwt-bearer:"],
         "userinfo_signed_response_alg": [
             "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
         ],

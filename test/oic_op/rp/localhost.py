@@ -1,13 +1,16 @@
 import copy
 import default
-from host import *
+from sslconf import *
+
+HOST = "localhost"
+PORT = 8088
+BASE = "https://%s:%d/" % (HOST, PORT)
 
 CLIENT = {
     "base_url": BASE,
     "srv_discovery_url": "https://localhost:8092/",
     "webfinger_subject": "diana@localhost:8092",
-    # "login_hint": "diana",
-    "sub_claim": {"value": "diana"},
+    "login_hint": "diana",
     "ui_locales": "se",
     "claims_locales": "se",
     "acr_values": ["1"],
