@@ -224,7 +224,7 @@ def request_and_return(conv, url, response=None, method="GET", body=None,
     conv.last_response = _resp
     conv.last_content = _resp.content
 
-    if not "keyjar" in kwargs:
+    if "keyjar" not in kwargs:
         kwargs["keyjar"] = conv.keyjar
 
     _response = _cli.parse_request_response(_resp, response, body_type, state,

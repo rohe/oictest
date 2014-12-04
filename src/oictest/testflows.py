@@ -45,6 +45,10 @@ class NotSupported(Exception):
     pass
 
 
+class RequirementsNotMet(Exception):
+    pass
+
+
 def _get_base(cconf=None):
     """
     Make sure a '/' terminated URL is returned
@@ -172,7 +176,11 @@ class RotateKeys(Process):
 
     def __call__(self, conv, **kwargs):
         # find the name of the file to which the JWKS should be written
-        _uri = conv.client.registration_response["jwks_uri"]
+        try:
+            _uri = conv.client.registration_response["jwks_uri"]
+        except KeyError:
+            raise RequirementsNotMet("No dynamic key handling")
+
         r = urlparse(_uri)
         # find the old key for this key usage and mark that as inactive
         for kb in conv.client.keyjar.issuer_keys[""]:
@@ -379,8 +387,6 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         self.request_args["prompt"] = "none"
-        # verify that the same sub is returned as present in the IdToken
-        #self.tests["post"] = [VerifyPromptNoneResponse]
 
     def call_setup(self):
         try:
@@ -398,14 +404,11 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
                                                  content, features, **kwargs)
 
 
-class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
+class AuthorizationRequestCodeWithSubClaim(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        self.request_args["prompt"] = "none"
-        self.tests["post"] = [VerifyPromptNoneResponse]
 
     def call_setup(self):
-        # assumes the IdToken was delivered from the token endpoint
         idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
         if not idt:
             try:
@@ -414,8 +417,8 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
             except (AttributeError, KeyError):
                 raise MissingResponseClaim("id_token in access token response")
 
-        user_id = idt["sub"]
-        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
+        _sub = idt["sub"]
+        self.request_args["claims"] = {"id_token": {"sub": {"value": _sub}}}
 
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
@@ -423,22 +426,12 @@ class AuthorizationRequestCodePromptNoneWithUserID(AuthorizationRequestCode):
                                                  content, features, **kwargs)
 
 
-class AuthorizationRequestCodeWithUserID(AuthorizationRequestCode):
+class AuthorizationRequestCodePromptNoneWithSubClaim(
+        AuthorizationRequestCodeWithSubClaim):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-
-    def call_setup(self):
-        idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
-        if not idt:
-            raise MissingResponseClaim("id_token in access token response")
-
-        user_id = idt["sub"]
-        self.request_args["claims"] = {"id_token": {"sub": {"value": user_id}}}
-
-    def __call__(self, location, response="", content="", features=None,
-                 **kwargs):
-        return AuthorizationRequestCode.__call__(self, location, response,
-                                                 content, features, **kwargs)
+        self.request_args["prompt"] = "none"
+        self.tests["post"] = [VerifyPromptNoneResponse]
 
 
 class AuthorizationRequestCodePromptLogin(AuthorizationRequestCode):
@@ -647,31 +640,11 @@ class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
         self.set_request_args({"claims_locales": loc})
 
 
-class AuthorizationRequestSubClaims(AuthorizationRequestCode):
-    def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
-        subpat = conv.client_config["sub"]
-
-        self.request_args["claims"] = {"id_token": {"sub": subpat},
-                                       "userinfo": {"sub": subpat}}
-        self.tests["pre"].append(CheckSubConfig)
-        self.tests["post"].append(VerifySubValue)
-
-
 class AuthorizationRequestLoginHit(AuthorizationRequestCode):
-    def call_setup(self):
-        # assumes the IdToken was delivered from the token endpoint
-        idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
-        if not idt:
-            raise MissingResponseClaim("id_token in access token response")
-
-        p = urlparse(self.conv.client.authorization_endpoint)
-        domain = p.netloc
-        self.set_request_args({"login-hint": "%s@%s" % (idt["sub"], domain)})
-
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        #self.request_args["login-hint"] = "user@example.com"
+        hint = conv.client_config["login_hint"]
+        self.set_request_args({"login-hint": "%s" % hint})
 
 
 class AuthorizationRequestAcrValues(AuthorizationRequestCode):
@@ -1491,8 +1464,8 @@ PHASES = {
     "oic-login+prompt_none+idtoken": (
         AuthorizationRequestCodePromptNoneWithIdToken, AuthzResponse),
     "oic-login+prompt_none+request": (
-        AuthorizationRequestCodePromptNoneWithUserID, AuthzResponse),
-    "oic-login+request": (AuthorizationRequestCodeWithUserID, AuthzResponse),
+        AuthorizationRequestCodePromptNoneWithSubClaim, AuthzResponse),
+    "oic-login+request": (AuthorizationRequestCodeWithSubClaim, AuthzResponse),
     "oic-login-token": (AuthorizationRequestToken, ImplicitAuthzResponse),
     "oic-login-idtoken": (AuthorizationRequestIDToken, ImplicitAuthzResponse),
     "oic-login-code+token": (AuthorizationRequestCodeToken,
@@ -1514,7 +1487,6 @@ PHASES = {
                                 AuthzResponse),
     "oic-login-login_hint": (AuthorizationRequestLoginHit, AuthzResponse),
     "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzResponse),
-    "oic-login-sub-claims": (AuthorizationRequestSubClaims, AuthzResponse),
     #
     "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
     "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
@@ -1616,14 +1588,13 @@ USERINFO_REQUEST_AUTH_METHOD = "user-info-request_gbh"
 UNKNOWN = []
 
 FLOWS = {
-    #'A-01': {
-    'A-01': {
+    'OP-A-01': {
         "name": 'Request with response_type=code',
         "sequence": ["oic-login"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas"]
     },
-    'A-02': {
+    'OP-A-02': {
         "name": 'Authorization request missing the response_type parameter',
         "sequence": ["expect_err", "oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
@@ -1631,51 +1602,51 @@ FLOWS = {
                                               "unsupported_response_type"]})],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'A-03': {
+    'OP-A-03': {
         "name": 'Request with response_type=id_token',
         "sequence": ["oic-login-idtoken"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["imp", "sel"]
     },
-    'A-04': {
+    'OP-A-04': {
         "name": 'Request with response_type=id_token token',
         "sequence": ['oic-login-idtoken+token'],
         "endpoints": ["authorization_endpoint"],
         "profile": ["imp"]
     },
-    'A-05': {
+    'OP-A-05': {
         "name": 'Request with response_type=code id_token',
         "sequence": ['oic-login-code+idtoken'],
         "endpoints": ["authorization_endpoint"],
         "tests": [('check-nonce', {})],
         "profile": ["hyb"]
     },
-    'A-06': {
+    'OP-A-06': {
         "name": 'Request with response_type=code token',
         "sequence": ["oic-login-code+token"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["hyb"]
     },
-    'A-07': {
+    'OP-A-07': {
         "name": 'Request with response_type=code id_token token',
         "sequence": ['oic-login-code+idtoken+token'],
         "endpoints": ["authorization_endpoint", ],
         "profile": ["hyb"]
     },
-    'A-08': {
+    'OP-A-08': {
         "name": 'Specifying the authn response to be in the form of a '
                 'form post',
         "sequence": ["oic-login-formpost"],
         "endpoints": ["authorization_endpoint"],
     },
     # =====================================================================
-    'B-01': {
+    'OP-B-01': {
         "name": 'Asymmetric ID Token signature with rs256',
         "sequence": ["oic-login", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'B-02': {
+    'OP-B-02': {
         "name": 'Requesting ID Token with max_age=1 seconds Restriction',
         "sequence": ["oic-login", "access-token-request","note",
                      "oic-login+idtc4"],
@@ -1685,7 +1656,7 @@ FLOWS = {
         "tests": [("multiple-sign-on", {})],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'B-03': {
+    'OP-B-03': {
         "name": 'Requesting ID Token with max_age=1000 seconds Restriction',
         "sequence": ["oic-login", "access-token-request",
                      "oic-login+idtc5"],
@@ -1693,41 +1664,41 @@ FLOWS = {
         "tests": [("multiple-sign-on", {})],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'B-04': {
+    'OP-B-04': {
         "name": 'Unsecured ID Token signature with none',
         "sequence": ["oic-registration-unsigned_idtoken",
                      "oic-login", "access-token-request-unsigned"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas", "cfg", "dyn"]
     },
-    'B-05': {
+    'OP-B-05': {
         "name": 'Request with response_type=id_token token',
         "sequence": ['oic-login-idtoken+token'],
         "endpoints": ["authorization_endpoint"],
         "profile": ["imp", "hyb", "sel"]
     },
-    'B-06': {
+    'OP-B-06': {
         "name": 'Request with response_type=code id_token',
         "sequence": ['oic-login-code+idtoken', "access-token-request"],
         "endpoints": ["authorization_endpoint"],
         "tests": [('check-nonce', {})],
         "profile": ["hyb"]
     },
-    'B-07': {
+    'OP-B-07': {
         "name": 'RP wants symmetric IdToken signature',
         "sequence": ["oic-registration-signed_idtoken", "oic-login",
                      "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "tests": [("sym-signed-idtoken", {})],
     },
-    'B-08': {
+    'OP-B-08': {
         "name": 'RP wants asymmetric elliptic IdToken signature',
         "sequence": ["oic-registration-es-signed_idtoken", "oic-login",
                      "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "tests": [("es-signed-idtoken", {})],
     },
-    'B-09': {
+    'OP-B-09': {
         "name": 'Can Provide Signed and Encrypted ID Token Response',
         "sequence": ["oic-registration-signed+encrypted_idtoken", "oic-login",
                      "access-token-request"],
@@ -1736,7 +1707,7 @@ FLOWS = {
         "tests": [("signed-encrypted-idtoken", {})],
     },
     # =====================================================================
-    'C-01': {
+    'OP-C-01': {
         "name": 'UserInfo Endpoint Access with GET and bearer_header',
         "sequence": ["oic-login", "access-token-request",
                      "user-info-request_gbh"],
@@ -1744,7 +1715,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb"]
     },
-    'C-02': {
+    'OP-C-02': {
         "name": 'UserInfo Endpoint Access with POST and bearer_header',
         "sequence": ["oic-login", "access-token-request",
                      "user-info-request_pbh"],
@@ -1752,7 +1723,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb"]
     },
-    'C-03': {
+    'OP-C-03': {
         "name": 'UserInfo Endpoint Access with POST and bearer_body',
         "sequence": ["oic-login", "access-token-request",
                      "user-info-request_pbb"],
@@ -1760,7 +1731,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb"]
     },
-    'C-04': {
+    'OP-C-04': {
         "name": 'RP registers userinfo_signed_response_alg to signal that it '
                 'wants signed UserInfo returned',
         "sequence": ["oic-registration-signed_userinfo", "oic-login",
@@ -1770,7 +1741,7 @@ FLOWS = {
         "tests": [("asym-signed-userinfo", {})],
         "profile": ["dyn"]
     },
-    'C-05': {
+    'OP-C-05': {
         "name": 'Can Provide Encrypted UserInfo Response',
         "sequence": ["oic-registration-encrypted_userinfo", "oic-login",
                      "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
@@ -1778,7 +1749,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("encrypted-userinfo", {})],
     },
-    'C-06': {
+    'OP-C-06': {
         "name": 'Can Provide Signed and Encrypted UserInfo Response',
         "sequence": ["oic-registration-signed+encrypted_userinfo", "oic-login",
                      "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
@@ -1787,13 +1758,13 @@ FLOWS = {
         "tests": [("encrypted-userinfo", {})],
     },
     # =====================================================================
-    'D-01': {
+    'OP-D-01': {
         "name": 'Login no nonce, code flow',
         "sequence": ["oic-login-code-no-nonce", "access-token-request"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas"]
     },
-    'D-02': {
+    'OP-D-02': {
         "name": 'Login no nonce, implicit flow',
         "sequence": ["expect_err", "oic-login-implicit-no-nonce"],
         "endpoints": ["authorization_endpoint"],
@@ -1802,7 +1773,7 @@ FLOWS = {
         "profile": ["imp", "hyb", "sel"]
     },
     # =====================================================================
-    'E-01': {
+    'OP-E-01': {
         "name": 'Scope Requesting profile Claims',
         "sequence": ["oic-login+profile", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1810,7 +1781,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'E-02': {
+    'OP-E-02': {
         "name": 'Scope Requesting email Claims',
         "sequence": ["oic-login+email", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1818,7 +1789,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'E-03': {
+    'OP-E-03': {
         "name": 'Scope Requesting address Claims',
         "sequence": ["oic-login+address", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1826,7 +1797,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'E-04': {
+    'OP-E-04': {
         "name": 'Scope Requesting phone Claims',
         "sequence": ["oic-login+phone", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1834,7 +1805,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'E-05': {
+    'OP-E-05': {
         "name": 'Scope Requesting all Claims',
         "sequence": ["oic-login+all", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1843,14 +1814,14 @@ FLOWS = {
         "profile": ["bas", "imp", "hyb", "sel"]
     },
     # =====================================================================
-    'F-01': {
+    'OP-F-01': {
         "name": 'Request with display=page',
         "sequence": ["oic-login+disp_page", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'F-02': {
+    'OP-F-02': {
         "name": 'Request with display=popup',
         "sequence": ["oic-login+disp_popup", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -1858,14 +1829,14 @@ FLOWS = {
         "profile": ["bas", "imp", "hyb", "sel"]
     },
     # =====================================================================
-    'G-01': {
+    'OP-G-01': {
         "name": 'Request with prompt=login means it SHOULD prompt the End-User '
                 'for reauthentication',
         "sequence": ["oic-login+prompt_login"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'G-02': {
+    'OP-G-02': {
         "name": 'Request with prompt=none',
         "sequence": ["rm_cookie", "oic-login+prompt_none"],
         "endpoints": ["authorization_endpoint"],
@@ -1876,13 +1847,13 @@ FLOWS = {
         "profile": ["bas", "imp", "hyb", "sel"]
     },
     # =====================================================================
-    'H-01': {
+    'OP-H-01': {
         "name": 'Request with response_type=code and extra query component',
         "sequence": ["login-wqc"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    "H-02": {
+    'OP-H-02': {
         "name": 'Using prompt=none with user hint through id_token_hint',
         "sequence": ["oic-login", "access-token-request", 'rm_cookie',
                      "oic-login+prompt_none+idtoken"],
@@ -1891,21 +1862,20 @@ FLOWS = {
         "profile": ["bas", "imp", "hyb", "sel"],
         "cache" : ["id_token"]
     },
-    'H-03': {
+    'OP-H-03': {
         "name": 'login_hint',
-        "sequence": ["oic-login", "access-token-request",
-                     "oic-login-login_hint"],
+        "sequence": ["oic-login-login_hint"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'H-04': {
+    'OP-H-04': {
         "name": 'ui_locales',
         "sequence": ['rm_cookie', 'note', "oic-login-ui_locale"],
         "endpoints": ["authorization_endpoint"],
         "note": "The user interface may now use the locale of choice",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'H-05': {
+    'OP-H-05': {
         "name": 'claims_locales',
         "sequence": ["note", "oic-login-claims_locale", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD, 'display_userinfo'],
@@ -1913,14 +1883,14 @@ FLOWS = {
         "note": "Claims may now be returned in the locale of choice",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'H-06': {
+    'OP-H-06': {
         "name": 'acr_values',
         "sequence": ["oic-login-acr_values"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
     # =====================================================================
-    'I-01': {
+    'OP-I-01': {
         "name": 'Trying to use access code twice should result in an error',
         "sequence": ["oic-login", "access-token-request",
                      "access-token-request_err"],
@@ -1930,7 +1900,7 @@ FLOWS = {
         "tests": [("verify-bad-request-response", {})],
         "profile": ["bas", "hyb"]
     },
-    'I-02': {
+    'OP-I-02': {
         "name": 'Trying to use access code twice should result in '
                 'revoking previous issued tokens',
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
@@ -1943,7 +1913,7 @@ FLOWS = {
         "profile": ["bas", "hyb"]
     },
     # =====================================================================
-    'J-01': {
+    'OP-J-01': {
         "name": 'The sent redirect_uri does not match the registered',
         "sequence": ["expect_err", "login-redirect-fault"],
         "endpoints": ["authorization_endpoint"],
@@ -1951,7 +1921,7 @@ FLOWS = {
                 "returning an error message to your web browser.",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'J-02': {
+    'OP-J-02': {
         "name": 'Reject request without redirect_uri when multiple registered',
         "sequence": ["oic-registration-multi-redirect",
                      "expect_err", "oic-login-no-redirect-err"],
@@ -1960,13 +1930,13 @@ FLOWS = {
         #        "returning an error message to your web browser.",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'J-03': {
+    'OP-J-03': {
         "name": 'Request with redirect_uri with query component',
         "sequence": ["login-ruwqc"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'J-04': {
+    'OP-J-04': {
         "name": 'Rejects redirect_uri when Query Parameter Does Not Match',
         "sequence": ["oic-registration-wqc", 'expect_err', "login-ruwqc-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
@@ -1974,7 +1944,7 @@ FLOWS = {
                      "#section-3.1.2",
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'J-05': {
+    'OP-J-05': {
         "name": 'Registration where a redirect_uri has a query component',
         "sequence": ["oic-registration-wqc"],
         "endpoints": ["registration_endpoint"],
@@ -1982,7 +1952,7 @@ FLOWS = {
                      "#section-3.1.2",
         "profile": ["dyn"]
     },
-    'J-06': {
+    'OP-J-06': {
         "name": 'Reject registration where a redirect_uri has a fragment',
         "sequence": ["oic-registration-wf"],
         "endpoints": ["registration_endpoint"],
@@ -1990,47 +1960,47 @@ FLOWS = {
                      "#section-3.1.2",
         "profile": ["dyn"]
     },
-    'J-07': {
+    'OP-J-07': {
         "name": 'Reject registration with invalid redirect_uris',
         "sequence": ["oic-registration-http-redirecturi"],
         "endpoints": [],
         "profile": ["dyn"]
     },
-    'J-08': {
+    'OP-J-08': {
         "name": 'No redirect_uri in request with one registered',
         "sequence": ["oic-registration", "expect_err",
                      "oic-login-no-redirect-err"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
     },
     # =====================================================================
-    'K-01': {
+    'OP-K-01': {
         "name": 'Access token request with client_secret_basic authentication',
         # Should register token_endpoint_auth_method=client_secret_basic
         "sequence": ["oic-login", "access-token-request_csb"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas"]
     },
-    'K-02': {
+    'OP-K-02': {
         "name": 'Access token request with client_secret_post authentication',
         # Should register token_endpoint_auth_method=client_secret_post
         "sequence": ["oic-login", "access-token-request_csp"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["bas"]
     },
-    'K-03': {
+    'OP-K-03': {
         "name": 'Access token request with public_key_jwt authentication',
         "sequence": ["oic-registration-ke_pkj", "oic-login",
                      "access-token-request_pkj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
     },
-    'K-04': {
+    'OP-K-04': {
         "name": 'Access token request with client_secret_jwt authentication',
         "sequence": ["oic-registration-ke_csj", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
     },
     # =====================================================================
-    'L-01': {
+    'OP-L-01': {
         "name": 'Support WebFinger discovery',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
         "sequence": [],
@@ -2038,63 +2008,63 @@ FLOWS = {
         "block": ["registration", "key_export"],
         "profile": ["cfg", "dyn"]
     },
-    'L-02': {
+    'OP-L-02': {
         "name": 'Verify that jwks_uri and claims_supported are published',
         "sequence": ["oic-registration"],
         "tests": [("providerinfo-has-jwks_uri", {}),
                   ("providerinfo-has-claims_supported", {})],
         "profile": ["cfg", "dyn"]
     },
-    # 'L-03': {
+    # 'OP-L-03': {
     #     "name": 'Can Discover Identifiers using E-Mail/URL Syntax',
     #     "sequence": ["webfinger"],
     #     "block": ["registration", "key_export"],
     #     "profile": ["dyn"]
     # },
     # =====================================================================
-    # 'M-01': {
+    # 'OP-M-01': {
     #     "name": '',
     #     "sequence": [""],
     #     "block": [],
     #     "profile": ["bas", "imp", "hyb", "sel", "dyn"]
     # },
-    'M-02': {
+    'OP-M-02': {
         "name": 'Registration with policy_uri and logo_uri',
         "sequence": ["rm_cookie", "oic-registration-policy+logo",
                      "oic-login"],
         "endpoints": ["registration_endpoint", "authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"],
     },
-    'M-03': {
+    'OP-M-03': {
         "name": 'Client registration Request',
         "sequence": ["oic-registration"],
         "endpoints": ["registration_endpoint"],
         "profile": ["dyn"]
     },
-    'M-04': {
+    'OP-M-04': {
         "name": 'Registration of static keys',
         "sequence": ["oic-registration-jwks", "oic-login",
                      "access-token-request_csj"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["dyn"]
     },
-    'M-05': {
+    'OP-M-05': {
         "name": 'Incorrect registration of sector_identifier_uri',
         "sequence": ["oic-registration-sector_id-err"],
         "endpoints": ["registration_endpoint"],
         "profile": ["dyn"]
     },
-    'M-06': {
+    'OP-M-06': {
         "name": 'Registering and then read the client info',
         "sequence": ["oic-registration", "read-registration"],
     },
-    'M-07': {
+    'OP-M-07': {
         "name": 'Registration of wish for public sub',
         "sequence": ["oic-registration-public_id", "oic-login",
                      "access-token-request"],
         "endpoints": ["registration_endpoint"],
     },
-    'M-08': {
+    'OP-M-08': {
         "name": 'Registration of wish for pairwise sub',
         "sequence": ["oic-registration-pairwise_id", "oic-login",
                      "access-token-request", USERINFO_REQUEST_AUTH_METHOD],
@@ -2102,10 +2072,10 @@ FLOWS = {
                       "token_endpoint", "userinfo_endpoint"],
     },
     # =====================================================================
-    # 'o-01': {
+    # 'OP-N-01': {
     #     "profile": ["cfg", "dyn"]
     # },
-    'N-02': {
+    'OP-N-02': {
         "name": 'Request access token, change RSA sign key and request another '
                 'access token',
         "sequence": ["oic-registration-ke_csj", "oic-login",
@@ -2114,7 +2084,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "profile": ["dyn"]
     },
-    'N-03': {
+    'OP-N-03': {
         # where is the RPs encryption key used => userinfo encryption
         # How do I get the OP to use the new enc key ?
         "name": 'Request encrypted user info, change RSA enc key and request '
@@ -2125,27 +2095,27 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint"],
     },
     # =====================================================================
-    'O-01': {
+    'OP-O-01': {
         "name": 'Support request_uri Request Parameter with unSigned Request',
         "sequence": ["oic-registration-unsigned_request",
                      "oic-login-requri"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel", "dyn"]
     },
-    'O-02': {
+    'OP-O-02': {
         "name": 'Support request_uri Request Parameter with Signed Request',
         "sequence": ["oic-registration-signed_request",
                      "oic-login-requri"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["dyn"]
     },
-    'O-03': {
+    'OP-O-03': {
         "name": 'Support request_uri Request Parameter with Encrypted Request',
         "sequence": ["oic-registration-encrypted_request",
                      "oic-login-requri"],
         "endpoints": ["authorization_endpoint"],
     },
-    'O-04': {
+    'OP-O-04': {
         "name": 'Support request_uri Request Parameter with Signed and '
                 'Encrypted Request',
         "sequence": ["oic-registration-sig+enc_request",
@@ -2153,21 +2123,21 @@ FLOWS = {
         "endpoints": ["authorization_endpoint"],
     },
     # =====================================================================
-    'P-01': {
+    'OP-P-01': {
         "name": 'Support request Request Parameter with unSigned Request',
         "sequence": ["oic-registration-unsigned_request",
                      "oic-login-request"],
         "endpoints": ["authorization_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    'P-02': {
+    'OP-P-02': {
         "name": 'Support request Request Parameter with Signed Request',
         "sequence": ["oic-registration-signed_request",
                      "oic-login-request"],
         "endpoints": ["authorization_endpoint"],
     },
     # =====================================================================
-    'Q-01': {
+    'OP-Q-01': {
         "name": 'Claims Request with Essential name Claim',
         "sequence": ["oic-login+spec1", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -2175,21 +2145,28 @@ FLOWS = {
                       "userinfo_endpoint"],
         "profile": ["bas", "imp", "hyb", "sel"]
     },
-    "Q-02": {
+    'OP-Q-02': {
+        "name": 'Support claims request specifying sub value',
+        "sequence": ["oic-login", "access-token-request", 'rm_cookie',
+                     "oic-login+request"],
+        "endpoints": ["authorization_endpoint", "token_endpoint"],
+        "cache": ["id_token"]
+    },
+    'OP-Q-03': {
         "name": 'Using prompt=none with user hint through sub in request',
         "sequence": ["oic-login", "access-token-request", 'rm_cookie',
                      "oic-login+prompt_none+request"],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
-        "cache" : ["id_token"]
+        "cache": ["id_token"]
     },
-    'Q-03': {
+    'OP-Q-04': {
         "name": 'Requesting ID Token with Email claims',
         "sequence": ["oic-login+idtc7", "access-token-request"],
         "endpoints": ["authorization_endpoint", "token_endpoint"],
         "tests": [("verify-id-token", {})],
     },
-    'Q-04': {
+    'OP-Q-05': {
         "name": 'Supports Returning Different Claims in ID Token and UserInfo '
                 'Endpoint',
         "sequence": ["oic-login-mixed_claims", "access-token-request",
@@ -2198,7 +2175,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {}), ("verify-userinfo", {})],
     },
-    'Q-05': {
+    'OP-Q-06': {
         "name": 'Supports Combining Claims Requested with scope and claims '
                 'Request Parameter',
         "sequence": ["oic-login-combine_claims", "access-token-request",
@@ -2207,14 +2184,14 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-userinfo", {})]
     },
-    'Q-06': {
+    'OP-Q-07': {
         "name": 'Claims Request with Voluntary email and picture Claims',
         "sequence": ["oic-login+spec2", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
     },
-    'Q-07': {
+    'OP-Q-08': {
         "name": (
             'Claims Request with Essential name and Voluntary email and '
             'picture Claims'),
@@ -2223,7 +2200,7 @@ FLOWS = {
         "endpoints": ["authorization_endpoint", "token_endpoint",
                       "userinfo_endpoint"],
     },
-    'Q-08': {
+    'OP-Q-09': {
         "name": 'Requesting ID Token with Essential auth_time Claim',
         "sequence": ["oic-login+idtcX", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -2231,7 +2208,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"auth_time": "essential"})],
     },
-    'Q-09': {
+    'OP-Q-10': {
         "name": 'Requesting ID Token with Essential acr Claim',
         "sequence": ["oic-login+idtc6", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -2239,7 +2216,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         #"tests": [("verify-id-token", {"acr": None})],
     },
-    'Q-10': {
+    'OP-Q-11': {
         "name": 'Requesting ID Token with Voluntary acr Claim',
         "sequence": ["oic-login+idtc3", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
@@ -2247,7 +2224,7 @@ FLOWS = {
                       "userinfo_endpoint"],
         "tests": [("verify-id-token", {"acr": "essential"})],
     },
-    'Q-11': {
+    'OP-Q-12': {
         "name": 'Requesting ID Token with Essential specific acr Claim',
         "sequence": ["oic-login+idtc2", "access-token-request",
                      USERINFO_REQUEST_AUTH_METHOD],
