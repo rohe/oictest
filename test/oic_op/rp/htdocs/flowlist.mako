@@ -40,11 +40,13 @@ def op_choice(base, nodes, test_info):
              '<img src="static/greybutton" alt="Grey">']
     element = "<ul>"
     for node in nodes:
-        if not node.name.startswith(_id):
-            _id = node.name[0]
+        if not node.name[3] == _id:
+            _id = node.name[3]
             element += "<hr size=2><h3 id='%s'>%s</h3>" % (_id, DESC[_id])
         element += "<li><a href='%s%s'>%s</a>%s (%s) " % (base,
             node.name, color[node.state], node.desc, node.name)
+        if node.profiles:
+            element += "[%s]" % ",".join(node.profiles)
         if node.rmc:
             element += '<img src="static/delete-icon.png">'
         if node.experr:
@@ -56,8 +58,33 @@ def op_choice(base, nodes, test_info):
     return element
 %>
 
-<!DOCTYPE html>
+<%!
 
+ICONS = [
+    ('<img src="static/beware.png">',
+    "The tests should fail with an error message from the OP."),
+    ('<img src="static/delete-icon.png">', "Somewhere in that flow you will be "
+    "asked to remove all the cookies you have received from the OP because the "
+    "test might for instance want to see the difference between two login sessions."),
+    ('<img src="static/info32.png">',
+    "Signals the fact that there are trace information available for the test"),
+    ('<img src="static/black.png" alt="Black">',"The test has not be run"),
+    ('<img src="static/green.png" alt="Green">',"Success"),
+    ('<img src="static/yellow.png" alt="Yellow">',
+    "Warning, something was not as expected"),
+    ('<img src="static/red.png" alt="Red">',"Failed"),
+    ('<img src="static/greybutton" alt="Grey">', "Based on the provider info this test will probably fail")
+    ]
+
+def legends():
+    element = "<table border='1'>"
+    for icon, txt in ICONS:
+        element += "<tr><td>%s</td><td>%s</td></tr>" % (icon, txt)
+    element += '</table>'
+    return element
+%>
+
+<!DOCTYPE html>
 <html>
   <head>
     <title>pyoidc RP</title>
@@ -77,8 +104,11 @@ def op_choice(base, nodes, test_info):
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OICTEST</h1>
+          <em>Explanations of legends at end of page</em>
           <h3>Chose the next test flow you want to run from this list: </h3>
-            ${op_choice(base, flows, test_info)}
+          ${op_choice(base, flows, test_info)}
+          <h3>Legends</h3>
+          ${legends()}
       </div>
 
     </div> <!-- /container -->

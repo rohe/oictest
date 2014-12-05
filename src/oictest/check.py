@@ -1691,6 +1691,23 @@ class VerifyBase64URL(Check):
 
         return {}
 
+
+class DiscoveryConfig(Error):
+    """
+    Verifies that an endpoint for Provider Info discovery is configured
+    """
+    cid = "support-discovery"
+    msg = "OP does not support discovery"
+
+    def _func(self, conv):
+        try:
+            conv.client_config["srv_discovery_url"]
+        except KeyError:
+            self._status = ERROR
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 

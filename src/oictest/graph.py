@@ -1,10 +1,11 @@
 class Node():
-    def __init__(self, name, desc, rmc=False, experr=False):
+    def __init__(self, name, desc, rmc=False, experr=False, profiles=[]):
         self.name = name
         self.desc = desc
         self.children = {}
         self.parent = []
         self.state = 0
+        self.profiles = profiles
         self.rmc = rmc
         self.experr = experr
 
@@ -48,6 +49,11 @@ def _depends(flows, flow, result, remains):
     _node = Node(flow, spec["name"],
                  "rm_cookie" in spec["sequence"],
                  "expect_err" in spec["sequence"])
+    try:
+        _node.profiles = spec["profile"]
+    except KeyError:
+        pass
+
     if "depends" in spec:
         for dep in spec["depends"]:
             _parent = in_tree(result, dep)

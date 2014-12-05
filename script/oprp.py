@@ -428,7 +428,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     session["test_info"][_tid] = {"trace": conv.trace,
                                   "test_output": conv.test_output}
 
-    resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[0]))
+    resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[3]))
     return resp(environ, start_response)
 
 

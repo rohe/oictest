@@ -30,9 +30,10 @@ def trace_output(trace):
     """
 
     """
-    element = []
+    element = ["<h3>Trace output</h3>", "<pre><code>"]
     for item in trace:
-        element.append("<p>%s</p>" % item)
+        element.append("%s" % item)
+    element.append("</code></pre>")
     return "\n".join(element)
 %>
 
