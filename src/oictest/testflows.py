@@ -1503,7 +1503,7 @@ PHASES = {
     "oic-login-ui_locale": (AuthorizationRequestUILocale, AuthzResponse),
     "oic-login-claims_locale": (AuthorizationRequestClaimsLocale,
                                 AuthzResponse),
-    "oic-login-login_hint": (AuthorizationRequestLoginHit, AuthzResponse),
+    "oic-login-login_hint": (AuthorizationRequestLoginHint, AuthzResponse),
     "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzResponse),
     #
     "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
