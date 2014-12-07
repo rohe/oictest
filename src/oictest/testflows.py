@@ -640,10 +640,13 @@ class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
         self.set_request_args({"claims_locales": loc})
 
 
-class AuthorizationRequestLoginHit(AuthorizationRequestCode):
+class AuthorizationRequestLoginHint(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
-        hint = conv.client_config["login_hint"]
+        try:
+            hint = conv.client_config["login_hint"]
+        except KeyError:
+            hint = "foo@bar.com"
         self.set_request_args({"login-hint": "%s" % hint})
 
 
