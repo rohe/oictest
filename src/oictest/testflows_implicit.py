@@ -1,20 +1,10 @@
 #!/usr/bin/env python
 import copy
-from jwkest.jwk import SerializationNotPossible
-from oic.exception import UnSupported
-from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import dump_jwks
-from oic.oauth2.message import SchemeError
-from oic.utils.webfinger import OIC_ISSUER, WebFinger
-from oic.utils.http_util import Response
 
 import rrtest.request as req
-from rrtest.request import BodyResponse
 from rrtest.request import GetRequest
 from rrtest.request import Request
-from rrtest.request import UrlResponse
 from rrtest.request import PostRequest
-from rrtest.request import Process
 from rrtest.check import VerifyBadRequestResponse
 from rrtest.check import CheckErrorResponse
 
@@ -22,271 +12,34 @@ __author__ = 'rohe0002'
 
 # ========================================================================
 
-import time
 
 from urllib import urlencode
 from oic.oauth2 import JSON_ENCODED
-from oic.oauth2 import PBase
 
 # Used upstream not in this module so don't remove
 from oictest.check import *
 from rrtest.opfunc import *
+
+import testflows
+from testflows import AuthzResponse, AuthzErrResponse
 
 # ========================================================================
 
 LOCAL_PATH = "export/"
 
 
-class MissingResponseClaim(Exception):
-    pass
-
-
-class NotSupported(Exception):
-    pass
-
-
-class RequirementsNotMet(Exception):
-    pass
-
-
-def get_base(cconf=None):
-    """
-    Make sure a '/' terminated URL is returned
-    """
-    try:
-        part = urlparse(cconf["_base_url"])
-    except KeyError:
-        part = urlparse(cconf["base_url"])
-    # part = urlparse(cconf["redirect_uris"][0])
-
-    if part.path:
-        if not part.path.endswith("/"):
-            _path = part.path[:] + "/"
-        else:
-            _path = part.path[:]
-    else:
-        _path = "/"
-
-    return "%s://%s%s" % (part.scheme, part.netloc, _path, )
-
-
-# noinspection PyUnusedLocal
-
-
-def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
-    _base = get_base(cconf)
-
-    sector_identifier_url = "%s%s%s" % (_base, LOCAL_PATH, "siu.json")
-    f = open("%ssiu.json" % LOCAL_PATH, 'w')
-    if all:
-        f.write(json.dumps(args["redirect_uris"]))
-    else:
-        f.write(json.dumps(args["redirect_uris"][:-1]))
-    f.close()
-
-    if extra:
-        args["redirect_uris"].append("%scb" % _base)
-
-    args["sector_identifier_uri"] = sector_identifier_url
-
-
-def response_claim(conv, respcls, claim):
-    for (instance, msg) in conv.protocol_response:
-        if isinstance(instance, respcls):
-            return instance[claim]
-
-    return None
-
-
-# -----------------------------------------------------------------------------
-
-
-class TimeDelay(Process):
-    def __init__(self):
-        self.delay = 2
-        self.tests = {"post": [], "pre": []}
-
-    def __call__(self, *args, **kwargs):
-        time.sleep(self.delay)
-        return None
-
-
-class Notice(Process):
-    def __init__(self):
-        self.tests = {"post": [], "pre": []}
-        self.template = ""
-
-    def __call__(self, lookup, environ, start_response, **kwargs):
-        resp = Response(mako_template=self.template,
-                        template_lookup=lookup,
-                        headers=[])
-        return resp(environ, start_response, **kwargs)
-
-    def cache(self, cache, conv, items):
-        return None
-
-
-class ExpectError(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "expect_err.mako"
-
-
-class RmCookie(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "rmcookie.mako"
-
-    def cache(self, cache, conv, items):
-        pack = {}
-        for item in items:
-            if item == "id_token":
-                pack[item] = conv.id_token
-
-        key = hash("%s%f" % (items, time.time()))
-        cache[str(key)] = pack
-        return key
-
-
-class Note(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "note.mako"
-
-
-class DisplayUserInfo(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "userinfo.mako"
-
-
-class DisplayIDToken(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "idtoken.mako"
-
-
-class RotateKeys(Process):
-    def __init__(self):
-        self.jwk_name = "export/jwk.json"
-        self.tests = {"post": [], "pre": []}
-        self.new_key = {}
-        self.kid_template = "_%d"
-        self.key_usage = ""
-
-    def __call__(self, conv, **kwargs):
-        # find the name of the file to which the JWKS should be written
-        try:
-            _uri = conv.client.registration_response["jwks_uri"]
-        except KeyError:
-            raise RequirementsNotMet("No dynamic key handling")
-
-        r = urlparse(_uri)
-        # find the old key for this key usage and mark that as inactive
-        for kb in conv.client.keyjar.issuer_keys[""]:
-            for key in kb.keys():
-                if key.use in self.new_key["use"]:
-                    key.inactive = True
-
-        kid = 0
-        # only one key
-        _nk = self.new_key
-        _typ = _nk["type"].upper()
-
-        if _typ == "RSA":
-            kb = KeyBundle(source="file://%s" % _nk["key"],
-                           fileformat="der", keytype=_typ,
-                           keyusage=_nk["use"])
-        else:
-            kb = {}
-
-        for k in kb.keys():
-            k.serialize()
-            k.kid = self.kid_template % kid
-            kid += 1
-            conv.client.kid[k.use][k.kty] = k.kid
-        conv.client.keyjar.add_kb("", kb)
-
-        dump_jwks(conv.client.keyjar[""], r.path[1:])
-
-
-class RotateSigKeys(RotateKeys):
-    def __init__(self):
-        RotateKeys.__init__(self)
-        self.new_key = {"type": "RSA", "key": "../keys/second_sig.key",
-                        "use": ["sig"]}
-        self.kid_template = "sig%d"
-
-
-class RotateEncKeys(RotateKeys):
-    def __init__(self):
-        RotateKeys.__init__(self)
-        self.new_key = {"type": "RSA", "key": "../keys/second_enc.key",
-                        "use": ["enc"]}
-        self.kid_template = "enc%d"
-
-
-# -----------------------------------------------------------------------------
-
-
-class ProviderRequest(GetRequest):
-    request = ""
-    _tests = {"pre": [], "post": []}
-
-    def __call__(self, *args, **kwargs):
-        if "endpoint" in kwargs:
-            kwargs["endpoint"] += ".well-known/openid-configuration"
-
-        url, response, text = GetRequest.__call__(self, *args, **kwargs)
-        return url, response, text
-
-
-class MissingResponseType(GetRequest):
-    request = "AuthorizationRequest"
-    _request_args = {"response_type": [], "scope": ["openid"]}
-    lax = True
-    _tests = {"post": [VerifyBadRequestResponse]}
-
-
-class AuthorizationRequest(GetRequest):
-    request = "AuthorizationRequest"
-    _request_args = {"scope": ["openid"]}
-    _tests = {"pre": [CheckResponseType, CheckEndpoint],
-              "post": []}
-    interaction_check = True
-
-
-class AuthorizationRequestCode(AuthorizationRequest):
-    request = "AuthorizationRequest"
-    _request_args = {"response_type": ["code"], "scope": ["openid"]}
-
-
-class AuthorizationRequestToken(AuthorizationRequest):
+class AuthorizationRequestToken(testflows.AuthorizationRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": ["token"], "scope": ["openid"]}
 
 
-class AuthorizationRequestIDToken(AuthorizationRequest):
-    request = "AuthorizationRequest"
-    _request_args = {"response_type": ["id_token"], "scope": ["openid"]}
-    _tests = {"pre": [CheckResponseType, CheckScopeSupport, CheckEndpoint],
-              "post": []}
-
-
-class AuthorizationRequestCodeUri(AuthorizationRequestCode):
-    pass
-    # def __init__(self, conv=None):
-    #     AuthorizationRequestCode.__init__(self, conv)
-    #     self.tests["post"].extend([VerifyPolicyURLs, VerifyLogoURLs])
-
-
-class AuthorizationRequestCode_WQC(AuthorizationRequestCode):
+class AuthorizationRequestToken_WQC(AuthorizationRequestToken):
     def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"query": "component"})
 
 
-class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
+class AuthorizationRequestToken_RUWQC(AuthorizationRequestToken):
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
         _client = self.conv.client
@@ -297,61 +50,54 @@ class AuthorizationRequestCode_RUWQC(AuthorizationRequestCode):
                                 **kwargs)
 
 
-class AuthorizationRequestCode_RUWQC_Err(AuthorizationRequestCode_RUWQC):
+class AuthorizationRequestToken_RUWQC_Err(AuthorizationRequestToken_RUWQC):
     def __init__(self, conv):
-        AuthorizationRequestCode_RUWQC.__init__(self, conv)
+        AuthorizationRequestToken_RUWQC.__init__(self, conv)
         self.tests["post"] = [CheckErrorResponse]
 
 
-class AuthorizationRequestMismatchingRedirectURI(AuthorizationRequestCode):
+class AuthorizationRequestMismatchingRedirectURI(AuthorizationRequestToken):
     def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["redirect_uri"] = "https://foo.example.se/authz_cb"
         self.tests["post"] = [CheckErrorResponse]
 
 
-class AuthorizationRequestNoRedirectURI(AuthorizationRequestCode):
+class AuthorizationRequestNoRedirectURI(AuthorizationRequestToken):
     def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["redirect_uri"] = ""
         self.tests["post"] = [VerifyBadRequestResponse]
 
 
-class AuthorizationRequestCodeWithNonce(AuthorizationRequestCode):
+class AuthorizationRequestTokenWithNonce(AuthorizationRequestToken):
     def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["nonce"] = "12nonce34"
 
 
-class AuthorizationRequestCodeWithoutNonce(AuthorizationRequestCode):
+class AuthorizationRequestTokenWithoutNonce(AuthorizationRequestToken):
     # return_type = "code", nonce not required
     def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["nonce"] = ""
 
 
-class AuthorizationRequestWithoutNonce(AuthorizationRequestIDToken):
-    # return_type = "id_token", nonce required
-    def __init__(self, conv=None):
-        AuthorizationRequestIDToken.__init__(self, conv)
-        self.request_args["nonce"] = ""
-        self.tests["post"] = [VerifyBadRequestResponse]
-
-
-class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
+class AuthorizationRequestTokenRequestInFile(AuthorizationRequestToken):
     _kw_args = {"request_method": "file", "local_dir": "export"}
 
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
-        self.kw_args["base_path"] = get_base(conv.client_config) + "export/"
+        AuthorizationRequestToken.__init__(self, conv)
+        self.kw_args["base_path"] = testflows.get_base(
+            conv.client_config) + "export/"
         self.tests["pre"].append(CheckRequestURIParameterSupported)
 
 
-class AuthorizationRequestCodeRequestParameter(AuthorizationRequestCode):
+class AuthorizationRequestTokenRequestParameter(AuthorizationRequestToken):
     _kw_args = {"request_method": "parameter"}
 
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.tests["pre"].append(CheckRequestParameterSupported)
         self.tests["pre"].append(CheckRequestClaimsSupport)
 
@@ -364,28 +110,28 @@ class ConnectionVerify(GetRequest):
     interaction_check = True
 
 
-class AuthorizationRequestCodeDisplayPage(AuthorizationRequestCode):
+class AuthorizationRequestTokenDisplayPage(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["display"] = "page"
 
 
-class AuthorizationRequestCodeDisplayPopUp(AuthorizationRequestCode):
+class AuthorizationRequestTokenDisplayPopUp(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["display"] = "popup"
 
 
-class AuthorizationRequestCodePromptNone(AuthorizationRequestCode):
+class AuthorizationRequestTokenPromptNone(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["prompt"] = "none"
         #self.tests["post"] = [VerifyErrorResponse]
 
 
-class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
+class AuthorizationRequestTokenPromptNoneWithIdToken(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["prompt"] = "none"
 
     def call_setup(self):
@@ -400,81 +146,83 @@ class AuthorizationRequestCodePromptNoneWithIdToken(AuthorizationRequestCode):
 
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
-        return AuthorizationRequestCode.__call__(self, location, response,
+        return AuthorizationRequestToken.__call__(self, location, response,
                                                  content, features, **kwargs)
 
 
-class AuthorizationRequestCodeWithSubClaim(AuthorizationRequestCode):
+class AuthorizationRequestTokenWithSubClaim(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
 
     def call_setup(self):
-        idt = response_claim(self.conv, message.AccessTokenResponse, "id_token")
+        idt = testflows.response_claim(self.conv, message.AccessTokenResponse,
+                                       "id_token")
         if not idt:
             try:
                 _key = self.conv.cache_key
                 idt = self.conv.cache[_key]["id_token"]
             except (AttributeError, KeyError):
-                raise MissingResponseClaim("id_token in access token response")
+                raise testflows.MissingResponseClaim(
+                    "id_token in access token response")
 
         _sub = idt["sub"]
         self.request_args["claims"] = {"id_token": {"sub": {"value": _sub}}}
 
     def __call__(self, location, response="", content="", features=None,
                  **kwargs):
-        return AuthorizationRequestCode.__call__(self, location, response,
+        return AuthorizationRequestToken.__call__(self, location, response,
                                                  content, features, **kwargs)
 
 
-class AuthorizationRequestCodePromptNoneWithSubClaim(
-        AuthorizationRequestCodeWithSubClaim):
+class AuthorizationRequestTokenPromptNoneWithSubClaim(
+        AuthorizationRequestTokenWithSubClaim):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["prompt"] = "none"
         self.tests["post"] = [VerifyPromptNoneResponse]
 
 
-class AuthorizationRequestCodePromptLogin(AuthorizationRequestCode):
+class AuthorizationRequestTokenPromptLogin(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["prompt"] = "login"
 
 
-class AuthorizationRequestCodeScopeProfile(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopeProfile(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].append("profile")
         self.set_request_args({"scope": self.request_args["scope"]})
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeScopeEMail(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopeEMail(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].append("email")
         self.set_request_args({"scope": self.request_args["scope"]})
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeScopeAddress(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopeAddress(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].append("address")
         self.set_request_args({"scope": self.request_args["scope"]})
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeScopePhone(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopePhone(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].append("phone")
         self.set_request_args({"scope": self.request_args["scope"]})
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeScopeOfflineAccess(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopeOfflineAccess(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].append("offline_access")
         self.set_request_args({
             "scope": self.request_args["scope"],
@@ -482,27 +230,27 @@ class AuthorizationRequestCodeScopeOfflineAccess(AuthorizationRequestCode):
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeScopeAll(AuthorizationRequestCode):
+class AuthorizationRequestTokenScopeAll(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["scope"].extend(["phone", "address", "email",
                                            "profile"])
         self.set_request_args({"scope": self.request_args["scope"]})
         self.tests["pre"].append(CheckScopeSupport)
 
 
-class AuthorizationRequestCodeUIClaim1(AuthorizationRequestCode):
+class AuthorizationRequestTokenUIClaim1(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True}}}
         self.tests["pre"].append(CheckRequestParameterSupported)
         self.tests["pre"].append(CheckRequestClaimsSupport)
 
 
-class AuthorizationRequestCodeUIClaim1RequestParam(AuthorizationRequestCode):
+class AuthorizationRequestTokenUIClaim1RequestParam(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["request"] = "request"
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True}}}
@@ -510,9 +258,9 @@ class AuthorizationRequestCodeUIClaim1RequestParam(AuthorizationRequestCode):
         self.tests["pre"].append(CheckRequestClaimsSupport)
 
 
-class AuthorizationRequestCodeUIClaim1RequestURI(AuthorizationRequestCode):
+class AuthorizationRequestTokenUIClaim1RequestURI(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["request"] = "request_uri"
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True}}}
@@ -520,18 +268,18 @@ class AuthorizationRequestCodeUIClaim1RequestURI(AuthorizationRequestCode):
         self.tests["pre"].append(CheckRequestClaimsSupport)
 
 
-class AuthorizationRequestCodeUIClaim2(AuthorizationRequestCode):
+class AuthorizationRequestTokenUIClaim2(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Picture and email optional
         self.request_args["claims"] = {
             "userinfo": {"picture": None, "email": None}}
         self.tests["pre"].append(CheckClaimsSupport)
 
 
-class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
+class AuthorizationRequestTokenUIClaim3(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must name, may picture and email
         self.request_args["claims"] = {
             "userinfo": {"name": {"essential": True},
@@ -540,9 +288,9 @@ class AuthorizationRequestCodeUIClaim3(AuthorizationRequestCode):
         self.tests["pre"].append(CheckClaimsSupport)
 
 
-class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
+class AuthorizationRequestTokenUICombiningClaims(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must name, may picture and email
         self.request_args["scope"].append("address")
         self.set_request_args({
@@ -554,18 +302,18 @@ class AuthorizationRequestCodeUICombiningClaims(AuthorizationRequestCode):
         self.tests["pre"].append(CheckClaimsSupport)
 
 
-class AuthorizationRequestCodeIDTClaim1(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTClaim1(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must auth_time
         self.request_args["claims"] = {
             "id_token": {"auth_time": {"essential": True}}}
         self.tests["pre"].append(CheckClaimsSupport)
 
 
-class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTClaim2(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         try:
             _acrs = conv.client_config["acr_values"]
         except KeyError:
@@ -575,43 +323,43 @@ class AuthorizationRequestCodeIDTClaim2(AuthorizationRequestCode):
         self.tests["pre"].append(CheckAcrSupport)
 
 
-class AuthorizationRequestCodeIDTClaim3(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTClaim3(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must acr
         self.request_args["claims"] = {"id_token": {"acr": {"essential": True}}}
 
 
-class AuthorizationRequestCodeIDTClaim4(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTClaim4(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must acr
         self.request_args["claims"] = {"id_token": {"acr": None}}
 
 
-class AuthorizationRequestCodeIDTClaimX(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTClaimX(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Must acr
         self.request_args["claims"] = {
             "id_token": {"auth_time": {"essential": True}}}
 
 
-class AuthorizationRequestCodeIDTMaxAge1(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTMaxAge1(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"max_age": 1})
 
 
-class AuthorizationRequestCodeIDTMaxAge1000(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTMaxAge1000(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"max_age": 1000})
 
 
-class AuthorizationRequestUILocale(AuthorizationRequestCode):
+class AuthorizationRequestUILocale(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         # Just so something can be seen
         self.request_args["scope"].extend(["phone", "address", "email",
                                            "profile"])
@@ -627,9 +375,9 @@ class AuthorizationRequestUILocale(AuthorizationRequestCode):
         self.set_request_args({"ui_locales": uil})
 
 
-class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
+class AuthorizationRequestClaimsLocale(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         try:
             loc = conv.client_config["claims_locales"]
         except KeyError:
@@ -640,9 +388,9 @@ class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
         self.set_request_args({"claims_locales": loc})
 
 
-class AuthorizationRequestLoginHint(AuthorizationRequestCode):
+class AuthorizationRequestLoginHint(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         try:
             hint = conv.client_config["login_hint"]
         except KeyError:
@@ -650,55 +398,37 @@ class AuthorizationRequestLoginHint(AuthorizationRequestCode):
         self.set_request_args({"login-hint": "%s" % hint})
 
 
-class AuthorizationRequestAcrValues(AuthorizationRequestCode):
+class AuthorizationRequestAcrValues(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"acr_values": ["1"]})
 
 
-class AuthorizationRequestCodeIDTEmail(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDTEmail(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["claims"] = {
             "id_token": {"email": {"essential": True}}}
 
 
-class AuthorizationRequestCodeMixedClaims(AuthorizationRequestCode):
+class AuthorizationRequestTokenMixedClaims(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.request_args["claims"] = {
             "id_token": {"email": {"essential": True}},
             "userinfo": {"name": {"essential": True}}}
 
 
-class AuthorizationRequestCodeToken(AuthorizationRequestCode):
+class AuthorizationRequestTokenToken(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"response_type": ["code", "token"]})
 
 
-class AuthorizationRequestCodeIDToken(AuthorizationRequestCode):
+class AuthorizationRequestTokenIDToken(AuthorizationRequestToken):
     def __init__(self, conv):
-        AuthorizationRequestCode.__init__(self, conv)
+        AuthorizationRequestToken.__init__(self, conv)
         self.set_request_args({"response_type": ["code", "id_token"]})
-
-
-class AuthorizationRequestIDTokenToken(AuthorizationRequestIDToken):
-    def __init__(self, conv):
-        AuthorizationRequestIDToken.__init__(self, conv)
-        self.set_request_args({"response_type": ["id_token", "token"]})
-
-
-class AuthorizationRequestCodeIDTokenToken(AuthorizationRequestCodeIDToken):
-    def __init__(self, conv):
-        AuthorizationRequestCodeIDToken.__init__(self, conv)
-        self.set_request_args({"response_type": ["code", "id_token", "token"]})
-
-
-class AuthorizationRequestCodeResponseModeFormPost(AuthorizationRequestCode):
-    def __init__(self, conv=None):
-        AuthorizationRequestCode.__init__(self, conv)
-        self.set_request_args({"response_mode": "form_post"})
 
 
 # =============================================================================
@@ -744,7 +474,7 @@ class RegistrationRequestMULREDIR(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
         self.request_args["redirect_uris"].append(
-            "%scb" % get_base(conv.client_config))
+            "%scb" % testflows.get_base(conv.client_config))
 
 
 class RegistrationRequestMULREDIRMultHost(RegistrationRequest):
@@ -882,7 +612,8 @@ class RegistrationRequest_with_pairwise_userid(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         self.set_request_args({"subject_type": "pairwise"})
         self.tests["pre"].append(CheckUserIdSupport)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
+        testflows.store_sector_redirect_uris(self.request_args,
+                                             cconf=conv.client_config)
 
 
 class RegistrationRequest_with_id_token_signed_response_alg(
@@ -903,15 +634,17 @@ class RegistrationRequestWithUnSignedIDToken(RegistrationRequest):
 class RegistrationRequest_SectorID(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
+        testflows.store_sector_redirect_uris(self.request_args,
+                                             cconf=conv.client_config)
 
 
 class RegistrationRequest_SectorID_2(RegistrationRequest):
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        _base = get_base(conv.client_config)
+        _base = testflows.get_base(conv.client_config)
         self.request_args["redirect_uris"].append("%scb" % _base)
-        store_sector_redirect_uris(self.request_args, cconf=conv.client_config)
+        testflows.store_sector_redirect_uris(self.request_args,
+                                             cconf=conv.client_config)
 
 
 class RegistrationRequest_SectorID_Err(RegistrationRequest):
@@ -919,9 +652,9 @@ class RegistrationRequest_SectorID_Err(RegistrationRequest):
 
     def __init__(self, conv):
         RegistrationRequest.__init__(self, conv)
-        store_sector_redirect_uris(self.request_args, False, True,
-                                   cconf=conv.client_config)
-        #self.request_args["redirect_uris"].append("%scb" % get_base(cconf))
+        testflows.store_sector_redirect_uris(self.request_args, False,
+                                             True, cconf=conv.client_config)
+        #self.request_args["redirect_uris"].append("%scb" % _get_base(cconf))
         self.tests["post"] = [CheckErrorResponse]
 
 
@@ -1076,8 +809,9 @@ class AccessTokenRequest(PostRequest):
             try:
                 assert self.kw_args["authn_method"] in _supported
             except AssertionError:
-                raise NotSupported("Authn_method '%s' not supported" % (
-                    self.kw_args["authn_method"]))
+                raise testflows.NotSupported(
+                    "Authn_method '%s' not supported" % (
+                        self.kw_args["authn_method"]))
 
 
 class AccessTokenRequestCSB(AccessTokenRequest):
@@ -1203,404 +937,77 @@ class UserInfoRequestPostBearerBody(PostRequest):
         self.tests["post"] = [VerifyIDTokenUserInfoSubSame]
 
 
-class RefreshAccessToken(PostRequest):
-    request = "RefreshAccessTokenRequest"
-
-    def call_setup(self):
-        # make sure there is a refresh_token
-        try:
-            _ = response_claim(self.conv, message.AccessTokenResponse,
-                               "refresh_token")
-        except MissingResponseClaim:
-            raise UnSupported("No refresh_token")
-
-        if "authn_method" not in self.kw_args:
-            _pinfo = self.conv.provider_info
-            if "token_endpoint_auth_methods_supported" in _pinfo:
-                for meth in ["client_secret_basic", "client_secret_post",
-                             "client_secret_jwt", "private_key_jwt"]:
-                    if meth in _pinfo["token_endpoint_auth_methods_supported"]:
-                        self.kw_args = {"authn_method": meth}
-                        break
-            else:
-                self.kw_args = {"authn_method": "client_secret_basic"}
-
-
-class RefreshAccessTokenPKJWT(PostRequest):
-    request = "RefreshAccessTokenRequest"
-
-    def call_setup(self):
-        # make sure there is a refresh_token
-        try:
-            _ = response_claim(self.conv, message.AccessTokenResponse,
-                               "refresh_token")
-        except MissingResponseClaim:
-            raise UnSupported("No refresh_token")
-
-        self.kw_args = {"authn_method": "private_key_jwt"}
-
-
-# -----------------------------------------------------------------------------
-
-
-class AuthzResponse(UrlResponse):
-    response = "AuthorizationResponse"
-    _tests = {"post": [CheckAuthorizationResponse, VerifyState]}
-
-
-class AuthzFormResponse(UrlResponse):
-    response = "AuthorizationResponse"
-    where = "body"
-    _tests = {"post": [CheckAuthorizationResponse]}
-
-
-class ImplicitAuthzResponse(AuthzResponse):
-    _tests = {"post": [CheckAuthorizationResponse]}
-
-
-class AuthzErrResponse(UrlResponse):
-    response = "AuthorizationErrorResponse"
-
-
-class RegistrationResponse(BodyResponse):
-    response = "RegistrationResponse"
-
-    def __call__(self, conv, response):
-        _client = conv.client
-        for prop in ["client_id"]:
-            try:
-                setattr(_client, prop, response[prop])
-            except KeyError:
-                pass
-
-
-class AccessTokenResponse(BodyResponse):
-    response = "AccessTokenResponse"
-
-    def __init__(self):
-        BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS,
-                               VerifySignedIdToken]}
-
-
-class AccessTokenResponseWNonce(AccessTokenResponse):
-    response = "AccessTokenResponse"
-
-    def __init__(self):
-        AccessTokenResponse.__init__(self)
-        self.tests["post"].append(VerifyNonce)
-
-
-class AccessTokenResponseWKID(AccessTokenResponse):
-    response = "AccessTokenResponse"
-
-    def __init__(self):
-        AccessTokenResponse.__init__(self)
-        self.tests["post"].append(VerifySignedIdTokenHasKID)
-
-
-class AccessTokenResponseUnsigned(BodyResponse):
-    response = "AccessTokenResponse"
-
-    def __init__(self):
-        BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyAccessTokenResponse, VerifyISS,
-                               VerifyUnSignedIdToken]}
-
-
-class UserinfoResponse(BodyResponse):
-    response = "OpenIDSchema"
-
-    def __init__(self):
-        BodyResponse.__init__(self)
-        self.tests = {"post": [VerifyClaims]}
-
-
-class CheckIdResponse(BodyResponse):
-    response = "IdToken"
-
-
-class ProviderConfigurationResponse(BodyResponse):
-    response = "ProviderConfigurationResponse"
-
-
-class ClientRegistrationErrorResponse(BodyResponse):
-    response = "ClientRegistrationErrorResponse"
-
-
-class AuthorizationErrorResponse(BodyResponse):
-    response = "AuthorizationErrorResponse"
-
-
-# ----------------------------------------------------------------------------
-
-
-class DResponse(object):
-    def __init__(self, status, ctype):
-        self.content_type = ctype
-        self.status = status
-
-    def __getattr__(self, item):
-        if item == "content-type":
-            return self.content_type
-
-
-class Discover(Operation):
-    _tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
-                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS,
-                       VerifyBase64URL],
-              "pre": [DiscoveryConfig]}
-    conv_param = "provider_info"
-    request = "DiscoveryRequest"
-
-    def __init__(self, conv, **kwargs):
-        Operation.__init__(self, conv, **kwargs)
-        self.request = "DiscoveryRequest"
-        self.function = self.discover
-        self.do_postop = True
-        self.tests = self._tests.copy()
-
-    def discover(self, client, orig_response="", content="", issuer="",
-                 **kwargs):
-        # Allow statically over-riding dynamic info
-        over_ride = client.provider_info
-        pcr = client.provider_config(issuer)
-        if over_ride:
-            pcr.update(over_ride)
-            for key, val in over_ride.items():
-                setattr(client, key, val)
-
-        try:
-            self.trace.info("%s" % client.keyjar)
-        except SerializationNotPossible:
-            pass
-
-        self.trace.info("Provider info: %s" % pcr.to_dict())
-
-        try:
-            pcr.verify()
-        except SchemeError:
-            try:
-                if client.allow["no_https_issuer"]:
-                    pass
-                else:
-                    raise
-            except KeyError:
-                raise
-
-        client.match_preferences(pcr)
-        self.trace.info("Client behavior: %s" % client.behaviour)
-        return "", DResponse(status=200, ctype="application/json"), pcr
-
-    def post_op(self, result, conv, args):
-        # Update the conv with the provider information
-        # This overwrites what's there before. In some cases this might not
-        # be preferable.
-
-        if self.do_postop:
-            attr = getattr(conv, self.conv_param, None)
-            if attr is None:
-                setattr(conv, self.conv_param, result[2].to_dict())
-            else:
-                attr.update(result[2].to_dict())
-
-
-class Webfinger(Operation):
-    #tests = {"post": [OidcIssuer]}
-    request = None
-    tests = {"post": [], "pre": []}
-
-    def __init__(self, conv, **kwargs):
-        Operation.__init__(self, conv, **kwargs)
-        self.request = "WebFinger"
-        self.function = self.discover
-        self.do_postop = False
-
-    @staticmethod
-    def discover(*arg, **kwargs):
-        wf = WebFinger(OIC_ISSUER)
-        wf.httpd = PBase()
-        wf.discovery_query(kwargs["principal"])
-
-    def call_setup(self):
-        pass
 
 # ===========================================================================
 
-PHASES = {
-    "login": (AuthorizationRequestCode, AuthzResponse),
+PHASES_IMPLICIT = {
+    "login": (AuthorizationRequestToken, testflows.AuthzResponse),
     #"login-nonce": (AuthorizationRequest_with_nonce, AuthzResponse),
-    "login-wqc": (AuthorizationRequestCode_WQC, AuthzResponse),
-    "login-ruwqc": (AuthorizationRequestCode_RUWQC, AuthzResponse),
-    "login-ruwqc-err": (AuthorizationRequestCode_RUWQC_Err, AuthzErrResponse),
+    "login-wqc": (AuthorizationRequestToken_WQC, AuthzResponse),
+    "login-ruwqc": (AuthorizationRequestToken_RUWQC, AuthzResponse),
+    "login-ruwqc-err": (AuthorizationRequestToken_RUWQC_Err, AuthzErrResponse),
     "login-redirect-fault": (AuthorizationRequestMismatchingRedirectURI,
                              AuthorizationErrorResponse),
     "oic-login-implicit-no-nonce": (AuthorizationRequestWithoutNonce,
                                     AuthorizationErrorResponse),
     "verify": (ConnectionVerify, AuthzResponse),
-    "oic-login": (AuthorizationRequestCode, AuthzResponse),
-    "oic-login-uri": (AuthorizationRequestCodeUri, AuthzResponse),
-    "oic-login-requri": (AuthorizationRequestCodeRequestInFile, AuthzResponse),
-    "oic-login-request": (AuthorizationRequestCodeRequestParameter,
+    "oic-login": (AuthorizationRequestToken, AuthzResponse),
+    "oic-login-uri": (AuthorizationRequestTokenUri, AuthzResponse),
+    "oic-login-requri": (AuthorizationRequestTokenRequestInFile, AuthzResponse),
+    "oic-login-request": (AuthorizationRequestTokenRequestParameter,
                           AuthzResponse),
-    "oic-login-nonce": (AuthorizationRequestCodeWithNonce, AuthzResponse),
-    "oic-login-code-no-nonce": (AuthorizationRequestCodeWithoutNonce,
+    "oic-login-nonce": (AuthorizationRequestTokenWithNonce, AuthzResponse),
+    "oic-login-code-no-nonce": (AuthorizationRequestTokenWithoutNonce,
                                 AuthzResponse),
-    "oic-login+profile": (AuthorizationRequestCodeScopeProfile, AuthzResponse),
-    "oic-login+email": (AuthorizationRequestCodeScopeEMail, AuthzResponse),
-    "oic-login+phone": (AuthorizationRequestCodeScopePhone, AuthzResponse),
-    "oic-login+address": (AuthorizationRequestCodeScopeAddress, AuthzResponse),
-    "oic-login+offline": (AuthorizationRequestCodeScopeOfflineAccess,
+    "oic-login+profile": (AuthorizationRequestTokenScopeProfile, AuthzResponse),
+    "oic-login+email": (AuthorizationRequestTokenScopeEMail, AuthzResponse),
+    "oic-login+phone": (AuthorizationRequestTokenScopePhone, AuthzResponse),
+    "oic-login+address": (AuthorizationRequestTokenScopeAddress, AuthzResponse),
+    "oic-login+offline": (AuthorizationRequestTokenScopeOfflineAccess,
                           AuthzResponse),
-    "oic-login+all": (AuthorizationRequestCodeScopeAll, AuthzResponse),
-    "oic-login+spec1": (AuthorizationRequestCodeUIClaim1,
+    "oic-login+all": (AuthorizationRequestTokenScopeAll, AuthzResponse),
+    "oic-login+spec1": (AuthorizationRequestTokenUIClaim1,
                         AuthzResponse),
-    "oic-login+spec2": (AuthorizationRequestCodeUIClaim2,
+    "oic-login+spec2": (AuthorizationRequestTokenUIClaim2,
                         AuthzResponse),
-    "oic-login+spec3": (AuthorizationRequestCodeUIClaim3,
+    "oic-login+spec3": (AuthorizationRequestTokenUIClaim3,
                         AuthzResponse),
-    "oic-login-combine_claims": (AuthorizationRequestCodeUICombiningClaims,
+    "oic-login-combine_claims": (AuthorizationRequestTokenUICombiningClaims,
                                  AuthzResponse),
-    "oic-login-mixed_claims": (AuthorizationRequestCodeMixedClaims,
+    "oic-login-mixed_claims": (AuthorizationRequestTokenMixedClaims,
                                AuthzResponse),
-    "oic-login+idtc1": (AuthorizationRequestCodeIDTClaim1, AuthzResponse),
-    "oic-login+idtc2": (AuthorizationRequestCodeIDTClaim2, AuthzResponse),
-    "oic-login+idtc3": (AuthorizationRequestCodeIDTClaim3, AuthzResponse),
-    "oic-login+idtc6": (AuthorizationRequestCodeIDTClaim4, AuthzResponse),
-    "oic-login+idtc4": (AuthorizationRequestCodeIDTMaxAge1, AuthzResponse),
-    "oic-login+idtc5": (AuthorizationRequestCodeIDTMaxAge1000, AuthzResponse),
-    "oic-login+idtc7": (AuthorizationRequestCodeIDTEmail, AuthzResponse),
-    "oic-login+idtcX": (AuthorizationRequestCodeIDTClaimX, AuthzResponse),
+    "oic-login+idtc1": (AuthorizationRequestTokenIDTClaim1, AuthzResponse),
+    "oic-login+idtc2": (AuthorizationRequestTokenIDTClaim2, AuthzResponse),
+    "oic-login+idtc3": (AuthorizationRequestTokenIDTClaim3, AuthzResponse),
+    "oic-login+idtc6": (AuthorizationRequestTokenIDTClaim4, AuthzResponse),
+    "oic-login+idtc4": (AuthorizationRequestTokenIDTMaxAge1, AuthzResponse),
+    "oic-login+idtc5": (AuthorizationRequestTokenIDTMaxAge1000, AuthzResponse),
+    "oic-login+idtc7": (AuthorizationRequestTokenIDTEmail, AuthzResponse),
+    "oic-login+idtcX": (AuthorizationRequestTokenIDTClaimX, AuthzResponse),
 
-    "oic-login+disp_page": (AuthorizationRequestCodeDisplayPage, AuthzResponse),
-    "oic-login+disp_popup": (AuthorizationRequestCodeDisplayPopUp,
+    "oic-login+disp_page": (AuthorizationRequestTokenDisplayPage, AuthzResponse),
+    "oic-login+disp_popup": (AuthorizationRequestTokenDisplayPopUp,
                              AuthzResponse),
-    "oic-login+prompt_none": (AuthorizationRequestCodePromptNone,
+    "oic-login+prompt_none": (AuthorizationRequestTokenPromptNone,
                               AuthzErrResponse),
-    "oic-login+prompt_login": (AuthorizationRequestCodePromptLogin,
+    "oic-login+prompt_login": (AuthorizationRequestTokenPromptLogin,
                                AuthzResponse),
     "oic-login+prompt_none+idtoken": (
-        AuthorizationRequestCodePromptNoneWithIdToken, AuthzResponse),
+        AuthorizationRequestTokenPromptNoneWithIdToken, AuthzResponse),
     "oic-login+prompt_none+request": (
-        AuthorizationRequestCodePromptNoneWithSubClaim, AuthzResponse),
-    "oic-login+request": (AuthorizationRequestCodeWithSubClaim, AuthzResponse),
+        AuthorizationRequestTokenPromptNoneWithSubClaim, AuthzResponse),
+    "oic-login+request": (AuthorizationRequestTokenWithSubClaim, AuthzResponse),
     "oic-login-token": (AuthorizationRequestToken, ImplicitAuthzResponse),
-    "oic-login-idtoken": (AuthorizationRequestIDToken, ImplicitAuthzResponse),
-    "oic-login-code+token": (AuthorizationRequestCodeToken,
-                             ImplicitAuthzResponse),
-    "oic-login-code+idtoken": (AuthorizationRequestCodeIDToken,
-                               ImplicitAuthzResponse),
-    "oic-login-idtoken+token": (AuthorizationRequestIDTokenToken,
-                                ImplicitAuthzResponse),
-    "oic-login-code+idtoken+token": (AuthorizationRequestCodeIDTokenToken,
-                                     ImplicitAuthzResponse),
     "oic-login-no-redirect": (AuthorizationRequestNoRedirectURI,
                               AuthzResponse),
     "oic-login-no-redirect-err": (AuthorizationRequestNoRedirectURI,
                                   AuthzErrResponse),
-    "oic-login-formpost": (AuthorizationRequestCodeResponseModeFormPost,
-                           AuthzFormResponse),
     "oic-login-ui_locale": (AuthorizationRequestUILocale, AuthzResponse),
     "oic-login-claims_locale": (AuthorizationRequestClaimsLocale,
                                 AuthzResponse),
     "oic-login-login_hint": (AuthorizationRequestLoginHint, AuthzResponse),
     "oic-login-acr_values": (AuthorizationRequestAcrValues, AuthzResponse),
     #
-    "access-token-request_csb": (AccessTokenRequestCSB, AccessTokenResponse),
-    "access-token-request_csp": (AccessTokenRequestCSPost, AccessTokenResponse),
-    "access-token-request": (AccessTokenRequest, AccessTokenResponse),
-    "access-token-request_kid": (AccessTokenRequest, AccessTokenResponseWKID),
-    "access-token-request_nonce": (AccessTokenRequest, AccessTokenResponseWNonce),
-    "access-token-request_csj": (AccessTokenRequestCSJWT, AccessTokenResponse),
-    "access-token-request_pkj": (AccessTokenRequestPKJWT, AccessTokenResponse),
-    "access-token-request_err": (AccessTokenRequest_err, req.ErrorResponse),
-    "access-token-request-scope": (AccessTokenRequestScope, req.ErrorResponse),
-    "access-token-refresh": (RefreshAccessToken, AccessTokenResponse),
-    "access-token-refresh_pkj": (RefreshAccessTokenPKJWT, AccessTokenResponse),
-    "access-token-request-unsigned": (AccessTokenRequest,
-                                      AccessTokenResponseUnsigned),
-    "user-info-request_gbh": (UserInfoRequestGetBearerHeader, UserinfoResponse),
-    "user-info-request_pbh": (UserInfoRequestPostBearerHeader,
-                              UserinfoResponse),
-    "user-info-request_gbh_jose": (UserInfoRequestPostBearerHeaderJOSE,
-                                   UserinfoResponse),
-    "user-info-request_pbb": (UserInfoRequestPostBearerBody, UserinfoResponse),
-    "user-info-request_err": (UserInfoRequestPostBearerHeader_err,
-                              req.ErrorResponse),
-    "oic-registration": (RegistrationRequest, RegistrationResponse),
-    "oic-registration-multi-redirect": (RegistrationRequestMULREDIR,
-                                        RegistrationResponse),
-    "oic-registration-wqc": (RegistrationRequest_WQC, RegistrationResponse),
-    "oic-registration-wf": (RegistrationRequest_WF,
-                            ClientRegistrationErrorResponse),
-    "oic-registration-ke_csj": (RegistrationRequest_KeyExpCSJ,
-                                RegistrationResponse),
-    "oic-registration-ke_pkj": (RegistrationRequest_KeyExpPKJ,
-                                RegistrationResponse),
-    "oic-registration-policy+logo": (RegistrationRequestPolicyLogoTos,
-                                     RegistrationResponse),
-    "oic-registration-public_id": (RegistrationRequest_with_public_userid,
-                                   RegistrationResponse),
-    "oic-registration-pairwise_id": (RegistrationRequest_with_pairwise_userid,
-                                     RegistrationResponse),
-    "oic-registration-sector_id": (RegistrationRequest_SectorID,
-                                   RegistrationResponse),
-    "oic-registration-signed_userinfo": (
-        RegistrationRequest_with_userinfo_signed, RegistrationResponse),
-    "oic-registration-sector_id-err": (RegistrationRequest_SectorID_Err,
-                                       ClientRegistrationErrorResponse),
-    "oic-registration-unsigned_idtoken": (
-        RegistrationRequestWithUnSignedIDToken, RegistrationResponse),
-    "oic-registration-signed_idtoken": (
-        RegistrationRequest_with_id_token_signed_response_alg,
-        RegistrationResponse),
-    "oic-registration-encrypted_userinfo": (
-        RegistrationRequestEncUserinfo, RegistrationResponse),
-    "oic-registration-signed+encrypted_userinfo": (
-        RegistrationRequestSignEncUserinfo, RegistrationResponse),
-    "oic-registration-encrypted_idtoken": (RegistrationRequestEncIDtoken,
-                                           RegistrationResponse),
-    "oic-registration-signed+encrypted_idtoken": (
-        RegistrationRequestSignEncIDtoken, RegistrationResponse),
-    "oic-registration-es-signed_idtoken": (RegistrationRequestESSigIDtoken,
-                                           RegistrationResponse),
-    "oic-registration-jwks": (RegistrationRequestJWKS, RegistrationResponse),
-    "oic-registration-no_response_type": (RegistrationRequestNoResponseTypes,
-                                          RegistrationResponse),
-    "oic-registration-response_type-token": (
-        RegistrationRequestResponseTypesToken, RegistrationResponse),
-    "oic-registration-unsigned_request": (RegistrationRequestNoneSig,
-                                          RegistrationResponse),
-    "oic-registration-signed_request": (RegistrationRequestSig,
-                                        RegistrationResponse),
-    "oic-registration-sig+enc_request": (RegistrationRequestEnc,
-                                         RegistrationResponse),
-    "oic-registration-encrypted_request": (RegistrationRequestSigEnc,
-                                           RegistrationResponse),
-    "oic-registration-http-redirecturi": (RegistrationRequestHTTPREDIR,
-                                          req.ErrorResponse),
-    "provider-discovery": (Discover, ProviderConfigurationResponse),
-    "provider-info": (ProviderRequest, ProviderConfigurationResponse),
-    "oic-missing_response_type": (MissingResponseType, AuthzErrResponse),
-    "read-registration": (ReadRegistration, RegistrationResponse),
-    "oic-registration-multi-redirect_hosts": (
-        RegistrationRequestMULREDIRMultHost, RegistrationResponse),
-    "access-token-request-other-redirect_uri-1": (
-        AccessTokenRequestModRedirectURI1, req.ErrorResponse),
-    "access-token-request-other-redirect_uri-2": (
-        AccessTokenRequestModRedirectURI2, req.ErrorResponse),
-    "access-token-request-other-redirect_uri-3": (
-        AccessTokenRequestModRedirectURI3, req.ErrorResponse),
-    "intermission": TimeDelay,
-    #"rotate_keys": RotateKeys,
-    "rotate_sign_keys": RotateSigKeys,
-    "rotate_enc_keys": RotateEncKeys,
-    "note": Note,
-    "rm_cookie": RmCookie,
-    "expect_err": ExpectError,
-    "webfinger": (Webfinger, None),
-    "display_userinfo": DisplayUserInfo,
-    "display_idtoken": DisplayIDToken
 }
 
 OWNER_OPS = []

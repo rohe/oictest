@@ -6,6 +6,9 @@ __author__ = 'roland'
 def extract_mode(path):
     # path = <sign_alg>/<encrypt>/<errtype/<claims>/<endpoint>
 
+    if path == "":
+        return {}, ""
+
     if path[0] == '/':
         path = path[1:]
 
@@ -18,7 +21,10 @@ def extract_mode(path):
     if part[0] != "_":
         mod["sign_alg"] = part[0]
     if part[3] != "_":
-        mod["claims"] = part[3]
+        try:
+            mod["claims"] = part[3].split(",")
+        except ValueError:
+            pass
 
     if part[1] != "_":
         try:
@@ -26,7 +32,7 @@ def extract_mode(path):
         except ValueError:
             pass
         else:
-            mod.update({"enc_alg": _enc_alg,"enc_enc": _enc_enc})
+            mod.update({"enc_alg": _enc_alg, "enc_enc": _enc_enc})
 
     if part[2] != "_":
         try:
@@ -41,7 +47,10 @@ def extract_mode(path):
 
 
 def mode2path(mode):
-    # SHS512/A128CBC-HS256/_/normal
+    # SHS512/RSA1_5:A128CBC-HS256/_/normal
+    if mode is None:
+        mode = {}
+
     noop = "_/"
     path = ""
     try:
@@ -51,7 +60,7 @@ def mode2path(mode):
 
     try:
         path += "%s:%s" % (mode["enc_alg"], mode["enc_enc"])
-    except:
+    except KeyError:
         path += noop
 
     try:
@@ -60,7 +69,7 @@ def mode2path(mode):
         path += noop
 
     try:
-        path += mode["claims"]
+        path += ",".join(mode["claims"])
     except KeyError:
         path += "normal"
 
@@ -85,20 +94,22 @@ def setup_op(mode, com_args, op_arg):
     for _typ in ["sign_alg", "enc_alg", "enc_enc"]:
         try:
             _alg = mode[_typ]
-        except KeyError:
-            pass
+        except (TypeError, KeyError):
+            for obj in ["id_token", "request_object", "userinfo"]:
+                op.jwx_def[_typ][obj] = ''
         else:
             for obj in ["id_token", "request_object", "userinfo"]:
                 op.jwx_def[_typ][obj] = _alg
 
-    try:
-        op.claims_type = mode["claims"]
-    except KeyError:
-        pass
+    if mode:
+        try:
+            op.claims_type = mode["claims"]
+        except KeyError:
+            pass
 
-    try:
-        op.err_type = mode["err"]
-    except KeyError:
-        pass
+        try:
+            op.err_type = mode["err"]
+        except KeyError:
+            pass
 
     return op

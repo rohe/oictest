@@ -23,6 +23,7 @@ from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
+from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
@@ -92,7 +93,7 @@ def safe(environ, start_response):
 
 
 #noinspection PyUnusedLocal
-def css(environ, start_response):
+def css(environ, start_response, session):
     try:
         _info = open(environ["PATH_INFO"]).read()
         resp = Response(_info)
@@ -291,7 +292,7 @@ def application(environ, start_response):
     :return: The response as a list of lines
     """
     global OAS
-    session = Session(environ['beaker.session'])
+    session = environ['beaker.session']
 
     path = environ.get('PATH_INFO', '').lstrip('/')
 
@@ -303,14 +304,13 @@ def application(environ, start_response):
 
     mode, endpoint = extract_mode(path)
 
-    if mode:
-        if not "op" in session:
-            session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
+    if "op" not in session:
+        session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
+        session["mode_path"] = mode2path(mode)
+    else:  # may be a new mode
+        if session["mode_path"] != mode2path(mode):
+            session["op"] = setup_op(mode)
             session["mode_path"] = mode2path(mode)
-        else:  # may be a new mode
-            if session["mode_path"] != mode2path(mode):
-                session["op"] = setup_op(mode)
-                session["mode_path"] = mode2path(mode)
 
     for regex, callback in URLS:
         match = re.search(regex, endpoint)
@@ -382,7 +382,7 @@ if __name__ == '__main__':
         if "UserPassword" == authkey:
             from oic.utils.authn.user import UsernamePasswordMako
             authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "%s/authorization" % config.issuer)
+                                         "authorization")
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
                    config.AUTHENTICATION[authkey]["WEIGHT"],
@@ -402,7 +402,7 @@ if __name__ == '__main__':
         # the configuration file
         userinfo = UserInfo(config.USERDB)
 
-    # Should I care about verifying the certificates used other entities
+    # Should I care about verifying the certificates used by other entities
     if args.insecure:
         kwargs["verify_ssl"] = False
     else:
@@ -410,7 +410,7 @@ if __name__ == '__main__':
 
     COM_ARGS = {
         "name": config.issuer,
-        "sdb": {},
+        "sdb": SessionDB(config.baseurl),
         "cdb": cdb,
         "authn_broker": ac,
         "userinfo": None,
