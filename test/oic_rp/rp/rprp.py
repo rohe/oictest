@@ -1,3 +1,4 @@
+import copy
 import importlib
 import logging
 from urlparse import parse_qs
@@ -6,6 +7,7 @@ from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr, ResponseError
 
 from oic.oic import Client, AuthorizationRequest, AuthorizationResponse
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Response, get_post
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import ServiceError
@@ -95,7 +97,11 @@ def run_flow(client, index, session):
                     state=session["state"])
                 return Redirect(str(url))
             elif action == "token_req":
-                client.do_access_token_request(**args)
+                _args = copy.deepcopy(args)
+                _args["state"] = session["state"]
+                _args["request_args"] = {
+                    "redirect_uri": client.redirect_uris[0]}
+                client.do_access_token_request(**_args)
             elif action == "userinfo_req":
                 client.do_user_info_request(**args)
 
@@ -119,7 +125,8 @@ def application(environ, start_response):
     try:
         _cli = session["client"]
     except KeyError:
-        _cli = session["client"] = Client()
+        _cli = session["client"] = Client(
+            client_authn_method=CLIENT_AUTHN_METHOD)
         _cli.allow["issuer_mismatch"] = True
         for arg, val in CONF.CLIENT_INFO.items():
             setattr(_cli, arg, val)

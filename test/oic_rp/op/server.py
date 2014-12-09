@@ -19,7 +19,7 @@ from beaker.session import Session
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client
+from oic.utils.authn.client import verify_client, CLIENT_AUTHN_METHOD
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
@@ -418,8 +418,6 @@ if __name__ == '__main__':
         "client_authn": verify_client,
         "symkey": config.SYM_KEY,
     }
-
-    OAS = Provider(**COM_ARGS)
 
     OP_ARG = {}
 

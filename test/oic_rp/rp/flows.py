@@ -45,8 +45,35 @@ FLOWS = {
         "flow": [("discover", None), ("provider_info", None),
                  ("registration", None),
                  ("authn_req", {"scope": "openid",
-                                "response_type": ["id_token", "token"]}),
-                 ("token_req", {"": "client_secret_basic"})],
+                                "response_type": ["code"]}),
+                 ("token_req", {"authn_method": "client_secret_basic"})],
+        "desc": "Can Make Access Token Request with 'client_secret_basic' "
+                "Authentication"
+    },
+    "RP-9": {
+        "flow": [("discover", None), ("provider_info", None),
+                 ("registration", None),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["code"]}),
+                 ("token_req", {"authn_method": "client_secret_jwt"})],
+        "desc": "Can Make Access Token Request with 'client_secret_jwt' "
+                "Authentication"
+    },
+    "RP-10": {
+        "flow": [("discover", None), ("provider_info", None),
+                 ("registration", None),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["code"]}),
+                 ("token_req", {"authn_method": "client_secret_post"})],
+        "desc": "Can Make Access Token Request with 'client_secret_post' "
+                "Authentication"
+    },
+    "RP-11": {
+        "flow": [("discover", None), ("provider_info", None),
+                 ("registration", None),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["code"]}),
+                 ("token_req", {"authn_method": "client_secret_basic"})],
         "desc": "Can Make Access Token Request with 'client_secret_basic' "
                 "Authentication"
     },
