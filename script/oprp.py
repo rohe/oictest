@@ -291,6 +291,12 @@ def post_tests(conv, req_c, resp_c):
             conv.test_sequence(_tests)
 
 
+def err_response(environ, start_response, session, where, err):
+    session["node"].state = 3
+    exception_trace(where, err)
+    return flow_list(environ, start_response, session["tests"])
+
+
 def none_request_response(sequence_info, index, session, conv, environ,
                           start_response):
     req = sequence_info["sequence"][index]()
@@ -331,7 +337,8 @@ def none_request_response(sequence_info, index, session, conv, environ,
             req(conv)
             return None
         except TEST_FLOWS.RequirementsNotMet as err:
-            return test_error(environ, start_response, conv, err)
+            return err_response(environ, start_response, session,
+                                "run_sequence", err)
 
 
 def run_sequence(sequence_info, session, conv, ots, environ, start_response,
@@ -364,6 +371,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 logging.debug("Provider info: %s" % conv.last_content._dict)
                 verify_support(conv, ots, session["graph"])
             else:
+                LOGGER.info("request: %s" % req.request)
                 if req.request == "AuthorizationRequest":
                     # New state for each request
                     kwargs = {"request_args": {"state": rndstr()}}
@@ -451,6 +459,8 @@ def application(environ, start_response):
     session = environ['beaker.session']
 
     path = environ.get('PATH_INFO', '').lstrip('/')
+    LOGGER.info("path: %s" % path)
+
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
     elif path == "favicon.ico":
@@ -508,10 +518,8 @@ def application(environ, start_response):
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, conv.trace, index)
         except Exception, err:
-            session["node"].state = 3
-            exception_trace("run_sequence", err)
-            return flow_list(environ, start_response, session["tests"])
-            #return test_error(environ, start_response, conv, err)
+            return err_response(environ, start_response, session,
+                                "run_sequence", err)
     elif path == "opresult":
         conv = session["conv"]
         return opresult(environ, start_response, conv, session)
@@ -523,10 +531,8 @@ def application(environ, start_response):
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, trace, index)
         except Exception, err:
-            session["node"].state = 3
-            exception_trace("run_sequence", err, trace)
-            return flow_list(environ, start_response, session["tests"])
-            #return test_error(environ, start_response, conv, err)
+            return err_response(environ, start_response, session,
+                                "run_sequence", err)
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if not session["response_type"] == ["code"]:
@@ -555,10 +561,8 @@ def application(environ, start_response):
                     conv.AuthorizationRequest["state"],
                     keyjar=ots.client.keyjar)
             except ResponseError as err:
-                LOGGER.error("%s" % err)
-                session["node"].state = 3
-                #return test_error(environ, start_response, conv, err)
-                return flow_list(environ, start_response, session["tests"])
+                return err_response(environ, start_response, session,
+                                    "run_sequence", err)
 
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
@@ -570,11 +574,8 @@ def application(environ, start_response):
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, conv.trace, index)
         except Exception as err:
-            LOGGER.error("%s" % err)
-            exception_trace("application", err, conv.trace)
-            session["node"].state = 3
-            #return test_error(environ, start_response, conv, err)
-            return flow_list(environ, start_response, session["tests"])
+            return err_response(environ, start_response, session,
+                                "run_sequence", err)
     else:
         resp = BadRequest()
         return resp(environ, start_response)
