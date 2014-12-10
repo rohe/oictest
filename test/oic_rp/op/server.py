@@ -453,7 +453,8 @@ if __name__ == '__main__':
 
     # Add own keys for signing/encrypting JWTs
     try:
-        jwks = keyjar_init(OAS, kwargs["keys"])
+        OAS = Provider(**COM_ARGS)
+        jwks = keyjar_init(OAS, config.keys)
     except KeyError:
         pass
     else:

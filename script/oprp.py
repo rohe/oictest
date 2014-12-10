@@ -508,7 +508,10 @@ def application(environ, start_response):
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, conv.trace, index)
         except Exception, err:
-            return test_error(environ, start_response, conv, err)
+            session["node"].state = 3
+            exception_trace("run_sequence", err)
+            return flow_list(environ, start_response, session["tests"])
+            #return test_error(environ, start_response, conv, err)
     elif path == "opresult":
         conv = session["conv"]
         return opresult(environ, start_response, conv, session)
@@ -522,7 +525,8 @@ def application(environ, start_response):
         except Exception, err:
             session["node"].state = 3
             exception_trace("run_sequence", err, trace)
-            return test_error(environ, start_response, conv, err)
+            return flow_list(environ, start_response, session["tests"])
+            #return test_error(environ, start_response, conv, err)
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if not session["response_type"] == ["code"]:
@@ -552,7 +556,9 @@ def application(environ, start_response):
                     keyjar=ots.client.keyjar)
             except ResponseError as err:
                 LOGGER.error("%s" % err)
-                return test_error(environ, start_response, conv, err)
+                session["node"].state = 3
+                #return test_error(environ, start_response, conv, err)
+                return flow_list(environ, start_response, session["tests"])
 
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
@@ -566,7 +572,9 @@ def application(environ, start_response):
         except Exception as err:
             LOGGER.error("%s" % err)
             exception_trace("application", err, conv.trace)
-            return test_error(environ, start_response, conv, err)
+            session["node"].state = 3
+            #return test_error(environ, start_response, conv, err)
+            return flow_list(environ, start_response, session["tests"])
     else:
         resp = BadRequest()
         return resp(environ, start_response)
