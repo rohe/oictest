@@ -734,10 +734,10 @@ class RegistrationRequest(PostRequest):
 
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
-        try:
-            self.tests["pre"].append(VerifyOPHasRegistrationEndpoint)
-        except KeyError:
-            self.tests["pre"] = [VerifyOPHasRegistrationEndpoint]
+        # try:
+        #     self.tests["pre"].append(VerifyOPHasRegistrationEndpoint)
+        # except KeyError:
+        #     self.tests["pre"] = [VerifyOPHasRegistrationEndpoint]
 
 
 class RegistrationRequestMULREDIR(RegistrationRequest):
@@ -2038,7 +2038,7 @@ FLOWS = {
         "sequence": [],
         "endpoints": [],
         "block": ["registration", "key_export"],
-        "profile": ["Config", "Dynamic"]
+        "profile": ["Dynamic"]
     },
     'OP-L-02': {
         "name": 'Verify that jwks_uri and claims_supported are published',
@@ -2046,6 +2046,12 @@ FLOWS = {
         "tests": [("providerinfo-has-jwks_uri", {}),
                   ("providerinfo-has-claims_supported", {})],
         "profile": ["Config", "Dynamic"]
+    },
+    'OP-L-03': {
+        "name": 'Verify that registration_endpoint is published',
+        "sequence": ["provider-discovery"],
+        "tests": [("verify-op-has-registration-endpoint", {})],
+        "profile": ["Dynamic"]
     },
     # 'OP-L-03': {
     #     "name": 'Can Discover Identifiers using E-Mail/URL Syntax',

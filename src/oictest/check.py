@@ -718,6 +718,8 @@ class VerifyClaims(Error):
             for key, val in _userinfo_claims.items():
                 userinfo_claims[key] = val
 
+        missing = []
+        extra = []
         # Get the UserInfoResponse, should only be one
         inst, txt = get_protocol_response(conv, OpenIDSchema)[0]
         if userinfo_claims:
@@ -726,15 +728,31 @@ class VerifyClaims(Error):
                     pass
                 else:
                     if restr == {"essential": True}:
-                        self._status = self.status
-                        self._message = "required attribute '%s' missing" % key
-                        return {"returned claims": inst.keys()}
+                        missing.append(key)
 
         for key in inst.keys():
             if key not in userinfo_claims:
-                self._status = WARNING
-                self._message = "Unexpected %s claim in response" % key
-                return {"returned claims": inst.keys()}
+                extra.append(key)
+
+        msg = ""
+        if missing:
+            if len(missing) == 1:
+                msg = "Missing required claim: %s" % missing[0]
+            else:
+                msg = "Missing required claims: %s" % missing
+        if extra:
+            if msg:
+                msg += ", "
+            if len(extra) == 1:
+                msg += "Unexpected %s claim in response" % extra[0]
+            else:
+                msg += "Unexpected claims in response: %s" % extra
+
+        if missing or extra:
+            self._message = msg
+            self._status = WARNING
+            return {"returned claims": inst.keys(),
+                    "expected claims": userinfo_claims.keys()}
 
         return {}
 
