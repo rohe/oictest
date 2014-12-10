@@ -3,7 +3,7 @@
 # issuer= "https://www.kodtest.se/rolandsOP"
 baseurl = "https://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
-issuer = "%s:%%d" % baseurl
+issuer = "%s:%%d/" % baseurl
 
 keys = [
     {
@@ -36,7 +36,7 @@ SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
 
-KEY_EXPORT_URL = "%sexport/jwk_%%s.json" % issuer
+KEY_EXPORT_URL = "%sexport/jwk.json" % issuer
 
 # =======  SIMPLE DATABASE ==============
 
