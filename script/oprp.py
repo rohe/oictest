@@ -419,7 +419,11 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     if resp_c.response == "RegistrationResponse":
                         ots.client.store_registration_info(response)
 
-            post_tests(conv, req_c, resp_c)
+            try:
+                post_tests(conv, req_c, resp_c)
+            except Exception as err:
+                return err_response(environ, start_response, session,
+                                    "post_test", err)
 
         index += 1
         _tid = session["testid"]
@@ -593,7 +597,11 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
 
-        post_tests(conv, req_c, resp_c)
+        try:
+            post_tests(conv, req_c, resp_c)
+        except Exception as err:
+            return err_response(environ, start_response, session,
+                                "post_test", err)
 
         index += 1
         try:
