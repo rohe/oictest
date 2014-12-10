@@ -16,7 +16,6 @@
     <![endif]-->
 
     <script src="/static/jquery.min.1.9.1.js"></script>
-    <script src="/static/parse_URI_fragment.js"></script>
 </head>
 <body onload="document.forms[0].submit()">
 <div class="container">

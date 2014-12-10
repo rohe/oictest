@@ -5,17 +5,17 @@ startme() {
     oprp.py azure_ad &
     oprp.py google &
     oprp.py ping &
-    oprp.py saleforce &
+    oprp.py salesforce &
     oprp.py telekom &
     oprp.py thinktecture_code &
 }
 
 stopme() {
-    pkill -f "google"
-    pkill -f "salesforce"
     pkill -f "adfs"
     pkill -f "azure_ad"
+    pkill -f "google"
     pkill -f "ping"
+    pkill -f "salesforce"
     pkill -f "telekom"
     pkill -f "thinktecture_code"
 }
