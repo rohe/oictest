@@ -45,6 +45,7 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         output_encoding='utf-8')
 
 SERVER_ENV = {}
+INCOMPLETE = 5
 
 
 def setup_logging(logfile):
@@ -93,8 +94,12 @@ def opchoice(environ, start_response, clients):
 
 
 def opresult(environ, start_response, conv, session):
-    _sum = test_summation(conv, session["testid"])
-    session["node"].state = _sum["status"]
+    if session["node"].complete:
+        _sum = test_summation(conv, session["testid"])
+        session["node"].state = _sum["status"]
+    else:
+        session["node"].state = INCOMPLETE
+
     if _sum["status"] <= 2:  # don't break for warning
         resp = Response(mako_template="flowlist.mako",
                         template_lookup=LOOKUP,
@@ -435,6 +440,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     _tid = session["testid"]
     session["test_info"][_tid] = {"trace": conv.trace,
                                   "test_output": conv.test_output}
+    session["node"].complete = True
 
     resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[3]))
     return resp(environ, start_response)
@@ -540,7 +546,7 @@ def application(environ, start_response):
     # expected path format: /<testid>[/<endpoint>]
     elif path in session["flow_names"]:
         conv, sequence_info, ots, trace, index = session_setup(session, path)
-
+        session["node"].complete = False
         try:
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, trace, index)
