@@ -440,17 +440,32 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     return resp(environ, start_response)
 
 
+def init_session(session):
+    graph = sort_flows_into_graph(TEST_FLOWS.FLOWS)
+    session["graph"] = graph
+    session["tests"] = [x for x in flatten(graph)]
+    session["tests"].sort(node_cmp)
+    session["flow_names"] = [x.name for x in session["tests"]]
+    session["response_type"] = []
+    session["test_info"] = {}
+
+
+def reset_session(session):
+    _keys = session.keys()
+    for key in _keys:
+        if key.startswith("_"):
+            continue
+        else:
+            del session[key]
+    init_session(session)
+
+
 def session_init(session):
     if "graph" not in session:
-        graph = sort_flows_into_graph(TEST_FLOWS.FLOWS)
-        session["graph"] = graph
-        session["tests"] = [x for x in flatten(graph)]
-        session["tests"].sort(node_cmp)
-        session["flow_names"] = [x.name for x in session["tests"]]
-        session["response_type"] = []
-        session["test_info"] = {}
+        init_session(session)
         return True
     else:
+        for
         return False
 
 
@@ -486,7 +501,7 @@ def application(environ, start_response):
     elif "flow_names" not in session:
         session_init(session)
     elif path == "reset":
-        session_init(session)
+        reset_session(session)
         return flow_list(environ, start_response, session["tests"])
     elif path.startswith("test_info"):
         p = path.split("/")
