@@ -100,24 +100,16 @@ def opresult(environ, start_response, conv, session):
     else:
         session["node"].state = INCOMPLETE
 
-    if _sum["status"] <= 2:  # don't break for warning
-        resp = Response(mako_template="flowlist.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-            "flows": session["tests"],
-            "flow": session["testid"],
-            "test_info": session["test_info"].keys(),
-            "base": CONF.BASE
-        }
-    else:
-        resp = Response(mako_template="failed.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {
-            "trace": conv.trace,
-            "output": conv.test_output,
-        }
+    resp = Response(mako_template="flowlist.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {
+        "flows": session["tests"],
+        "flow": session["testid"],
+        "test_info": session["test_info"].keys(),
+        "base": CONF.BASE
+    }
+
     return resp(environ, start_response, **argv)
 
 
