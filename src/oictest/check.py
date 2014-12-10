@@ -1675,7 +1675,7 @@ class VerifyBase64URL(Check):
     Verifies that the base64 encoded parts of a JWK is in fact base64url
     encoded and not just base64 encoded
     """
-    cid = "verify-jwks"
+    cid = "verify-base64url"
     msg = "JWKS not accoding to spec"
 
     def _func(self, conv):

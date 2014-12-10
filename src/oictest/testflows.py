@@ -1347,8 +1347,7 @@ class DResponse(object):
 
 class Discover(Operation):
     _tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
-                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS,
-                       VerifyBase64URL],
+                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS],
               "pre": [DiscoveryConfig]}
     conv_param = "provider_info"
     request = "DiscoveryRequest"
@@ -2048,6 +2047,12 @@ FLOWS = {
         "profile": ["Config", "Dynamic"]
     },
     'OP-L-03': {
+        "name": 'Keys in OP JWKs well formed',
+        "sequence": ["provider-discovery"],
+        "tests": [("verify-base64url", {})],
+        "profile": ["Dynamic"]
+    },
+    'OP-L-04': {
         "name": 'Verify that registration_endpoint is published',
         "sequence": ["provider-discovery"],
         "tests": [("verify-op-has-registration-endpoint", {})],
