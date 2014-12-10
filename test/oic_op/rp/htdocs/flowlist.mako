@@ -74,7 +74,9 @@ ICONS = [
     ('<img src="static/yellow.png" alt="Yellow">',
     "Warning, something was not as expected"),
     ('<img src="static/red.png" alt="Red">',"Failed"),
-    ('<img src="static/greybutton" alt="Grey">', "Based on the provider info this test will probably fail")
+    ('<img src="static/greybutton" alt="Grey">', "Based on the provider info this test will probably fail"),
+    ('<img src="static/qmark.jpg" alt="QuestionMark">',
+    "The test flow wasn't completed. This may have been expected or not")
     ]
 
 def legends():
