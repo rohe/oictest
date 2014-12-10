@@ -357,6 +357,9 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     conv.test_sequence(req.tests["pre"])
             except KeyError:
                 pass
+            except Exception, err:
+                return err_response(environ, start_response, session,
+                                    "pre-test", err)
 
             conv.request_spec = req
 
@@ -383,6 +386,9 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     _extra = ots.config.CLIENT["extra"][req.request]
                 except KeyError:
                     pass
+                except Exception as err:
+                    return err_response(environ, start_response, session,
+                                        "config_exta", err)
                 else:
                     try:
                         kwargs["request_args"].update(_extra)
@@ -428,6 +434,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
             conv.test_sequence(sequence_info["tests"])
     except KeyError:
         pass
+    except Exception as err:
+        return err_response(environ, start_response, session, "post_test", err)
 
     _tid = session["testid"]
     session["test_info"][_tid] = {"trace": conv.trace,
@@ -520,6 +528,9 @@ def application(environ, start_response):
                 conv.cache_key = query["key"][0]
             except KeyError:
                 pass
+        except Exception as err:
+            return err_response(environ, start_response, session,
+                                "session_setup", err)
         else:
             index = session["index"]
             ots = session["ots"]
@@ -573,6 +584,9 @@ def application(environ, start_response):
                     conv.AuthorizationRequest["state"],
                     keyjar=ots.client.keyjar)
             except ResponseError as err:
+                return err_response(environ, start_response, session,
+                                    "run_sequence", err)
+            except Exception as err:
                 return err_response(environ, start_response, session,
                                     "run_sequence", err)
 
