@@ -465,7 +465,6 @@ def session_init(session):
         init_session(session)
         return True
     else:
-        for
         return False
 
 
