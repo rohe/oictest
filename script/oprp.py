@@ -357,7 +357,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     conv.test_sequence(req.tests["pre"])
             except KeyError:
                 pass
-            except Exception, err:
+            except Exception as err:
                 return err_response(environ, start_response, session,
                                     "pre-test", err)
 

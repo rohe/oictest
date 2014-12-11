@@ -6,7 +6,7 @@ from default import DEFAULT
 
 info = DEFAULT.copy()
 
-BASE = "http://localhost:8092"
+BASE = "https://localhost:8092"
 
 info["provider"] = {"dynamic": "%s/" % BASE}
 
