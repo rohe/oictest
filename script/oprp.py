@@ -562,7 +562,8 @@ def application(environ, start_response):
                                 "run_sequence", err)
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
-            if not session["response_type"] == ["code"]:
+            if session["response_type"] and not \
+                    session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
         sequence_info = session["seq_info"]
         index = session["index"]
@@ -571,12 +572,15 @@ def application(environ, start_response):
         req_c, resp_c = sequence_info["sequence"][index]
 
         if resp_c:  # None in cases where no OIDC response is expected
+            _ctype = resp_c.ctype
             # parse the response
             if path == "authz_post":
                 query = parse_qs(get_post(environ))
                 info = query["fragment"][0]
+                _ctype = "urlencoded"
             elif resp_c.where == "url":
                 info = environ["QUERY_STRING"]
+                _ctype = "urlencoded"
             else:  # resp_c.where == "body"
                 info = get_post(environ)
 
@@ -584,7 +588,7 @@ def application(environ, start_response):
             resp_cls = message_factory(resp_c.response)
             try:
                 response = ots.client.parse_response(
-                    resp_cls, info, resp_c.ctype,
+                    resp_cls, info, _ctype,
                     conv.AuthorizationRequest["state"],
                     keyjar=ots.client.keyjar)
             except ResponseError as err:
