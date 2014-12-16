@@ -245,7 +245,7 @@ class MissingResponseType(GetRequest):
     request = "AuthorizationRequest"
     _request_args = {"response_type": [], "scope": ["openid"]}
     lax = True
-    _tests = {"post": [VerifyBadRequestResponse]}
+    _tests = {"post": [CheckErrorResponse]}
 
 
 class AuthorizationRequest(GetRequest):
@@ -335,7 +335,7 @@ class AuthorizationRequestWithoutNonce(AuthorizationRequestIDToken):
     def __init__(self, conv=None):
         AuthorizationRequestIDToken.__init__(self, conv)
         self.request_args["nonce"] = ""
-        self.tests["post"] = [VerifyBadRequestResponse]
+        self.tests["post"] = [CheckErrorResponse]
 
 
 class AuthorizationRequestCodeRequestInFile(AuthorizationRequestCode):
@@ -1615,7 +1615,7 @@ FLOWS = {
     },
     'OP-A-02': {
         "name": 'Authorization request missing the response_type parameter',
-        "sequence": ["expect_err", "oic-missing_response_type"],
+        "sequence": ["oic-missing_response_type"],
         "endpoints": ["authorization_endpoint"],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
@@ -1797,7 +1797,7 @@ FLOWS = {
     },
     'OP-D-02': {
         "name": 'Login no nonce, implicit flow',
-        "sequence": ["expect_err", "oic-login-implicit-no-nonce"],
+        "sequence": ["oic-login-implicit-no-nonce"],
         "endpoints": ["authorization_endpoint"],
         "tests": [("verify-error", {"error": ["invalid_request",
                                               "unsupported_response_type"]})],
