@@ -78,6 +78,7 @@ def flow_list(environ, start_response, flows, done):
 def run_flow(client, index, session):
 
     if index < len(session["flow"]["flow"]):
+        session["index"] = index
         for action, args in session["flow"]["flow"][index:]:
             session["index"] += 1  # next to run
 
@@ -89,21 +90,39 @@ def run_flow(client, index, session):
             elif action == "provider_info":
                 client.provider_config(session["issuer"])
             elif action == "registration":
-                client.register(client.provider_info["registration_endpoint"])
+                if args:
+                    client.register(
+                        client.provider_info["registration_endpoint"], **args)
+                else:
+                    client.register(
+                        client.provider_info["registration_endpoint"])
             elif action == "authn_req":
                 session["state"] = rndstr()
+                session["nonce"] = rndstr()
+                _args = copy.deepcopy(args)
+                _args["nonce"] = session["nonce"]
                 url, body, ht_args, csi = client.request_info(
-                    AuthorizationRequest, method="GET", request_args=args,
+                    AuthorizationRequest, method="GET", request_args=_args,
                     state=session["state"])
                 return Redirect(str(url))
             elif action == "token_req":
-                _args = copy.deepcopy(args)
+                if args:
+                    _args = copy.deepcopy(args)
+                else:
+                    _args = {}
+
                 _args["state"] = session["state"]
                 _args["request_args"] = {
                     "redirect_uri": client.redirect_uris[0]}
                 client.do_access_token_request(**_args)
             elif action == "userinfo_req":
-                client.do_user_info_request(**args)
+                if args:
+                    _args = copy.deepcopy(args)
+                else:
+                    _args = {}
+
+                _args["state"] = session["state"]
+                client.do_user_info_request(**_args)
 
     session["done"].append(session["item"])
     return None

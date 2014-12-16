@@ -77,4 +77,39 @@ FLOWS = {
         "desc": "Can Make Access Token Request with 'private_key_jwt' "
                 "Authentication"
     },
+    "RP-12": {
+        "flow": [("discover", None), ("provider_info", None),
+                 ("registration", {"id_token_signed_response_alg": "RS256"}),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["id_token"]})],
+        "desc": "Accept Valid Asymmetric ID Token Signature"
+    },
+    "RP-13": {
+        "flow": [("discover", None), ("provider_info", None),
+                 ("registration", {"id_token_signed_response_alg": "HS256"}),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["id_token"]})],
+        "desc": "Accept Valid Symmetric ID Token Signature"
+    },
+    "RP-14": {
+        "flow": [("discover", None),
+                 ("provider_info", None),
+                 ("registration", None),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["code"]}),
+                 ("token_req", None),
+                 ("userinfo_req", None)
+                ],
+        "desc": "Can Request and Use JSON UserInfo Response"
+    },
+    "RP-15": {
+        "flow": [("discover", None),
+                 ("provider_info", None),
+                 ("registration", {"userinfo_signed_response_alg": "RS256"}),
+                 ("authn_req", {"scope": "openid",
+                                "response_type": ["id_token", "token"]}),
+                 ("userinfo_req", None)
+                ],
+        "desc": "Can Request and Use Signed UserInfo Response"
+    },
 }

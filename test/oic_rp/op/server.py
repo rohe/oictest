@@ -301,7 +301,8 @@ def application(environ, start_response):
 
     if path.startswith("static/"):
         return static(environ, start_response, path)
-
+    elif path.startswith("export/"):
+        return static(environ, start_response, path)
     mode, endpoint = extract_mode(path)
 
     if "op" not in session:
