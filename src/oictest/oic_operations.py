@@ -1042,11 +1042,6 @@ class Discover(Operation):
             for key, val in over_ride.items():
                 setattr(client, key, val)
 
-        try:
-            self.trace.info("%s" % client.keyjar)
-        except SerializationNotPossible:
-            pass
-
         self.trace.info("Provider info: %s" % pcr.to_dict())
 
         try:
