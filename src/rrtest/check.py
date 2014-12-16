@@ -1,7 +1,7 @@
 import inspect
 import json
-from oic.oauth2 import ErrorResponse
-from oic.oauth2 import MissingRequiredAttribute
+from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import MissingRequiredAttribute
 
 __author__ = 'rolandh'
 
@@ -20,6 +20,14 @@ STATUSCODE = ["INFORMATION", "OK", "WARNING", "ERROR", "CRITICAL",
 
 CONT_JSON = "application/json"
 CONT_JWT = "application/jwt"
+
+
+def get_protocol_response(conv, cls):
+    res = []
+    for instance, msg in conv.protocol_response:
+        if isinstance(instance, cls):
+            res.append((instance, msg))
+    return res
 
 
 class Check(object):
@@ -370,6 +378,7 @@ class VerifyError(Error):
 
     def _func(self, conv):
         response = conv.last_response
+
         if response.status_code == 400:
             try:
                 resp = json.loads(response.text)
@@ -410,10 +419,18 @@ class CheckErrorResponse(ExpectedError):
     msg = "OP error"
 
     def _func(self, conv):
+        res = {}
+        # did I get one, should only be one
+        try:
+            instance, _ = get_protocol_response(conv, ErrorResponse)[0]
+        except ValueError:
+            pass
+        else:
+            return res
+
         _response = conv.last_response
         _content = conv.last_content
 
-        res = {}
         if _response.status_code >= 400:
             content_type = _response.headers["content-type"]
             if content_type is None:
@@ -423,7 +440,6 @@ class CheckErrorResponse(ExpectedError):
                     self.err = ErrorResponse().deserialize(_content, "json")
                     self.err.verify()
                     res["content"] = self.err.to_json()
-                    #res["temp"] = err
                 except Exception:
                     res["content"] = _content
             else:
