@@ -7,6 +7,7 @@ import sys
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
 from urlparse import parse_qs
+from oic.exception import PyoidcError
 
 from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
@@ -35,14 +36,14 @@ from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 
-from rrtest import Trace, exception_trace
+from rrtest import Trace
+from rrtest import exception_trace
+from rrtest import Break
+from rrtest.check import ERROR
+from rrtest.check import WARNING
 
 LOGGER = logging.getLogger("")
 
-LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
-                        module_directory='modules',
-                        input_encoding='utf-8',
-                        output_encoding='utf-8')
 
 SERVER_ENV = {}
 INCOMPLETE = 5
@@ -289,8 +290,11 @@ def post_tests(conv, req_c, resp_c):
 
 
 def err_response(environ, start_response, session, where, err):
-    session["node"].state = 3
-    exception_trace(where, err)
+    if isinstance(err, Break):
+        session["node"].state = WARNING
+    else:
+        session["node"].state = ERROR
+    exception_trace(where, err, LOGGER)
     return flow_list(environ, start_response, session["tests"])
 
 
@@ -396,7 +400,12 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         kwargs["request_args"] = _extra
 
                 req.call_setup()
-                url, body, ht_args = req.construct_request(ots.client, **kwargs)
+                try:
+                    url, body, ht_args = req.construct_request(ots.client,
+                                                               **kwargs)
+                except PyoidcError as err:  # A OIDC specific error
+                    return err_response(environ, start_response, session,
+                                        "construct_request", err)
 
                 if req.request == "AuthorizationRequest":
                     session["response_type"] = req.request_args["response_type"]
@@ -411,9 +420,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     except AttributeError:
                         pass
 
-                    response = request_and_return(
-                        conv, url, message_factory(resp_c.response), req.method,
-                        body, resp_c.ctype, **_kwargs)
+                    try:
+                        response = request_and_return(
+                            conv, url, message_factory(resp_c.response),
+                            req.method, body, resp_c.ctype, **_kwargs)
+                    except PyoidcError as err:
+                        return err_response(environ, start_response, session,
+                                            "request_and_return", err)
+
                     trace.info(response.to_dict())
                     LOGGER.info(response.to_dict())
                     if resp_c.response == "RegistrationResponse":
@@ -625,6 +639,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
     parser.add_argument('-t', dest='testflows')
+    parser.add_argument('-d', dest='directory')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -646,6 +661,18 @@ if __name__ == '__main__':
         TEST_FLOWS = importlib.import_module(args.testflows)
     else:
         TEST_FLOWS = importlib.import_module("oictest.testflows")
+
+    if args.directory:
+        _dir = args.directory
+        if not _dir.endswith("/"):
+            _dir += "/"
+    else:
+        _dir = "./"
+
+    LOOKUP = TemplateLookup(directories=[_dir+'templates', _dir+'htdocs'],
+                            module_directory=_dir+'modules',
+                            input_encoding='utf-8',
+                            output_encoding='utf-8')
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 

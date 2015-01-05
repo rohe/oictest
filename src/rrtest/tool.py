@@ -8,6 +8,7 @@ from oic.oic import ProviderConfigurationResponse, RegistrationResponse
 
 from rrtest.opfunc import Operation
 from rrtest import FatalError
+from rrtest import Break
 from rrtest.check import ExpectedError
 from rrtest.check import INTERACTION
 from rrtest.interaction import Interaction
@@ -79,7 +80,10 @@ class Conversation(object):
             except KeyError:
                 pass
 
-            raise FatalError(stat["message"])
+            if not stat["mti"]:
+                raise Break(stat["message"])
+            else:
+                raise FatalError(stat["message"])
 
     def do_check(self, test, **kwargs):
         if isinstance(test, basestring):

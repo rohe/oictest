@@ -1,6 +1,5 @@
 import time
 import traceback
-#from oic.oauth2 import HTTP_ERROR
 import requests
 from subprocess import Popen, PIPE
 import sys
@@ -8,15 +7,23 @@ import sys
 __author__ = 'rolandh'
 
 
-class FatalError(Exception):
+class RRTestError(Exception):
     pass
 
 
-class HttpError(Exception):
+class FatalError(RRTestError):
     pass
 
 
-class Unknown(Exception):
+class Break(RRTestError):
+    pass
+
+
+class HttpError(RRTestError):
+    pass
+
+
+class Unknown(RRTestError):
     pass
 
 

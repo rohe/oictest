@@ -1,4 +1,5 @@
-from oic.oic.provider import Provider
+#from oic.oic.provider import Provider
+from oictest.provider import Provider
 
 __author__ = 'roland'
 
@@ -109,6 +110,7 @@ def setup_op(mode, com_args, op_arg):
 
         try:
             op.err_type = mode["err"]
+            op.server.err_type = mode["err"]
         except KeyError:
             pass
 

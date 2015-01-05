@@ -2032,7 +2032,7 @@ FLOWS = {
     },
     # =====================================================================
     'OP-L-01': {
-        "name": 'Support WebFinger discovery',
+        "name": 'Publish openid-configuration discovery information',
         "descr": 'Exchange in which Client Discovers and Uses OP Information',
         "sequence": [],
         "endpoints": [],
@@ -2058,12 +2058,12 @@ FLOWS = {
         "tests": [("verify-op-has-registration-endpoint", {})],
         "profile": ["Dynamic"]
     },
-    # 'OP-L-03': {
-    #     "name": 'Can Discover Identifiers using E-Mail/URL Syntax',
-    #     "sequence": ["webfinger"],
-    #     "block": ["registration", "key_export"],
-    #     "profile": ["Dynamic"]
-    # },
+    'OP-L-05': {
+        "name": 'Can Discover Identifiers using E-Mail/URL Syntax',
+        "sequence": ["webfinger"],
+        "block": ["registration", "key_export"],
+        "profile": ["Dynamic"]
+    },
     # =====================================================================
     # 'OP-M-01': {
     #     "name": '',

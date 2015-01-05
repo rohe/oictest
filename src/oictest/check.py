@@ -309,6 +309,7 @@ class CheckSignedIdTokenSupport(CheckSupported):
     msg = "Signed Id Token algorithm not supported"
     element = "id_token_signing_alg_values_supported"
     parameter = "id_token_signed_response_alg"
+    mti = False
 
 
 class CheckSignedRequestObjectSupport(CheckSupported):
@@ -319,6 +320,7 @@ class CheckSignedRequestObjectSupport(CheckSupported):
     msg = "Signed request object algorithm not supported"
     element = "request_object_signing_alg_values_supported"
     parameter = "request_object_signed_alg"
+    mti = False
 
 
 class CheckEncryptedUserInfoSupportALG(CheckSupported):
@@ -436,6 +438,7 @@ class CheckRequestParameterSupported(CheckSupportedTrue):
     cid = "check-request-parameter-supported-support"
     msg = "Request parameter not supported"
     element = "request_parameter_supported"
+    mti = False
 
 
 class CheckRequestURIParameterSupported(CriticalError):
@@ -445,6 +448,7 @@ class CheckRequestURIParameterSupported(CriticalError):
     cid = "check-request-parameter-supported-support"
     msg = "Request parameter not supported"
     element = "request_uri_parameter_supported"
+    mti = False
 
 
 class CheckIdTokenSignedResponseAlgSupport(CheckSupported):

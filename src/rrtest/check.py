@@ -36,6 +36,7 @@ class Check(object):
 
     cid = "check"
     msg = "OK"
+    mti = True
 
     def __init__(self, **kwargs):
         self._status = OK
@@ -63,7 +64,8 @@ class Check(object):
         res = {
             "id": self.cid,
             "status": self._status,
-            "name": name
+            "name": name,
+            "mti": self.mti
         }
 
         if self._message:
