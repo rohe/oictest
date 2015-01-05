@@ -1,3 +1,6 @@
+from oic.oic.message import AtHashError
+from oic.oic.message import CHashError
+
 __author__ = 'roland'
 
 
@@ -29,14 +32,14 @@ FLOWS = {
     },
     "RP-06": {
         "flow": [("discover", None), ("provider_info", None),
-                 ("registration", None),
+                 ("registration", {"id_token_signed_response_alg": "RS256"}),
                  ("authn_req", {"scope": "openid",
                                 "response_type": ["id_token"]})],
         "desc": "Can Make Request with 'id_token' Response Type"
     },
     "RP-07": {
         "flow": [("discover", None), ("provider_info", None),
-                 ("registration", None),
+                 ("registration", {"id_token_signed_response_alg": "RS256"}),
                  ("authn_req", {"scope": "openid",
                                 "response_type": ["id_token", "token"]})],
         "desc": "Can Make Request with 'id_token token' Response Type"
@@ -95,21 +98,69 @@ FLOWS = {
         "flow": [("discover", None),
                  ("provider_info", None),
                  ("registration", None),
-                 ("authn_req", {"scope": "openid",
-                                "response_type": ["code"]}),
+                 ("authn_req", {"scope": "openid", "response_type": ["code"]}),
                  ("token_req", None),
-                 ("userinfo_req", None)
-                ],
+                 ("userinfo_req", None)],
         "desc": "Can Request and Use JSON UserInfo Response"
     },
     "RP-15": {
         "flow": [("discover", None),
                  ("provider_info", None),
                  ("registration", {"userinfo_signed_response_alg": "RS256"}),
-                 ("authn_req", {"scope": "openid",
-                                "response_type": ["id_token", "token"]}),
-                 ("userinfo_req", None)
-                ],
+                 ("authn_req", {"scope": "openid", "response_type": ["code"]}),
+                 ("token_req", None),
+                 ("userinfo_req", None)],
         "desc": "Can Request and Use Signed UserInfo Response"
+    },
+    #<sign_alg>/<encrypt>/<errtype/<claims>
+    "RP-16": {
+        "flow": [
+            ("discover", None),
+            (
+                "provider_info",
+                {"issuer": "https://localhost:8080/_/_/ath/normal"},
+            ),
+            (
+                "registration",
+                {"id_token_signed_response_alg": "RS256"},
+            ),
+            (
+                "authn_req",
+                {"scope": "openid", "response_type": ["id_token", "token"]},
+                AtHashError
+            )],
+        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+    },
+    "RP-17": {
+        "flow": [
+            ("discover", None),
+            (
+                "provider_info",
+                {"issuer": "https://localhost:8080/_/_/ch/normal"},
+            ),
+            (
+                "registration",
+                {"id_token_signed_response_alg": "RS256"},
+            ),
+            (
+                "authn_req",
+                {"scope": "openid", "response_type": ["code", "id_token"]},
+                CHashError
+            )],
+        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+    },
+    "RP-18": {
+        "flow": [
+            ("discover", None),
+            ("provider_info", None),
+            ("registration", None),
+            (
+                "authn_req",
+                {"scope": "openid", "response_type": ["code"],
+                 "claims": {"id_token": {"given_name": {"essential": True}}}},
+            ),
+            ("token_req", None)],
+        "desc": "Can Request and Use Claims in id_token using the 'claims' "
+                "request parameter"
     },
 }

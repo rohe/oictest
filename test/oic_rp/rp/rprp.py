@@ -4,7 +4,8 @@ import logging
 from urlparse import parse_qs
 import argparse
 from mako.lookup import TemplateLookup
-from oic.oauth2 import rndstr, ResponseError
+from oic.oauth2 import rndstr
+from oic.oauth2 import ResponseError
 
 from oic.oic import Client, AuthorizationRequest, AuthorizationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -76,19 +77,27 @@ def flow_list(environ, start_response, flows, done):
 
 
 def run_flow(client, index, session):
-
     if index < len(session["flow"]["flow"]):
         session["index"] = index
-        for action, args in session["flow"]["flow"][index:]:
+        for spec in session["flow"]["flow"][index:]:
+            try:
+                action, args, _ = spec
+            except ValueError:
+                try:
+                    action, args = spec
+                except ValueError:
+                    action = spec
+                    args = {}
+
             session["index"] += 1  # next to run
 
             if action == "discover":
-                if args:
-                    session["issuer"] = client.discover(args)
-                else:
-                    session["issuer"] = client.discover(CONF.ISSUER)
+                session["issuer"] = client.discover(CONF.ISSUER)
             elif action == "provider_info":
-                client.provider_config(session["issuer"])
+                if args:
+                    client.provider_config(**args)
+                else:
+                    client.provider_config(session["issuer"])
             elif action == "registration":
                 if args:
                     client.register(
@@ -96,6 +105,7 @@ def run_flow(client, index, session):
                 else:
                     client.register(
                         client.provider_info["registration_endpoint"])
+                client.client_prefs = args
             elif action == "authn_req":
                 session["state"] = rndstr()
                 session["nonce"] = rndstr()
@@ -191,6 +201,12 @@ def application(environ, start_response):
             LOGGER.error("%s" % err)
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
+        except Exception as err:
+            _spec = session["flow"]["flow"][session["index"]-1]
+            try:
+                assert isinstance(err, _spec[2])
+            except KeyError:
+                raise
         else:
             pass
 
