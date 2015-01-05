@@ -15,11 +15,10 @@ from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
-from beaker.session import Session
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
-from oic.utils.authn.client import verify_client, CLIENT_AUTHN_METHOD
+from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
@@ -257,13 +256,9 @@ ENDPOINTS = [
 URLS = [
     (r'^verify', verify),
     (r'.well-known/openid-configuration', op_info),
-    #(r'^.well-known/simple-web-discovery', swd_info),
-    #(r'^.well-known/host-meta.json', meta_info),
     (r'.well-known/webfinger', webfinger),
-#    (r'^.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
-#    (r'tracelog', trace_log),
 ]
 
 
@@ -309,9 +304,10 @@ def application(environ, start_response):
         session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
         session["mode_path"] = mode2path(mode)
     else:  # may be a new mode
-        if session["mode_path"] != mode2path(mode):
-            session["op"] = setup_op(mode)
-            session["mode_path"] = mode2path(mode)
+        _path = mode2path(mode)
+        if session["mode_path"] != _path:
+            session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
+            session["mode_path"] = _path
 
     for regex, callback in URLS:
         match = re.search(regex, endpoint)
@@ -348,7 +344,7 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_pyopenssl
 
-    from provider import Provider
+    from oic.oic.provider import Provider
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', dest='verbose', action='store_true')
@@ -380,14 +376,19 @@ if __name__ == '__main__':
 
     for authkey, value in config.AUTHENTICATION.items():
         authn = None
-        if "UserPassword" == authkey:
-            from oic.utils.authn.user import UsernamePasswordMako
-            authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
-                                         "authorization")
+        # if "UserPassword" == authkey:
+        #     from oic.utils.authn.user import UsernamePasswordMako
+        #     authn = UsernamePasswordMako(None, "login.mako", LOOKUP, PASSWD,
+        #                                  "authorization")
+
+        if "NoAuthn" == authkey:
+            from oic.utils.authn.user import NoAuthn
+
+            authn = NoAuthn(None, user=config.AUTHENTICATION[authkey]["user"])
+
         if authn is not None:
             ac.add(config.AUTHENTICATION[authkey]["ACR"], authn,
-                   config.AUTHENTICATION[authkey]["WEIGHT"],
-                   config.AUTHENTICATION[authkey]["URL"])
+                   config.AUTHENTICATION[authkey]["WEIGHT"])
 
     # dealing with authorization
     authz = AuthzHandling()
@@ -402,6 +403,8 @@ if __name__ == '__main__':
         # User info is a simple dictionary in this case statically defined in
         # the configuration file
         userinfo = UserInfo(config.USERDB)
+    else:
+        userinfo = None
 
     # Should I care about verifying the certificates used by other entities
     if args.insecure:
@@ -414,7 +417,7 @@ if __name__ == '__main__':
         "sdb": SessionDB(config.baseurl),
         "cdb": cdb,
         "authn_broker": ac,
-        "userinfo": None,
+        "userinfo": userinfo,
         "authz": authz,
         "client_authn": verify_client,
         "symkey": config.SYM_KEY,
