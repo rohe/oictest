@@ -67,10 +67,14 @@ def get_id_tokens(conv):
 
     # implicit, id_token in authorization response
     for inst, msg in get_protocol_response(conv, message.AuthorizationResponse):
-        idt = inst["id_token"]
-        _info = urlparse.parse_qs(msg)
-        jwt = _info["id_token"][0]
-        res.append((idt, jwt))
+        try:
+            idt = inst["id_token"]
+        except KeyError:
+            pass
+        else:
+            _info = urlparse.parse_qs(msg)
+            jwt = _info["id_token"][0]
+            res.append((idt, jwt))
 
     return res
 
