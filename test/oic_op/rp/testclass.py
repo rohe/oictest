@@ -299,9 +299,6 @@ class DResponse(object):
 
 
 class Discover(Operation):
-    _tests = {"post": [ProviderConfigurationInfo, VerfyMTIEncSigAlgorithms,
-                       CheckEncSigAlgorithms, VerifyOPEndpointsUseHTTPS],
-              "pre": [DiscoveryConfig]}
     conv_param = "provider_info"
     request = "DiscoveryRequest"
 
@@ -310,7 +307,7 @@ class Discover(Operation):
         self.request = "DiscoveryRequest"
         self.function = self.discover
         self.do_postop = True
-        self.tests = self._tests.copy()
+        self.tests = {}
 
     def discover(self, client, orig_response="", content="", issuer="",
                  **kwargs):
@@ -391,16 +388,6 @@ class UserInfoRequestGetBearerHeader(GetRequest):
 class RefreshAccessToken(PostRequest):
     request = "RefreshAccessTokenRequest"
 
-    # def call_setup(self):
-    #     # make sure there is a refresh_token
-    #     try:
-    #         _ = response_claim(self.conv, message.AccessTokenResponse,
-    #                            "refresh_token")
-    #     except MissingResponseClaim:
-    #         raise UnSupported("No refresh_token")
-    #
-    #     self.kw_args = {"authn_method": "private_key_jwt"}
-
 
 # ========== RESPONSE MESSAGES ========
 
@@ -422,11 +409,6 @@ class RegistrationResponse(BodyResponse):
 
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
-
-
-# class AuthzFormResponse(UrlResponse):
-#     response = "AuthorizationResponse"
-#     where = "body"
 
 
 class AccessTokenResponse(BodyResponse):
