@@ -37,7 +37,7 @@ PROFILEMAP = {
         "_login_": ("oic-login", {"request_args": {"response_type": ["code"]}}),
         "_accesstoken_": "access-token-request",
         "flows": [
-            'OP-A-02',
+            'OP-A-01','OP-A-02',
             'OP-B-01', 'OP-B-02', 'OP-B-03', 'OP-B-04', 'OP-B-05', 'OP-B-06',
             'OP-C-01', 'OP-C-02', 'OP-C-03',
             'OP-D-01',
@@ -269,6 +269,11 @@ FLOWS = {
             "_login_", "_accesstoken_"],
         "mti": "MUST",
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"}}
+    },
+    'OP-B-01-btf': {
+        "desc": 'If left to itself is the OP signing the ID Token and with what',
+        "sequence": ['_discover_', "_login_", '_accesstoken_'],
+        "tests": {"is-idtoken-signed": {"alg": "RS256"}}
     },
     'OP-B-02': {
         "desc": 'IDToken has kid',
