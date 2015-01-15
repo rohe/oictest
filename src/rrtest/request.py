@@ -11,6 +11,7 @@ __author__ = 'rolandh'
 
 DUMMY_URL = "https://remove.this.url/"
 
+
 class Request(object):
     request = ""
     method = ""
@@ -31,23 +32,7 @@ class Request(object):
         self.trace = conv.trace
         self.tests = copy.deepcopy(self._tests)
 
-    def construct_request(self, client, **cargs):
-        """
-        Construct the request to send to the OP
-        :param client: A client (RP) instance
-        :param cargs: Extra keyword arguments
-        :return:
-            url - which url to send the request to
-            body - The message to send in the HTTP body
-            ht_args - HTTP headers arguments
-        """
-        if not self.request:
-            request = None
-        elif isinstance(self.request, basestring):
-            request = self.conv.msg_factory(self.request)
-        else:
-            request = self.request
-
+    def collect_args(self, cargs, request):
         try:
             kwargs = self.kw_args.copy()
         except KeyError:
@@ -91,9 +76,15 @@ class Request(object):
             except KeyError:
                 pass
 
+        return kwargs, cargs, e_arg, _req
+
+    def _construct_message(self, request, client, kwargs):
         if request:
             if request.__name__ == "RegistrationRequest":
-                kwargs["request_args"].update(client.behaviour)
+                # don't overwrite
+                _kwa = copy.deepcopy(client.behaviour)
+                _kwa.update(kwargs["request_args"])
+                kwargs["request_args"] = _kwa
             elif request.__name__ == "AuthorizationRequest":
                 try:
                     _ruri = kwargs["request_args"]["redirect_uri"]
@@ -117,20 +108,28 @@ class Request(object):
                     pass
 
             setattr(self.conv, request.__name__, cis)
-            try:
-                cis.lax = self.lax
-            except AttributeError:
-                pass
         else:
             cis = Message()
 
-        if "authn_method" in kwargs:
-            h_arg = client.init_authentication_method(cis, **kwargs)
-        else:
-            h_arg = {}
+        return cis
 
+    @staticmethod
+    def remove_url(kwargs, url):
+        try:
+            if kwargs["request_args"]["redirect_uri"] == DUMMY_URL:
+                _str = "redirect_uri=%s" % urllib.quote_plus(DUMMY_URL)
+                # Can be first or last
+                if url.find("&"+_str):
+                    url = url.replace("&"+_str, "")
+                else:
+                    url = url.replace(_str+"&", "")
+        except KeyError:
+            pass
+        return url
+
+    def request_info(self, request, cis, client, _req, e_arg, h_arg, method):
         if request:
-            _kwargs = {"method": self.method, "request_args": _req,
+            _kwargs = {"method": method, "request_args": _req,
                        "content_type": self.content_type,
                        "accept": self.accept}
 
@@ -163,17 +162,45 @@ class Request(object):
             url = e_arg["endpoint"]
             body = ""
 
+        return url, body, ht_args
+
+    def construct_request(self, client, **cargs):
+        """
+        Construct the request to send to the OP
+        :param client: A client (RP) instance
+        :param cargs: Extra keyword arguments
+        :return:
+            url - which url to send the request to
+            body - The message to send in the HTTP body
+            ht_args - HTTP headers arguments
+        """
+        if not self.request:
+            request = None
+        elif isinstance(self.request, basestring):
+            request = self.conv.msg_factory(self.request)
+        else:
+            request = self.request
+
+        kwargs, cargs, e_arg, _req = self.collect_args(cargs, request)
+
+        cis = self._construct_message(request, client, kwargs)
+        cis.lax = True
+
+        if "authn_method" in kwargs:
+            h_arg = client.init_authentication_method(cis, **kwargs)
+        else:
+            h_arg = {}
+
+        try:
+            _method = cargs["method"]
+        except KeyError:
+            _method = self.method
+
+        url, body, ht_args = self.request_info(
+            request, cis, client, _req, e_arg, h_arg, _method)
+
         if request and request.__name__ == "AuthorizationRequest":
-            try:
-                if kwargs["request_args"]["redirect_uri"] == DUMMY_URL:
-                    _str = "redirect_uri=%s" % urllib.quote_plus(DUMMY_URL)
-                    # Can be first or last
-                    if url.find("&"+_str):
-                        url = url.replace("&"+_str, "")
-                    else:
-                        url = url.replace(_str+"&", "")
-            except KeyError:
-                pass
+            url = self.remove_url(kwargs, url)
 
         self.conv.last_url = url
         if e_arg["http_authz"]:
@@ -293,5 +320,4 @@ class PlainResponse(Response):
 
 class Process(object):
     pass
-
 

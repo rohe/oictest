@@ -14,7 +14,6 @@ CLIENT = {
         {"type": "EC", "crv": "P-256", "use": ["enc"]}
     ],
     "behaviour": {
-        "response_type": "code",
         "scope": ["openid", "profile", "email", "address", "phone"],
     },
     "preferences": {

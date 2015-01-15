@@ -1,11 +1,11 @@
 class Node():
-    def __init__(self, name, desc, rmc=False, experr=False, profiles=[]):
+    def __init__(self, name, desc, rmc=False, experr=False, profiles=None):
         self.name = name
         self.desc = desc
         self.children = {}
         self.parent = []
         self.state = 0
-        self.profiles = profiles
+        self.profiles = profiles or {}
         self.rmc = rmc
         self.experr = experr
 

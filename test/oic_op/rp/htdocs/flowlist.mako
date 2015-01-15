@@ -40,21 +40,21 @@ def op_choice(base, nodes, test_info):
              '<img src="static/greybutton" alt="Grey">',
              '<img src="static/qmark.jpg" alt="QuestionMark">']
     element = "<ul>"
+
     for node in nodes:
         if not node.name[3] == _id:
             _id = node.name[3]
             element += "<hr size=2><h3 id='%s'>%s</h3>" % (_id, DESC[_id])
         element += "<li><a href='%s%s'>%s</a>%s (%s) " % (base,
             node.name, color[node.state], node.desc, node.name)
-        if node.profiles:
-            element += "[%s]" % ",".join(node.profiles)
+
         if node.rmc:
             element += '<img src="static/delete-icon.png">'
         if node.experr:
             element += '<img src="static/beware.png">'
         if node.name in test_info:
             element += "<a href='%stest_info/%s'><img src='static/info32.png'></a>" % (
-                base, node.name)
+                    base, node.name)
     element += "</select>"
     return element
 %>
@@ -80,7 +80,7 @@ ICONS = [
     ]
 
 def legends():
-    element = "<table border='1'>"
+    element = "<table border='1' id='legends'>"
     for icon, txt in ICONS:
         element += "<tr><td>%s</td><td>%s</td></tr>" % (icon, txt)
     element += '</table>'
@@ -107,7 +107,8 @@ def legends():
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OICTEST</h1>
-          <em>Explanations of legends at end of page</em>
+          <em>Explanations of legends at <a href="#legends">end of page</a></em>
+          <h3>You are testing using: ${profile}</h3>
           <h3>Chose the next test flow you want to run from this list: </h3>
           ${op_choice(base, flows, test_info)}
           <h3>Legends</h3>

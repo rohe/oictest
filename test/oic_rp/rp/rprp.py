@@ -80,44 +80,37 @@ def run_flow(client, index, session):
     if index < len(session["flow"]["flow"]):
         session["index"] = index
         for spec in session["flow"]["flow"][index:]:
-            try:
-                action, args, _ = spec
-            except ValueError:
-                try:
-                    action, args = spec
-                except ValueError:
-                    action = spec
-                    args = {}
 
             session["index"] += 1  # next to run
 
-            if action == "discover":
+            if spec["action"] == "discover":
                 session["issuer"] = client.discover(CONF.ISSUER)
-            elif action == "provider_info":
-                if args:
-                    client.provider_config(**args)
+            elif spec["action"] == "provider_info":
+                if spec["args"]:
+                    client.provider_config(**spec["args"])
                 else:
                     client.provider_config(session["issuer"])
-            elif action == "registration":
-                if args:
+            elif spec["action"] == "registration":
+                if spec["args"]:
                     client.register(
-                        client.provider_info["registration_endpoint"], **args)
+                        client.provider_info["registration_endpoint"],
+                        **spec["args"])
                 else:
                     client.register(
                         client.provider_info["registration_endpoint"])
-                client.client_prefs = args
-            elif action == "authn_req":
+                client.client_prefs = spec["args"]
+            elif spec["action"] == "authn_req":
                 session["state"] = rndstr()
                 session["nonce"] = rndstr()
-                _args = copy.deepcopy(args)
+                _args = copy.deepcopy(spec["args"])
                 _args["nonce"] = session["nonce"]
                 url, body, ht_args, csi = client.request_info(
                     AuthorizationRequest, method="GET", request_args=_args,
                     state=session["state"])
                 return Redirect(str(url))
-            elif action == "token_req":
-                if args:
-                    _args = copy.deepcopy(args)
+            elif spec["action"] == "token_req":
+                if spec["args"]:
+                    _args = copy.deepcopy(spec["args"])
                 else:
                     _args = {}
 
@@ -125,9 +118,9 @@ def run_flow(client, index, session):
                 _args["request_args"] = {
                     "redirect_uri": client.redirect_uris[0]}
                 client.do_access_token_request(**_args)
-            elif action == "userinfo_req":
-                if args:
-                    _args = copy.deepcopy(args)
+            elif spec["action"] == "userinfo_req":
+                if spec["args"]:
+                    _args = copy.deepcopy(spec["args"])
                 else:
                     _args = {}
 

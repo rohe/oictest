@@ -5,7 +5,7 @@ from jwkest import unpack
 from jwkest.jwe import JWE_RSA
 from jwkest.jwk import RSAKey, ECKey
 from jwkest.jwk import base64url_to_long
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ErrorResponse, AccessTokenResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
 from oictest.regalg import MTI
@@ -53,6 +53,25 @@ def get_protocol_response(conv, cls):
     for instance, msg in conv.protocol_response:
         if isinstance(instance, cls):
             res.append((instance, msg))
+    return res
+
+
+def get_id_tokens(conv):
+    res = []
+    # In access token responses
+    for inst, msg in get_protocol_response(conv, message.AccessTokenResponse):
+        _dict = json.loads(msg)
+        jwt = _dict["id_token"]
+        idt = inst["id_token"]
+        res.append((idt, jwt))
+
+    # implicit, id_token in authorization response
+    for inst, msg in get_protocol_response(conv, message.AuthorizationResponse):
+        idt = inst["id_token"]
+        _info = urlparse.parse_qs(msg)
+        jwt = _info["id_token"][0]
+        res.append((idt, jwt))
+
     return res
 
 
@@ -944,21 +963,59 @@ class MultipleSignOn(Error):
     cid = "multiple-sign-on"
 
     def _func(self, conv):
-        logins = 0
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
 
-        for line in conv.trace:
-            if ">> login <<" in line:
-                logins += 1
+        idt = [i for i, j in res]
 
-        if logins == 1:
+        if len(idt) == 1:
             self._message = " ".join(["Only one authentication when more than",
                                       "one was expected"])
+            self._status = self.status
+
+        # verify that it is in fact two separate authentications
+        try:
+            assert idt[0]["auth_time"] != idt[1]["auth_time"]
+        except AssertionError:
+            self._message = "Not two separate authentications!"
             self._status = self.status
 
         return {}
 
 
-class VerifyRedirect_uriQueryComponent(Error):
+class SameAuthn(Error):
+    """ Verifies that multiple authentication was used in the flow """
+    cid = "same-authn"
+
+    def _func(self, conv):
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        idt = [i for i, j in res]
+
+        if len(idt) == 1:
+            self._message = " ".join(["Only one authentication when more than",
+                                      "one was expected"])
+            self._status = self.status
+
+        # verify that it is in fact two separate authentications
+        try:
+            assert idt[0]["auth_time"] == idt[1]["auth_time"]
+            assert idt[0]["sub"] == idt[1]["sub"]
+        except AssertionError:
+            self._message = "Not one authentication!"
+            self._status = self.status
+
+        return {}
+
+
+class VerifyRedirectUriQueryComponent(Error):
     """
     Checks that a query component in the redirect_uri value that was
     specified in the Authorization request are present in the
@@ -967,14 +1024,10 @@ class VerifyRedirect_uriQueryComponent(Error):
     cid = "verify-redirect_uri-query_component"
 
     def _func(self, conv):
-        ruri = self._kwargs["redirect_uri"]
-        part = urlparse.urlparse(ruri)
-        qdict = urlparse.parse_qs(part.query)
         item, msg = conv.protocol_response[-1]
         try:
-            for key, vals in qdict.items():
-                if len(vals) == 1:
-                    assert item[key] == vals[0]
+            for key, vals in self._kwargs.items():
+                assert item[key] == vals
         except AssertionError:
             self._message = "Query component that was part of the " \
                             "redirect_uri is missing"
@@ -1043,9 +1096,13 @@ class CheckUserID(Error):
     msg = "sub not changed between public and pairwise"
 
     def _func(self, conv=None):
-        sub = []
-        for instance, msg in get_protocol_response(conv, OpenIDSchema):
-            sub.append(instance["sub"])
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        sub = [i["sub"] for i, j in res]
 
         try:
             assert len(sub) == 2
@@ -1117,10 +1174,14 @@ class CheckSymSignedIdToken(Error):
     msg = "Incorrect signature type"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dict = json.loads(msg)
-        jwt = _dict["id_token"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        _, jwt = res[-1]
+
         header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
             assert header["alg"].startswith("HS")
@@ -1138,10 +1199,13 @@ class CheckESSignedIdToken(Error):
     msg = "Incorrect signature type"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dict = json.loads(msg)
-        jwt = _dict["id_token"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        _, jwt = res[-1]
         header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
             assert header["alg"].startswith("ES")
@@ -1177,10 +1241,15 @@ class CheckEncryptedIDToken(Error):
     msg = "ID Token was not encrypted"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dic = json.loads(msg)
-        header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        _, jwt = res[-1]
+
+        header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
             assert header["alg"].startswith("RSA")
         except AssertionError:
@@ -1197,18 +1266,22 @@ class CheckSignedEncryptedIDToken(Error):
     msg = "ID Token was not signed and encrypted"
 
     def _func(self, conv):
-        client = conv.client
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dic = json.loads(msg)
-        header = json.loads(b64d(str(_dic["id_token"].split(".")[0])))
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        _, jwt = res[-1]
+
+        header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
             assert header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
-        dkeys = client.keyjar.get_decrypt_key(owner="")
-        jwt = JWE_RSA().decrypt(_dic["id_token"], dkeys[0].key)
+        dkeys = conv.client.keyjar.get_decrypt_key(owner="")
+        jwt = JWE_RSA().decrypt(jwt, dkeys[0].key)
         _header = unpack(jwt)[0]
         try:
             assert _header["alg"] in ["RS256", "HS256"]
@@ -1223,14 +1296,15 @@ class VerifyAud(Error):
     msg = "Not the same aud in the newly issued token"
 
     def _func(self, conv):
-        # Should be two AccessTokenResponses
-        atr = []
-        for instance, msg in get_protocol_response(
-                conv, message.AccessTokenResponse):
-            atr.append(instance)
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
 
+        aud = [i["aud"] for i, j in res]
         try:
-            assert atr[0]["id_token"]["aud"] == atr[1]["id_token"]["aud"]
+            assert aud[0] == aud[1]
         except AssertionError:
             self._status = self.status
 
@@ -1317,16 +1391,19 @@ class VerifyISS(Error):
     msg = "Not the same iss/issuer in the id_token as in the Provider Info"
 
     def _func(self, conv):
-        # Should be two AccessTokenResponses
-        atr = []
-        instance = conv.protocol_response[-1][0]
-        iss = instance["id_token"]["iss"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
         issuer = get_provider_info(conv)["issuer"]
 
-        try:
-            assert iss == issuer
-        except AssertionError:
-            self._status = self.status
+        for iss in [i["iss"] for i, j in res]:
+            try:
+                assert iss == issuer
+            except AssertionError:
+                self._status = self.status
 
         return {}
 
@@ -1484,22 +1561,19 @@ class VerifyIDTokenUserInfoSubSame(Information):
     msg = "Sub identifier differs between the IdToken and the UserInfo"
 
     def _func(self, conv):
-        ui_sub = idt_sub = ""
+        ui_sub = ""
+
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        idt_sub = [i["sub"] for i, j in res]
 
         # The userinfo sub
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.OpenIDSchema):
-                ui_sub = instance["sub"]
-        # The IdToken sub
-        for instance, msg in conv.protocol_response:
-            if isinstance(instance, message.AccessTokenResponse):
-                if "id_token" in instance:
-                    idt_sub = instance["id_token"]["sub"]
-                    break
-            elif isinstance(instance, message.AuthorizationResponse):
-                if "id_token" in instance:
-                    idt_sub = instance["id_token"]["sub"]
-                    break
+        for instance, msg in get_protocol_response(conv, message.OpenIDSchema):
+            ui_sub = instance["sub"]
 
         try:
             assert ui_sub == idt_sub
@@ -1541,10 +1615,13 @@ class VerifySignedIdTokenHasKID(Error):
     msg = "Signed IdToken has no kid"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dict = json.loads(msg)
-        jwt = _dict["id_token"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        _, jwt = res[-1]
         header = json.loads(b64d(str(jwt.split(".")[0])))
         # doesn't verify signing kid if JWT is signed and then encrypted
         if "enc" not in header:
@@ -1562,18 +1639,28 @@ class VerifySignedIdToken(Error):
     Verifies that an IdToken is signed
     """
     cid = "verify-idtoken-is-signed"
-    msg = "Unsigned IdToken"
+    msg = "IdToken unsigned or signed with the wrong algorithm"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dict = json.loads(msg)
-        jwt = _dict["id_token"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        (idt, jwt) = res[-1]
         header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
-            assert header["alg"] != "none"
+            assert header["alg"] == self._kwargs["alg"]
+        except KeyError:
+            try:
+                assert header["alg"] != "none"
+            except AssertionError:
+                self._status = self.status
         except AssertionError:
             self._status = self.status
+        else:
+            self._message = "Signature algorithm='%s'" % header["alg"]
 
         return {}
 
@@ -1592,10 +1679,15 @@ class VerifyNonce(Error):
         except KeyError:
             ar_nonce = ""
 
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        idt, _ = res[-1]
         try:
-            idt_nonce = instance["id_token"]["nonce"]
+            idt_nonce = idt["nonce"]
         except KeyError:
             idt_nonce = ""
 
@@ -1616,10 +1708,13 @@ class VerifyUnSignedIdToken(Error):
     msg = "Unsigned IdToken"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        _dict = json.loads(msg)
-        jwt = _dict["id_token"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        (_, jwt) = res[-1]
         header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
             assert header["alg"] == "none"
@@ -1652,9 +1747,14 @@ class VerifySubValue(Error):
 
     def _func(self, conv):
         _pattern = conv.client_config["sub"]
-        instance, msg = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-        atr_sub = instance["id_token"]["sub"]
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        (idt, _) = res[-1]
+        atr_sub = idt["sub"]
         for key, val in _pattern.items():
             if key == "essential":  # doesn't really make any sense
                 pass
@@ -1727,6 +1827,76 @@ class DiscoveryConfig(Error):
         except KeyError:
             self._status = ERROR
 
+        return {}
+
+
+class NewSigningKeys(Error):
+    """
+    Verifies that two set of signing keys are not the same
+    """
+    cid = "new-signing-keys"
+    msg = "Can't detect any change in signing keys"
+
+    def _func(self, conv):
+        kbl1 = conv.keybundle[0]._keys  # The old
+        kbl2 = conv.keybundle[1]._keys  # The new
+
+        new = 0
+        for key in kbl2:
+            if key.use == "sig":
+                for _key in kbl1:
+                    if _key.use == "sig":
+                        if key.kty == _key.kty:  # Same type of key
+                            if not key == _key:
+                                new += 1
+        if not new:
+            self._status = self.status
+
+        return {}
+
+
+class NewEncryptionKeys(Error):
+    """
+    Verifies that two set of encryption keys are not the same
+    """
+    cid = "new-encryption-keys"
+    msg = "Can't detect any change in encryption keys"
+
+    def _func(self, conv):
+        kbl1 = conv.keybundle[0]._keys  # The old
+        kbl2 = conv.keybundle[1]._keys  # The new
+
+        new = 0
+        for key in kbl2:
+            if key.use == "enc":
+                for _key in kbl1:
+                    if _key.use == "enc":
+                        if key.kty == _key.kty:  # Same type of key
+                            if not key == _key:
+                                new += 1
+
+        if not new:
+            self._status = self.status
+
+        return {}
+
+
+class UsedAcrValue(Information):
+    """
+    The Acr value in the IdToken
+    """
+    cid = "used-acr-value"
+    msg = ""
+
+    def _func(self, conv):
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        (idt, _) = res[-1]
+        self._message = idt["acr"]
         return {}
 
 

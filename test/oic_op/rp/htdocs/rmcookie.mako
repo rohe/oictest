@@ -25,7 +25,7 @@
       <div class="jumbotron">
         <h1>OICTEST</h1>
         At this point you have to remove all cookies you have received from
-        the OpenID Connect Provider <i>${op}</i>. This since this test is simulating you
+        your OpenID Connect Provider. This since this test is simulating you
         login in from a second device while still being logged in at the first.
         So please remove the cookies and then hit this
         ${button(url)} to continue.

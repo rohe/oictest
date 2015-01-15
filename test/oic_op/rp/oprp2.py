@@ -1,8 +1,10 @@
 #!/usr/bin/env python
+import copy
 import importlib
 import argparse
 import logging
 import sys
+from jwkest import JWKESTException
 
 from jwkest.jws import alg2keytype
 from mako.lookup import TemplateLookup
@@ -12,27 +14,18 @@ from oic.exception import PyoidcError
 from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
-from oic.utils.http_util import ServiceError
 from oic.utils.http_util import get_post
 from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
-from oic.oic.message import AccessTokenResponse, RegistrationResponse
+from oic.oic.message import AccessTokenResponse
+from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 
-from oictest.graph import flatten
-from oictest.graph import in_tree
-from oictest.graph import node_cmp
 from oictest.base import Conversation
 from oictest.check import factory as check_factory
-from oictest.check import CheckEndpoint
-from oictest.check import CheckTokenEndpointAuthMethod
-from oictest.check import CheckSupportedTrue
-from oictest.check import CheckRequestURIParameterSupported
 from oictest.check import get_protocol_response
-from oictest.check import CheckOPSupported
-from oictest.graph import sort_flows_into_graph
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
@@ -43,10 +36,24 @@ from rrtest import Break
 from rrtest.check import ERROR
 from rrtest.check import WARNING
 
+from testclass import Discover
+from testclass import RequirementsNotMet
+from testclass import Notice
+from testclass import DisplayUserInfo
+from testclass import DisplayIDToken
+
+from tflow import get_sequence
+from tflow import PMAP
+from tflow import flows
+
 LOGGER = logging.getLogger("")
 
 SERVER_ENV = {}
 INCOMPLETE = 5
+
+
+class NotSupported(Exception):
+    pass
 
 
 def setup_logging(logfile):
@@ -98,23 +105,28 @@ def flow_list(environ, start_response, session):
     resp = Response(mako_template="flowlist.mako",
                     template_lookup=LOOKUP,
                     headers=[])
+
+    _profile = "Basic profile with dynamic discovery and dynamic client registration"
+
     argv = {
         "flows": session["tests"],
-        "flow": session["testid"],
+        "profile": _profile,
         "test_info": session["test_info"].keys(),
         "base": CONF.BASE,
-        "profiles": session["profiles"]
     }
 
     return resp(environ, start_response, **argv)
 
 
 def opresult(environ, start_response, conv, session):
-    if session["node"].complete:
-        _sum = test_summation(conv, session["testid"])
-        session["node"].state = _sum["status"]
-    else:
-        session["node"].state = INCOMPLETE
+    try:
+        if session["node"].complete:
+            _sum = test_summation(conv, session["testid"])
+            session["node"].state = _sum["status"]
+        else:
+            session["node"].state = INCOMPLETE
+    except AttributeError:
+        pass
 
     return flow_list(environ, start_response, session)
 
@@ -192,17 +204,18 @@ def session_setup(session, path, index=0):
     for key in _keys:
         if key.startswith("_"):
             continue
-        elif key in ["tests", "graph", "flow_names", "response_type",
-                     "test_info", "profiles"]:  # don't touch !
+        elif key in ["tests", "flow_names", "response_type",
+                     "test_info", "profile"]:  # don't touch !
             continue
         else:
             del session[key]
 
     ots = OIDCTestSetup(CONF, TEST_FLOWS, str(CONF.PORT))
     session["testid"] = path
-    session["node"] = in_tree(session["graph"], path)
-    sequence_info = ots.make_sequence(path)
-    sequence_info = ots.add_init(sequence_info)
+    session["node"] = get_node(session["tests"], path)
+    sequence_info = {"sequence": get_sequence(path, session["profile"]),
+                     "mti": session["node"].mti,
+                     "tests": session["node"].tests}
     session["seq_info"] = sequence_info
     trace = Trace()
     client_conf = ots.config.CLIENT
@@ -215,52 +228,6 @@ def session_setup(session, path, index=0):
     session["response_type"] = ""
 
     return conv, sequence_info, ots, trace, index
-
-
-def verify_support(conv, ots, graph):
-    """
-    Verifies whether a OP is likely to be able to pass a specific test.
-    All based on the checks that are run before the requests within a
-    slow is sent.
-
-    :param conv: The conversation
-    :param ots: The OIDC RP setup.
-    :param graph: A graph representation of the possible test flows.
-    """
-    for key, val in ots.test_defs.FLOWS.items():
-        sequence_info = ots.make_sequence(key)
-        for op in sequence_info["sequence"]:
-            try:
-                req, resp = op
-            except TypeError:
-                continue
-
-            conv.req = req(conv)
-            if issubclass(req, TEST_FLOWS.AccessTokenRequest):
-                chk = CheckTokenEndpointAuthMethod()
-                res = chk(conv)
-                if res["status"] > 1:
-                    node = in_tree(graph, key)
-                    node.state = 4
-
-            if "pre" in conv.req.tests:
-                for test in conv.req.tests["pre"]:
-                    do_check = False
-                    for check in [CheckTokenEndpointAuthMethod,
-                                  CheckOPSupported,
-                                  CheckSupportedTrue, CheckEndpoint,
-                                  CheckRequestURIParameterSupported,
-                                  CheckTokenEndpointAuthMethod]:
-                        if issubclass(test, check):
-                            do_check = True
-                            break
-
-                    if do_check:
-                        chk = test()
-                        res = chk(conv)
-                        if res["status"] > 1:
-                            node = in_tree(graph, key)
-                            node.state = 4
 
 
 def post_tests(conv, req_c, resp_c):
@@ -291,19 +258,26 @@ def err_response(environ, start_response, session, where, err):
     else:
         session["node"].state = ERROR
     exception_trace(where, err, LOGGER)
+    session["conv"].trace.error("%s:%s" % (err.__class__.__name__, str(err)))
+
+    _tid = session["testid"]
+    session["test_info"][_tid] = {"trace": session["conv"].trace,
+                                  "test_output": session["conv"].test_output}
+
     return flow_list(environ, start_response, session)
 
 
 def none_request_response(sequence_info, index, session, conv, environ,
                           start_response):
-    req = sequence_info["sequence"][index]()
-    if isinstance(req, TEST_FLOWS.Notice):
+    req_c, arg = sequence_info["sequence"][index]
+    req = req_c()
+    if isinstance(req, Notice):
         kwargs = {
             "url": "%scontinue?path=%s&index=%d" % (
                 CONF.BASE, session["testid"], session["index"]),
             "back": CONF.BASE}
         try:
-            kwargs["note"] = sequence_info["note"]
+            kwargs["note"] = session["node"].kwargs["note"]
         except KeyError:
             pass
         try:
@@ -311,12 +285,12 @@ def none_request_response(sequence_info, index, session, conv, environ,
         except (KeyError, TypeError):
             pass
 
-        if isinstance(req, TEST_FLOWS.DisplayUserInfo):
+        if isinstance(req, DisplayUserInfo):
             for presp, _ in conv.protocol_response:
                 if isinstance(presp, OpenIDSchema):
                     kwargs["table"] = presp
                     break
-        elif isinstance(req, TEST_FLOWS.DisplayIDToken):
+        elif isinstance(req, DisplayIDToken):
             instance, _ = get_protocol_response(
                 conv, AccessTokenResponse)[0]
             kwargs["table"] = instance["id_token"]
@@ -333,9 +307,76 @@ def none_request_response(sequence_info, index, session, conv, environ,
         try:
             req(conv)
             return None
-        except TEST_FLOWS.RequirementsNotMet as err:
+        except RequirementsNotMet as err:
             return err_response(environ, start_response, session,
                                 "run_sequence", err)
+
+
+def support(conv, args):
+    pi = conv.client.provider_info
+    for key, val in args.items():
+        try:
+            if isinstance(val, basestring):
+                assert val == pi[key] or val in pi[key]
+            elif isinstance(val, list):
+                for _val in val:
+                    assert _val == pi[key] or _val in pi[key]
+            else:
+                assert val == pi[key]
+        except AssertionError:  # Not supported
+            raise NotSupported("Not supported: %s=%s" % (key, val))
+        except KeyError:  # Not defined
+            conv.trace.info("Not explicit: %s=%s" % (key, val))
+            pass
+
+    return True
+
+
+def setup(kwa, conv, environ, start_response, session):
+    kwargs = copy.deepcopy(kwa)  # decouple
+
+    # evaluate possible functions
+    try:
+        spec = kwargs["function"]
+    except KeyError:
+        pass
+    else:
+        if isinstance(spec, tuple):
+            func, args = spec
+        else:
+            func = spec
+            args = {}
+
+        try:
+            req_args = kwargs["request_args"]
+        except KeyError:
+            req_args = {}
+
+        kwargs["request_args"] = func(req_args, conv, args)
+        del kwargs["function"]
+
+    try:
+        spec = kwargs["kwarg_func"]
+    except KeyError:
+        pass
+    else:
+        if isinstance(spec, tuple):
+            func, args = spec
+        else:
+            func = spec
+            args = {}
+
+        kwargs = func(kwargs, conv, args)
+        del kwargs["kwarg_func"]
+
+    try:
+        support(conv, kwargs["support"])
+    except KeyError:
+        pass
+    else:
+        del kwargs["support"]
+
+    return kwargs
 
 
 def run_sequence(sequence_info, session, conv, ots, environ, start_response,
@@ -343,13 +384,19 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     while index < len(sequence_info["sequence"]):
         session["index"] = index
         try:
-            req_c, resp_c = sequence_info["sequence"][index]
+            (req_c, resp_c), _kwa = sequence_info["sequence"][index]
         except (ValueError, TypeError):  # Not a tuple
             ret = none_request_response(sequence_info, index, session, conv,
                                         environ, start_response)
             if ret:
                 return ret
         else:
+            try:
+                kwargs = setup(_kwa, conv, environ, start_response, session)
+            except Exception as err:
+                return err_response(environ, start_response, session,
+                                    "function()", err)
+
             req = req_c(conv)
             try:
                 if req.tests["pre"]:
@@ -363,23 +410,25 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
             conv.request_spec = req
 
-            if req_c == TEST_FLOWS.Discover:
+            if req_c == Discover:
                 # Special since it's just a GET on a URL
                 _r = req.discover(
                     ots.client, issuer=ots.config.CLIENT["srv_discovery_url"])
                 conv.position, conv.last_response, conv.last_content = _r
-                logging.debug("Provider info: %s" % conv.last_content._dict)
-                verify_support(conv, ots, session["graph"])
+                #logging.debug("Provider info: %s" % conv.last_content._dict)
+                if conv.last_response.status == 400:
+                    return err_response(environ, start_response, session,
+                                        "discover", conv.last_response.text)
+
+                #verify_support(conv, session)
             else:
                 LOGGER.info("request: %s" % req.request)
                 if req.request == "AuthorizationRequest":
                     # New state for each request
-                    kwargs = {"request_args": {"state": rndstr()}}
+                    kwargs["request_args"].update({"state": rndstr()})
                 elif req.request in ["AccessTokenRequest", "UserInfoRequest",
                                      "RefreshAccessTokenRequest"]:
-                    kwargs = {"state": conv.AuthorizationRequest["state"]}
-                else:
-                    kwargs = {}
+                    kwargs.update({"state": conv.AuthorizationRequest["state"]})
 
                 # Extra arguments outside the OIDC spec
                 try:
@@ -404,37 +453,48 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                         "construct_request", err)
 
                 if req.request == "AuthorizationRequest":
-                    session["response_type"] = req.request_args["response_type"]
+                    session["response_type"] = kwargs["request_args"]["response_type"]
                     LOGGER.info("redirect.url: %s" % url)
                     LOGGER.info("redirect.header: %s" % ht_args)
                     resp = Redirect(str(url))
                     return resp(environ, start_response)
                 else:
                     _kwargs = {"http_args": ht_args}
-                    try:
+
+                    if conv.AuthorizationRequest:
                         _kwargs["state"] = conv.AuthorizationRequest["state"]
-                    except AttributeError:
-                        pass
 
                     try:
+                        try:
+                            _method = kwargs["method"]
+                        except KeyError:
+                            _method = req.method
+                        try:
+                            _ctype = kwargs["ctype"]
+                        except KeyError:
+                            _ctype = resp_c.ctype
+
                         response = request_and_return(
-                            conv, url, message_factory(resp_c.response),
-                            req.method, body, resp_c.ctype, **_kwargs)
+                            conv, url, trace, message_factory(resp_c.response),
+                            _method, body, _ctype, **_kwargs)
                     except PyoidcError as err:
                         return err_response(environ, start_response, session,
                                             "request_and_return", err)
+                    except JWKESTException as err:
+                        return err_response(environ, start_response, session,
+                                            "request_and_return", err)
 
-                    trace.info(response.to_dict())
+                    trace.response(response)
                     LOGGER.info(response.to_dict())
                     if resp_c.response == "RegistrationResponse" and \
                             isinstance(response, RegistrationResponse):
                         ots.client.store_registration_info(response)
-                    else:  # must be an ErrorResponse
-                        conv.test_output.append(
-                            {'status': 4, "id": "*",
-                             'message':
-                                 'Error response: %s' % (response.to_dict(),)})
-                        return opresult(environ, start_response, conv, session)
+                    # elif "error" in response:  # must be an ErrorResponse
+                    #     conv.test_output.append(
+                    #         {'status': 4, "id": "*",
+                    #          'message':
+                    #              'Error response: %s' % (response.to_dict(),)})
+                    #     return opresult(environ, start_response, conv, session)
 
             try:
                 post_tests(conv, req_c, resp_c)
@@ -451,7 +511,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     # Any after the fact tests ?
     try:
         if sequence_info["tests"]:
-            conv.test_output.append(("After completing the test", ""))
+            conv.test_output.append(("After completing the test flow", ""))
             conv.test_sequence(sequence_info["tests"])
     except KeyError:
         pass
@@ -467,15 +527,38 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
     return resp(environ, start_response)
 
 
+class Node():
+    def __init__(self, name, desc="", rmc=False, experr=False, mti=None,
+                 tests=None, **kwargs):
+        self.name = name
+        self.desc = desc
+        self.state = 0
+        self.rmc = rmc
+        self.experr = experr
+        self.mti = mti
+        self.tests = tests or {}
+        self.kwargs = kwargs
+
+
+def make_node(x, spec):
+    return Node(x, **spec)
+
+
+def get_node(tests, nid):
+    l = [x for x in tests if x.name == nid]
+    try:
+        return l[0]
+    except ValueError:
+        return None
+
+
 def init_session(session):
-    graph = sort_flows_into_graph(TEST_FLOWS.FLOWS)
-    session["graph"] = graph
-    session["tests"] = [x for x in flatten(graph)]
-    session["tests"].sort(node_cmp)
-    session["flow_names"] = [x.name for x in session["tests"]]
+    session["tests"] = [make_node(x, TEST_FLOWS.FLOWS[x]) for x in
+                        flows(TEST_PROFILE)]
+    session["flow_names"] = [y.name for y in session["tests"]]
     session["response_type"] = []
     session["test_info"] = {}
-    session["profiles"] = TEST_PROFILE
+    session["profile"] = TEST_PROFILE
 
 
 def reset_session(session):
@@ -489,7 +572,7 @@ def reset_session(session):
 
 
 def session_init(session):
-    if "graph" not in session:
+    if "tests" not in session:
         init_session(session)
         return True
     else:
@@ -575,7 +658,7 @@ def application(environ, start_response):
         try:
             return run_sequence(sequence_info, session, conv, ots, environ,
                                 start_response, trace, index)
-        except Exception, err:
+        except Exception as err:
             return err_response(environ, start_response, session,
                                 "run_sequence", err)
     elif path in ["authz_cb", "authz_post"]:
@@ -583,16 +666,11 @@ def application(environ, start_response):
             if session["response_type"] and not \
                             session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
-        try:
-            sequence_info = session["seq_info"]
-            index = session["index"]
-            ots = session["ots"]
-            conv = session["conv"]
-        except KeyError as err:
-            resp = ServiceError(str(err))
-            return resp(environ, start_response)
-
-        req_c, resp_c = sequence_info["sequence"][index]
+        sequence_info = session["seq_info"]
+        index = session["index"]
+        ots = session["ots"]
+        conv = session["conv"]
+        (req_c, resp_c), _ = sequence_info["sequence"][index]
 
         if resp_c:  # None in cases where no OIDC response is expected
             _ctype = resp_c.ctype
@@ -608,6 +686,7 @@ def application(environ, start_response):
                 info = get_post(environ)
 
             LOGGER.info("Response: %s" % info)
+            conv.trace.reply(info)
             resp_cls = message_factory(resp_c.response)
             try:
                 response = ots.client.parse_response(
@@ -623,7 +702,7 @@ def application(environ, start_response):
 
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
-
+            conv.trace.response(response)
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:
@@ -652,7 +731,7 @@ if __name__ == '__main__':
     parser.add_argument('-m', dest='mailaddr')
     parser.add_argument('-t', dest='testflows')
     parser.add_argument('-d', dest='directory')
-    parser.add_argument('-p', dest='profiles')
+    parser.add_argument('-p', dest='profile')
     parser.add_argument(dest="config")
     args = parser.parse_args()
 
@@ -682,10 +761,16 @@ if __name__ == '__main__':
     else:
         _dir = "./"
 
-    if args.profiles:
-        TEST_PROFILE = [x for x in PROFILES if x[0].lower() in args.profiles]
+    if args.profile:
+        # Of the form "B"/"I"/"H" "T"/"F" "T"/"F"
+        TEST_PROFILE = {"profile": PMAP[args.profile[0].upper()],
+                        "discover": True, "register": True}
+        if args.profile[1].upper() == "F":
+            TEST_PROFILE["discover"] = False
+        if args.profile[2].upper() == "F":
+            TEST_PROFILE["register"] = False
     else:
-        TEST_PROFILE = ["Full"]
+        TEST_PROFILE = {"profile": "Basic", "discover": True, "register": True}
 
     LOOKUP = TemplateLookup(directories=[_dir + 'templates', _dir + 'htdocs'],
                             module_directory=_dir + 'modules',

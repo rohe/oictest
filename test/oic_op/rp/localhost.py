@@ -19,7 +19,7 @@ CLIENT = {
         "application_name": "OIC test tool",
         "contacts": ["roland.hedberg@umu.se"],
         "redirect_uris": ["%sauthz_cb" % BASE],
-        "post_logout_redirect_uris": ["%slogout" % BASE],
+        "post_logout_redirect_uris": ["%slogout" % BASE]
     },
     "key_export_url": "%sexport/jwk_%%s.json" % BASE,
 }

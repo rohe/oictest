@@ -43,6 +43,7 @@ class Conversation(tool.Conversation):
         self.login_page = None
         self.response_message = None
         self.info = None
+        self.AuthorizationRequest = None
 
     def my_endpoints(self):
         return self.client.redirect_uris

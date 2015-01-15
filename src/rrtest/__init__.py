@@ -40,6 +40,11 @@ class Trace(object):
         delta = time.time() - self.start
         self.trace.append("%f <-- %s" % (delta, msg))
 
+    def response(self, resp):
+        delta = time.time() - self.start
+        self.trace.append("%f %s: %s" % (
+            delta, resp.__class__.__name__, resp.to_dict()))
+
     def info(self, msg):
         delta = time.time() - self.start
         self.trace.append("%f %s" % (delta, msg))

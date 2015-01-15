@@ -106,14 +106,18 @@ class Conversation(object):
             raise e
 
     def test_sequence(self, sequence):
-        for test in sequence:
-            if isinstance(test, tuple):
-                test, kwargs = test
-            else:
-                kwargs = {}
-            self.do_check(test, **kwargs)
-            if test == ExpectedError:
-                return False
+        if isinstance(sequence, dict):
+            for test, kwargs in sequence.items():
+                self.do_check(test, **kwargs)
+        else:
+            for test in sequence:
+                if isinstance(test, tuple):
+                    test, kwargs = test
+                else:
+                    kwargs = {}
+                self.do_check(test, **kwargs)
+                if test == ExpectedError:
+                    return False
         return True
 
     def my_endpoints(self):

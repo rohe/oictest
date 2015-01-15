@@ -304,7 +304,6 @@ class VerifyBadRequestResponse(ExpectedError):
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
-            conv.protocol_response.append((err, _content))
         elif _response.status_code in [301, 302, 303]:
             pass
         elif _response.status_code in [200, 201]:

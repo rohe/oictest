@@ -3,6 +3,7 @@ import json
 from urlparse import urlparse
 
 from oic import oic
+from oic.oauth2.message import ErrorResponse
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
@@ -134,7 +135,7 @@ class OIDCTestSetup(object):
         _flow = self.test_defs.FLOWS[flow]
 
         for param in ["tests", "block", "mode", "expect_exception",
-                      "note", "cache"]:
+                      "note", "cache", "profile"]:
             try:
                 res[param] = _flow[param]
             except KeyError:
@@ -193,7 +194,7 @@ class OIDCTestSetup(object):
         return test_spec
 
 
-def request_and_return(conv, url, response=None, method="GET", body=None,
+def request_and_return(conv, url, trace, response=None, method="GET", body=None,
                        body_type="json", state="", http_args=None,
                        **kwargs):
     """
@@ -224,16 +225,26 @@ def request_and_return(conv, url, response=None, method="GET", body=None,
     conv.last_response = _resp
     conv.last_content = _resp.content
 
-    if "keyjar" not in kwargs:
-        kwargs["keyjar"] = conv.keyjar
+    trace.reply("STATUS: %d" % _resp.status_code)
 
-    _response = _cli.parse_request_response(_resp, response, body_type, state,
-                                            **kwargs)
+    if _resp.status_code >= 400:  # an error
+        _response = ErrorResponse().from_json(_resp.text)
+    else:
+        if _cli.provider_info["userinfo_endpoint"] == url:
+            _iss = _cli.provider_info["issuer"]
+            kwargs["key"] = _cli.keyjar.get("ver", issuer=_iss)
+            kwargs["key"].extend(_cli.keyjar.get("enc", issuer=_iss))
+        elif "keyjar" not in kwargs:
+            kwargs["keyjar"] = conv.keyjar
 
-    # Need special handling of id_token
-    if "id_token" in _response:
-        _dict = json.loads(_resp.text)
-        conv.id_token = _dict["id_token"]
+        trace.reply(_resp.text)
+        _response = _cli.parse_request_response(_resp, response, body_type,
+                                                state, **kwargs)
+
+        # Need special handling of id_token
+        if "id_token" in _response:
+            _dict = json.loads(_resp.text)
+            conv.id_token = _dict["id_token"]
 
     conv.protocol_response.append((_response, _resp.content))
 
