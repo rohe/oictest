@@ -66,26 +66,6 @@ def get_base(cconf=None):
     return "%s://%s%s" % (part.scheme, part.netloc, _path, )
 
 
-# noinspection PyUnusedLocal
-
-
-def store_sector_redirect_uris(args, alla=True, extra=False, cconf=None):
-    _base = get_base(cconf)
-
-    sector_identifier_url = "%s%s%s" % (_base, LOCAL_PATH, "siu.json")
-    f = open("%ssiu.json" % LOCAL_PATH, 'w')
-    if all:
-        f.write(json.dumps(args["redirect_uris"]))
-    else:
-        f.write(json.dumps(args["redirect_uris"][:-1]))
-    f.close()
-
-    if extra:
-        args["redirect_uris"].append("%scb" % _base)
-
-    args["sector_identifier_uri"] = sector_identifier_url
-
-
 def response_claim(conv, respcls, claim):
     for (instance, msg) in conv.protocol_response:
         if isinstance(instance, respcls):

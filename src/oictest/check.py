@@ -5,7 +5,7 @@ from jwkest import unpack
 from jwkest.jwe import JWE_RSA
 from jwkest.jwk import RSAKey, ECKey
 from jwkest.jwk import base64url_to_long
-from oic.oauth2.message import ErrorResponse, AccessTokenResponse
+from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import message
 from oictest.regalg import MTI

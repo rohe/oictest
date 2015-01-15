@@ -1,8 +1,7 @@
 import json
 from urllib import urlencode
 from urlparse import urlparse
-from oic.oic import message
-from oictest.check import get_protocol_response
+from oictest.check import get_id_tokens
 
 __author__ = 'roland'
 
@@ -29,11 +28,9 @@ def get_base(cconf=None):
 
 
 def id_token_hint(request_args, conv, kwargs):
-    item = get_protocol_response(conv, message.AccessTokenResponse)
-    instance, txt = item[0]
-
-    _inst = json.loads(txt)
-    request_args["id_token_hint"] = _inst["id_token"]
+    res = get_id_tokens(conv)
+    idt, jwt = res[0]
+    request_args["id_token_hint"] = jwt
     return request_args
 
 
@@ -159,19 +156,24 @@ def static_jwk(request_args, conv, kwargs):
 def store_sector_redirect_uris(request_args, conv, kwargs):
     _base = get_base(conv.client_config)
 
-    sector_identifier_url = "%s%s%s" % (_base, "export/", "siu.json")
+    try:
+        ruris = kwargs["other_uris"]
+    except KeyError:
+        try:
+            ruris = request_args["redirect_uris"]
+        except KeyError:
+            ruris = conv.client.redirect_uris
+
+        try:
+            ruris.append("%s%s" % (_base, kwargs["extra"]))
+        except KeyError:
+            pass
+
     f = open("%ssiu.json" % "export/", 'w')
-    if all:
-        f.write(json.dumps(request_args["redirect_uris"]))
-    else:
-        f.write(json.dumps(request_args["redirect_uris"][:-1]))
+    f.write(json.dumps(ruris))
     f.close()
 
-    try:
-        request_args["redirect_uris"].append("%s%s" % (_base, kwargs["extra"]))
-    except KeyError:
-        pass
-
+    sector_identifier_url = "%s%s%s" % (_base, "export/", "siu.json")
     request_args["sector_identifier_uri"] = sector_identifier_url
     return request_args
 
@@ -182,8 +184,8 @@ def request_in_file(args, conv, kwargs):
 
 
 def sub_claims(request_args, conv, kwargs):
-    inst, txt = get_protocol_response(conv, message.AccessTokenResponse)[0]
-    idt = inst["id_token"]
+    res = get_id_tokens(conv)
+    idt, _ = res[-1]
     _sub = idt["sub"]
     request_args["claims"] = {"id_token": {"sub": {"value": _sub}}}
 

@@ -8,7 +8,8 @@ from oictest.check import factory as check_factory
 
 from rrtest import Trace
 
-from testclass import PHASES, store_sector_redirect_uris
+from testclass import PHASES
+from testfunc import store_sector_redirect_uris
 from testfunc import id_token_hint
 from testfunc import request_in_file
 from testfunc import sub_claims
@@ -55,7 +56,7 @@ PROFILEMAP = {
     },
     "Implicit": {
         "_login_": ("oic-login",
-                    {"request_args": {"response_type": ["id_token"]}}),
+                    {"request_args": {"response_type": ["id_token", "token"]}}),
         "_accesstoken_": None,
         "flows": [
             'OP-A-02', 'OP-A-03', 'OP-A-04',
@@ -66,7 +67,6 @@ PROFILEMAP = {
             'OP-F-01', 'OP-F-02',
             'OP-G-01', 'OP-G-02',
             'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-I-01', 'OP-I-02',
             'OP-J-01', 'OP-J-02', 'OP-J-03', 'OP-J-05',
             'OP-M-03', 'OP-M-04', 'OP-M-05',
             'OP-O-01', 'OP-O-02',
@@ -96,6 +96,29 @@ PROFILEMAP = {
         ]
     },
     "Discover": {
+        "flow": {
+            "Basic": [
+                'OP-B-06',
+                'OP-L-01', 'OP-L-02', 'OP-L-03',
+                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
+                'OP-N-01', 'OP-N-02',
+                'OP-O-01', 'OP-O-02', 'OP-O-03'
+            ],
+            "Implicit": [
+                'OP-B-06',
+                'OP-L-01', 'OP-L-02', 'OP-L-03',
+                'OP-M-01', 'OP-M-08',
+                'OP-N-01',
+                'OP-O-01', 'OP-O-02', 'OP-O-03'
+            ],
+            "Hybrid": [
+                'OP-B-06',
+                'OP-L-01', 'OP-L-02', 'OP-L-03',
+                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
+                'OP-N-01', 'OP-N-02',
+                'OP-O-01', 'OP-O-02', 'OP-O-03'
+            ],
+        },
         "flows": [
             'OP-B-06',
             'OP-L-01', 'OP-L-02', 'OP-L-03',
@@ -585,9 +608,9 @@ FLOWS = {
     'OP-G-02': {
         "desc": 'Request with prompt=none',
         "sequence": [
+            'rm_cookie',
             '_discover_',
             '_register_',
-            'rm_cookie',
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
         "mti": "MUST",
@@ -621,8 +644,9 @@ FLOWS = {
         "mti": "SHOULD",
     },
     'OP-H-03': {
-        "desc": 'login_hint',
+        "desc": 'Giving a login hint',
         "sequence": [
+            'rm_cookie',
             '_discover_',
             '_register_',
             ("_login_", {"function": login_hint})
@@ -630,12 +654,12 @@ FLOWS = {
         "mti": "No err"
     },
     'OP-H-04': {
-        "desc": 'ui_locales',
+        "desc": 'Providing ui_locales',
         "sequence": [
-            '_discover_',
-            '_register_',
             'rm_cookie',
             'note',
+            '_discover_',
+            '_register_',
             ('_login_', {"request_args": {},
                          "function": ui_locales}),
         ],
@@ -643,7 +667,7 @@ FLOWS = {
         "mti": "No err"
     },
     'OP-H-05': {
-        "desc": 'claims_locales',
+        "desc": 'Providing claims_locales',
         "sequence": [
             "note",
             '_discover_',
@@ -657,7 +681,7 @@ FLOWS = {
         "mti": "No err"
     },
     'OP-H-06': {
-        "desc": 'acr_values',
+        "desc": 'Providing preferred acr_values',
         "sequence": [
             '_discover_',
             '_register_',
@@ -972,7 +996,8 @@ FLOWS = {
             ('_register_',
              {
                  "request_args": {},
-                 "function": store_sector_redirect_uris
+                 "function": (store_sector_redirect_uris,
+                              {"other_uris": ["https://example.com/op"]})
              })
         ],
     },
@@ -1240,7 +1265,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        'tests': {"verify_claims": {"userinfo": {"name": None}}}
+        'tests': {"verify-claims": {"userinfo": {"name": None}}}
     },
     'OP-Q-02': {
         "desc": 'Support claims request specifying sub value',
@@ -1280,7 +1305,7 @@ FLOWS = {
             }),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {"id_token": {"email": None}}}
+        'tests': {"verify-claims": {"id_token": {"email": None}}}
     },
     'OP-Q-05': {
         "desc": 'Supports Returning Different Claims in ID Token and UserInfo '
@@ -1297,7 +1322,7 @@ FLOWS = {
             }),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD],
-        'tests': {"verify_claims": {
+        'tests': {"verify-claims": {
             "userinfo": {"name": None},
             "id_token": {"email": None}}}
     },
@@ -1316,7 +1341,7 @@ FLOWS = {
             }),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {
+        'tests': {"verify-claims": {
             "userinfo": {"phone": None},
             "id_token": {"email": None}}}
     },
@@ -1331,7 +1356,7 @@ FLOWS = {
             }),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD],
-        'tests': {"verify_claims": {
+        'tests': {"verify-claims": {
             "userinfo": {"picture": None},
             "id_token": {"email": None}}}
     },
@@ -1352,7 +1377,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        'tests': {"verify_claims": {
+        'tests': {"verify-claims": {
             "userinfo": {"picture": None, "name": None, "email": None}}
         },
     },
@@ -1367,7 +1392,7 @@ FLOWS = {
             }),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {"id_token": {"auth_time": None}}}
+        'tests': {"verify-claims": {"id_token": {"auth_time": None}}}
     },
     'OP-Q-10': {
         "desc": 'Requesting ID Token with Essential acr Claim',
@@ -1380,7 +1405,7 @@ FLOWS = {
             }),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {"id_token": {"acr": None}}}
+        'tests': {"verify-claims": {"id_token": {"acr": None}}}
     },
     'OP-Q-11': {
         "desc": 'Requesting ID Token with Voluntary acr Claim',
@@ -1393,7 +1418,7 @@ FLOWS = {
             }),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {"id_token": {"acr": None}}}
+        'tests': {"verify-claims": {"id_token": {"acr": None}}}
     },
     'OP-Q-12': {
         "desc": 'Requesting ID Token with Essential specific acr Claim',
@@ -1403,7 +1428,7 @@ FLOWS = {
             ("_login_", {"function": specific_acr_claims}),
             "_accesstoken_",
         ],
-        'tests': {"verify_claims": {"id_token": {"acr": None}}}
+        'tests': {"verify-claims": {"id_token": {"acr": None}}}
     },
 }
 
@@ -1421,7 +1446,7 @@ def flows(specific):
     prelim = PROFILEMAP[_profile]["flows"]
 
     if specific["discover"]:
-        prelim.extend(PROFILEMAP["Discover"]["flows"])
+        prelim.extend(PROFILEMAP["Discover"]["flow"][_profile])
 
     if specific["register"]:
         prelim.extend(PROFILEMAP["Register"]["flows"])

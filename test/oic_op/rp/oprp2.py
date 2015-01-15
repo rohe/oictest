@@ -106,7 +106,15 @@ def flow_list(environ, start_response, session):
                     template_lookup=LOOKUP,
                     headers=[])
 
-    _profile = "Basic profile with dynamic discovery and dynamic client registration"
+    _profile = "%s profile " % session["profile"]["profile"]
+    if session["profile"]["discover"]:
+        _profile += "with dynamic discovery "
+    else:
+        _profile += "with static discovery "
+    if session["profile"]["register"]:
+        _profile += "and dynamic client registration"
+    else:
+        _profile += "and static client registration"
 
     argv = {
         "flows": session["tests"],
