@@ -1,13 +1,13 @@
 #!/bin/bash
 
 startme() {
-    oprp.py adfs &
-    oprp.py azure_ad &
-    oprp.py google &
-    oprp.py ping &
-    oprp.py salesforce &
-    oprp.py telekom &
-    oprp.py thinktecture_code &
+    ./oprp2.py -p BTF -t tflow adfs &> adfs.err &
+    ./oprp2.py -p BTF -t tflow azure_ad &> azure.err &
+    ./oprp2.py -p BTF -t tflow google &> google.err &
+    ./oprp2.py -p BTF -t tflow ping &> ping.err &
+    ./oprp2.py -p BTF -t tflow salesforce &> salesforce.err &
+    ./oprp2.py -p BTF -t tflow telekom &> telekom.err &
+    ./oprp2.py -p BTF -t tflow thinktecture_code &> thinktecture_code.err &
 }
 
 stopme() {
