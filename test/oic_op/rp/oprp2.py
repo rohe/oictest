@@ -207,7 +207,7 @@ def test_output(out):
             except KeyError:
                 pass
     element.append("\n")
-    return "\n".join(element)
+    return element
 
 
 def trace_output(trace):
@@ -218,7 +218,7 @@ def trace_output(trace):
     for item in trace:
         element.append("%s" % item)
     element.append("\n")
-    return "\n".join(element)
+    return element
 
 
 SUBPROF = {"n": "none", "s": "sign", "b": "sign and encrypt"}
@@ -291,30 +291,33 @@ def log_path(session, test_id=None):
 
 
 def dump_log(session, test_id=None):
-    _conv = session["conv"]
+    try:
+        _conv = session["conv"]
+    except KeyError:
+        pass
+    else:
+        iss = _conv.client.provider_info["issuer"]
+        profile = to_code(session["profile"])
 
-    iss = _conv.client.provider_info["issuer"]
-    profile = to_code(session["profile"])
+        if test_id is None:
+            test_id = session["testid"]
 
-    if test_id is None:
-        test_id = session["testid"]
+        path = log_path(session, test_id)
 
-    path = log_path(session, test_id)
+        output = [
+            "Issuer: %s" % iss,
+            "Profile: %s" % profile,
+            "Test ID: %s" % test_id
+        ]
 
-    output = [
-        "Issuer: %s" % iss,
-        "Profile: %s\n" % profile,
-        "Test ID: %s\n" % test_id
-    ]
+        output.extend(trace_output(_conv.trace))
+        output.append("")
+        output.extend(test_output(_conv.test_output))
 
-    output.extend(trace_output(_conv.trace))
-    output.append("")
-    output.extend(test_output(_conv.test_output))
-
-    f = open(path, "w")
-    f.write("\n".join(output))
-    f.close()
-    return path
+        f = open(path, "w")
+        f.write("\n".join(output))
+        f.close()
+        return path
 
 
 def clear_session(session):
@@ -392,6 +395,14 @@ def err_response(environ, start_response, session, where, err):
                                   "test_output": session["conv"].test_output}
 
     return flow_list(environ, start_response, session)
+
+
+def sorry_response(environ, start_response, homepage):
+    resp = Response(mako_template="sorry.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {"home_page": homepage}
+    return resp(environ, start_response, **argv)
 
 
 def none_request_response(sequence_info, index, session, conv, environ,
@@ -778,7 +789,13 @@ def application(environ, start_response):
             return err_response(environ, start_response, session,
                                 "run_sequence", err)
     elif path == "opresult":
-        conv = session["conv"]
+
+        try:
+            conv = session["conv"]
+        except KeyError:
+            homepage = ""
+            return sorry_response(environ, start_response, homepage)
+
         return opresult(environ, start_response, conv, session)
     # expected path format: /<testid>[/<endpoint>]
     elif path in session["flow_names"]:
@@ -793,12 +810,17 @@ def application(environ, start_response):
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if session["response_type"] and not \
-                            session["response_type"] == ["code"]:
+                    session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
-        sequence_info = session["seq_info"]
-        index = session["index"]
-        ots = session["ots"]
-        conv = session["conv"]
+        try:
+            sequence_info = session["seq_info"]
+            index = session["index"]
+            ots = session["ots"]
+            conv = session["conv"]
+        except KeyError:
+            #  Todo: find out which port I'm listening on
+            return sorry_response(environ, start_response, CONF.BASE)
+
         (req_c, resp_c), _ = sequence_info["sequence"][index]
 
         if resp_c:  # None in cases where no OIDC response is expected
