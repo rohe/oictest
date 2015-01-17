@@ -8,6 +8,8 @@ startme() {
     ./oprp2.py -p BTF -t tflow salesforce &> salesforce.err &
     ./oprp2.py -p BTF -t tflow telekom &> telekom.err &
     ./oprp2.py -p BTF -t tflow thinktecture_code &> thinktecture_code.err &
+    ./oprp2.py -p ITF -t tflow adfs_implicit &> adfs_implicit.err &
+    ./oprp2.py -p ITF -t tflow azure_ad_implicit &> azure_implicit.err &
 }
 
 stopme() {
