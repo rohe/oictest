@@ -37,8 +37,8 @@ PROFILEMAP = {
         "_login_": ("oic-login", {"request_args": {"response_type": ["code"]}}),
         "_accesstoken_": "access-token-request",
         "flows": [
-            'OP-A-01','OP-A-02',
-            'OP-B-01', 'OP-B-02', 'OP-B-03', 'OP-B-04', 'OP-B-05', 'OP-B-06',
+            'OP-A-01', 'OP-A-02',
+            'OP-B-01s', 'OP-B-02', 'OP-B-03', 'OP-B-04', 'OP-B-05', 'OP-B-06',
             'OP-C-01', 'OP-C-02', 'OP-C-03',
             'OP-D-01',
             'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
@@ -46,13 +46,17 @@ PROFILEMAP = {
             'OP-G-01', 'OP-G-02',
             'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
             'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-02', 'OP-J-03', 'OP-J-05',
-            'OP-K-01', 'OP-K-02',
-            'OP-M-03', 'OP-M-04', 'OP-M-05',
-            'OP-O-01', 'OP-O-02',
-            'OP-P-01', 'OP-P-02',
+            'OP-J-01', 'OP-J-03',
+            'OP-K-01s', 'OP-K-02s',
+            'OP-O-01',
+            'OP-P-01',
             'OP-Q-01'
-        ]
+        ],
+        "sub": {
+            "none": [],
+            "sign": [],
+            "sign_encr": []
+        }
     },
     "Implicit": {
         "_login_": ("oic-login",
@@ -60,17 +64,16 @@ PROFILEMAP = {
         "_accesstoken_": None,
         "flows": [
             'OP-A-02', 'OP-A-03', 'OP-A-04',
-            'OP-B-01', 'OP-B-02', 'OP-B-04', 'OP-B-07',
+            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07',
             'OP-C-01', 'OP-C-02', 'OP-C-03',
             'OP-D-02',
             'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
             'OP-F-01', 'OP-F-02',
             'OP-G-01', 'OP-G-02',
             'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-J-01', 'OP-J-02', 'OP-J-03', 'OP-J-05',
-            'OP-M-03', 'OP-M-04', 'OP-M-05',
-            'OP-O-01', 'OP-O-02',
-            'OP-P-01', 'OP-P-02',
+            'OP-J-01', 'OP-J-03',
+            'OP-O-01',
+            'OP-P-01',
             'OP-Q-01'
         ]
     },
@@ -80,7 +83,7 @@ PROFILEMAP = {
         "_accesstoken_": None,
         "flows": [
             'OP-A-02', 'OP-A-05', 'OP-A-06', 'OP-A-07',
-            'OP-B-01', 'OP-B-02', 'OP-B-04', 'OP-B-07', 'OP-B-08',
+            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07', 'OP-B-08',
             'OP-C-01', 'OP-C-02', 'OP-C-03',
             'OP-D-02',
             'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
@@ -88,10 +91,9 @@ PROFILEMAP = {
             'OP-G-01', 'OP-G-02',
             'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
             'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-02', 'OP-J-03', 'OP-J-05',
-            'OP-M-03', 'OP-M-04', 'OP-M-05',
-            'OP-O-01', 'OP-O-02',
-            'OP-P-01', 'OP-P-02',
+            'OP-J-01', 'OP-J-03',
+            'OP-O-01',
+            'OP-P-01',
             'OP-Q-01'
         ]
     },
@@ -130,11 +132,14 @@ PROFILEMAP = {
     },
     "Register": {
         "flows": [
-            'OP-B-06',
+            'OP-B-01d', 'OP-B-06',
             'OP-C-04',
-            'OP-J-04', 'OP-J-06', 'OP-J-07',
+            'OP-J-02', 'OP-J-04', 'OP-J-05', 'OP-J-06', 'OP-J-07',
+            'OP-K-01d', 'OP-K-02d',
             'OP-L-01', 'OP-L-02', 'OP-L-03',
-            'OP-N-01'
+            'OP-M-03', 'OP-M-04', 'OP-M-05',
+            'OP-N-01',
+            'OP-P-02',
         ],
         "Basic": (
             "oic-registration",
@@ -260,7 +265,7 @@ FLOWS = {
         ],
         "mti": "MUST"
     },
-    'OP-B-01': {
+    'OP-B-01d': {
         "desc": 'Asymmetric ID Token signature with rs256',
         "sequence": [
             '_discover_',
@@ -270,7 +275,8 @@ FLOWS = {
         "mti": "MUST",
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"}}
     },
-    'OP-B-01-btf': {
+    'OP-B-01s': {
+        # RS256 is MTI
         "desc": 'If left to itself is the OP signing the ID Token and with what',
         "sequence": ['_discover_', "_login_", '_accesstoken_'],
         "tests": {"is-idtoken-signed": {"alg": "RS256"}}
@@ -812,7 +818,7 @@ FLOWS = {
             ('_login_', {"request_args": {"redirect_uri": ""}})
         ],
     },
-    'OP-K-01': {
+    'OP-K-01d': {
         "desc": 'Access token request with client_secret_basic authentication',
         # Register token_endpoint_auth_method=client_secret_basic
         "sequence": [
@@ -833,7 +839,22 @@ FLOWS = {
         ],
         "profile": {"Basic": "MUST"}
     },
-    'OP-K-02': {
+    'OP-K-01s': {
+        "desc": 'Access token request with client_secret_basic authentication',
+        # client_secret_basic is the default
+        "sequence": [
+            '_discover_',
+            '_login_',
+            ("_accesstoken_",
+             {
+                 "kwargs_mod": {"authn_method": "client_secret_basic"},
+                 "support": {
+                     "token_endpoint_auth_methods_supported":
+                         "client_secret_basic"}
+             }),
+        ],
+    },
+    'OP-K-02d': {
         "desc": 'Access token request with client_secret_post authentication',
         # Should register token_endpoint_auth_method=client_secret_post
         "sequence": [
@@ -852,7 +873,21 @@ FLOWS = {
                          "client_secret_post"}
              }),
         ],
-        "profile": {"Basic": "MUST"}
+    },
+    'OP-K-02s': {
+        "desc": 'Access token request with client_secret_post authentication',
+        # Should register token_endpoint_auth_method=client_secret_post
+        "sequence": [
+            '_discover_',
+            '_login_',
+            ("_accesstoken_",
+             {
+                 "kwargs_mod": {"authn_method": "client_secret_post"},
+                 "support": {
+                     "token_endpoint_auth_methods_supported":
+                         "client_secret_post"}
+             }),
+        ],
     },
     'OP-K-03': {
         "desc": 'Access token request with public_key_jwt authentication',
