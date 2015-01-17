@@ -1,6 +1,3 @@
-from oic.oic.message import AtHashError
-from oic.oic.message import CHashError
-
 __author__ = 'roland'
 
 
