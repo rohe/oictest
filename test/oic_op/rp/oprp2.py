@@ -13,7 +13,7 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.exception import PyoidcError
 
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, MissingRequiredAttribute
 from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import get_post
@@ -385,6 +385,7 @@ def err_response(environ, start_response, session, where, err):
     else:
         session["node"].state = ERROR
     exception_trace(where, err, LOGGER)
+
     session["conv"].trace.error("%s:%s" % (err.__class__.__name__, str(err)))
 
     _tid = session["testid"]
@@ -470,6 +471,13 @@ def support(conv, args):
     return True
 
 
+def endpoint_support(client, endpoint):
+    if endpoint in client.provider_info:
+        return True
+    else:
+        return False
+
+
 def setup(kwa, conv, environ, start_response, session):
     kwargs = copy.deepcopy(kwa)  # decouple
 
@@ -532,6 +540,12 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         else:
             try:
                 kwargs = setup(_kwa, conv, environ, start_response, session)
+            except NotSupported as err:
+                trace.error("%s" % err)
+                conv.test_output.append({"id": "-",
+                                         "status": ERROR,
+                                         "message": "%s" % err})
+                return opresult(environ, start_response, conv, session)
             except Exception as err:
                 return err_response(environ, start_response, session,
                                     "function()", err)
@@ -561,6 +575,12 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
                 #verify_support(conv, session)
             else:
+                if not endpoint_support(conv.client, req.endpoint):
+                    conv.test_output.append(
+                        {"id": "-", "status": ERROR,
+                         "message": "%s not supported" % req.endpoint})
+                    return opresult(environ, start_response, conv, session)
+
                 LOGGER.info("request: %s" % req.request)
                 if req.request == "AuthorizationRequest":
                     # New state for each request

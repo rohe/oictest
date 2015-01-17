@@ -216,6 +216,7 @@ class RotateEncKeys(RotateKeys):
 
 class RegistrationRequest(PostRequest):
     request = "RegistrationRequest"
+    endpoint = "registration_endpoint"
     content_type = JSON_ENCODED
     _request_args = {}
 
@@ -248,6 +249,7 @@ class RegistrationRequest(PostRequest):
 
 class AuthorizationRequest(GetRequest):
     request = "AuthorizationRequest"
+    endpoint = "authorization_endpoint"
     _request_args = {"scope": ["openid"]}
     _tests = {"pre": [CheckResponseType, CheckEndpoint],
               "post": []}
@@ -256,6 +258,7 @@ class AuthorizationRequest(GetRequest):
 
 class AccessTokenRequest(PostRequest):
     request = "AccessTokenRequest"
+    endpoint = "token_endpoint"
 
     def __init__(self, conv):
         PostRequest.__init__(self, conv)
@@ -377,6 +380,7 @@ class Webfinger(Operation):
 
 class UserInfoRequestGetBearerHeader(GetRequest):
     request = "UserInfoRequest"
+    endpoint = "userinfo_endpoint"
 
     def __init__(self, conv):
         GetRequest.__init__(self, conv)
@@ -386,6 +390,7 @@ class UserInfoRequestGetBearerHeader(GetRequest):
 
 class RefreshAccessToken(PostRequest):
     request = "RefreshAccessTokenRequest"
+    endpoint = "token_endpoint"
 
 
 # ========== RESPONSE MESSAGES ========
