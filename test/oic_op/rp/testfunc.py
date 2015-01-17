@@ -79,7 +79,7 @@ def _get_redirect_uris(conv):
     try:
         return conv.client_config["client_info"]["redirect_uris"]
     except KeyError:
-        return conv.client_config["client_register"]["redirect_uris"]
+        return conv.client_config["client_registration"]["redirect_uris"]
 
 
 def multiple_return_uris(request_args, conv, kwargs):
