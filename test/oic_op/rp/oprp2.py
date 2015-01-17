@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 import copy
 import importlib
+import os
+from urllib import quote_plus
 import argparse
 import logging
 import sys
@@ -34,6 +36,7 @@ from rrtest import Trace
 from rrtest import exception_trace
 from rrtest import Break
 from rrtest.check import ERROR
+from rrtest.check import STATUSCODE
 from rrtest.check import WARNING
 
 from testclass import Discover
@@ -106,6 +109,8 @@ def flow_list(environ, start_response, session):
                     template_lookup=LOOKUP,
                     headers=[])
 
+    dump_log(session)
+
     _profile = "%s profile " % session["profile"]["profile"]
     if session["profile"]["discover"]:
         _profile += "with dynamic discovery "
@@ -139,16 +144,6 @@ def opresult(environ, start_response, conv, session):
     return flow_list(environ, start_response, session)
 
 
-def operror(environ, start_response, error=None):
-    resp = Response(mako_template="operror.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "error": error
-    }
-    return resp(environ, start_response, **argv)
-
-
 def opresult_fragment(environ, start_response):
     resp = Response(mako_template="opresult_repost.mako",
                     template_lookup=LOOKUP,
@@ -157,23 +152,14 @@ def opresult_fragment(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
-def test_error(environ, start_response, conv, exc):
-    resp = Response(mako_template="testerror.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "trace": conv.trace,
-        "output": conv.test_output,
-        "exception": exc
-    }
-
-    return resp(environ, start_response, **argv)
-
-
-def test_info(environ, start_response, testid, info):
+def test_info(environ, start_response, testid, session):
     resp = Response(mako_template="testinfo.mako",
                     template_lookup=LOOKUP,
                     headers=[])
+
+    # dump_log(session, test_id=testid)
+
+    info = session["test_info"][testid]
     argv = {
         "id": testid,
         "trace": info["trace"],
@@ -199,6 +185,136 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
     _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
+
+
+def test_output(out):
+    """
+
+    """
+    element = ["Test output\n"]
+    for item in out:
+        if isinstance(item, tuple):
+            element.append("__%s:%s__" % item)
+        else:
+            element.append("[%s]" % item["id"])
+            element.append("\tstatus: %s" % STATUSCODE[item["status"]])
+            try:
+                element.append("\tdescription: %s" % (item["name"]))
+            except KeyError:
+                pass
+            try:
+                element.append("\tinfo: %s" % (item["message"]))
+            except KeyError:
+                pass
+    element.append("\n")
+    return "\n".join(element)
+
+
+def trace_output(trace):
+    """
+
+    """
+    element = ["Trace output\n"]
+    for item in trace:
+        element.append("%s" % item)
+    element.append("\n")
+    return "\n".join(element)
+
+
+SUBPROF = {"n": "none", "s": "sign", "b": "sign and encrypt"}
+
+
+def from_code(code):
+    # Of the form "B"/"I"/"H" ("n"/"s"/"e") "T"/"F" "T"/"F" ("e")
+    _prof = {"profile": PMAP[code[0].upper()], "discover": True,
+             "register": True}
+
+    n = 1
+
+    if len(code) == 5:  # subprofile and extended
+        _prof["sub"] = SUBPROF[code[1]]
+        if code[-1] == "e":
+            _prof["extra"] = True
+        n = 2
+    elif len(code) == 4:  # subprofile or extended
+        if code[1] in SUBPROF.keys():
+            _prof["sub"] = SUBPROF[code[1]]
+            n = 2
+        else:
+            if code[-1] == "e":
+                _prof["extra"] = True
+
+    if code[n].upper() == "F":
+        _prof["discover"] = False
+    if code[n+1].upper() == "F":
+        _prof["register"] = False
+
+    return _prof
+
+
+def to_code(pdict):
+    code = [pdict["profile"][0]]
+    try:
+        code.append(pdict["sub"][0])
+    except KeyError:
+        pass
+
+    for key in ["discover", "register"]:
+        if pdict[key]:
+            code.append("T")
+        else:
+            code.append("F")
+
+    try:
+        if pdict["extra"]:
+            code.append("e")
+    except KeyError:
+        pass
+
+    return "".join(code)
+
+
+def log_path(session, test_id=None):
+    _conv = session["conv"]
+
+    iss = _conv.client.provider_info["issuer"]
+    qiss = quote_plus(iss)
+    profile = to_code(session["profile"])
+
+    if not os.path.isdir("log/%s/%s" % (qiss, profile)):
+        os.makedirs("log/%s/%s" % (qiss, profile))
+
+    if test_id is None:
+        test_id = session["testid"]
+
+    return "log/%s/%s/%s" % (qiss, profile, test_id)
+
+
+def dump_log(session, test_id=None):
+    _conv = session["conv"]
+
+    iss = _conv.client.provider_info["issuer"]
+    profile = to_code(session["profile"])
+
+    if test_id is None:
+        test_id = session["testid"]
+
+    path = log_path(session, test_id)
+
+    output = [
+        "Issuer: %s" % iss,
+        "Profile: %s\n" % profile,
+        "Test ID: %s\n" % test_id
+    ]
+
+    output.extend(trace_output(_conv.trace))
+    output.append("")
+    output.extend(test_output(_conv.test_output))
+
+    f = open(path, "w")
+    f.write("\n".join(output))
+    f.close()
+    return path
 
 
 def clear_session(session):
@@ -269,6 +385,9 @@ def err_response(environ, start_response, session, where, err):
     session["conv"].trace.error("%s:%s" % (err.__class__.__name__, str(err)))
 
     _tid = session["testid"]
+
+    dump_log(session, _tid)
+
     session["test_info"][_tid] = {"trace": session["conv"].trace,
                                   "test_output": session["conv"].test_output}
 
@@ -396,6 +515,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         except (ValueError, TypeError):  # Not a tuple
             ret = none_request_response(sequence_info, index, session, conv,
                                         environ, start_response)
+            dump_log(session)
             if ret:
                 return ret
         else:
@@ -512,6 +632,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
         index += 1
         _tid = session["testid"]
+        dump_log(session, _tid)
         session["test_info"][_tid] = {"trace": conv.trace,
                                       "test_output": conv.test_output}
 
@@ -527,6 +648,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         return err_response(environ, start_response, session, "post_test", err)
 
     _tid = session["testid"]
+    dump_log(session, _tid)
     session["test_info"][_tid] = {"trace": conv.trace,
                                   "test_output": conv.test_output}
     session["node"].complete = True
@@ -624,8 +746,7 @@ def application(environ, start_response):
     elif path.startswith("test_info"):
         p = path.split("/")
         try:
-            return test_info(environ, start_response, p[1],
-                             session["test_info"][p[1]])
+            return test_info(environ, start_response, p[1], session)
         except KeyError:
             return not_found(environ, start_response)
     if path == "continue":
@@ -770,13 +891,7 @@ if __name__ == '__main__':
         _dir = "./"
 
     if args.profile:
-        # Of the form "B"/"I"/"H" "T"/"F" "T"/"F"
-        TEST_PROFILE = {"profile": PMAP[args.profile[0].upper()],
-                        "discover": True, "register": True}
-        if args.profile[1].upper() == "F":
-            TEST_PROFILE["discover"] = False
-        if args.profile[2].upper() == "F":
-            TEST_PROFILE["register"] = False
+        TEST_PROFILE = from_code(args.profile)
     else:
         TEST_PROFILE = {"profile": "Basic", "discover": True, "register": True}
 
