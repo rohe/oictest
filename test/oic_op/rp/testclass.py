@@ -6,7 +6,6 @@ from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 
 import copy
-from jwkest.jwk import SerializationNotPossible
 from oic.oauth2.consumer import ConfigurationError
 from oic.oauth2.message import SchemeError
 
