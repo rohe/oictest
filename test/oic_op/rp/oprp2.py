@@ -45,9 +45,9 @@ from testclass import Notice
 from testclass import DisplayUserInfo
 from testclass import DisplayIDToken
 
-from tflow import get_sequence
+from profiles import get_sequence
+from profiles import flows
 from tflow import PMAP
-from tflow import flows
 
 LOGGER = logging.getLogger("")
 
@@ -152,6 +152,14 @@ def opresult_fragment(environ, start_response):
     return resp(environ, start_response, **argv)
 
 
+def profile_edit(environ, start_response, session):
+    resp = Response(mako_template="profile.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {"profile": session["profile"]}
+    return resp(environ, start_response, **argv)
+
+
 def test_info(environ, start_response, testid, session):
     resp = Response(mako_template="testinfo.mako",
                     template_lookup=LOOKUP,
@@ -185,6 +193,12 @@ def id_token_as_signed_jwt(client, id_token, alg="RS256"):
     ckey = client.keyjar.get_signing_key(alg2keytype(alg), "")
     _signed_jwt = id_token.to_jwt(key=ckey, algorithm=alg)
     return _signed_jwt
+
+
+def add_test_result(conv, status, message, tid="-"):
+    conv.test_output.append({"id": str(tid),
+                             "status": status,
+                             "message": message})
 
 
 def test_output(out):
@@ -451,22 +465,50 @@ def none_request_response(sequence_info, index, session, conv, environ,
                                 "run_sequence", err)
 
 
+DEFAULTS = {
+    "response_modes_supported": ["query", "fragment"],
+    "grant_types_supported": ["authorization_code", "implicit"],
+    "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+    "claims_parameter_supported": False,
+    "request_parameter_supported": False,
+    "request_uri_parameter_supported": True,
+    "require_request_uri_registration": False,
+}
+
+
+def included(val, given):
+    if isinstance(val, basestring):
+        assert val == given or val in given
+    elif isinstance(val, list):
+        for _val in val:
+            assert _val == given or _val in given
+    else:
+        assert val == given
+
+    return True
+
+
 def support(conv, args):
     pi = conv.client.provider_info
     for key, val in args.items():
-        try:
-            if isinstance(val, basestring):
-                assert val == pi[key] or val in pi[key]
-            elif isinstance(val, list):
-                for _val in val:
-                    assert _val == pi[key] or _val in pi[key]
-            else:
-                assert val == pi[key]
-        except AssertionError:  # Not supported
-            raise NotSupported("Not supported: %s=%s" % (key, val))
-        except KeyError:  # Not defined
-            conv.trace.info("Not explicit: %s=%s" % (key, val))
-            pass
+        if key not in pi:
+            try:
+                included(val, DEFAULTS[key])
+            except AssertionError:  # Not supported
+                add_test_result(conv, ERROR,
+                                "Not supported: %s=%s" % (key, val))
+                return False
+            except KeyError:  # Not in defaults
+                conv.trace.info("Not explicit: %s=%s" % (key, val))
+        else:
+            try:
+                included(val, pi[key])
+            except AssertionError:  # Not supported
+                add_test_result(conv, ERROR,
+                                "Not supported: %s=%s" % (key, val))
+                return False
+            except KeyError:  # Not defined
+                conv.trace.info("Not explicit: %s=%s" % (key, val))
 
     return True
 
@@ -515,10 +557,8 @@ def setup(kwa, conv, environ, start_response, session):
         kwargs = func(kwargs, conv, args)
         del kwargs["kwarg_func"]
 
-    try:
-        support(conv, kwargs["support"])
-    except KeyError:
-        pass
+    if not support(conv, kwargs["support"]):
+        raise NotSupported()
     else:
         del kwargs["support"]
 
@@ -540,11 +580,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
         else:
             try:
                 kwargs = setup(_kwa, conv, environ, start_response, session)
-            except NotSupported as err:
-                trace.error("%s" % err)
-                conv.test_output.append({"id": "-",
-                                         "status": ERROR,
-                                         "message": "%s" % err})
+            except NotSupported:
                 return opresult(environ, start_response, conv, session)
             except Exception as err:
                 return err_response(environ, start_response, session,
@@ -713,13 +749,14 @@ def get_node(tests, nid):
         return None
 
 
-def init_session(session):
+def init_session(session, profile=None):
     session["tests"] = [make_node(x, TEST_FLOWS.FLOWS[x]) for x in
                         flows(TEST_PROFILE)]
     session["flow_names"] = [y.name for y in session["tests"]]
     session["response_type"] = []
     session["test_info"] = {}
-    session["profile"] = TEST_PROFILE
+    if profile is None:
+        session["profile"] = TEST_PROFILE
 
 
 def reset_session(session):
@@ -774,6 +811,22 @@ def application(environ, start_response):
     elif path == "reset":
         reset_session(session)
         return flow_list(environ, start_response, session)
+    elif path == "pedit":
+        return profile_edit(environ, start_response, session)
+    elif path == "profile":
+        info = parse_qs(get_post(environ))
+        session["profile"]["profile"] = info["base"][0]
+        try:
+            if info["extra"] == ['on']:
+                session["profile"]["extra"] = True
+            else:
+                session["profile"]["extra"] = False
+        except KeyError:
+            session["profile"]["extra"] = False
+        # reset all testsflows
+        init_session(session, session["profile"])
+        resp = Redirect("%sopresult" % CONF.BASE)
+        return resp
     elif path.startswith("test_info"):
         p = path.split("/")
         try:
