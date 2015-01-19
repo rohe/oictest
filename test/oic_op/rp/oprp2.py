@@ -310,28 +310,32 @@ def dump_log(session, test_id=None):
     except KeyError:
         pass
     else:
-        iss = _conv.client.provider_info["issuer"]
-        profile = to_code(session["profile"])
+        try:
+            iss = _conv.client.provider_info["issuer"]
+        except TypeError:
+            pass
+        else:
+            profile = to_code(session["profile"])
 
-        if test_id is None:
-            test_id = session["testid"]
+            if test_id is None:
+                test_id = session["testid"]
 
-        path = log_path(session, test_id)
+            path = log_path(session, test_id)
 
-        output = [
-            "Issuer: %s" % iss,
-            "Profile: %s" % profile,
-            "Test ID: %s" % test_id
-        ]
+            output = [
+                "Issuer: %s" % iss,
+                "Profile: %s" % profile,
+                "Test ID: %s" % test_id
+            ]
 
-        output.extend(trace_output(_conv.trace))
-        output.append("")
-        output.extend(test_output(_conv.test_output))
+            output.extend(trace_output(_conv.trace))
+            output.append("")
+            output.extend(test_output(_conv.test_output))
 
-        f = open(path, "w")
-        f.write("\n".join(output))
-        f.close()
-        return path
+            f = open(path, "w")
+            f.write("\n".join(output))
+            f.close()
+            return path
 
 
 def clear_session(session):
@@ -341,6 +345,7 @@ def clear_session(session):
 
 
 def session_setup(session, path, index=0):
+    logging.info("session_setup")
     _keys = session.keys()
     for key in _keys:
         if key.startswith("_"):
