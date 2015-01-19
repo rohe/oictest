@@ -55,7 +55,9 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
-            "_login_"
+            ("_login_", {
+                "request_args": {"response_type": ["id_token"]}
+            }),
         ],
         "mti": "MUST",
         # "tests": {"check-authorization-response": {}},
@@ -173,7 +175,9 @@ FLOWS = {
             ("oic-registration",
              {
                  "request_args": {"id_token_signed_response_alg": "none"},
-                 "support": {"id_token_signing_alg_values_supported": "none"},
+                 "support": {
+                     "error": {
+                        "id_token_signing_alg_values_supported": "none"}},
              }
             ),
             "_login_",
@@ -236,7 +240,9 @@ FLOWS = {
                           "request_args": {
                               "userinfo_signed_response_alg": "RS256"},
                           "support": {
-                              "userinfo_signing_alg_values_supported": "RS256"}
+                              "warning": {
+                                  "userinfo_signing_alg_values_supported":
+                                      "RS256"}}
                       }
                      ),
                      '_login_',
@@ -262,10 +268,12 @@ FLOWS = {
                      "userinfo_encrypted_response_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "userinfo_signing_alg_values_supported": "none",
-                     "userinfo_encryption_alg_values_supported": "RSA1_5",
-                     "userinfo_encryption_enc_values_supported": "A128CBC-HS256"
-                 }
+                     "error": {
+                         "userinfo_signing_alg_values_supported": "none",
+                         "userinfo_encryption_alg_values_supported": "RSA1_5",
+                         "userinfo_encryption_enc_values_supported":
+                             "A128CBC-HS256"
+                 }}
              }
             ),
             '_login_',
@@ -289,9 +297,12 @@ FLOWS = {
                      "userinfo_encrypted_response_alg": "RSA1_5",
                      "userinfo_encrypted_response_enc": "A128CBC-HS256"},
                  "support": {
-                     "userinfo_signing_alg_values_supported": "none",
-                     "userinfo_encryption_alg_values_supported": "RSA1_5",
-                     "userinfo_encryption_enc_values_supported": "A128CBC-HS256"
+                     "error": {
+                         "userinfo_signing_alg_values_supported": "none",
+                         "userinfo_encryption_alg_values_supported": "RSA1_5",
+                         "userinfo_encryption_enc_values_supported":
+                             "A128CBC-HS256"
+                     }
                  }
              }
             ),
@@ -335,7 +346,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"scope": ["openid", "profile"]},
-                 "support": {"scopes_supported": ["profile"]}
+                 "support": {"warning": {"scopes_supported": ["profile"]}}
              }),
             "_accesstoken_",
             ("userinfo", {
@@ -353,7 +364,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"scope": ["openid", "email"]},
-                 "support": {"scopes_supported": ["email"]}
+                 "support": {"warning": {"scopes_supported": ["email"]}}
              }),
             "_accesstoken_",
             ("userinfo", {
@@ -371,7 +382,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"scope": ["openid", "address"]},
-                 "support": {"scopes_supported": ["address"]}
+                 "support": {"warning": {"scopes_supported": ["address"]}}
              }),
             "_accesstoken_",
             ("userinfo", {
@@ -389,7 +400,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"scope": ["openid", "phone"]},
-                 "support": {"scopes_supported": ["phone"]}
+                 "support": {"warning": {"scopes_supported": ["phone"]}}
              }),
             "_accesstoken_",
             ("userinfo", {
@@ -408,8 +419,9 @@ FLOWS = {
              {
                  "request_args": {"scope": ["openid", "profile", "email",
                                             "address", "phone"]},
-                 "support": {"scopes_supported": ["profile", "email", "address",
-                                                  "phone"]}
+                 "support": {
+                     "warning": {"scopes_supported": ["profile", "email",
+                                                      "address", "phone"]}}
              }),
             "_accesstoken_",
             ("userinfo", {
@@ -427,7 +439,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"display": "page"},
-                 "support": {"display_values_supported": "page"}
+                 "support": {"warning": {"display_values_supported": "page"}}
              })
         ],
         "mti": "No err"
@@ -440,7 +452,7 @@ FLOWS = {
             ('_login_',
              {
                  "request_args": {"display": "popup"},
-                 "support": {"display_values_supported": "popup"}
+                 "support": {"warning": {"display_values_supported": "popup"}}
              })
         ],
         "mti": "No err"
@@ -675,8 +687,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "client_secret_basic"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_basic"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_basic"}}
              }),
         ],
         "profile": {"Basic": "MUST"}
@@ -691,8 +704,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "client_secret_basic"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_basic"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_basic"}}
              }),
         ],
     },
@@ -711,8 +725,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "client_secret_post"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_post"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_post"}}
              }),
         ],
     },
@@ -726,8 +741,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "client_secret_post"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_post"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_post"}}
              }),
         ],
     },
@@ -745,8 +761,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "public_key_jwt"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "public_key_jwt"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                            "public_key_jwt"}}
              }),
         ],
     },
@@ -764,8 +781,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "client_secret_jwt"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_jwt"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_jwt"}}
              }),
         ],
     },
@@ -851,8 +869,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "private_key_jwt"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_jwt"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_jwt"}}
              }),
         ]
     },
@@ -866,8 +885,9 @@ FLOWS = {
              {
                  "kwargs_mod": {"authn_method": "private_key_jwt"},
                  "support": {
-                     "token_endpoint_auth_methods_supported":
-                         "client_secret_jwt"}
+                     "warning": {
+                         "token_endpoint_auth_methods_supported":
+                             "client_secret_jwt"}}
              }),
         ]
     },
@@ -898,7 +918,7 @@ FLOWS = {
             ('_register_',
              {
                  "request_args": {"subject_type": "public"},
-                 "support": {"subject_types_supported": "public"}
+                 "support": {"error": {"subject_types_supported": "public"}}
              }),
             "_login_",
             "_accesstoken_"
@@ -911,7 +931,7 @@ FLOWS = {
             ('_register_',
              {
                  "request_args": {"subject_type": "pairwise"},
-                 "support": {"subject_types_supported": "pairwise"}
+                 "support": {"error": {"subject_types_supported": "pairwise"}}
              }),
             "_login_",
             "_accesstoken_"
@@ -924,14 +944,14 @@ FLOWS = {
             ('_register_',
              {
                  "request_args": {"subject_type": "public"},
-                 "support": {"subject_types_supported": "public"}
+                 "support": {"error": {"subject_types_supported": "public"}}
              }),
             "_login_",
             "_accesstoken_",
             ('_register_',
              {
                  "request_args": {"subject_type": "pairwise"},
-                 "support": {"subject_types_supported": "pairwise"}
+                 "support": {"error": {"subject_types_supported": "pairwise"}}
              }),
             "_login_",
             "_accesstoken_"
@@ -959,9 +979,9 @@ FLOWS = {
              {
                  "request_args": {
                      "token_endpoint_auth_method": "private_key_jwt"},
-                 "support": {
+                 "support": {"error": {
                      "token_endpoint_auth_methods_supported":
-                         "private_key_jwt"}
+                         "private_key_jwt"}}
              }),
             '_login_',
             ("_accesstoken_",
@@ -1001,9 +1021,12 @@ FLOWS = {
                      "userinfo_encrypted_response_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "userinfo_signing_alg_values_supported": "none",
-                     "userinfo_encryption_alg_values_supported": "RSA1_5",
-                     "userinfo_encryption_enc_values_supported": "A128CBC-HS256"
+                     "warning": {
+                         "userinfo_signing_alg_values_supported": "none",
+                         "userinfo_encryption_alg_values_supported": "RSA1_5",
+                         "userinfo_encryption_enc_values_supported":
+                             "A128CBC-HS256"
+                     }
                  }
              }
             ),
@@ -1018,7 +1041,8 @@ FLOWS = {
         "sequence": [
             '_discover_',
             ("_register_",
-             {"support": {"request_uri_parameter_supported": True}}),
+             {"support": {"error": {"request_uri_parameter_supported": True}}}
+            ),
         ],
     },
     'OP-O-02': {
@@ -1030,8 +1054,9 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "none"},
                  "support": {
-                     "request_uri_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "none"}
+                     "error": {
+                         "request_uri_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {"kwarg_func": request_in_file})
         ],
@@ -1045,8 +1070,10 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "RS256"},
                  "support": {
-                     "request_uri_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "RS256"}
+                     "error": {
+                         "request_uri_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "RS256"
+                     }}
              }),
             ("_login_", {"kwarg_func": request_in_file})
         ],
@@ -1064,11 +1091,13 @@ FLOWS = {
                      "request_object_encryption_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "request_uri_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "none",
-                     "request_object_encryption_alg_values_supported": "RSA1_5",
-                     "request_object_encryption_enc_values_supported":
-                         "A128CBC-HS256"
+                     "error":{
+                         "request_uri_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "none",
+                         "request_object_encryption_alg_values_supported":
+                             "RSA1_5",
+                         "request_object_encryption_enc_values_supported":
+                             "A128CBC-HS256"}
                  }
              }
             ),
@@ -1088,11 +1117,13 @@ FLOWS = {
                      "request_object_encryption_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "request_uri_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "RS256",
-                     "request_object_encryption_alg_values_supported": "RSA1_5",
-                     "request_object_encryption_enc_values_supported":
-                         "A128CBC-HS256"
+                     "error": {
+                         "request_uri_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "RS256",
+                         "request_object_encryption_alg_values_supported":
+                             "RSA1_5",
+                         "request_object_encryption_enc_values_supported":
+                             "A128CBC-HS256"}
                  }
              }
             ),
@@ -1104,7 +1135,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             ("_register_",
-             {"support": {"request_parameter_supported": True}}),
+             {"support": {"error": {"request_parameter_supported": True}}}),
         ],
     },
     'OP-P-02': {
@@ -1116,8 +1147,9 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "none"},
                  "support": {
-                     "request_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "none"}
+                     "error": {
+                         "request_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "none"}}
              }),
         ],
     },
@@ -1130,8 +1162,10 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "RS256"},
                  "support": {
-                     "request_parameter_supported": True,
-                     "request_object_signing_alg_values_supported": "RS256"}
+                     "error": {
+                         "request_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "RS256"
+                     }}
              }),
         ],
     },

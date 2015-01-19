@@ -495,27 +495,35 @@ def included(val, given):
 
 def support(conv, args):
     pi = conv.client.provider_info
-    for key, val in args.items():
-        if key not in pi:
-            try:
-                included(val, DEFAULTS[key])
-            except AssertionError:  # Not supported
-                add_test_result(conv, ERROR,
-                                "Not supported: %s=%s" % (key, val))
-                return False
-            except KeyError:  # Not in defaults
-                conv.trace.info("Not explicit: %s=%s" % (key, val))
+    stat = 0
+    for ser in ["warning", "error"]:
+        if ser not in args:
+            continue
+        if ser == "warning":
+            err = WARNING
         else:
-            try:
-                included(val, pi[key])
-            except AssertionError:  # Not supported
-                add_test_result(conv, ERROR,
-                                "Not supported: %s=%s" % (key, val))
-                return False
-            except KeyError:  # Not defined
-                conv.trace.info("Not explicit: %s=%s" % (key, val))
+            err = ERROR
+        for key, val in args[ser].items():
+            if key not in pi:
+                try:
+                    included(val, DEFAULTS[key])
+                except AssertionError:  # Not supported
+                    add_test_result(conv, err,
+                                    "Not supported: %s=%s" % (key, val))
+                    stat = err
+                except KeyError:  # Not in defaults
+                    conv.trace.info("Not explicit: %s=%s" % (key, val))
+            else:
+                try:
+                    included(val, pi[key])
+                except AssertionError:  # Not supported
+                    add_test_result(conv, err,
+                                    "Not supported: %s=%s" % (key, val))
+                    stat = err
+                except KeyError:  # Not defined
+                    conv.trace.info("Not explicit: %s=%s" % (key, val))
 
-    return True
+    return stat
 
 
 def endpoint_support(client, endpoint):
@@ -563,10 +571,11 @@ def setup(kwa, conv, environ, start_response, session):
         del kwargs["kwarg_func"]
 
     try:
-        if not support(conv, kwargs["support"]):
+        res = support(conv, kwargs["support"])
+        if res >= ERROR:
             raise NotSupported()
-        else:
-            del kwargs["support"]
+
+        del kwargs["support"]
     except KeyError:
         pass
 

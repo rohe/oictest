@@ -1633,6 +1633,7 @@ class VerifySignedIdTokenHasKID(Error):
                 try:
                     assert "kid" in header
                 except AssertionError:
+                    self._message = "%s: header=%s" % (self.msg, header)
                     self._status = self.status
 
         return {}
