@@ -6,6 +6,7 @@ startme() {
     ./oprp2.py -p IT.T.F -t tflow adfs_it &> adfs_it.err &
 
     ./oprp2.py -p C.T.F -t tflow azure_ad &> azure.err &
+    ./oprp2.py -p I.T.F -t tflow azure_ad_i &> azure_i.err &
     ./oprp2.py -p IT.T.F -t tflow azure_ad_it &> azure_it.err &
 
     ./oprp2.py -p C.T.F -t tflow google &> google.err &
