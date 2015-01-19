@@ -154,6 +154,15 @@ class FetchKeys(Process):
             conv.keybundle = [kb]
 
 
+class CacheIdToken(Process):
+    def __call__(self, conv, **kwargs):
+        res = get_id_tokens(conv)
+        try:
+            conv.cache["id_token"] = res
+        except KeyError:
+            conv.cache = {"id_token": res}
+
+
 class RotateKeys(Process):
     def __init__(self):
         self.jwk_name = "export/jwk.json"
@@ -372,7 +381,8 @@ class Webfinger(Operation):
     def discover(*arg, **kwargs):
         wf = WebFinger(OIC_ISSUER)
         wf.httpd = PBase()
-        wf.discovery_query(kwargs["principal"])
+        url = wf.discovery_query(kwargs["principal"])
+        return url
 
     def call_setup(self):
         pass
@@ -391,6 +401,15 @@ class UserInfoRequestGetBearerHeader(GetRequest):
 class RefreshAccessToken(PostRequest):
     request = "RefreshAccessTokenRequest"
     endpoint = "token_endpoint"
+
+
+class ReadRegistration(GetRequest):
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.registration_access_token
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = _client.registration_response[
+            "registration_client_uri"]
 
 
 # ========== RESPONSE MESSAGES ========
@@ -438,6 +457,7 @@ PHASES = {
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "refresh-access-token": (RefreshAccessToken, AccessTokenResponse),
     "userinfo": (UserInfoRequestGetBearerHeader, UserinfoResponse),
+    "read-registration": (ReadRegistration, RegistrationResponse),
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,
@@ -447,5 +467,6 @@ PHASES = {
     "webfinger": (Webfinger, None),
     "display_userinfo": DisplayUserInfo,
     "display_idtoken": DisplayIDToken,
-    "fetch_keys": FetchKeys
+    "fetch_keys": FetchKeys,
+    "cache-id_token": CacheIdToken
 }

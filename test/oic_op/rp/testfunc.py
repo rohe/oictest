@@ -29,6 +29,12 @@ def get_base(cconf=None):
 
 def id_token_hint(request_args, conv, kwargs):
     res = get_id_tokens(conv)
+
+    try:
+        res.extend(conv.cache["id_token"])
+    except (KeyError, ValueError):
+        pass
+
     idt, jwt = res[0]
     request_args["id_token_hint"] = jwt
     return request_args
@@ -210,3 +216,7 @@ def login_hint(request_args, conv, kwargs):
 
     request_args["login_hint"] = hint
     return request_args
+
+def get_principal(args, conv, kwargs):
+    args["principal"] = conv.client_config[kwargs["param"]]
+    return args

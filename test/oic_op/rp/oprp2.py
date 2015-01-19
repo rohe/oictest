@@ -13,7 +13,7 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.exception import PyoidcError
 
-from oic.oauth2 import rndstr, MissingRequiredAttribute
+from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import get_post
@@ -35,7 +35,7 @@ from oictest.oidcrp import request_and_return
 from rrtest import Trace
 from rrtest import exception_trace
 from rrtest import Break
-from rrtest.check import ERROR
+from rrtest.check import ERROR, OK
 from rrtest.check import STATUSCODE
 from rrtest.check import WARNING
 
@@ -44,10 +44,13 @@ from testclass import RequirementsNotMet
 from testclass import Notice
 from testclass import DisplayUserInfo
 from testclass import DisplayIDToken
+from testclass import Webfinger
 
 from profiles import get_sequence
+from profiles import PMAP
+from profiles import CRYPT
+from profiles import from_code
 from profiles import flows
-from tflow import PMAP
 
 LOGGER = logging.getLogger("")
 
@@ -111,15 +114,23 @@ def flow_list(environ, start_response, session):
 
     dump_log(session)
 
-    _profile = "%s profile " % session["profile"]["profile"]
-    if session["profile"]["discover"]:
+    p = session["profile"].split('.')
+    _profile = "%s profile " % PMAP[p[0]]
+    if p[1] == "T":
         _profile += "with dynamic discovery "
     else:
         _profile += "with static discovery "
-    if session["profile"]["register"]:
+    if p[2] == "T":
         _profile += "and dynamic client registration"
     else:
         _profile += "and static client registration"
+
+    if len(p) > 3:
+        if p[3]:
+            _profile += " cryptography (%s)" % ",".join([CRYPT[x] for x in p[3]])
+    if len(p) == 5:
+        if p[4] == '+':
+            _profile += " and extras"
 
     argv = {
         "flows": session["tests"],
@@ -235,65 +246,12 @@ def trace_output(trace):
     return element
 
 
-SUBPROF = {"n": "none", "s": "sign", "b": "sign and encrypt"}
-
-
-def from_code(code):
-    # Of the form "B"/"I"/"H" ("n"/"s"/"e") "T"/"F" "T"/"F" ("e")
-    _prof = {"profile": PMAP[code[0].upper()], "discover": True,
-             "register": True}
-
-    n = 1
-
-    if len(code) == 5:  # subprofile and extended
-        _prof["sub"] = SUBPROF[code[1]]
-        if code[-1] == "e":
-            _prof["extra"] = True
-        n = 2
-    elif len(code) == 4:  # subprofile or extended
-        if code[1] in SUBPROF.keys():
-            _prof["sub"] = SUBPROF[code[1]]
-            n = 2
-        else:
-            if code[-1] == "e":
-                _prof["extra"] = True
-
-    if code[n].upper() == "F":
-        _prof["discover"] = False
-    if code[n+1].upper() == "F":
-        _prof["register"] = False
-
-    return _prof
-
-
-def to_code(pdict):
-    code = [pdict["profile"][0]]
-    try:
-        code.append(pdict["sub"][0])
-    except KeyError:
-        pass
-
-    for key in ["discover", "register"]:
-        if pdict[key]:
-            code.append("T")
-        else:
-            code.append("F")
-
-    try:
-        if pdict["extra"]:
-            code.append("e")
-    except KeyError:
-        pass
-
-    return "".join(code)
-
-
 def log_path(session, test_id=None):
     _conv = session["conv"]
 
     iss = _conv.client.provider_info["issuer"]
     qiss = quote_plus(iss)
-    profile = to_code(session["profile"])
+    profile = session["profile"]
 
     if not os.path.isdir("log/%s/%s" % (qiss, profile)):
         os.makedirs("log/%s/%s" % (qiss, profile))
@@ -315,7 +273,7 @@ def dump_log(session, test_id=None):
         except TypeError:
             pass
         else:
-            profile = to_code(session["profile"])
+            profile = from_code(session["profile"])
 
             if test_id is None:
                 test_id = session["testid"]
@@ -387,15 +345,16 @@ def post_tests(conv, req_c, resp_c):
             conv.test_output.append((req_c.request, "post"))
             conv.test_sequence(_tests)
 
-    try:
-        inst = resp_c()
-        _tests = inst.tests["post"]
-    except KeyError:
-        pass
-    else:
-        if _tests:
-            conv.test_output.append((resp_c.response, "post"))
-            conv.test_sequence(_tests)
+    if resp_c:
+        try:
+            inst = resp_c()
+            _tests = inst.tests["post"]
+        except KeyError:
+            pass
+        else:
+            if _tests:
+                conv.test_output.append((resp_c.response, "post"))
+                conv.test_sequence(_tests)
 
 
 def err_response(environ, start_response, session, where, err):
@@ -627,6 +586,16 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                         "discover", conv.last_response.text)
 
                 #verify_support(conv, session)
+            elif req_c == Webfinger:
+                url = req.discover(**kwargs)
+                if url:
+                    conv.test_output.append(
+                        {"id": "-", "status": OK,
+                         "message": "Found discovery URL: %s" % url})
+                else:
+                    conv.test_output.append(
+                        {"id": "-", "status": ERROR,
+                         "message": "Failed to find discovery URL"})
             else:
                 if not endpoint_support(conv.client, req.endpoint):
                     conv.test_output.append(
@@ -767,13 +736,15 @@ def get_node(tests, nid):
 
 
 def init_session(session, profile=None):
+    if profile is None:
+        profile = TEST_PROFILE
+
     session["tests"] = [make_node(x, TEST_FLOWS.FLOWS[x]) for x in
-                        flows(TEST_PROFILE)]
+                        flows(profile)]
     session["flow_names"] = [y.name for y in session["tests"]]
     session["response_type"] = []
     session["test_info"] = {}
-    if profile is None:
-        session["profile"] = TEST_PROFILE
+    session["profile"] = profile
 
 
 def reset_session(session):
@@ -962,8 +933,6 @@ def application(environ, start_response):
         return resp(environ, start_response)
 
 
-PROFILES = ["Basic", "Config", "Dynamic", "Hybrid", "Implicit", "Self-issued"]
-
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
@@ -1002,10 +971,7 @@ if __name__ == '__main__':
     else:
         _dir = "./"
 
-    if args.profile:
-        TEST_PROFILE = from_code(args.profile)
-    else:
-        TEST_PROFILE = {"profile": "Basic", "discover": True, "register": True}
+    TEST_PROFILE = args.profile
 
     LOOKUP = TemplateLookup(directories=[_dir + 'templates', _dir + 'htdocs'],
                             module_directory=_dir + 'modules',
