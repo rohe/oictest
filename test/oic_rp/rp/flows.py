@@ -9,7 +9,7 @@ FLOWS = {
         "desc": "Can Discover Identifiers using URL Syntax"
     },
     "RP-02": {
-        "flow": [("discover", "acct:local@localhost:8080")],
+        "flow": [{"action": "discover", "args": "acct:local@localhost:8080"}],
         "desc": "Can Discover Identifiers using acct Syntax"
     },
     "RP-03": {
@@ -64,10 +64,13 @@ FLOWS = {
     "RP-09": {
         "flow": [{"action": "discover", "args": {}}, 
                  {"action": "provider_info", "args": {}},
-                 {"action": "registration", "args": {}},
+                 {"action": "registration",
+                  "args": {"token_endpoint_auth_method": "client_secret_jwt"}},
                  {"action": "authn_req",
                   "args": {"scope": "openid", "response_type": ["code"]}},
-                 ("token_req", {"authn_method": "client_secret_jwt"})],
+                 {"action": "token_req",
+                  "args": {"authn_method": "client_secret_jwt"}}
+        ],
         "desc": "Can Make Access Token Request with 'client_secret_jwt' "
                 "Authentication"
     },
@@ -75,10 +78,12 @@ FLOWS = {
         "flow": [
             {"action": "discover", "args": {}}, 
             {"action": "provider_info", "args": {}},
-            {"action": "registration", "args": {}},
+            {"action": "registration",
+             "args": {"token_endpoint_auth_method": "client_secret_post"}},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
-            ("token_req", {"authn_method": "client_secret_post"})
+            {"action": "token_req",
+             "args": {"authn_method": "client_secret_post"}}
         ],
         "desc": "Can Make Access Token Request with 'client_secret_post' "
                 "Authentication"
@@ -86,10 +91,13 @@ FLOWS = {
     "RP-11": {
         "flow": [{"action": "discover", "args": {}}, 
                  {"action": "provider_info", "args": {}},
-                 {"action": "registration", "args": {}},
+                 {"action": "registration",
+                  "args": {"token_endpoint_auth_method": "private_key_jwt"}},
                  {"action": "authn_req",
                   "args": {"scope": "openid", "response_type": ["code"]}},
-                 ("token_req", {"authn_method": "private_key_jwt"})],
+                 {"action": "token_req",
+                  "args": {"authn_method": "private_key_jwt"}}
+        ],
         "desc": "Can Make Access Token Request with 'private_key_jwt' "
                 "Authentication"
     },

@@ -84,7 +84,10 @@ def run_flow(client, index, session):
             session["index"] += 1  # next to run
 
             if spec["action"] == "discover":
-                session["issuer"] = client.discover(CONF.ISSUER)
+                if isinstance(spec['args'], basestring):
+                    session["issuer"] = client.discover(spec['args'])
+                else:
+                    session["issuer"] = client.discover(CONF.ISSUER)
             elif spec["action"] == "provider_info":
                 if spec["args"]:
                     client.provider_config(**spec["args"])
