@@ -1,15 +1,18 @@
 #!/bin/bash
 
 startme() {
-    ./oprp2.py -p BTF -t tflow adfs &> adfs.err &
-    ./oprp2.py -p BTF -t tflow azure_ad &> azure.err &
-    ./oprp2.py -p BTF -t tflow google &> google.err &
-    ./oprp2.py -p BTF -t tflow ping &> ping.err &
-    ./oprp2.py -p BTF -t tflow salesforce &> salesforce.err &
-    ./oprp2.py -p BTF -t tflow telekom &> telekom.err &
-    ./oprp2.py -p BTF -t tflow thinktecture_code &> thinktecture_code.err &
-    ./oprp2.py -p ITF -t tflow adfs_implicit &> adfs_implicit.err &
-    ./oprp2.py -p ITF -t tflow azure_ad_implicit &> azure_implicit.err &
+    ./oprp2.py -p C.T.F -t tflow adfs &> adfs.err &
+    ./oprp2.py -p I.T.F -t tflow adfs_i &> adfs_i.err &
+    ./oprp2.py -p IT.T.F -t tflow adfs_it &> adfs_it.err &
+
+    ./oprp2.py -p C.T.F -t tflow azure_ad &> azure.err &
+    ./oprp2.py -p IT.T.F -t tflow azure_ad_it &> azure_it.err &
+
+    ./oprp2.py -p C.T.F -t tflow google &> google.err &
+    ./oprp2.py -p C.T.F -t tflow ping &> ping.err &
+    ./oprp2.py -p C.T.F -t tflow salesforce &> salesforce.err &
+    ./oprp2.py -p C.T.F -t tflow telekom &> telekom.err &
+    ./oprp2.py -p C.T.F -t tflow thinktecture_code &> thinktecture_code.err &
 }
 
 stopme() {
