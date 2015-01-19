@@ -173,8 +173,8 @@ def application(environ, start_response):
                                  session["done"])
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
-            args = session["flow"]["flow"][session["index"]-1][1]
-            if not args["response_type"] == ["code"]:
+            args = session["flow"]["flow"][session["index"]-1]["args"]
+            if "code" not in args["response_type"]:
                 return opresult_fragment(environ, start_response)
 
         # Got a real Authn response
