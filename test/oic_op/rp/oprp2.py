@@ -562,10 +562,13 @@ def setup(kwa, conv, environ, start_response, session):
         kwargs = func(kwargs, conv, args)
         del kwargs["kwarg_func"]
 
-    if not support(conv, kwargs["support"]):
-        raise NotSupported()
-    else:
-        del kwargs["support"]
+    try:
+        if not support(conv, kwargs["support"]):
+            raise NotSupported()
+        else:
+            del kwargs["support"]
+    except KeyError:
+        pass
 
     return kwargs
 
