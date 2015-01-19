@@ -230,7 +230,12 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
     if _resp.status_code >= 400:  # an error
         _response = ErrorResponse().from_json(_resp.text)
     else:
-        if _cli.provider_info["userinfo_endpoint"] == url:
+        try:
+            uiendp = _cli.provider_info["userinfo_endpoint"]
+        except KeyError:
+            uiendp = ""
+
+        if uiendp == url:
             _iss = _cli.provider_info["issuer"]
             kwargs["key"] = _cli.keyjar.get("ver", issuer=_iss)
             kwargs["key"].extend(_cli.keyjar.get("enc", issuer=_iss))
