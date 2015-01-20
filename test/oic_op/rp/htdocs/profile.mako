@@ -1,23 +1,37 @@
 <%
-    def profile_form(present):
+    PMAP = {
+        "C": "Basic (code)", "I": "Implicit (id_token)",
+        "IT": "Implicit (id_token+token)",
+        "CI": "Hybrid (code+id_token)", "CT": "Hybrid (code+token)",
+        "CIT": "Hybrid (code+id_token+token"
+    }
+    PMAPL = ["C", "I", "IT", "CI", "CT", "CIT"]
+    L2I = {"discover": 1, "register": 2}
+    def profile_form(prof):
+        p = prof.split(".")
         el = ["<h3>Chose base profile</h3>",
               '<form name="profile" action="profile" method="POST">']
-        for prof in ["Basic", "Implicit", "Hybrid"]:
-            if prof in present["profile"]:
-                el.append('<input type="radio" name="base" value="%s" checked>%s<br>' % (prof, prof))
+        for key in PMAPL:
+            txt = PMAP[key]
+            if key == p[0]:
+                el.append('<input type="radio" name="base" value="%s" checked>%s<br>' % (key, txt))
             else:
-                el.append('<input type="radio" name="base" value="%s">%s<br>' % (prof, prof))
+                el.append('<input type="radio" name="base" value="%s">%s<br>' % (key, txt))
         el.append("<br>")
         el.append("These you can't change here:")
         el.append("<ul>")
         for mode in ["discover", "register"]:
-            if present[mode]:
+            if p[L2I[mode]] == "T":
                 el.append("<li>Dynamic %s" % mode)
             else:
                 el.append("<li>Static %s" % mode)
-        el.append('</ul><br><input type="checkbox" name="extra">')
-        el.append('<p>Check this if you want the extra tests')
-        el.append('<input type="submit" value="Continue"></p>')
+        el.append('</ul><p>Check this if you want the extra tests: ')
+        if len(p) == 5 and p[4] == "+":
+            el.append('<input type="checkbox" name="extra" checked>')
+        else:
+            el.append('<input type="checkbox" name="extra">')
+        el.append('</p>')
+        el.append('<p><input type="submit" value="Continue"></p>')
         el.append('</form>')
         return "\n".join(el)
 %>

@@ -114,27 +114,9 @@ def flow_list(environ, start_response, session):
 
     dump_log(session)
 
-    p = session["profile"].split('.')
-    _profile = "%s profile " % PMAP[p[0]]
-    if p[1] == "T":
-        _profile += "with dynamic discovery "
-    else:
-        _profile += "with static discovery "
-    if p[2] == "T":
-        _profile += "and dynamic client registration"
-    else:
-        _profile += "and static client registration"
-
-    if len(p) > 3:
-        if p[3]:
-            _profile += " cryptography (%s)" % ",".join([CRYPT[x] for x in p[3]])
-    if len(p) == 5:
-        if p[4] == '+':
-            _profile += " and extras"
-
     argv = {
         "flows": session["tests"],
-        "profile": _profile,
+        "profile": session["profile"],
         "test_info": session["test_info"].keys(),
         "base": CONF.BASE,
     }
@@ -747,14 +729,14 @@ def init_session(session, profile=None):
     session["profile"] = profile
 
 
-def reset_session(session):
+def reset_session(session, profile=None):
     _keys = session.keys()
     for key in _keys:
         if key.startswith("_"):
             continue
         else:
             del session[key]
-    init_session(session)
+    init_session(session, profile)
 
 
 def session_init(session):
@@ -803,18 +785,27 @@ def application(environ, start_response):
         return profile_edit(environ, start_response, session)
     elif path == "profile":
         info = parse_qs(get_post(environ))
-        session["profile"]["profile"] = info["base"][0]
+        cp = session["profile"].split(".")
+        cp[0] = info["base"][0]
+
         try:
             if info["extra"] == ['on']:
-                session["profile"]["extra"] = True
+                if len(cp) == 3:
+                    cp.extend(["", "+"])
+                elif len(cp) == 4:
+                    cp.append("+")
+                elif len(cp) == 5:
+                    cp[4] = "+"
             else:
-                session["profile"]["extra"] = False
+                if len(cp) == 5:
+                    cp = cp[:-1]
         except KeyError:
-            session["profile"]["extra"] = False
+            if len(cp) == 5:
+                cp = cp[:-1]
+
         # reset all testsflows
-        init_session(session, session["profile"])
-        resp = Redirect("%sopresult" % CONF.BASE)
-        return resp
+        reset_session(session, ".".join(cp))
+        return flow_list(environ, start_response, session)
     elif path.startswith("test_info"):
         p = path.split("/")
         try:

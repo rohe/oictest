@@ -139,7 +139,7 @@ FLOWS = {
         "desc": 'IDToken has kid',
         "sequence": ['_discover_', '_register_', "_login_", "_accesstoken_"],
         "mti": "MUST",
-        "profile": "...se",
+        "profile": "...s",
         "tests": {"verify-signed-idtoken-has-kid": {}}
     },
     'OP-B-03': {
