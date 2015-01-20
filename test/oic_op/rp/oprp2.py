@@ -293,6 +293,7 @@ def display_log(environ, start_response, path):
                          os.path.join(tail, f)) for f in filenames]
                 break
 
+        item.sort()
         resp = Response(mako_template="logs.mako",
                         template_lookup=LOOKUP,
                         headers=[])
