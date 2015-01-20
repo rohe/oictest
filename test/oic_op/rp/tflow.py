@@ -379,7 +379,8 @@ FLOWS = {
             })
         ],
         "profile": "..",
-        "mti": "No err"
+        "mti": "No err",
+        'tests': {"verify-claims": {}}
     },
     'OP-E-02': {
         "desc": 'Scope Requesting email Claims',
@@ -398,7 +399,8 @@ FLOWS = {
             })
         ],
         "profile": "..",
-        "mti": "No err"
+        "mti": "No err",
+        'tests': {"verify-claims": {}}
     },
     'OP-E-03': {
         "desc": 'Scope Requesting address Claims',
@@ -417,7 +419,8 @@ FLOWS = {
             })
         ],
         "profile": "..",
-        "mti": "No err"
+        "mti": "No err",
+        'tests': {"verify-claims": {}}
     },
     'OP-E-04': {
         "desc": 'Scope Requesting phone Claims',
@@ -436,7 +439,8 @@ FLOWS = {
             })
         ],
         "profile": "..",
-        "mti": "No err"
+        "mti": "No err",
+        'tests': {"verify-claims": {}}
     },
     'OP-E-05': {
         "desc": 'Scope Requesting all Claims',
@@ -458,7 +462,8 @@ FLOWS = {
             })
         ],
         "profile": "..",
-        "mti": "No err"
+        "mti": "No err",
+        'tests': {"verify-claims": {}}
     },
     'OP-F-01': {
         "desc": 'Request with display=page',

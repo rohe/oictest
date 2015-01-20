@@ -87,6 +87,37 @@ def legends():
     return element
 %>
 
+<%
+    PMAP = {
+        "C": "Basic (code)", "I": "Implicit (id_token)",
+        "IT": "Implicit (id_token+token)",
+        "CI": "Hybrid (code+id_token)", "CT": "Hybrid (code+token)",
+        "CIT": "Hybrid (code+id_token+token)"
+    }
+
+    L2I = {"discovery": 1, "registration": 2}
+    CM = {"n": "none", "s": "sign", "e": "encrypt"}
+
+    def display_profile(spec):
+        el = ["<p><ul>"]
+        p = spec.split('.')
+        el.append("<li> %s" % PMAP[p[0]])
+        for mode in ["discovery", "registration"]:
+            if p[L2I[mode]] == "T":
+                el.append("<li> Dynamic %s" % mode)
+            else:
+                el.append("<li> Static %s" % mode)
+        if len(p) > 3:
+            if p[3]:
+                el.append("<li> crypto support %s" % [CM[x] for x in p[3]])
+        if len(p) == 5:
+            if p[4] == '+':
+                el.append("<li> extra tests")
+        el.append("</ul></p>")
+
+        return "\n".join(el)
+%>
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -108,7 +139,8 @@ def legends():
       <div class="jumbotron">
         <h1>OICTEST</h1>
           <em>Explanations of legends at <a href="#legends">end of page</a></em>
-          <h3>You are testing using: ${profile}</h3>
+          <h3>You are testing using: ${display_profile(profile)}</h3>
+          If you want to change this you can do it <a href="pedit">here</a>
           <h3>Chose the next test flow you want to run from this list: </h3>
           ${op_choice(base, flows, test_info)}
           <h3>Legends</h3>
