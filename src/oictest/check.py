@@ -1905,6 +1905,30 @@ class UsedAcrValue(Information):
         return {}
 
 
+class IsIDTokenSigned(Information):
+    """
+    Checks if the id_token is signed
+    """
+    cid = "is-idtoken-signed"
+    msg = ""
+
+    def _func(self, conv):
+        res = get_id_tokens(conv)
+        if not res:
+            self._message = "No response to get the IdToken from"
+            self._status = self.status
+            return ()
+
+        (_, jwt) = res[-1]
+        header = json.loads(b64d(str(jwt.split(".")[0])))
+        try:
+            self._message = "IdToken signed using alg=%s" % header["alg"]
+        except KeyError:
+            self._message = "IdToken not signed"
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 
