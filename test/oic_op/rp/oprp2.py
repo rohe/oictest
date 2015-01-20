@@ -278,9 +278,9 @@ def dump_log(session, test_id=None):
             return path
 
 
-def display_log(environ, start_response, path):
+def display_log(environ, start_response, path, tail):
     path = path.replace(":", "%3A")
-    head, tail = os.path.split(path)
+    tail = tail.replace(":", "%3A")
     if os.path.isdir(path):
         item = []
         for (dirpath, dirnames, filenames) in os.walk(path):
@@ -805,8 +805,16 @@ def application(environ, start_response):
                 return flow_list(environ, start_response, session)
             else:
                 return resp(environ, start_response)
+    elif path == "logs":
+        return display_log(environ, start_response, "log", "log")
     elif path.startswith("log"):
-        return display_log(environ, start_response, path)
+        if path == "log":
+            path = os.path.join(path,
+                                quote_plus(CONF.CLIENT["srv_discovery_url"]))
+            tail = path
+        else:
+            head, tail = os.path.split(path)
+        return display_log(environ, start_response, path, tail)
     elif "flow_names" not in session:
         session_init(session)
     elif path == "reset":
