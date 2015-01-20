@@ -1,3 +1,11 @@
+<%
+def display_log(logs):
+    el = "<ul>"
+    for name, path in logs:
+        el += '<li><a href="%s">%s</a>' % (path, name)
+    el += "</ul>"
+    return el
+%>
 
 <!DOCTYPE html>
 <html>
@@ -20,11 +28,7 @@
       <div class="jumbotron">
         <h1>OICTEST logs</h1>
           <h3>A list of test results that are saved on disc:</h3>
-            <ul>
-              %for test in ${logs}:
-                <li><a href="test">test</a></li>
-              %endfor
-            </ul>
+            ${display_log(logs)}
       </div>
 
     </div> <!-- /container -->

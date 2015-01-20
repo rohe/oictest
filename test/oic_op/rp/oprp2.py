@@ -2,7 +2,7 @@
 import copy
 import importlib
 import os
-from urllib import quote_plus
+from urllib import quote_plus, unquote
 import argparse
 import logging
 import sys
@@ -72,8 +72,8 @@ def setup_logging(logfile):
     LOGGER.setLevel(logging.DEBUG)
 
 
-def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
+def static(environ, start_response, path):
+    LOGGER.info("[static]sending: %s" % (path,))
 
     try:
         text = open(path).read()
@@ -278,17 +278,29 @@ def dump_log(session, test_id=None):
             return path
 
 
-def display_logs(environ, start_response, session):
-    _path = log_path(session)  # with a test_id
-    _head, _ = os.path.split(_path)
-    if os.path.isdir(_head):
-        logs = os.walk(_head)
+def display_log(environ, start_response, path):
+    path = path.replace(":", "%3A")
+    head, tail = os.path.split(path)
+    if os.path.isdir(path):
+        item = []
+        for (dirpath, dirnames, filenames) in os.walk(path):
+            if dirnames:
+                item = [(unquote(f),
+                         os.path.join(tail, f)) for f in dirnames]
+                break
+            elif filenames:
+                item = [(unquote(f),
+                         os.path.join(tail, f)) for f in filenames]
+                break
 
         resp = Response(mako_template="logs.mako",
                         template_lookup=LOOKUP,
                         headers=[])
-        argv = {"logs": logs}
+        argv = {"logs": item}
+
         return resp(environ, start_response, **argv)
+    elif os.path.isfile(path):
+        return static(environ, start_response, path)
     else:
         resp = Response("No saved logs")
         return resp(environ, start_response)
@@ -771,15 +783,15 @@ def application(environ, start_response):
     LOGGER.info("path: %s" % path)
 
     if path == "robots.txt":
-        return static(environ, start_response, LOGGER, "static/robots.txt")
+        return static(environ, start_response, "static/robots.txt")
     elif path == "favicon.ico":
-        return static(environ, start_response, LOGGER, "static/favicon.ico")
+        return static(environ, start_response, "static/favicon.ico")
 
     if path.startswith("static/"):
-        return static(environ, start_response, LOGGER, path)
+        return static(environ, start_response, path)
 
     if path.startswith("export/"):
-        return static(environ, start_response, LOGGER, path)
+        return static(environ, start_response, path)
 
     if path == "":  # list
         if session_init(session):
@@ -792,6 +804,8 @@ def application(environ, start_response):
                 return flow_list(environ, start_response, session)
             else:
                 return resp(environ, start_response)
+    elif path.startswith("log"):
+        return display_log(environ, start_response, path)
     elif "flow_names" not in session:
         session_init(session)
     elif path == "reset":
@@ -828,8 +842,6 @@ def application(environ, start_response):
             return test_info(environ, start_response, p[1], session)
         except KeyError:
             return not_found(environ, start_response)
-    elif path == "log":
-        return display_logs(environ, start_response, session)
     elif path == "continue":
         try:
             sequence_info = session["seq_info"]
