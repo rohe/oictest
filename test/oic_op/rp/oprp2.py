@@ -278,6 +278,22 @@ def dump_log(session, test_id=None):
             return path
 
 
+def display_logs(environ, start_response, session):
+    _path = log_path(session)  # with a test_id
+    _head, _ = os.path.split(_path)
+    if os.path.isdir(_head):
+        logs = os.walk(_head)
+
+        resp = Response(mako_template="logs.mako",
+                        template_lookup=LOOKUP,
+                        headers=[])
+        argv = {"logs": logs}
+        return resp(environ, start_response, **argv)
+    else:
+        resp = Response("No saved logs")
+        return resp(environ, start_response)
+
+
 def clear_session(session):
     for key in session:
         session.pop(key, None)
@@ -812,7 +828,9 @@ def application(environ, start_response):
             return test_info(environ, start_response, p[1], session)
         except KeyError:
             return not_found(environ, start_response)
-    if path == "continue":
+    elif path == "log":
+        return display_logs(environ, start_response, session)
+    elif path == "continue":
         try:
             sequence_info = session["seq_info"]
         except KeyError:  # Cookie delete broke session
@@ -953,7 +971,7 @@ if __name__ == '__main__':
     if args.testflows:
         TEST_FLOWS = importlib.import_module(args.testflows)
     else:
-        TEST_FLOWS = importlib.import_module("oictest.testflows")
+        TEST_FLOWS = importlib.import_module("tflow")
 
     if args.directory:
         _dir = args.directory
@@ -962,7 +980,10 @@ if __name__ == '__main__':
     else:
         _dir = "./"
 
-    TEST_PROFILE = args.profile
+    if args.profile:
+        TEST_PROFILE = args.profile
+    else:
+        TEST_PROFILE = "C.T.T"
 
     LOOKUP = TemplateLookup(directories=[_dir + 'templates', _dir + 'htdocs'],
                             module_directory=_dir + 'modules',
