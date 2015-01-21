@@ -3,6 +3,7 @@ import json
 from urlparse import urlparse
 
 from oic import oic
+from oic.exception import MessageException
 from oic.oauth2.message import ErrorResponse
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -227,8 +228,13 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
 
     trace.reply("STATUS: %d" % _resp.status_code)
 
+    _response = None
     if _resp.status_code >= 400:  # an error
-        _response = ErrorResponse().from_json(_resp.text)
+        if _resp.text:
+            try:
+                _response = ErrorResponse().from_json(_resp.text)
+            except MessageException:
+                trace.reply("Non OIDC error message: %s" % _resp.content)
     else:
         try:
             uiendp = _cli.provider_info["userinfo_endpoint"]

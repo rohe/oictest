@@ -369,18 +369,19 @@ def post_tests(conv, req_c, resp_c):
 
 
 def err_response(environ, start_response, session, where, err):
-    if isinstance(err, Break):
-        session["node"].state = WARNING
+    if err:
+        if isinstance(err, Break):
+            session["node"].state = WARNING
+        else:
+            session["node"].state = ERROR
+        exception_trace(where, err, LOGGER)
+        session["conv"].trace.error("%s:%s" % (err.__class__.__name__,
+                                               str(err)))
     else:
         session["node"].state = ERROR
-    exception_trace(where, err, LOGGER)
-
-    session["conv"].trace.error("%s:%s" % (err.__class__.__name__, str(err)))
 
     _tid = session["testid"]
-
     dump_log(session, _tid)
-
     session["test_info"][_tid] = {"trace": session["conv"].trace,
                                   "test_output": session["conv"].test_output}
 
@@ -688,17 +689,15 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         return err_response(environ, start_response, session,
                                             "request_and_return", err)
 
+                    if response is None:  # bail out
+                        return err_response(environ, start_response, session,
+                                            "request_and_return", None)
+
                     trace.response(response)
                     LOGGER.info(response.to_dict())
                     if resp_c.response == "RegistrationResponse" and \
                             isinstance(response, RegistrationResponse):
                         ots.client.store_registration_info(response)
-                    # elif "error" in response:  # must be an ErrorResponse
-                    #     conv.test_output.append(
-                    #         {'status': 4, "id": "*",
-                    #          'message':
-                    #              'Error response: %s' % (response.to_dict(),)})
-                    #     return opresult(environ, start_response, conv, session)
 
             try:
                 post_tests(conv, req_c, resp_c)
