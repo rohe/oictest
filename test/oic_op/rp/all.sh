@@ -14,6 +14,9 @@ startme() {
     ./oprp2.py -p C.T.F -t tflow salesforce &> salesforce.err &
     ./oprp2.py -p C.T.F -t tflow telekom &> telekom.err &
     ./oprp2.py -p C.T.F -t tflow thinktecture_code &> thinktecture_code.err &
+
+    ./oprp2.py -p C.T.T -t tflow luke &> luke.err &
+    ./oprp2.py -p C.T.T -t tflow edmund &> edmund.err &
 }
 
 stopme() {
