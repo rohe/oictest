@@ -88,6 +88,7 @@ FLOWS = {
         "desc": "Can Make Access Token Request with 'client_secret_post' "
                 "Authentication"
     },
+    #TODO Fails to get RSA key?
     "RP-11": {
         "flow": [{"action": "discover", "args": {}}, 
                  {"action": "provider_info", "args": {}},
@@ -157,6 +158,7 @@ FLOWS = {
     # === Can Request and Use ? ID Token Response ===
     # Signed and Encrypted
     # *signed is already tested*
+    #TODO Failed to run becuse it could not find a suitable encyption key (RSA1_5)
     "RP-16": {
         "flow": [
             {"action": "discover", "args": {}},
@@ -202,34 +204,35 @@ FLOWS = {
     "RP-19": {
         "flow": [
             {"action": "discover", "args": {}},
-            {"action": "provider_info", "args": {}},
+            {"action": "provider_info",
+                "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
             {"action": "registration", "args": {}},
             {"action": "authn_req",
-             "args": {"scope": "openid", "response_type": ["code"]}},
-            {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
+                "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}}
         ],
-        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+        "desc": "Rejects incorrect at_hash when Code Flow is used"
     },
     # Signed
     "RP-20": {
         "flow": [
             {"action": "discover", "args": {}},
-            {"action": "provider_info", "args": {}},
+            {"action": "provider_info",
+                "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
             {"action": "registration",
              "args": {"userinfo_signed_response_alg": "HS256"}},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
         ],
-        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+        "desc": "Rejects incorrect at_hash when Code Flow is used"
     },
     # Encrypted
     "RP-21": {
         "flow": [
             {"action": "discover", "args": {}},
-            {"action": "provider_info", "args": {}},
+            {"action": "provider_info",
+                "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
             {"action": "registration",
              "args": {
                  "userinfo_encrypted_response_alg": "RSA1_5",
@@ -238,15 +241,15 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
         ],
-        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+        "desc": "Rejects incorrect at_hash when Code Flow is used"
     },
     # Signed+Encrypted
     "RP-22": {
         "flow": [
             {"action": "discover", "args": {}},
-            {"action": "provider_info", "args": {}},
+            {"action": "provider_info",
+                "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
             {"action": "registration",
              "args": {
                  "userinfo_signed_response_alg": "HS256",
@@ -256,9 +259,8 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
         ],
-        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+        "desc": "Rejects incorrect at_hash when Code Flow is used"
     },
     # ==== Can Use request_uri Request Parameter with ? Request ===
     # Unsigned
