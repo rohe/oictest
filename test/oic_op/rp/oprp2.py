@@ -695,9 +695,13 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
                     trace.response(response)
                     LOGGER.info(response.to_dict())
-                    if resp_c.response == "RegistrationResponse" and \
-                            isinstance(response, RegistrationResponse):
-                        ots.client.store_registration_info(response)
+                    if resp_c.response == "RegistrationResponse":
+                        if isinstance(response, RegistrationResponse):
+                            ots.client.store_registration_info(response)
+                        else:
+                            return err_response(environ, start_response,
+                                                session, "RegistrationResponse",
+                                                None)
 
             try:
                 post_tests(conv, req_c, resp_c)
