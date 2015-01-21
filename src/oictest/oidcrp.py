@@ -242,7 +242,7 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         elif "keyjar" not in kwargs:
             kwargs["keyjar"] = conv.keyjar
 
-        trace.reply(_resp.text)
+        trace.reply("BODY: %s" % _resp.text)
         _response = _cli.parse_request_response(_resp, response, body_type,
                                                 state, **kwargs)
 

@@ -597,13 +597,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
             conv.request_spec = req
 
+            conv.trace.info("------------ %s ------------" % req_c.request)
             if req_c == Discover:
                 # Special since it's just a GET on a URL
                 _r = req.discover(
                     ots.client, issuer=ots.config.CLIENT["srv_discovery_url"])
                 conv.position, conv.last_response, conv.last_content = _r
                 #logging.debug("Provider info: %s" % conv.last_content._dict)
-                if conv.last_response.status == 400:
+                if conv.last_response.status >= 400:
                     return err_response(environ, start_response, session,
                                         "discover", conv.last_response.text)
 
