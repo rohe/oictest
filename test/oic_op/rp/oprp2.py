@@ -523,7 +523,12 @@ def setup(kwa, conv, environ, start_response, session):
         except KeyError:
             req_args = {}
 
-        kwargs["request_args"] = func(req_args, conv, args)
+        try:
+            kwargs["request_args"] = func(req_args, conv, args)
+        except KeyError as err:
+            conv.trace.error("function: %s failed" % func)
+            conv.trace.error(str(err))
+            raise NotSupported
         del kwargs["function"]
 
     try:
@@ -537,7 +542,13 @@ def setup(kwa, conv, environ, start_response, session):
             func = spec
             args = {}
 
-        kwargs = func(kwargs, conv, args)
+        try:
+            kwargs = func(kwargs, conv, args)
+        except KeyError as err:
+            conv.trace.error("function: %s failed" % func)
+            conv.trace.error(str(err))
+            raise NotSupported
+
         del kwargs["kwarg_func"]
 
     try:
