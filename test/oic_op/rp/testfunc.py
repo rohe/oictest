@@ -217,6 +217,7 @@ def login_hint(request_args, conv, kwargs):
     request_args["login_hint"] = hint
     return request_args
 
+
 def get_principal(args, conv, kwargs):
     args["principal"] = conv.client_config[kwargs["param"]]
     return args

@@ -503,12 +503,12 @@ FLOWS = {
             ('_login_', {"request_args": {"prompt": "login"}})
         ],
         "note": "You should get a request for authentication even though you "
-                "already are",
+                "already are authenticated",
         "profile": "..",
         "mti": "MUST"
     },
     'OP-G-02': {
-        "desc": 'Request with prompt=none',
+        "desc": 'Request with prompt=none when not logged in',
         "sequence": [
             'rm_cookie',
             '_discover_',
@@ -521,6 +521,17 @@ FLOWS = {
                                              "interaction_required",
                                              "session_selection_required",
                                              "consent_required"]}}
+    },
+    'OP-G-03': {
+        "desc": 'Request with prompt=none when logged in',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            '_login_',
+            ('_login_', {"request_args": {"prompt": "none"}})
+        ],
+        "mti": "MUST",
+        "profile": "..",
     },
     'OP-H-01': {
         "desc": 'Request with extra query component',
@@ -670,7 +681,7 @@ FLOWS = {
             ("_login_",
              {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
         ],
-        "profile": "..",
+        "profile": "..T",
         "mti": "MUST",
         'tests': {"verify-redirect_uri-query_component": {"foo": "bar"}}
     },
@@ -1055,7 +1066,8 @@ FLOWS = {
             'fetch_keys',
         ],
         "note": "Please make your OP roll over signing keys",
-        "profile": ".T.T.s.+",
+        "profile": ".T.T.s",
+        #"profile": ".T.T.s.+",
         "tests": {"new-signing-keys": {}}
     },
     'OP-N-02': {
@@ -1094,7 +1106,8 @@ FLOWS = {
             'fetch_keys',
         ],
         "note": "Please make your OP roll over encryption keys",
-        "profile": ".T..e.+",
+        #"profile": ".T..e.+",
+        "profile": ".T..e",
         "tests": {"new-encryption-keys": {}}
     },
     'OP-N-04': {
@@ -1231,7 +1244,7 @@ FLOWS = {
             '_discover_',
             ("_register_",
              {"support": {"error": {"request_parameter_supported": True}}}),
-            ("_login_", {"kwarg_func": {"request_method": "request"}})
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "..",
     },
@@ -1248,7 +1261,7 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwarg_func": {"request_method": "request"}})
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "...n",
     },
@@ -1266,7 +1279,7 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {"kwarg_func": {"request_method": "request"}})
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "...s.+",
     },
