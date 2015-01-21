@@ -207,7 +207,6 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
         ],
         "desc": "Rejects incorrect at_hash when Implicit Flow Used"
     },
@@ -221,7 +220,6 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
-            {"action": "userinfo_req", "args": {}}
         ],
         "desc": "Rejects incorrect at_hash when Implicit Flow Used"
     },
