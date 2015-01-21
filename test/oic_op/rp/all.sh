@@ -17,6 +17,7 @@ startme() {
 
     ./oprp2.py -p C.T.T -t tflow luke &> luke.err &
     ./oprp2.py -p C.T.T -t tflow edmund &> edmund.err &
+    ./oprp2.py -p C.T.T -t tflow xenosmilus2 &> xenosmilus2.err &
 }
 
 stopme() {
@@ -27,6 +28,9 @@ stopme() {
     pkill -f "salesforce"
     pkill -f "telekom"
     pkill -f "thinktecture_code"
+    pkill -f "luke"
+    pkill -f "edmund"
+    pkill -f "xenosmilus2"
 }
 
 case "$1" in
