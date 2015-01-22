@@ -3,9 +3,10 @@ from oictest.provider import Provider
 
 __author__ = 'roland'
 
+OIDC_PATTERN = ".well-known/openid-configuration"
 
 def extract_mode(path):
-    # path = <sign_alg>/<encrypt>/<errtype/<claims>/<endpoint>
+    # path = >test_id>/<sign_alg>/<encrypt>/<errtype/<claims>/<endpoint>
 
     if path == "":
         return {}, ""
@@ -13,47 +14,58 @@ def extract_mode(path):
     if path[0] == '/':
         path = path[1:]
 
-    part = path.split("/", 4)
-
-    mod = {}
-    if len(part) < 4:  # might be no endpoint
+    if path == ".well-known/webfinger":
         return None, path
 
-    if part[0] != "_":
-        mod["sign_alg"] = part[0]
-    if part[3] != "_":
+    if path.endswith(OIDC_PATTERN):
+        part = path.split("/")
+        return {"test_id": part[0]}, OIDC_PATTERN
+
+    part = path.split("/", 5)
+
+    mod = {"test_id": part[0]}
+    if len(part) < 5:  # might be no endpoint
+        return None, "/".join(path[1:])
+
+    if part[1] != "_":
+        mod["sign_alg"] = part[1]
+    if part[4] != "_":
         try:
-            mod["claims"] = part[3].split(",")
+            mod["claims"] = part[4].split(",")
         except ValueError:
             pass
 
-    if part[1] != "_":
+    if part[2] != "_":
         try:
-            _enc_alg, _enc_enc = part[1].split(":")
+            _enc_alg, _enc_enc = part[2].split(":")
         except ValueError:
             pass
         else:
             mod.update({"enc_alg": _enc_alg, "enc_enc": _enc_enc})
 
-    if part[2] != "_":
+    if part[3] != "_":
         try:
-            mod["err"] = part[2].split(",")
+            mod["err"] = part[3].split(",")
         except ValueError:
             pass
 
-    if len(part) == 4:
+    if len(part) == 5:
         return mod, ""
     else:
         return mod, part[-1]
 
 
 def mode2path(mode):
-    # SHS512/RSA1_5:A128CBC-HS256/_/normal
+    # test_id/<sig-alg>/<enc-alg>/<err>/<userinfo>
     if mode is None:
         mode = {}
 
     noop = "_/"
-    path = ""
+    try:
+        path = "%s/" % mode["test_id"]
+    except KeyError:
+        path = ""
+
     try:
         path += "%s/" % mode["sign_alg"]
     except KeyError:

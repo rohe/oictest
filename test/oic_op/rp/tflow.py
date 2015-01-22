@@ -20,19 +20,17 @@ from testfunc import redirect_uri_with_query_component
 
 __author__ = 'roland'
 
-
 USERINFO_REQUEST_AUTH_METHOD = (
     "userinfo", {
         "kwargs_mod": {"authn_method": "bearer_header"},
         "method": "GET"
     })
 
-
 FLOWS = {
     'OP-A-01': {
         "desc": 'Request with response_type=code',
         "sequence": ['_discover_', "_register_", "_login_"],
-        "profile": "..",
+        "profile": "C..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
@@ -134,7 +132,8 @@ FLOWS = {
     },
     'OP-B-01s': {
         # RS256 is MTI
-        "desc": 'If left to itself is the OP signing the ID Token and with what',
+        "desc": 'If left to itself is the OP signing the ID Token and with '
+                'what',
         "sequence": [
             '_discover_',
             "_login_",
@@ -174,7 +173,8 @@ FLOWS = {
                 "The result should be that you have to re-authenticate",
         "profile": "..",
         "tests": {"multiple-sign-on": {}, "check-http-response": {}},
-        "mti": "MUST"
+        "mti": "MUST",
+        "result": "The test passed if you were prompted to log in"
     },
     'OP-B-05': {
         "desc": 'Requesting ID Token with max_age=1000 seconds Restriction',
@@ -215,10 +215,11 @@ FLOWS = {
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": "MUST",
         "test": {'verify-athash': {}, "check-http-response": {}},
-        "profile": "I,IT..",
+        "profile": "IT,CIT..",
     },
     'OP-B-08': {
-        "desc": 'Includes c_hash in ID Token when Code Flow is Used',
+        "desc": 'ID Token has c_hash when ID Token and Authorization Code '
+                'returned from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
         "tests": {'verify-chash': {}, "check-http-response": {}},
         "profile": "CI,CIT..",
@@ -233,7 +234,7 @@ FLOWS = {
                           "kwargs_mod": {"authn_method": "bearer_header"},
                           "method": "GET"
                       })],
-        "profile": "..",
+        "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
@@ -246,7 +247,7 @@ FLOWS = {
                           "kwargs_mod": {"authn_method": "bearer_header"},
                           "method": "POST"
                       })],
-        "profile": "..",
+        "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
@@ -259,7 +260,7 @@ FLOWS = {
                           "kwargs_mod": {"authn_method": "bearer_body"},
                           "method": "POST"
                       })],
-        "profile": "..",
+        "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
@@ -287,7 +288,7 @@ FLOWS = {
                       })],
         "tests": {"asym-signed-userinfo": {"alg": "RS256"},
                   "check-http-response": {}},
-        "profile": "..T.s",
+        "profile": "C,IT,CI,CT,CIT..T.s",
         "mti": "MUST"
     },
     'OP-C-05': {
@@ -307,7 +308,7 @@ FLOWS = {
                          "userinfo_encryption_alg_values_supported": "RSA1_5",
                          "userinfo_encryption_enc_values_supported":
                              "A128CBC-HS256"
-                 }}
+                     }}
              }
             ),
             '_login_',
@@ -318,7 +319,7 @@ FLOWS = {
                  "method": "GET"
              })
         ],
-        "profile": "...e.+",
+        "profile": "C,IT,CI,CT,CIT...e.+",
         "tests": {"encrypted-userinfo": {}, "check-http-response": {}},
     },
     'OP-C-06': {
@@ -349,7 +350,7 @@ FLOWS = {
                  "method": "GET"
              })
         ],
-        "profile": "...se.+",
+        "profile": "C,IT,CI,CT,CIT...se.+",
         "tests": {
             "encrypted-userinfo": {},
             "asym-signed-userinfo": {"alg": "RS256"},
@@ -362,19 +363,19 @@ FLOWS = {
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
-        "profile": "C..",
+        "profile": "C,CT..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
     'OP-D-02': {
-        "desc": 'Login no nonce, implicit flow',
+        "desc": 'Reject requests without nonce unless using the code flow',
         "sequence": [
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
         "tests": [("verify-error", {"error": ["invalid_request"]})],
-        "profile": "I,IT,CI,CT,CIT..",
+        "profile": "I,IT..",
         "mti": "MUST"
     },
     'OP-E-01': {
@@ -516,14 +517,16 @@ FLOWS = {
             '_discover_',
             '_register_',
             "_login_",
+            '_accesstoken_',
             "note",
-            ('_login_', {"request_args": {"prompt": "login"}})
+            ('_login_', {"request_args": {"prompt": "login"}}),
+            '_accesstoken_',
         ],
-        "note": "You should get a request for authentication even though you "
-                "already are authenticated",
+        "note": "You should get a request for re-authentication",
         "profile": "..",
-        'tests': {"check-http-response": {}},
-        "mti": "MUST"
+        'tests': {"multiple-sign-on": {}, "check-http-response": {}},
+        "mti": "MUST",
+        # "result": "The test passed if you were prompted to log in"
     },
     'OP-G-02': {
         "desc": 'Request with prompt=none when not logged in',
@@ -538,7 +541,7 @@ FLOWS = {
         "tests": {"verify-error": {"error": ["login_required",
                                              "interaction_required",
                                              "session_selection_required",
-                                             "consent_required"]}}
+                                             "consent_required"]}},
     },
     'OP-G-03': {
         "desc": 'Request with prompt=none when logged in',
@@ -549,8 +552,9 @@ FLOWS = {
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
         "mti": "MUST",
-        'tests': {"check-http-response": {}},
+        'tests': {"same-authn": {}, "check-http-response": {}},
         "profile": "..",
+        "result": "The test passed if you were not prompted to log in"
     },
     'OP-H-01': {
         "desc": 'Request with extra query component',
@@ -580,7 +584,7 @@ FLOWS = {
             )
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"same-authn": {}, "check-http-response": {}},
         "mti": "SHOULD",
     },
     'OP-H-03': {
@@ -593,7 +597,8 @@ FLOWS = {
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "No err"
+        "mti": "No err",
+        "result": "You should be requested to log in as a predefined user"
     },
     'OP-H-04': {
         "desc": 'Providing ui_locales',
@@ -732,7 +737,8 @@ FLOWS = {
             '_discover_',
             ('_register_',
              {
-             "function": (redirect_uris_with_query_component, {"foo": "bar"})}),
+                 "function": (
+                 redirect_uris_with_query_component, {"foo": "bar"})}),
             'expect_err',
             ("_login_", {
                 # different from the one registered
@@ -789,7 +795,7 @@ FLOWS = {
                              "client_secret_basic"}}
              }),
         ],
-        "profile": "C..T",
+        "profile": "C,CI,CIT..T",
         'tests': {"check-http-response": {}},
     },
     'OP-K-01s': {
@@ -807,7 +813,7 @@ FLOWS = {
                              "client_secret_basic"}}
              }),
         ],
-        "profile": "C..F",
+        "profile": "C,CI,CIT..F",
         'tests': {"check-http-response": {}},
     },
     'OP-K-02d': {
@@ -830,7 +836,7 @@ FLOWS = {
                              "client_secret_post"}}
              }),
         ],
-        "profile": "..T",
+        "profile": "C,CI,CIT..T",
         'tests': {"check-http-response": {}},
     },
     'OP-K-02s': {
@@ -848,7 +854,7 @@ FLOWS = {
                              "client_secret_post"}}
              }),
         ],
-        "profile": "..F",
+        "profile": "C,CI,CIT..F",
         'tests': {"check-http-response": {}},
     },
     'OP-K-03': {
@@ -898,7 +904,7 @@ FLOWS = {
     'OP-L-01': {
         "desc": 'Publish openid-configuration discovery information',
         "sequence": ['_discover_'],
-        "profile": ".T.T",
+        "profile": ".T.",
         'tests': {"check-http-response": {}},
     },
     'OP-L-02': {
@@ -907,12 +913,12 @@ FLOWS = {
         "tests": {"providerinfo-has-jwks_uri": {},
                   "providerinfo-has-claims_supported": {},
                   "check-http-response": {}},
-        "profile": ".T.T",
+        "profile": ".T.",
     },
     'OP-L-03': {
         "desc": 'Keys in OP JWKs well formed',
         "sequence": ['_discover_'],
-        "profile": ".T.T",
+        "profile": ".T.",
         "tests": {"verify-base64url": {}, "check-http-response": {}},
     },
     'OP-L-04': {
@@ -923,7 +929,7 @@ FLOWS = {
     },
     'OP-L-05': {
         "desc": 'Can Discover Identifiers using E-Mail Syntax',
-        #"profile": ".T...+",
+        # "profile": ".T...+",
         "profile": ".T.",
         "sequence": [
             ("webfinger",
@@ -1117,7 +1123,7 @@ FLOWS = {
         ],
         "note": "Please make your OP roll over signing keys",
         "profile": ".T.T.s",
-        #"profile": ".T.T.s.+",
+        # "profile": ".T.T.s.+",
         "tests": {"new-signing-keys": {}, "check-http-response": {}}
     },
     'OP-N-02': {
@@ -1157,7 +1163,7 @@ FLOWS = {
             'fetch_keys',
         ],
         "note": "Please make your OP roll over encryption keys",
-        #"profile": ".T..e.+",
+        # "profile": ".T..e.+",
         "profile": ".T..e",
         "tests": {"new-encryption-keys": {}, "check-http-response": {}}
     },
@@ -1197,7 +1203,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             ("_register_",
-             {"support": {"error": {"request_uri_parameter_supported": True}}}
+             {"support": {"warning": {"request_uri_parameter_supported": True}}}
             ),
         ],
         "profile": "..T",
@@ -1212,13 +1218,13 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "none"},
                  "support": {
-                     "error": {
+                     "warning": {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {"kwarg_func": request_in_file})
         ],
-        "profile": "..T.n",
+        "profile": "...n",
         "tests": {"check-http-response": {}}
     },
     'OP-O-03': {
@@ -1230,7 +1236,7 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "RS256"},
                  "support": {
-                     "error": {
+                     "warning": {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
@@ -1252,7 +1258,7 @@ FLOWS = {
                      "request_object_encryption_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "error":{
+                     "warning": {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none",
                          "request_object_encryption_alg_values_supported":
@@ -1280,7 +1286,7 @@ FLOWS = {
                      "request_object_encryption_enc": "A128CBC-HS256"
                  },
                  "support": {
-                     "error": {
+                     "warning": {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "RS256",
                          "request_object_encryption_alg_values_supported":
@@ -1300,10 +1306,10 @@ FLOWS = {
         "sequence": [
             '_discover_',
             ("_register_",
-             {"support": {"error": {"request_parameter_supported": True}}}),
+             {"support": {"warning": {"request_parameter_supported": True}}}),
             ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
-        "profile": "..",
+        "profile": "....+",
         "tests": {"check-http-response": {}}
     },
     'OP-P-02': {
@@ -1315,13 +1321,13 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "none"},
                  "support": {
-                     "error": {
+                     "warning": {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
-        "profile": "...n",
+        "profile": "...n.+",
         "tests": {"check-http-response": {}}
     },
     'OP-P-03': {
@@ -1333,7 +1339,7 @@ FLOWS = {
                  "request_args": {
                      "request_object_signing_alg": "RS256"},
                  "support": {
-                     "error": {
+                     "warning": {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
@@ -1370,7 +1376,7 @@ FLOWS = {
             ("_login_", {"function": sub_claims}),
         ],
         "profile": "....+",
-        "tests": {"check-http-response": {}}
+        "tests": {"check-http-response": {}},
     },
     'OP-Q-03': {
         "desc": 'Using prompt=none with user hint through sub in request',

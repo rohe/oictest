@@ -1,6 +1,7 @@
 import copy
 import json
 from urlparse import urlparse
+from jwkest import b64d, unpack, BadSyntax
 
 from oic import oic
 from oic.exception import MessageException
@@ -256,6 +257,15 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         if "id_token" in _response:
             _dict = json.loads(_resp.text)
             conv.id_token = _dict["id_token"]
+            header = json.loads(b64d(str(conv.id_token.split(".")[0])))
+            trace.info("IdToken JWT header: %s" % header)
+        else:
+            try:
+                res = unpack(_resp.content)
+            except (BadSyntax, TypeError):
+                pass
+            else:
+                trace.info("JWT header: %s" % res[0])
 
     conv.protocol_response.append((_response, _resp.content))
 

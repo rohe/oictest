@@ -47,8 +47,6 @@ from testclass import DisplayIDToken
 from testclass import Webfinger
 
 from profiles import get_sequence
-from profiles import PMAP
-from profiles import CRYPT
 from profiles import from_code
 from profiles import flows
 
@@ -244,6 +242,35 @@ def log_path(session, test_id=None):
     return "log/%s/%s/%s" % (qiss, profile, test_id)
 
 
+def represent_result(session):
+    if session["index"]+1 < len(session["seq_info"]["sequence"]):
+        return "PARTIAL RESULT"
+
+    text = "PASSED"
+    warnings = []
+    for item in session["conv"].test_output:
+        if isinstance(item, tuple):
+            continue
+        else:
+            if item["status"] >= ERROR:
+                text = "FAILED"
+                break
+            elif item["status"] == WARNING:
+                warnings.append()
+                text = "PASSED WITH WARNINGS"
+
+    if text.startswith("PASSED"):
+        try:
+            text = "UNKNOWN - %s" % session["seq_info"]["node"].kwargs["result"]
+        except KeyError:
+            pass
+
+    if warnings:
+        text = "%s\n%s" % (text, "\n".join(warnings))
+
+    return text
+
+
 def dump_log(session, test_id=None):
     try:
         _conv = session["conv"]
@@ -271,6 +298,10 @@ def dump_log(session, test_id=None):
             output.extend(trace_output(_conv.trace))
             output.append("")
             output.extend(test_output(_conv.test_output))
+
+            # and lastly the result
+            output.append("RESULT: %s" % represent_result(session))
+            output.append("")
 
             f = open(path, "w")
             f.write("\n".join(output))
@@ -313,6 +344,16 @@ def clear_session(session):
     session.invalidate()
 
 
+def client_init():
+    ots = OIDCTestSetup(CONF, TEST_FLOWS, str(CONF.PORT))
+    client_conf = ots.config.CLIENT
+    trace = Trace()
+    conv = Conversation(ots.client, client_conf, trace, None,
+                        message_factory, check_factory)
+    conv.cache = CACHE
+    return ots, conv
+
+
 def session_setup(session, path, index=0):
     logging.info("session_setup")
     _keys = session.keys()
@@ -325,24 +366,19 @@ def session_setup(session, path, index=0):
         else:
             del session[key]
 
-    ots = OIDCTestSetup(CONF, TEST_FLOWS, str(CONF.PORT))
     session["testid"] = path
     session["node"] = get_node(session["tests"], path)
     sequence_info = {"sequence": get_sequence(path, session["profile"]),
                      "mti": session["node"].mti,
                      "tests": session["node"].tests}
     session["seq_info"] = sequence_info
-    trace = Trace()
-    client_conf = ots.config.CLIENT
-    conv = Conversation(ots.client, client_conf, trace, None,
-                        message_factory, check_factory)
-    conv.cache = CACHE
-    session["ots"] = ots
-    session["conv"] = conv
     session["index"] = index
     session["response_type"] = ""
+    ots, conv = client_init()
+    session["conv"] = conv
+    session["ots"] = ots
 
-    return conv, sequence_info, ots, trace, index
+    return conv, sequence_info, ots, conv.trace, index
 
 
 def post_tests(conv, req_c, resp_c):
@@ -388,11 +424,12 @@ def err_response(environ, start_response, session, where, err):
     return flow_list(environ, start_response, session)
 
 
-def sorry_response(environ, start_response, homepage):
+def sorry_response(environ, start_response, homepage, err):
     resp = Response(mako_template="sorry.mako",
                     template_lookup=LOOKUP,
                     headers=[])
-    argv = {"home_page": homepage}
+    argv = {"home_page": homepage,
+            "error": str(err)}
     return resp(environ, start_response, **argv)
 
 
@@ -781,6 +818,9 @@ def reset_session(session, profile=None):
         else:
             del session[key]
     init_session(session, profile)
+    conv, ots = client_init()
+    session["conv"] = conv
+    session["ots"] = ots
 
 
 def session_init(session):
@@ -898,9 +938,9 @@ def application(environ, start_response):
 
         try:
             conv = session["conv"]
-        except KeyError:
+        except KeyError as err:
             homepage = ""
-            return sorry_response(environ, start_response, homepage)
+            return sorry_response(environ, start_response, homepage, err)
 
         return opresult(environ, start_response, conv, session)
     # expected path format: /<testid>[/<endpoint>]
@@ -923,9 +963,9 @@ def application(environ, start_response):
             index = session["index"]
             ots = session["ots"]
             conv = session["conv"]
-        except KeyError:
+        except KeyError as err:
             #  Todo: find out which port I'm listening on
-            return sorry_response(environ, start_response, CONF.BASE)
+            return sorry_response(environ, start_response, CONF.BASE, err)
 
         (req_c, resp_c), _ = sequence_info["sequence"][index]
 
