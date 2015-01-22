@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import traceback
+import logging
 
 from exceptions import KeyError
 from exceptions import Exception
@@ -14,18 +15,23 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from urlparse import urlparse
+import uuid
 from beaker.middleware import SessionMiddleware
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import *
+from oic.utils.http_util import BadRequest, extract_from_request, ServiceError
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import Response
+from oic.utils.http_util import NotFound
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
+from rrtest import Trace
 from oictest.mode import extract_mode
 from oictest.mode import setup_op
 from oictest.mode import mode2path
@@ -58,6 +64,7 @@ PASSWD = {
     "upper": "crust"
 }
 
+HEADER = "---------- %s ----------"
 
 # ----------------------------------------------------------------------------
 
@@ -104,90 +111,145 @@ def css(environ, start_response, session):
 # ----------------------------------------------------------------------------
 
 
+def dump_log(session, trace):
+    try:
+        _path = session["path"]
+    except KeyError:
+        base = "log"
+        _path = os.path.join(base, session["test_id"])
+
+    output = "%s" % trace
+
+    f = open(_path, "a")
+    f.write(output)
+    f.close()
+    return _path
+
+
+def wsgi_wrapper(environ, start_response, func, session, trace):
+    kwargs = extract_from_request(environ)
+    args = func(**kwargs)
+
+    try:
+        resp, state = args
+        trace.reply(resp.message)
+        dump_log(session, trace)
+        return resp(environ, start_response)
+    except TypeError:
+        resp = args
+        trace.reply(resp.message)
+        dump_log(session, trace)
+        return resp(environ, start_response)
+    except Exception as err:
+        LOGGER.error("%s" % err)
+        trace.error("%s" % err)
+        dump_log(session, trace)
+        raise
+
 # ----------------------------------------------------------------------------
 
+
 #noinspection PyUnusedLocal
-def token(environ, start_response, session):
+def token(environ, start_response, session, trace):
+    trace.info(HEADER % "AccessToken")
     _oas = session["op"]
 
-    return wsgi_wrapper(environ, start_response, _oas.token_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.token_endpoint, session,
+                        trace)
 
 
 #noinspection PyUnusedLocal
-def authorization(environ, start_response, session):
+def authorization(environ, start_response, session, trace):
+    trace.info(HEADER % "Authorization")
     _oas = session["op"]
 
-    return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.authorization_endpoint,
+                        session, trace)
 
 
 #noinspection PyUnusedLocal
-def userinfo(environ, start_response, session):
+def userinfo(environ, start_response, session, trace):
+    trace.info(HEADER % "UserInfo")
     _oas = session["op"]
-    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.userinfo_endpoint,
+                        session, trace)
 
 
 #noinspection PyUnusedLocal
-def op_info(environ, start_response, session):
+def op_info(environ, start_response, session, trace):
+    trace.info(HEADER % "ProviderConfiguration")
+    trace.request("PATH: %s" % environ["PATH_INFO"])
+    try:
+        trace.request("QUERY: %s" % environ["QUERY_STRING"])
+    except KeyError:
+        pass
     _oas = session["op"]
-    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.providerinfo_endpoint,
+                        session, trace)
 
 
 #noinspection PyUnusedLocal
-def registration(environ, start_response, session):
+def registration(environ, start_response, session, trace):
+    trace.info(HEADER % "ClientRegistration")
     _oas = session["op"]
 
     if environ["REQUEST_METHOD"] == "POST":
-        return wsgi_wrapper(environ, start_response, _oas.registration_endpoint)
+        return wsgi_wrapper(environ, start_response, _oas.registration_endpoint,
+                            session, trace)
     elif environ["REQUEST_METHOD"] == "GET":
-        return wsgi_wrapper(environ, start_response, _oas.read_registration)
+        return wsgi_wrapper(environ, start_response, _oas.read_registration,
+                            session, trace)
     else:
         resp = ServiceError("Method not supported")
         return resp(environ, start_response)
 
 
 #noinspection PyUnusedLocal
-def check_id(environ, start_response, session):
+def check_id(environ, start_response, session, trace):
     _oas = session["op"]
 
-    return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.check_id_endpoint,
+                        session, trace)
 
 
 #noinspection PyUnusedLocal
-def swd_info(environ, start_response, session):
+def endsession(environ, start_response, session, trace):
     _oas = session["op"]
-
-    return wsgi_wrapper(environ, start_response, _oas.discovery_endpoint)
-
-
-#noinspection PyUnusedLocal
-def endsession(environ, start_response, session):
-    _oas = session["op"]
-    return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint)
+    return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint,
+                        session, trace)
 
 
-#noinspection PyUnusedLocal
-def meta_info(environ, start_response):
-    """
-    Returns something like this::
-
-         {"links":[
-             {
-                "rel":"http://openid.net/specs/connect/1.0/issuer",
-                "href":"https://openidconnect.info/"
-             }
-         ]}
-
-    """
-    pass
+def find_identifier(uri):
+    if uri.startswith("http"):
+        p = urlparse(uri)
+        return p.path[1:]  # Skip leading "/"
+    elif uri.startswith("acct"):
+        a, b = uri.split(":")
+        l, d = b.split("@")
+        return l
 
 
-def webfinger(environ, start_response, _):
+def webfinger(environ, start_response, session, trace):
     query = parse_qs(environ["QUERY_STRING"])
+
+    # Find the identifier
+    session["test_id"] = find_identifier(query["resource"][0])
+
+    trace.info(HEADER % "WebFinger")
+    trace.request(environ["QUERY_STRING"])
+    trace.info("QUERY: %s" % (query,))
+
     try:
         assert query["rel"] == [OIC_ISSUER]
         resource = query["resource"][0]
+    except AssertionError:
+        errmsg = "Wrong 'rel' value: %s" % query["rel"][0]
+        trace.error(errmsg)
+        resp = BadRequest(errmsg)
     except KeyError:
-        resp = BadRequest("Missing parameter in request")
+        errmsg = "Missing 'rel' parameter in request"
+        trace.error(errmsg)
+        resp = BadRequest(errmsg)
     else:
         wf = WebFinger()
         p = urlparse(resource)
@@ -199,11 +261,14 @@ def webfinger(environ, start_response, _):
             resp = Response(wf.response(subject=resource,
                                         base=OP_ARG["baseurl"]))
 
+        trace.reply(resp.message)
+
+    dump_log(session, trace)
     return resp(environ, start_response)
 
 
 #noinspection PyUnusedLocal
-def verify(environ, start_response, session):
+def verify(environ, start_response, session, trace):
     _oas = session["op"]
     return wsgi_wrapper(environ, start_response, _oas.verify_endpoint)
 
@@ -298,7 +363,12 @@ def application(environ, start_response):
         return static(environ, start_response, path)
     elif path.startswith("export/"):
         return static(environ, start_response, path)
+
+    trace = Trace()
     mode, endpoint = extract_mode(path)
+
+    if mode:
+        session["test_id"] = mode["test_id"]
 
     if "op" not in session:
         session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
@@ -319,7 +389,7 @@ def application(environ, start_response):
 
             LOGGER.info("callback: %s" % callback)
             try:
-                return callback(environ, start_response, session)
+                return callback(environ, start_response, session, trace)
             except Exception as err:
                 print >> sys.stderr, "%s" % err
                 message = traceback.format_exception(*sys.exc_info())

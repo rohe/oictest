@@ -1,7 +1,7 @@
 import copy
 import importlib
 import logging
-from urlparse import parse_qs
+from urlparse import parse_qs, urlparse
 import argparse
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
@@ -76,7 +76,12 @@ def flow_list(environ, start_response, flows, done):
     return resp(environ, start_response, **argv)
 
 
-def run_flow(client, index, session):
+def include(url, test_id):
+    p = urlparse(url)
+    return "%s://%s/%s%s" % (p.scheme, p.netloc, test_id, p.path)
+
+
+def run_flow(client, index, session, test_id):
     if index < len(session["flow"]["flow"]):
         session["index"] = index
         for spec in session["flow"]["flow"][index:]:
@@ -85,31 +90,32 @@ def run_flow(client, index, session):
 
             if spec["action"] == "discover":
                 if isinstance(spec['args'], basestring):
-                    session["issuer"] = client.discover(spec['args'])
+                    session["issuer"] = client.discover(spec['args'] % test_id)
                 else:
-                    session["issuer"] = client.discover(CONF.ISSUER)
+                    session["issuer"] = client.discover(CONF.ISSUER+test_id)
             elif spec["action"] == "provider_info":
                 if spec["args"]:
+                    spec["args"]["issuer"] = include(spec["args"]["issuer"],
+                                                     test_id)
                     client.provider_config(**spec["args"])
                 else:
-                    client.provider_config(session["issuer"])
+                    client.provider_config(include(session["issuer"], test_id))
             elif spec["action"] == "registration":
+                _endp = client.provider_info["registration_endpoint"]
                 if spec["args"]:
-                    client.register(
-                        client.provider_info["registration_endpoint"],
-                        **spec["args"])
+                    client.register(_endp, **spec["args"])
                 else:
-                    client.register(
-                        client.provider_info["registration_endpoint"])
+                    client.register(_endp)
                 client.client_prefs = spec["args"]
             elif spec["action"] == "authn_req":
+                _endp = client.provider_info["authorization_endpoint"]
                 session["state"] = rndstr()
                 session["nonce"] = rndstr()
                 _args = copy.deepcopy(spec["args"])
                 _args["nonce"] = session["nonce"]
                 url, body, ht_args, csi = client.request_info(
                     AuthorizationRequest, method="GET", request_args=_args,
-                    state=session["state"])
+                    state=session["state"], endpoint=_endp)
                 return Redirect(str(url))
             elif spec["action"] == "token_req":
                 if spec["args"]:
@@ -138,6 +144,7 @@ def application(environ, start_response):
     session = environ['beaker.session']
 
     path = environ.get('PATH_INFO', '').lstrip('/')
+
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
 
@@ -163,8 +170,11 @@ def application(environ, start_response):
         session["flow"] = FLOWS.FLOWS[path]
         session["index"] = 0
         session["item"] = path
+        test_id = "%s-%s" % (TESTID, path)
+        session["test_id"] = test_id
+
         try:
-            resp = run_flow(_cli, session["index"], session)
+            resp = run_flow(_cli, session["index"], session, test_id)
         except Exception as err:
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
@@ -217,6 +227,10 @@ def application(environ, start_response):
             else:
                 return flow_list(environ, start_response, FLOWS.FLOWS,
                                  session["done"])
+    else:
+        LOGGER.debug("unknown side: %s" % path)
+        resp = NotFound("Couldn't find the side you asked for!")
+        return resp(environ, start_response)
 
 
 if __name__ == '__main__':
@@ -225,6 +239,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', dest='flows')
+    parser.add_argument('-i', dest='identifier')
     parser.add_argument(dest="config")
     cargs = parser.parse_args()
 
@@ -240,6 +255,10 @@ if __name__ == '__main__':
 
     FLOWS = importlib.import_module(cargs.flows)
     CONF = importlib.import_module(cargs.config)
+    if cargs.identifier:
+        TESTID = cargs.identifier
+    else:
+        TESTID = "ITS"
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 
