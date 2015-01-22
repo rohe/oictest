@@ -515,10 +515,10 @@ def support(conv, args):
             if key not in pi:
                 try:
                     included(val, DEFAULTS[key])
-                except AssertionError:  # Not supported
+                except AssertionError:  # Explicitly Not supported
                     add_test_result(conv, err,
                                     "Not supported: %s=%s" % (key, val))
-                    stat = err
+                    stat = ERROR
                 except KeyError:  # Not in defaults
                     conv.trace.info("Not explicit: %s=%s" % (key, val))
             else:
@@ -646,7 +646,19 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     return err_response(environ, start_response, session,
                                         "discover", conv.last_response.text)
 
-                #verify_support(conv, session)
+                for x in ots.client.keyjar[ots.client.provider_info["issuer"]]:
+                    try:
+                        resp = ots.client.http_request(x.source)
+                    except Exception as err:
+                        return err_response(environ, start_response, session,
+                                            "jwks_fetch", str(err))
+                    else:
+                        if resp.status_code < 300:
+                            trace.info("JWKS: %s" % resp.content)
+                        else:
+                            return err_response(environ, start_response,
+                                                session, "jwks_fetch",
+                                                resp.content)
             elif req_c == Webfinger:
                 url = req.discover(**kwargs)
                 if url:
@@ -808,6 +820,8 @@ def init_session(session, profile=None):
     session["response_type"] = []
     session["test_info"] = {}
     session["profile"] = profile
+    if "conv" not in session:
+        session["ots"], session["conv"] = client_init()
 
 
 def reset_session(session, profile=None):
@@ -872,7 +886,8 @@ def application(environ, start_response):
         return display_log(environ, start_response, path, tail)
     elif "flow_names" not in session:
         session_init(session)
-    elif path == "reset":
+
+    if path == "reset":
         reset_session(session)
         return flow_list(environ, start_response, session)
     elif path == "pedit":
