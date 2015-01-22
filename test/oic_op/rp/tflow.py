@@ -225,6 +225,13 @@ FLOWS = {
         "profile": "CI,CIT..",
         "mti": "MUST"
     },
+    'OP-B-09': {
+        "desc": 'Request with nonce, verifies it was return in id_token',
+        "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
+        "tests": {"check-http-response": {}, 'check-nonce': {}},
+        "profile": "I,IT,CI,CT,CIT..",
+        "mti": "MUST"
+    },
     'OP-C-01': {
         "desc": 'UserInfo Endpoint Access with GET and bearer_header',
         "sequence": ['_discover_', '_register_', '_login_',
