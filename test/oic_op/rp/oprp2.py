@@ -54,6 +54,8 @@ LOGGER = logging.getLogger("")
 
 SERVER_ENV = {}
 INCOMPLETE = 5
+CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
+CS_INV = dict([(y, x) for x, y in CRYPTSUPPORT.items()])
 
 
 class NotSupported(Exception):
@@ -243,7 +245,7 @@ def log_path(session, test_id=None):
 
 
 def represent_result(session):
-    if session["index"]+1 < len(session["seq_info"]["sequence"]):
+    if session["index"] + 1 < len(session["seq_info"]["sequence"]):
         return "PARTIAL RESULT"
 
     text = "PASSED"
@@ -641,7 +643,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 _r = req.discover(
                     ots.client, issuer=ots.config.CLIENT["srv_discovery_url"])
                 conv.position, conv.last_response, conv.last_content = _r
-                #logging.debug("Provider info: %s" % conv.last_content._dict)
+                # logging.debug("Provider info: %s" % conv.last_content._dict)
                 if conv.last_response.status >= 400:
                     return err_response(environ, start_response, session,
                                         "discover", conv.last_response.text)
@@ -707,7 +709,8 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                         "construct_request", err)
 
                 if req.request == "AuthorizationRequest":
-                    session["response_type"] = kwargs["request_args"]["response_type"]
+                    session["response_type"] = kwargs["request_args"][
+                        "response_type"]
                     LOGGER.info("redirect.url: %s" % url)
                     LOGGER.info("redirect.header: %s" % ht_args)
                     resp = Redirect(str(url))
@@ -895,7 +898,23 @@ def application(environ, start_response):
     elif path == "profile":
         info = parse_qs(get_post(environ))
         cp = session["profile"].split(".")
-        cp[0] = info["base"][0]
+        cp[0] = info["rtype"][0]
+
+        crsu = []
+        for name, cs in CRYPTSUPPORT.items():
+            try:
+                if info[name] == ["on"]:
+                    crsu.append(cs)
+            except KeyError:
+                pass
+
+        if len(cp) == 3:
+            if len(crsu) == 3:
+                pass
+            else:
+                cp.append("".join(crsu))
+        else:  # len >= 4
+            cp[3] == "".join(crsu)
 
         try:
             if info["extra"] == ['on']:
@@ -971,7 +990,7 @@ def application(environ, start_response):
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if session["response_type"] and not \
-                    session["response_type"] == ["code"]:
+                            session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
         try:
             sequence_info = session["seq_info"]
@@ -979,7 +998,7 @@ def application(environ, start_response):
             ots = session["ots"]
             conv = session["conv"]
         except KeyError as err:
-            #  Todo: find out which port I'm listening on
+            # Todo: find out which port I'm listening on
             return sorry_response(environ, start_response, CONF.BASE, err)
 
         (req_c, resp_c), _ = sequence_info["sequence"][index]
