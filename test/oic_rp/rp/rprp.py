@@ -210,7 +210,7 @@ def application(environ, start_response):
         except Exception as err:
             _spec = session["flow"]["flow"][session["index"]-1]
             try:
-                assert isinstance(err, _spec[2])
+                assert isinstance(err, _spec["error"])
             except KeyError:
                 raise
         else:
