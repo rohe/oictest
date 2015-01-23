@@ -215,7 +215,8 @@ FLOWS = {
         "mti": "MUST"
     },
     'OP-B-07': {
-        "desc": 'Includes at_hash in ID Token when Implicit Flow is Used',
+        "desc": 'ID Token has at_hash when ID Token and Access Token returned '
+                'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": "MUST",
         "test": {'verify-athash': {}, "check-http-response": {}},
