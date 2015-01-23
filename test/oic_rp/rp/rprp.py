@@ -217,7 +217,7 @@ def application(environ, start_response):
             pass
 
         try:
-            resp = run_flow(_cli, session["index"], session)
+            resp = run_flow(_cli, session["index"], session, session["test_id"])
         except Exception as err:
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
