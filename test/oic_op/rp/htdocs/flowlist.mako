@@ -12,14 +12,15 @@ DESC = {
     "I": "OAuth behaviors",
     "J": "redirect_uri",
     "K": "Client Authentication",
-    "L" : "Discovery",
+    "L": "Discovery",
     "M": "Dynamic Client Registration",
     "N": "Key Rollover",
     "O": "request_uri Request Parameter",
     "P": "request Request Parameter",
     "Q": "claims Request Parameter",
     "R": "Third Party initiated Login",
-    "S": "Session Management"
+    "S": "Session Management",
+    "T": "WebFinger",
     }
 
 def op_choice(base, nodes, test_info):

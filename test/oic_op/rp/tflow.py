@@ -1230,7 +1230,9 @@ FLOWS = {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwarg_func": request_in_file})
+            ("_login_", {"kwargs_mod": {"request_method": "file",
+                                        "local_dir": "export"},
+                         "kwarg_func": request_in_file})
         ],
         "profile": "...n",
         "tests": {"check-http-response": {}}
@@ -1249,7 +1251,9 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {"kwarg_func": request_in_file})
+            ("_login_", {"kwargs_mod": {"request_method": "file",
+                                        "local_dir": "export"},
+                         "kwarg_func": request_in_file})
         ],
         "profile": "..T.s",
         "tests": {"check-http-response": {}}
@@ -1276,7 +1280,9 @@ FLOWS = {
                  }
              }
             ),
-            ("_login_", {"kwarg_func": request_in_file})
+            ("_login_", {"kwargs_mod": {"request_method": "file",
+                                        "local_dir": "export"},
+                         "kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
         "tests": {"check-http-response": {}}
