@@ -386,7 +386,7 @@ FLOWS = {
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
-        "tests": [("verify-error", {"error": ["invalid_request"]})],
+        "tests": {"verify-error", {"error": ["invalid_request"]}},
         "profile": "I,IT..",
         "mti": "MUST"
     },
@@ -945,7 +945,7 @@ FLOWS = {
         "desc": 'Verify that registration_endpoint is published',
         "sequence": ['_discover_'],
         "profile": ".T.",
-        "tests": [("verify-op-has-registration-endpoint", {})],
+        "tests": {"verify-op-has-registration-endpoint", {}},
     },
     'OP-M-02': {
         "desc": 'Client registration Request',
