@@ -152,7 +152,11 @@ FLOWS = {
     },
     'OP-B-03': {
         "desc": 'ID Token has nonce when requested for code flow',
-        "sequence": ['_discover_', "_register_", "_login_", "_accesstoken_"],
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"request_args": {"nonce": "godmorgon"}}),
+            '_accesstoken_'],
         "mti": "MUST",
         "profile": "C..",
         "tests": {"verify-nonce": {}, "check-http-response": {}}
