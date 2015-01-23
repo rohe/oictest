@@ -430,7 +430,7 @@ def sorry_response(environ, start_response, homepage, err):
     resp = Response(mako_template="sorry.mako",
                     template_lookup=LOOKUP,
                     headers=[])
-    argv = {"home_page": homepage,
+    argv = {"htmlpage": homepage,
             "error": str(err)}
     return resp(environ, start_response, **argv)
 
