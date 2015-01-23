@@ -806,7 +806,7 @@ FLOWS = {
                              "client_secret_basic"}}
              }),
         ],
-        "profile": "C,CI,CIT..T",
+        "profile": "C,CI,CIT,CT..T",
         'tests': {"check-http-response": {}},
     },
     'OP-K-01s': {
@@ -824,7 +824,7 @@ FLOWS = {
                              "client_secret_basic"}}
              }),
         ],
-        "profile": "C,CI,CIT..F",
+        "profile": "C,CI,CIT,CT..F",
         'tests': {"check-http-response": {}},
     },
     'OP-K-02d': {
@@ -847,7 +847,7 @@ FLOWS = {
                              "client_secret_post"}}
              }),
         ],
-        "profile": "C,CI,CIT..T",
+        "profile": "C,CI,CIT,CT..T",
         'tests': {"check-http-response": {}},
     },
     'OP-K-02s': {
@@ -865,7 +865,7 @@ FLOWS = {
                              "client_secret_post"}}
              }),
         ],
-        "profile": "C,CI,CIT..F",
+        "profile": "C,CI,CIT,CT..F",
         'tests': {"check-http-response": {}},
     },
     'OP-K-03': {
