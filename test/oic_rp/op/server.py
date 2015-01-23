@@ -15,14 +15,15 @@ from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from urlparse import urlparse
-import uuid
 from beaker.middleware import SessionMiddleware
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import BadRequest, extract_from_request, ServiceError
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import extract_from_request
+from oic.utils.http_util import ServiceError
 from oic.utils.http_util import Unauthorized
 from oic.utils.http_util import Response
 from oic.utils.http_util import NotFound
@@ -119,6 +120,7 @@ def dump_log(session, trace):
         _path = os.path.join(base, session["test_id"])
 
     output = "%s" % trace
+    output += "\n\n"
 
     f = open(_path, "a")
     f.write(output)
@@ -128,6 +130,7 @@ def dump_log(session, trace):
 
 def wsgi_wrapper(environ, start_response, func, session, trace):
     kwargs = extract_from_request(environ)
+    trace.request(kwargs["request"])
     args = func(**kwargs)
 
     try:
@@ -382,6 +385,14 @@ def application(environ, start_response):
     for regex, callback in URLS:
         match = re.search(regex, endpoint)
         if match is not None:
+            trace.request("PATH: %s" % endpoint)
+            trace.request("METHOD: %s" % environ["REQUEST_METHOD"])
+            try:
+                trace.request(
+                    "HTTP_AUTHORIZATION: %s" % environ["HTTP_AUTHORIZATION"])
+            except KeyError:
+                pass
+
             try:
                 environ['oic.url_args'] = match.groups()[0]
             except IndexError:
