@@ -320,8 +320,7 @@ class Discover(Operation):
         self.do_postop = True
         self.tests = {}
 
-    def discover(self, client, orig_response="", content="", issuer="",
-                 **kwargs):
+    def discover(self, client, issuer=""):
         # Allow statically over-riding dynamic info
         over_ride = client.provider_info
         self.trace.info("Provider info discover from '%s'" % issuer)
@@ -344,7 +343,7 @@ class Discover(Operation):
             except KeyError:
                 raise
 
-        self.trace.info("Client behavior: %s" % client.behaviour)
+        #self.trace.info("Client behavior: %s" % client.behaviour)
 
         try:
             client.match_preferences(pcr)
