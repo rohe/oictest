@@ -13,7 +13,7 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from urlparse import parse_qs
+from urlparse import parse_qs, unquote
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
 
@@ -112,19 +112,52 @@ def css(environ, start_response, session):
 # ----------------------------------------------------------------------------
 
 
+def display_log(environ, start_response):
+    path = environ.get('PATH_INFO', '').lstrip('/')
+    if path == "log":
+        tail = environ["REMOTE_ADDR"]
+        path = os.path.join(path, tail)
+    elif path == "logs":
+        path = "log"
+
+    if os.path.isfile(path):
+        return static(environ, start_response, path)
+    elif os.path.isdir(path):
+        item = []
+        for (dirpath, dirnames, filenames) in os.walk(path):
+            if dirnames:
+                item = [(fn, os.path.join(path, fn)) for fn in dirnames]
+                break
+            if filenames:
+                item = [(fn, os.path.join(path, fn)) for fn in filenames]
+                break
+
+        item.sort()
+        resp = Response(mako_template="logs.mako",
+                        template_lookup=LOOKUP,
+                        headers=[])
+        argv = {"logs": item}
+
+        return resp(environ, start_response, **argv)
+    else:
+        resp = Response("No saved logs")
+        return resp(environ, start_response)
+
+
 def dump_log(session, trace):
     try:
         _path = session["path"]
     except KeyError:
         base = "log"
-        _path = os.path.join(base, session["test_id"])
+        addr = session._environ["REMOTE_ADDR"]
+        _path = os.path.join(base, addr, session["test_id"])
 
     output = "%s" % trace
     output += "\n\n"
 
-    f = open(_path, "a")
-    f.write(output)
-    f.close()
+    fil = open(_path, "a")
+    fil.write(output)
+    fil.close()
     return _path
 
 
@@ -301,7 +334,7 @@ def static(environ, start_response, path):
         elif path.endswith(".css"):
             start_response('200 OK', [('Content-Type', 'text/css')])
         else:
-            start_response('200 OK', [('Content-Type', "text/xml")])
+            start_response('200 OK', [('Content-Type', 'text/plain')])
         return [text]
     except IOError:
         resp = NotFound()
@@ -327,6 +360,7 @@ URLS = [
     (r'.well-known/webfinger', webfinger),
     (r'.+\.css$', css),
     (r'safe', safe),
+    (r'log', display_log)
 ]
 
 
@@ -366,6 +400,8 @@ def application(environ, start_response):
         return static(environ, start_response, path)
     elif path.startswith("export/"):
         return static(environ, start_response, path)
+    elif path.startswith("log"):
+        return display_log(environ, start_response)
 
     trace = Trace()
     mode, endpoint = extract_mode(path)
