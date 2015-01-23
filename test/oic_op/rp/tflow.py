@@ -932,21 +932,6 @@ FLOWS = {
         "profile": ".T.",
         "tests": {"verify-base64url": {}, "check-http-response": {}},
     },
-    'OP-L-04': {
-        "desc": 'Verify that registration_endpoint is published',
-        "sequence": ['_discover_'],
-        "profile": ".T.",
-        "tests": [("verify-op-has-registration-endpoint", {})],
-    },
-    'OP-L-05': {
-        "desc": 'Can Discover Identifiers using E-Mail Syntax',
-        # "profile": ".T...+",
-        "profile": ".T.",
-        "sequence": [
-            ("webfinger",
-             {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
-        "tests": {"check-http-response": {}},
-    },
     'OP-L-06': {
         "desc": 'Can Discover Identifiers using URL Syntax',
         "profile": ".T...+",
@@ -956,6 +941,12 @@ FLOWS = {
         "tests": {"check-http-response": {}},
     },
     'OP-M-01': {
+        "desc": 'Verify that registration_endpoint is published',
+        "sequence": ['_discover_'],
+        "profile": ".T.",
+        "tests": [("verify-op-has-registration-endpoint", {})],
+    },
+    'OP-M-02': {
         "desc": 'Client registration Request',
         "sequence": [
             '_discover_',
@@ -1132,7 +1123,10 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over signing keys",
+        "note": "Please make your OP roll over signing keys. "
+                'If you are not able to cause the server to roll over the key '
+                'while running the test, then you will have to self-assert '
+                'that your deployment can do OP signing key rollover.',
         "profile": ".T.T.s",
         # "profile": ".T.T.s.+",
         "tests": {"new-signing-keys": {}, "check-http-response": {}}
@@ -1173,7 +1167,10 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over encryption keys",
+        "note": "Please make your OP roll over encryption keys."
+                'If you are not able to cause the server to roll over the keys '
+                'while running the test, then you will have to self-assert '
+                'that your deployment can do OP encryption key rollover.',
         # "profile": ".T..e.+",
         "profile": ".T..e",
         "tests": {"new-encryption-keys": {}, "check-http-response": {}}
@@ -1338,7 +1335,7 @@ FLOWS = {
              }),
             ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
-        "profile": "...n.+",
+        "profile": "...n",
         "tests": {"check-http-response": {}}
     },
     'OP-P-03': {
@@ -1557,6 +1554,16 @@ FLOWS = {
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
                   "check-http-response": {}}
+    },
+    # TODO R and S tests to be added
+    'OP-T-01': {
+        "desc": 'Can Discover Identifiers using E-Mail Syntax',
+        # "profile": ".T...+",
+        "profile": ".T.",
+        "sequence": [
+            ("webfinger",
+             {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
+        "tests": {"check-http-response": {}},
     },
 }
 
