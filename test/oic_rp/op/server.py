@@ -150,6 +150,11 @@ def dump_log(session, trace):
     except KeyError:
         base = "log"
         addr = session._environ["REMOTE_ADDR"]
+        _base = os.path.join(base, addr)
+
+        if not os.path.isdir(_base):
+            os.makedirs(_base)
+
         _path = os.path.join(base, addr, session["test_id"])
 
     output = "%s" % trace

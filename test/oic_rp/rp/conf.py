@@ -9,7 +9,8 @@ SERVER_KEY = "certs/server.key"
 CA_BUNDLE = None
 VERIFY_SSL = False
 
-ISSUER = "https://localhost:8080/"
+#ISSUER = "https://localhost:8080/"
+ISSUER = "https://oictest.umdc.umu.se:8051/"
 
 CLIENT_INFO = {
     "redirect_uris": ["%sauthz_cb" % BASE],
