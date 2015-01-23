@@ -256,7 +256,7 @@ def represent_result(session):
                 text = "FAILED"
                 break
             elif item["status"] == WARNING:
-                warnings.append()
+                warnings.append(item["message"])
                 text = "PASSED WITH WARNINGS"
 
     if text.startswith("PASSED"):
