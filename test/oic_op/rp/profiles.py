@@ -79,7 +79,7 @@ PROFILEMAP = {
     "CI": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["code", "id_token"]}}),
-        "_accesstoken_": None,
+        "_accesstoken_": "access-token-request",
         "flows": [
             'OP-A-02', 'OP-A-05', 'OP-A-06', 'OP-A-07',
             'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07', 'OP-B-08',
