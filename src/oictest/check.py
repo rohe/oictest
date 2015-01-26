@@ -1539,7 +1539,7 @@ class VerifyOPEndpointsUseHTTPS(Information):
         return {}
 
 
-class VerifyOPHasRegistrationEndpoint(Information):
+class VerifyOPHasRegistrationEndpoint(Error):
     """
     Verify that the OP has a registration endpoint
     """
