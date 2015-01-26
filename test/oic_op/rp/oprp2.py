@@ -990,7 +990,7 @@ def application(environ, start_response):
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             if session["response_type"] and not \
-                            session["response_type"] == ["code"]:
+                    session["response_type"] == ["code"]:
                 return opresult_fragment(environ, start_response)
         try:
             sequence_info = session["seq_info"]
@@ -1005,10 +1005,22 @@ def application(environ, start_response):
 
         if resp_c:  # None in cases where no OIDC response is expected
             _ctype = resp_c.ctype
+            try:
+                response_mode = conv.AuthorizationRequest["response_mode"]
+            except KeyError:
+                response_mode = None
+
             # parse the response
-            if path == "authz_post":
+            if response_mode == "form_post":
+                info = parse_qs(get_post(environ))
+                _ctype = "dict"
+            elif path == "authz_post":
                 query = parse_qs(get_post(environ))
-                info = query["fragment"][0]
+                try:
+                    info = query["fragment"][0]
+                except KeyError:
+                    return sorry_response(environ, start_response, CONF.BASE,
+                                          "missing fragment ?!")
                 _ctype = "urlencoded"
             elif resp_c.where == "url":
                 info = environ["QUERY_STRING"]

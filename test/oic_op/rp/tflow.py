@@ -107,12 +107,12 @@ FLOWS = {
         "mti": "MUST"
     },
     'OP-A-08': {
-        "desc": 'Request with response_type=form_post',
+        "desc": 'Request with response_mode=form_post',
         "sequence": [
             '_discover_',
             '_register_',
             ('_login_',
-             {"request_args": {"response_type": ["form_post"]}})
+             {"request_args": {"response_mode": ["form_post"]}})
         ],
         "profile": "....+",
         'tests': {"check-http-response": {}},
