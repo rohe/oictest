@@ -502,14 +502,17 @@ FLOWS = {
     'OP-F-01': {
         "desc": 'Request with display=page',
         "sequence": [
+            'rm_cookie',
             '_discover_',
             '_register_',
+            'note',
             ('_login_',
              {
                  "request_args": {"display": "page"},
                  "support": {"warning": {"display_values_supported": "page"}}
              })
         ],
+        "note": "You should get the normal User Agent page view.",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": "No err"
@@ -517,14 +520,17 @@ FLOWS = {
     'OP-F-02': {
         "desc": 'Request with display=popup',
         "sequence": [
+            'rm_cookie',
             '_discover_',
             '_register_',
+            'note',
             ('_login_',
              {
                  "request_args": {"display": "popup"},
                  "support": {"warning": {"display_values_supported": "popup"}}
              })
         ],
+        "note": "You should get a popup User Agent window",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": "No err"
