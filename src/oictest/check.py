@@ -1929,6 +1929,41 @@ class IsIDTokenSigned(Information):
         return {}
 
 
+class ClaimsCheck(Information):
+    """
+    Checks if specific claims is present or not
+    """
+    cid = "claims-check"
+    msg = ""
+
+    def _func(self, conv):
+        try:
+            _claims = self._kwargs["id_token"]
+        except KeyError:
+            pass
+        else:
+            answers = get_id_tokens(conv)
+            # may be more then one, use the last.
+            (inst, txt) = answers[-1]
+            missing = []
+            stat = 0
+            for claim in _claims:
+                try:
+                    assert claim in inst
+                except AssertionError:
+                    if self._kwargs["required"]:
+                        stat = ERROR
+                    else:
+                        stat = WARNING
+                    missing.append(claim)
+
+            if missing:
+                self._status = stat
+                self._message = "Missing claims: %s" % missing
+
+        return {}
+
+
 CLASS_CACHE = {}
 
 

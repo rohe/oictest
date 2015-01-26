@@ -176,7 +176,10 @@ FLOWS = {
         "note": "This is to allow some time to pass. At least 1 second. "
                 "The result should be that you have to re-authenticate",
         "profile": "..",
-        "tests": {"multiple-sign-on": {}, "check-http-response": {}},
+        "tests": {"multiple-sign-on": {},
+                  "check-http-response": {},
+                  "claims-check": {"id_token": ["auth_time"],
+                                   "required": True}},
         "mti": "MUST",
         "result": "The test passed if you were prompted to log in"
     },
@@ -192,7 +195,10 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..",
-        "tests": {"same-authn": {}, "check-http-response": {}},
+        "tests": {"same-authn": {},
+                  "check-http-response": {},
+                  "claims-check": {"id_token": ["auth_time"],
+                                   "required": True}},
         "mti": "MUST"
     },
     'OP-B-06': {
