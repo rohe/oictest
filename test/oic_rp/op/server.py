@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import ast
 import json
 import re
 import os
 import sys
+import threading
 import traceback
 import logging
 
@@ -16,17 +18,15 @@ from exceptions import KeyboardInterrupt
 from urlparse import parse_qs, unquote
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
+from dirg_util.dict import Sqllite3Dict
+from dirg_util.http_util import HttpHandler
 
-from oic.oic.provider import EndSessionEndpoint
+from oic.oic.provider import EndSessionEndpoint, secret
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import extract_from_request
-from oic.utils.http_util import ServiceError
-from oic.utils.http_util import Unauthorized
-from oic.utils.http_util import Response
-from oic.utils.http_util import NotFound
+from oic.utils.clientdb import MDXClient
+from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
@@ -36,7 +36,8 @@ from rrtest import Trace
 from oictest.mode import extract_mode
 from oictest.mode import setup_op
 from oictest.mode import mode2path
-
+from response_encoder import ResponseEncoder
+from oic.utils.client_management import CDB
 __author__ = 'rohe0002'
 
 from mako.lookup import TemplateLookup
@@ -368,7 +369,6 @@ URLS = [
     (r'log', display_log)
 ]
 
-
 def add_endpoints(extra):
     global URLS
 
@@ -385,6 +385,38 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
 
 # ----------------------------------------------------------------------------
 
+def rp_test_list(environ, start_response):
+    resp = Response(mako_template="rp_test_list.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    return resp(environ, start_response)
+
+def registration(environ, start_response):
+    resp = Response(mako_template="registration.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    return resp(environ, start_response)
+
+
+def register_rp_log_id(parameters, response_encoder):
+    log_id = parameters['log_id']
+    log_id_db = Sqllite3Dict("log_id_db.db")
+    config_tread_lock = threading.Lock()
+    with config_tread_lock:
+        try:
+            stored_log_id = log_id_db[log_id]
+        except KeyError as ke:
+            log_id_db[log_id] = log_id
+            return response_encoder.returnJSON({})
+        else:
+            return response_encoder.serviceError("The log id you entered are already in use.")
+
+def generate_static_client_credentials(parameters):
+    redirect_uris = parameters['redirect_uris']
+    cdb = CDB(config.CLIENT_DB + ".db")
+    static_client = cdb.create(redirect_uris=redirect_uris, policy_uri="example.com",logo_uri="example.com")
+    return static_client['client_id'], static_client['client_secret']
+
 
 def application(environ, start_response):
     """
@@ -395,8 +427,10 @@ def application(environ, start_response):
     """
     global OAS
     session = environ['beaker.session']
-
     path = environ.get('PATH_INFO', '').lstrip('/')
+    http_helper = HttpHandler(environ, start_response, session, LOGGER)
+    response_encoder = ResponseEncoder(environ=environ, start_response=start_response)
+    parameters = http_helper.query_dict()
 
     if path == "robots.txt":
         return static(environ, start_response, "static/robots.txt")
@@ -404,6 +438,8 @@ def application(environ, start_response):
     if path.startswith("static/"):
         return static(environ, start_response, path)
     elif path.startswith("export/"):
+        return static(environ, start_response, path)
+    elif path.startswith("_static/"):
         return static(environ, start_response, path)
     elif path.startswith("log"):
         return display_log(environ, start_response)
@@ -413,6 +449,17 @@ def application(environ, start_response):
 
     if mode:
         session["test_id"] = mode["test_id"]
+
+    if path == "test_list":
+        return rp_test_list(environ, start_response)
+    elif path == "":
+        return registration(environ, start_response)
+    elif path == "register_rp_log_id":
+        return register_rp_log_id(parameters, response_encoder)
+    elif path == "generate_client_credentials":
+        client_id, client_secret = generate_static_client_credentials(parameters)
+        return response_encoder.returnJSON(json.dumps({"client_id": client_id, "client_secret": client_secret}))
+
 
     if "op" not in session:
         session["op"] = setup_op(mode, COM_ARGS, OP_ARG)
@@ -484,13 +531,13 @@ if __name__ == '__main__':
         'session.timeout': 900
     }
 
-    # Client data base
-    cdb = shelve.open("client_db", writeback=True)
-
     sys.path.insert(0, ".")
     config = importlib.import_module(args.config)
     config.issuer = config.issuer % args.port
     config.SERVICE_URL = config.SERVICE_URL % args.port
+
+    # Client data base
+    cdb = shelve.open(config.CLIENT_DB, writeback=True)
 
     SETUP = {}
 

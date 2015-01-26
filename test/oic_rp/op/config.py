@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 # issuer= "https://www.kodtest.se/rolandsOP"
-baseurl = "https://localhost"
+baseurl = "http://localhost"
 #baseurl = "https://lingon.ladok.umu.se"
 issuer = "%s:%%d/" % baseurl
 
@@ -38,6 +38,8 @@ SERVER_KEY = "certs/server.key"
 CERT_CHAIN = None
 
 KEY_EXPORT_URL = "%sexport/jwk.json" % issuer
+
+CLIENT_DB = "client_db"
 
 # =======  SIMPLE DATABASE ==============
 

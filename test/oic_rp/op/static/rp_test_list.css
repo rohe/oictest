@@ -1,0 +1,48 @@
+.test_row{
+    border-bottom:1px solid;
+    border-color:#CFCFCF;
+    font-size: 17px;
+    background-color: #ffffff;
+    margin-left: 0px;
+    margin-right: 0px;
+}
+
+.test_setup{
+    margin-left: 25px;
+    margin-right: 10px;
+}
+
+.test_row:hover {
+    background-color: #D4EDF3;
+}
+
+.resultFrame{
+    background-color: #FFFFFF;
+    margin-left:20px;
+    margin-right:20px;
+    border:2px solid;
+    border-color:#CFCFCF;
+    word-wrap:break-word;
+    padding: 10px;
+}
+
+.jumbotron h4 {
+    background-color: #ffffff;
+}
+
+
+.more_info_text{
+    border:2px solid;
+    border-color:#CFCFCF;
+    border-radius: 10px;
+    padding:10px;
+    background-color: #fafafa;
+}
+
+.more_info_button:hover{
+    text-decoration: underline;
+}
+
+.more_info_button{
+    color: #63a8dd;
+}
