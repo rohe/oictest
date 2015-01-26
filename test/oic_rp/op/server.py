@@ -15,16 +15,22 @@ from exceptions import OSError
 from exceptions import IndexError
 from exceptions import AttributeError
 from exceptions import KeyboardInterrupt
-from urlparse import parse_qs, unquote
+from urlparse import parse_qs
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
 from dirg_util.dict import Sqllite3Dict
 from dirg_util.http_util import HttpHandler
 
-from oic.oic.provider import EndSessionEndpoint, secret
+from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import extract_from_request
+from oic.utils.http_util import ServiceError
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import Response
+from oic.utils.http_util import NotFound
 from oic.utils.clientdb import MDXClient
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
@@ -397,20 +403,6 @@ def registration(environ, start_response):
                     headers=[])
     return resp(environ, start_response)
 
-
-def register_rp_log_id(parameters, response_encoder):
-    log_id = parameters['log_id']
-    log_id_db = Sqllite3Dict("log_id_db.db")
-    config_tread_lock = threading.Lock()
-    with config_tread_lock:
-        try:
-            stored_log_id = log_id_db[log_id]
-        except KeyError as ke:
-            log_id_db[log_id] = log_id
-            return response_encoder.returnJSON({})
-        else:
-            return response_encoder.serviceError("The log id you entered are already in use.")
-
 def generate_static_client_credentials(parameters):
     redirect_uris = parameters['redirect_uris']
     cdb = CDB(config.CLIENT_DB + ".db")
@@ -439,12 +431,13 @@ def application(environ, start_response):
         return static(environ, start_response, path)
     elif path.startswith("export/"):
         return static(environ, start_response, path)
-    elif path.startswith("_static/"):
-        return static(environ, start_response, path)
     elif path.startswith("log"):
         return display_log(environ, start_response)
-
+    elif path.startswith("_static/"):
+        return static(environ, start_response, path)
+    
     trace = Trace()
+
     mode, endpoint = extract_mode(path)
 
     if mode:
@@ -454,8 +447,6 @@ def application(environ, start_response):
         return rp_test_list(environ, start_response)
     elif path == "":
         return registration(environ, start_response)
-    elif path == "register_rp_log_id":
-        return register_rp_log_id(parameters, response_encoder)
     elif path == "generate_client_credentials":
         client_id, client_secret = generate_static_client_credentials(parameters)
         return response_encoder.returnJSON(json.dumps({"client_id": client_id, "client_secret": client_secret}))

@@ -24,30 +24,12 @@
 
 <%block name="body">
 
-    <h1>Registration</h1>
-    Before running tests there are some information which should be registered.
-    <hr>
+    <h1>Static client credentials</h1>
+    <p>If the RP does not support dynamic client registration please generate static client credentials in order to receive
+        a client ID and client secret. Enter at least one redirect URI where the OP will send a response after
+        completing a authorization request.</p>
 
-    <h2>Log identifier registration</h2>
-    <p>In order to get access to the logs created by the test tool you need to enter a unique identifier which should be
-        added to the issuer path.</p>
-
-    Log ID:
-    <div class="row">
-        <form class="col-sm-5">
-                <input type="text" ng-model="log_id" ng-init="log_id=''" class="form-control col-sm-10">
-        </form>
-    </div>
-    <button class="btn btn-default btn-sm"
-            ng-click="register_rp_log_id(log_id)">
-        Register log id
-    </button>
-    <hr>
-
-    <h2>Generate static client credentials</h2>
-    <p>If the RP in question does not support dynamic client registration please register it here in order to receive
-        client_id and client_secret</p>
-
+        <hr>
     <div class="row">
         <span class="col-sm-3">
             <br>

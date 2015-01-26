@@ -1,13 +1,5 @@
 var app = angular.module('main', ['ngSanitize']);
 
-app.factory('rp_log_id_factory', function ($http) {
-    return {
-        register: function (log_id) {
-            return $http.post("/register_rp_log_id", {"log_id": log_id});
-        }
-    };
-});
-
 app.factory('static_client_factory', function ($http) {
     return {
         generate_client_credentials: function (redirect_uris) {
@@ -16,7 +8,7 @@ app.factory('static_client_factory', function ($http) {
     };
 });
 
-app.controller('IndexCtrl', function ($scope, $sce, rp_log_id_factory, static_client_factory) {
+app.controller('IndexCtrl', function ($scope, $sce, static_client_factory) {
 
     function makeCopy(newElement) {
         var copy = {};
@@ -24,18 +16,9 @@ app.controller('IndexCtrl', function ($scope, $sce, rp_log_id_factory, static_cl
         return copy;
     }
 
-    $scope.register_rp_log_id = function (log_id) {
-        rp_log_id_factory.register(log_id).success(register_rp_log_id_success_callback).error(error_callback);
-    };
-
-    function register_rp_log_id_success_callback(data, status, headers, config) {
-        alert("Your RP log ID was successfully stored on the server");
-    }
-
     function generate_client_credentials_success_callback(data, status, headers, config) {
         alert("New client credentials has successfully benn generated. \nclient_id: " + data['client_id'] + "\nclient_secret: " + data['client_secret'])
     }
-
 
     function error_callback(data, status, headers, config) {
         alert("ERROR: " +  data.ExceptionMessage);
