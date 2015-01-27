@@ -468,7 +468,7 @@ class CheckRequestURIParameterSupported(CriticalError):
     """
     Checks that the request parameter is supported
     """
-    cid = "check-request-parameter-supported-support"
+    cid = "check-request_uri-parameter-supported-support"
     msg = "Request parameter not supported"
     element = "request_uri_parameter_supported"
     mti = False
