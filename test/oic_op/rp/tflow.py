@@ -412,7 +412,7 @@ FLOWS = {
                 "method": "GET"
             })
         ],
-        "profile": "..",
+        "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
