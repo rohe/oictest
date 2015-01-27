@@ -1105,7 +1105,7 @@ if __name__ == '__main__':
     if args.profile:
         TEST_PROFILE = args.profile
     else:
-        TEST_PROFILE = "C.T.T"
+        TEST_PROFILE = "C.T.T.ns"
 
     LOOKUP = TemplateLookup(directories=[_dir + 'templates', _dir + 'htdocs'],
                             module_directory=_dir + 'modules',

@@ -1,21 +1,21 @@
 #!/bin/bash
 
 startme() {
-    ./oprp2.py -p C.T.F -t tflow adfs &> adfs.err &
-    ./oprp2.py -p C.T.F -t tflow azure_ad &> azure.err &
+    ./oprp2.py -p C.T.F.ns -t tflow adfs &> adfs.err &
+    ./oprp2.py -p C.T.F.ns -t tflow azure_ad &> azure.err &
 
-    ./oprp2.py -p C.T.F -t tflow google &> google.err &
-    ./oprp2.py -p C.T.F -t tflow ping &> ping.err &
-    ./oprp2.py -p C.T.F -t tflow salesforce &> salesforce.err &
-    ./oprp2.py -p C.T.F -t tflow telekom &> telekom.err &
+    ./oprp2.py -p C.T.F.ns -t tflow google &> google.err &
+    ./oprp2.py -p C.T.F.ns -t tflow ping &> ping.err &
+    ./oprp2.py -p C.T.F.ns -t tflow salesforce &> salesforce.err &
+    ./oprp2.py -p C.T.F.ns -t tflow telekom &> telekom.err &
 
-    ./oprp2.py -p C.T.F -t tflow thinktecture_code &> thinktecture_code.err &
-    ./oprp2.py -p IT.T.F -t tflow thinktecture_impl &> thinktecture_impl.err &
-    ./oprp2.py -p CIT.T.F -t tflow thinktecture_hybr &> thinktecture_hybr.err &
+    ./oprp2.py -p C.T.F.ns -t tflow thinktecture_code &> thinktecture_code.err &
+    ./oprp2.py -p IT.T.F.ns -t tflow thinktecture_impl &> thinktecture_impl.err &
+    ./oprp2.py -p CIT.T.F.ns -t tflow thinktecture_hybr &> thinktecture_hybr.err &
 
-    ./oprp2.py -p C.T.T -t tflow luke &> luke.err &
-    ./oprp2.py -p C.T.T -t tflow edmund &> edmund.err &
-    ./oprp2.py -p C.T.T -t tflow xenosmilus2 &> xenosmilus2.err &
+    ./oprp2.py -p C.T.T.ns -t tflow luke &> luke.err &
+    ./oprp2.py -p C.T.T.ns -t tflow edmund &> edmund.err &
+    ./oprp2.py -p C.T.T.nse -t tflow oictest &> oictest.err &
 }
 
 stopme() {

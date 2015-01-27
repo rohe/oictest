@@ -376,6 +376,40 @@ def flows_old(specific):
     return result
 
 
+def map_prof(a, b):
+    if a == b:
+        return True
+
+    # basic, implicit, hybrid
+    if b[0] != "":
+        if a[0] not in b[0].split(','):
+            return False
+
+    # dynamic discovery & registry
+    f = True
+    for n in [1, 2]:
+        if b[n] != "":
+            if a[n] != b[n]:
+                f = False
+    if not f:
+        return False
+
+    if len(a) > 3:
+        if len(b) > 3:
+            if b[3] != '':
+                if not set(a[3]).issuperset(set(b[3])):
+                    return False
+
+    if len(b) == 5:
+        if len(a) == 5:
+            if a[4] != b[4]:
+                return False
+        elif len(a) < 5:
+            return False
+
+    return True
+
+
 def flows(code):
     res = []
     p = code.split('.')
@@ -383,34 +417,8 @@ def flows(code):
     for key, flow in FLOWS.items():
         sp = flow["profile"].split('.')
 
-        # basic, implicit, hybrid
-        if sp[0] != "":
-            if p[0] not in sp[0].split(','):
-                continue
-
-        # dynamic discovery & registry
-        f = True
-        for n in [1, 2]:
-            if sp[n] != "":
-                if p[n] != sp[n]:
-                    f = False
-        if not f:
-            continue
-
-        if len(p) > 3:
-            if len(sp) > 3:
-                if sp[3] != '':
-                    if set(p) != set(sp):
-                        continue
-
-        if len(sp) == 5:
-            if len(p) == 5:
-                if p[4] != sp[4]:
-                    continue
-            elif len(p) < 5:
-                continue
-
-        res.append(key)
+        if map_prof(p, sp):
+            res.append(key)
 
     res.sort()
     return res
