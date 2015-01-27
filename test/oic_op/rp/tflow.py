@@ -945,6 +945,15 @@ FLOWS = {
         "profile": ".T.",
         "tests": {"verify-base64url": {}, "check-http-response": {}},
     },
+    'OP-L-05': {
+        "desc": 'Can Discover Identifiers using E-Mail Syntax',
+        "profile": ".T...+",
+        #"profile": ".T.",
+        "sequence": [
+            ("webfinger",
+             {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
+        "tests": {"check-http-response": {}},
+    },
     'OP-L-06': {
         "desc": 'Can Discover Identifiers using URL Syntax',
         "profile": ".T...+",
@@ -1223,12 +1232,10 @@ FLOWS = {
         "desc": 'Support request_uri Request Parameter',
         "sequence": [
             '_discover_',
-            ("_register_",
-             {"support": {"warning": {"request_uri_parameter_supported": True}}}
-            ),
         ],
         "profile": "..T",
-        "tests": {"check-http-response": {}}
+        "tests": {"check-http-response": {},
+                  "check-request_uri-parameter-supported-support": {}}
     },
     'OP-O-02': {
         "desc": 'Support request_uri Request Parameter with unSigned Request',
@@ -1332,12 +1339,13 @@ FLOWS = {
         "desc": 'Support request Request Parameter',
         "sequence": [
             '_discover_',
-            ("_register_",
-             {"support": {"warning": {"request_parameter_supported": True}}}),
-            ("_login_", {"kwargs_mod": {"request_method": "request"}})
+            # ("_register_",
+            #  {"support": {"warning": {"request_parameter_supported": True}}}),
+            # ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "....+",
-        "tests": {"check-http-response": {}}
+        "tests": {"check-http-response": {},
+                  "check-request-parameter-supported-support": {}}
     },
     'OP-P-02': {
         "desc": 'Support request Request Parameter with unSigned Request',
@@ -1575,14 +1583,5 @@ FLOWS = {
                   "check-http-response": {}}
     },
     # TODO R and S tests to be added
-    'OP-T-01': {
-        "desc": 'Can Discover Identifiers using E-Mail Syntax',
-        # "profile": ".T...+",
-        "profile": ".T.",
-        "sequence": [
-            ("webfinger",
-             {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
-        "tests": {"check-http-response": {}},
-    },
 }
 
