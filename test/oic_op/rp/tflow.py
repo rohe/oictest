@@ -1251,7 +1251,8 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {"kwargs_mod": {"request_method": "file",
-                                        "local_dir": "export"},
+                                        "local_dir": "export",
+                                        "algorithm": "none"},
                          "kwarg_func": request_in_file})
         ],
         "profile": "...n",
