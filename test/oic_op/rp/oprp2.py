@@ -682,9 +682,17 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                 if req.request == "AuthorizationRequest":
                     # New state for each request
                     kwargs["request_args"].update({"state": rndstr()})
+                    if not ots.client.provider_info:
+                        return err_response(environ, start_response,
+                                            session, req.request,
+                                            "No provider info")
                 elif req.request in ["AccessTokenRequest", "UserInfoRequest",
                                      "RefreshAccessTokenRequest"]:
                     kwargs.update({"state": conv.AuthorizationRequest["state"]})
+                    if not ots.client.provider_info:
+                        return err_response(environ, start_response,
+                                            session, req.request,
+                                            "No provider info")
 
                 # Extra arguments outside the OIDC spec
                 try:
@@ -750,10 +758,6 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     if resp_c.response == "RegistrationResponse":
                         if isinstance(response, RegistrationResponse):
                             ots.client.store_registration_info(response)
-                        else:
-                            return err_response(environ, start_response,
-                                                session, "RegistrationResponse",
-                                                None)
 
             try:
                 post_tests(conv, req_c, resp_c)

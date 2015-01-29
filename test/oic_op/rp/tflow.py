@@ -762,7 +762,7 @@ FLOWS = {
             ('_register_',
              {
                  "function": (
-                 redirect_uris_with_query_component, {"foo": "bar"})}),
+                     redirect_uris_with_query_component, {"foo": "bar"})}),
             'expect_err',
             ("_login_", {
                 # different from the one registered
@@ -1499,8 +1499,8 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD],
         "profile": "....+",
-        'tests': {"verify-claims": {"userinfo": {"picture": None},
-                                    "id_token": {"email": None}},
+        'tests': {"verify-claims": {"userinfo": {"picture": None,
+                                                 "email": None}},
                   "check-http-response": {}}
     },
     'OP-Q-08': {
