@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from rrtest.status import WARNING
 from testfunc import store_sector_redirect_uris, get_principal
 from testfunc import id_token_hint
 from testfunc import request_in_file
@@ -678,7 +679,7 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-bad-request-response": {}},
+        "tests": {"verify-bad-request-response": {"status": WARNING}},
         "mti": "SHOULD",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",

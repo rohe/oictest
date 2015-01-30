@@ -312,8 +312,11 @@ class VerifyBadRequestResponse(ExpectedError):
             res["content"] = err.to_json()
             conv.protocol_response.append((err, _content))
         else:
-            self._message = "Expected a 400 error message"
-            self._status = CRITICAL
+            self._message = "Expected an error message"
+            try:
+                self._status = self._kwargs["status"]
+            except KeyError:
+                self._status = CRITICAL
 
         return res
 
