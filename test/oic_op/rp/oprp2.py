@@ -167,10 +167,12 @@ def test_info(environ, start_response, testid, session):
     # dump_log(session, test_id=testid)
 
     info = session["test_info"][testid]
+    _pinfo = profile_info(session, testid)
     argv = {
-        "id": testid,
+        "profile": _pinfo,
         "trace": info["trace"],
         "output": info["test_output"],
+        "result": represent_result(session)
     }
 
     return resp(environ, start_response, **argv)
@@ -279,7 +281,7 @@ def represent_result(session):
     return text
 
 
-def dump_log(session, test_id=None):
+def profile_info(session, test_id=None):
     try:
         _conv = session["conv"]
     except KeyError:
@@ -295,18 +297,29 @@ def dump_log(session, test_id=None):
             if test_id is None:
                 test_id = session["testid"]
 
-            path = log_path(session, test_id)
+            return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
 
-            output = [
-                "Issuer: %s" % iss,
-                "Profile: %s" % profile,
-                "Test ID: %s" % test_id
-            ]
+    return {}
 
+
+def dump_log(session, test_id=None):
+    try:
+        _conv = session["conv"]
+    except KeyError:
+        pass
+    else:
+        _pi = profile_info(session, test_id)
+        if _pi:
+            path = log_path(session, _pi["Test ID"])
+            sline = 60*"="
+            output = ["%s: %s" % (k, _pi[k]) for k in ["Issuer", "Profile",
+                                                       "Test ID"]]
+
+            output.extend(["", sline, ""])
             output.extend(trace_output(_conv.trace))
-            output.append("")
+            output.extend(["", sline, ""])
             output.extend(test_output(_conv.test_output))
-
+            output.extend(["", sline, ""])
             # and lastly the result
             output.append("RESULT: %s" % represent_result(session))
             output.append("")

@@ -37,6 +37,15 @@ def trace_output(trace):
     return "\n".join(element)
 %>
 
+<%
+def profile_output(pinfo):
+    element = []
+    for key, val in pinfo.items():
+        element.append("<em>%s:</em> %s<br>" % (key,val))
+
+    return "\n".join(element)
+%>
+
 <!DOCTYPE html>
 
 <html>
@@ -57,11 +66,14 @@ def trace_output(trace):
 
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
-        <h2>test info for ${id}</h2>
+        <h2>Test info</h2>
+        ${profile_output(profile)}
         <hr>
         ${test_output(output)}
         <hr>
         ${trace_output(trace)}
+        <hr>
+        <h3>Result</h3>${result}
     </div> <!-- /container -->
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <script src="/static/jquery.min.1.9.1.js"></script>
