@@ -1001,6 +1001,15 @@ def application(environ, start_response):
         if path != "authz_post":
             if session["response_type"] and not \
                     session["response_type"] == ["code"]:
+                # but what if it's all returned as a query ?
+                try:
+                    session["conv"].trace.response(
+                        "QUERY_STRING:%s" % environ["QUERY_STRING"])
+                except KeyError:
+                    pass
+                else:
+                    session["conv"].info(
+                        "Didn't expect response as query parameters")
                 return opresult_fragment(environ, start_response)
         try:
             sequence_info = session["seq_info"]

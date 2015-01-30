@@ -15,7 +15,7 @@ startme() {
 
     ./oprp2.py -p C.T.T.ns -t tflow luke &> luke.err &
     ./oprp2.py -p C.T.T.ns -t tflow edmund &> edmund.err &
-    ./oprp2.py -p C.T.T.nse -t tflow oictest &> oictest.err &
+    ./oprp2.py -p C.T.T.nse -t tflow oictest_op &> oictest.err &
 }
 
 stopme() {
@@ -29,6 +29,7 @@ stopme() {
     pkill -f "luke"
     pkill -f "edmund"
     pkill -f "xenosmilus2"
+    pkill -f "oictest_op"
 }
 
 case "$1" in
