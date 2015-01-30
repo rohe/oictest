@@ -70,7 +70,10 @@ def acr_value(request_args, conv, kwargs):
     try:
         acr = conv.client_config["acr_value"]
     except KeyError:
-        acr = ["1"]
+        try:
+            acr = conv.client.provider_info["acr_values_supported"]
+        except (KeyError, AttributeError):
+            acr = ["1", "2"]
 
     request_args["acr_values"] = acr
     return request_args

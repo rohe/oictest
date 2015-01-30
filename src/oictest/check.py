@@ -1900,8 +1900,9 @@ class UsedAcrValue(Information):
             self._status = self.status
             return ()
 
+        pref = conv.AuthorizationRequest["acr_values"]
         (idt, _) = res[-1]
-        self._message = idt["acr"]
+        self._message = "Used acr value: %s, preferred: %s" % (idt["acr"], pref)
         return {}
 
 
