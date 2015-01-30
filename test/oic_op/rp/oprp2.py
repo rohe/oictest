@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import copy
 import importlib
+import json
 import os
 from urllib import quote_plus, unquote
 import argparse
@@ -70,6 +71,11 @@ def setup_logging(logfile):
     hdlr.setFormatter(base_formatter)
     LOGGER.addHandler(hdlr)
     LOGGER.setLevel(logging.DEBUG)
+
+
+def pprint_json(json_txt):
+    _jso = json.loads(json_txt)
+    return json.dumps(_jso, sort_keys=True, indent=2, separators=(',', ': '))
 
 
 def static(environ, start_response, path):
@@ -656,7 +662,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                             "jwks_fetch", str(err))
                     else:
                         if resp.status_code < 300:
-                            trace.info("JWKS: %s" % resp.content)
+                            trace.info("JWKS: %s" % pprint_json(resp.content))
                         else:
                             return err_response(environ, start_response,
                                                 session, "jwks_fetch",

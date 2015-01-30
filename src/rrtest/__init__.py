@@ -1,3 +1,4 @@
+import json
 import time
 import traceback
 import requests
@@ -42,8 +43,9 @@ class Trace(object):
 
     def response(self, resp):
         delta = time.time() - self.start
-        self.trace.append("%f %s: %s" % (
-            delta, resp.__class__.__name__, resp.to_dict()))
+        txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
+                         separators=(',', ': '))
+        self.trace.append("%f %s: %s" % (delta, resp.__class__.__name__, txt))
 
     def info(self, msg):
         delta = time.time() - self.start
