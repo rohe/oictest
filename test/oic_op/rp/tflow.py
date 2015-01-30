@@ -635,7 +635,9 @@ FLOWS = {
             ('_login_', {"request_args": {},
                          "function": ui_locales}),
         ],
-        "note": "The user interface may now use the locale of choice",
+        "note": "The user interface may now use the locale of choice. "
+                "The use of this parameter in the request must not cause an "
+                "error at the OP",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": "No err"
@@ -651,7 +653,9 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD,
             'display_userinfo'],
-        "note": "Claims may now be returned in the locale of choice",
+        "note": "Claims may now be returned in the locale of choice"
+                "The use of this parameter in the request must not cause an "
+                "error at the OP",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": "No err"
@@ -696,7 +700,7 @@ FLOWS = {
             USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-bad-request-response": {}},
+        "tests": {"verify-bad-request-response": {"status": WARNING}},
         "mti": "SHOULD",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
