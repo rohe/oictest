@@ -1366,7 +1366,8 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "request"}})
+            ("_login_", {"kwargs_mod": {"request_method": "request",
+                                        "algorithm": "none"}})
         ],
         "profile": "...n",
         "tests": {"check-http-response": {}}
