@@ -43,9 +43,15 @@ class Trace(object):
 
     def response(self, resp):
         delta = time.time() - self.start
-        txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
-                         separators=(',', ': '))
-        self.trace.append("%f %s: %s" % (delta, resp.__class__.__name__, txt))
+        try:
+            txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
+                             separators=(',', ': '))
+        except AttributeError:
+            txt = resp
+            self.trace.append("%f %s" % (delta, txt))
+        else:
+            self.trace.append("%f %s: %s" % (delta, resp.__class__.__name__,
+                                             txt))
 
     def info(self, msg):
         delta = time.time() - self.start
