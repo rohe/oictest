@@ -14,7 +14,7 @@ from mako.lookup import TemplateLookup
 from urlparse import parse_qs
 from oic.exception import PyoidcError
 
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, OtherError, AuthnToOld
 from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import get_post
@@ -778,7 +778,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     if resp_c.response == "RegistrationResponse":
                         if isinstance(response, RegistrationResponse):
                             ots.client.store_registration_info(response)
-
+                    elif resp_c.response == "AccessTokenResponse":
+                        try:
+                            ots.client.verify_id_token(
+                                response["id_token"], conv.AuthorizationRequest)
+                        except (OtherError, AuthnToOld) as err:
+                            return err_response(
+                                environ, start_response, session,
+                                "id_token_verification", err)
             try:
                 post_tests(conv, req_c, resp_c)
             except Exception as err:
@@ -1081,6 +1088,13 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
+            if "id_token" in response:
+                try:
+                    ots.client.verify_id_token(response["id_token"],
+                                               conv.AuthorizationRequest)
+                except (OtherError, AuthnToOld) as err:
+                    return err_response(environ, start_response, session,
+                                        "id_token_verification", err)
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:
