@@ -303,7 +303,7 @@ PROFILEMAP = {
     }
 }
 
-SUBPROF = {"n": "none", "s": "sign", "b": "sign and encrypt"}
+SUBPROF = {"n": "none", "s": "sign", "e": "encrypt"}
 
 
 def from_code(code):

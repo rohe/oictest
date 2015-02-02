@@ -683,6 +683,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
             elif req_c == Webfinger:
                 url = req.discover(**kwargs)
                 if url:
+                    conv.trace.request(url)
                     conv.test_output.append(
                         {"id": "-", "status": OK,
                          "message": "Found discovery URL: %s" % url})
@@ -937,7 +938,7 @@ def application(environ, start_response):
             else:
                 cp.append("".join(crsu))
         else:  # len >= 4
-            cp[3] == "".join(crsu)
+            cp[3] = "".join(crsu)
 
         try:
             if info["extra"] == ['on']:
@@ -1016,13 +1017,14 @@ def application(environ, start_response):
                     session["response_type"] == ["code"]:
                 # but what if it's all returned as a query ?
                 try:
-                    session["conv"].trace.response(
-                        "QUERY_STRING:%s" % environ["QUERY_STRING"])
+                    qs = environ["QUERY_STRING"]
                 except KeyError:
-                    pass
-                else:
+                    qs = ""
+                if qs:
+                    session["conv"].trace.response("QUERY_STRING:%s" % qs)
                     session["conv"].info(
                         "Didn't expect response as query parameters")
+
                 return opresult_fragment(environ, start_response)
         try:
             sequence_info = session["seq_info"]
@@ -1063,11 +1065,12 @@ def application(environ, start_response):
             LOGGER.info("Response: %s" % info)
             conv.trace.reply(info)
             resp_cls = message_factory(resp_c.response)
+            algs = ots.client.sign_enc_algs("id_token")
             try:
                 response = ots.client.parse_response(
                     resp_cls, info, _ctype,
                     conv.AuthorizationRequest["state"],
-                    keyjar=ots.client.keyjar)
+                    keyjar=ots.client.keyjar, algs=algs)
             except ResponseError as err:
                 return err_response(environ, start_response, session,
                                     "run_sequence", err)

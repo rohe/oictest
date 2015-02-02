@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from oic.oic import OIDCONF_PATTERN
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.utils.http_util import Response
@@ -324,6 +325,7 @@ class Discover(Operation):
         # Allow statically over-riding dynamic info
         over_ride = client.provider_info
         self.trace.info("Provider info discover from '%s'" % issuer)
+        self.trace.request(OIDCONF_PATTERN % issuer)
         pcr = client.provider_config(issuer)
         if over_ride:
             pcr.update(over_ride)
