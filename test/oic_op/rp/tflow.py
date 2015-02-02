@@ -433,7 +433,7 @@ FLOWS = {
                 "method": "GET"
             })
         ],
-        "profile": "..",
+        "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
@@ -453,7 +453,7 @@ FLOWS = {
                 "method": "GET"
             })
         ],
-        "profile": "..",
+        "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
@@ -473,7 +473,7 @@ FLOWS = {
                 "method": "GET"
             })
         ],
-        "profile": "..",
+        "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
@@ -496,7 +496,7 @@ FLOWS = {
                 "method": "GET"
             })
         ],
-        "profile": "..",
+        "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
@@ -1589,6 +1589,5 @@ FLOWS = {
         'tests': {"verify-claims": {"id_token": {"acr": None}},
                   "check-http-response": {}}
     },
-    # TODO R and S tests to be added
 }
 
