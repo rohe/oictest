@@ -79,7 +79,7 @@ def response_claim(conv, respcls, claim):
 
 class TimeDelay(Process):
     def __init__(self):
-        self.delay = 2
+        self.delay = 30
         self.tests = {"post": [], "pre": []}
 
     def __call__(self, *args, **kwargs):

@@ -779,13 +779,15 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         if isinstance(response, RegistrationResponse):
                             ots.client.store_registration_info(response)
                     elif resp_c.response == "AccessTokenResponse":
-                        try:
-                            ots.client.verify_id_token(
-                                response["id_token"], conv.AuthorizationRequest)
-                        except (OtherError, AuthnToOld) as err:
-                            return err_response(
-                                environ, start_response, session,
-                                "id_token_verification", err)
+                        if "error" not in response:
+                            try:
+                                ots.client.verify_id_token(
+                                    response["id_token"],
+                                    conv.AuthorizationRequest)
+                            except (OtherError, AuthnToOld) as err:
+                                return err_response(
+                                    environ, start_response, session,
+                                    "id_token_verification", err)
             try:
                 post_tests(conv, req_c, resp_c)
             except Exception as err:

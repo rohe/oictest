@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+from rrtest.status import ERROR
 from rrtest.status import WARNING
-from testfunc import store_sector_redirect_uris, get_principal
+from testfunc import store_sector_redirect_uris
+from testfunc import get_principal
 from testfunc import id_token_hint
 from testfunc import request_in_file
 from testfunc import sub_claims
@@ -40,6 +42,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
+            'note',
             ('_login_', {
                 "request_args": {"response_type": []},
             })
@@ -47,6 +50,10 @@ FLOWS = {
         "tests": {
             "verify-error": {"error": ["invalid_request",
                                        "unsupported_response_type"]}},
+        "note": "There are two correct responses: 1) returning error response "
+                "to the RP 2) returning error message to the User and that in "
+                "case (2) occurs the tester must submit a screen shot as proof "
+                "when sending in a certification application",
         "profile": "..",
         "mti": "MUST"
     },
@@ -702,6 +709,26 @@ FLOWS = {
         "profile": "C,CI,CT,CIT..",
         "tests": {"verify-bad-request-response": {"status": WARNING}},
         "mti": "SHOULD",
+        "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
+                     "#section-4.1",
+    },
+    'OP-I-03': {
+        "desc": 'Trying to use access code twice with 30 seconds in between '
+                'must result in an error',
+        "sequence": [
+            'note',
+            '_discover_',
+            '_register_',
+            '_login_',
+            "_accesstoken_",
+            "intermission",
+            "_accesstoken_"
+        ],
+        "profile": "C,CI,CT,CIT..",
+        "tests": {"verify-bad-request-response": {"status": ERROR}},
+        "mti": "SHOULD",
+        "note": "An 30 second delay is added between the first and the second "
+                "access token request.",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
     },
