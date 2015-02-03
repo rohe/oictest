@@ -325,7 +325,11 @@ class Discover(Operation):
         # Allow statically over-riding dynamic info
         over_ride = client.provider_info
         self.trace.info("Provider info discover from '%s'" % issuer)
-        self.trace.request(OIDCONF_PATTERN % issuer)
+        if issuer.endswith("/"):
+            self.trace.request("URL: %s" % OIDCONF_PATTERN % issuer[:-1])
+        else:
+            self.trace.request("URL: %s" % OIDCONF_PATTERN % issuer)
+
         pcr = client.provider_config(issuer)
         if over_ride:
             pcr.update(over_ride)
@@ -378,10 +382,11 @@ class Webfinger(Operation):
         self.function = self.discover
         self.do_postop = False
 
-    @staticmethod
-    def discover(*arg, **kwargs):
+    def discover(self, *arg, **kwargs):
         wf = WebFinger(OIC_ISSUER)
         wf.httpd = PBase()
+        _url = wf.query(kwargs["principal"])
+        self.trace.request("URL: %s" % _url)
         url = wf.discovery_query(kwargs["principal"])
         return url
 
