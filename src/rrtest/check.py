@@ -378,6 +378,10 @@ class VerifyUnknownClientIdResponse(ExpectedError):
 
 
 class VerifyError(Error):
+    """
+    Verifies that an error message was returned and also if it's the correct
+    type.
+    """
     cid = "verify-error"
 
     def _func(self, conv):
@@ -385,31 +389,31 @@ class VerifyError(Error):
 
         if response.status_code == 400:
             try:
-                resp = json.loads(response.text)
-                if "error" in resp:
-                    return {}
+                item = json.loads(response.text)
             except Exception:
-                pass
+                self._message = "Expected an error response"
+                self._status = self.status
+                return {}
+        else:
+            try:
+                item, msg = conv.protocol_response[-1]
+            except IndexError:
+                self._message = "Expected a message"
+                self._status = CRITICAL
+                return {}
 
-        try:
-            item, msg = conv.protocol_response[-1]
-        except IndexError:
-            self._message = "Expected a message"
-            self._status = CRITICAL
-            return {}
-
-        try:
-            assert item.type().endswith("ErrorResponse")
-        except AssertionError:
-            self._message = "Expected an error response"
-            self._status = self.status
-            return {}
+            try:
+                assert item.type().endswith("ErrorResponse")
+            except AssertionError:
+                self._message = "Expected an error response"
+                self._status = self.status
+                return {}
 
         try:
             assert item["error"] in self._kwargs["error"]
         except AssertionError:
             self._message = "Wrong type of error, got %s" % item["error"]
-            self._status = self.status
+            self._status = WARNING
 
         return {}
 
