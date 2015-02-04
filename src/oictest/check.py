@@ -7,6 +7,7 @@ from jwkest.jwk import RSAKey, ECKey
 from jwkest.jwk import base64url_to_long
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
+from oic.oic import claims_match
 from oic.oic import message
 from oictest.regalg import MTI
 from oictest.regalg import REGISTERED_JWS_ALGORITHMS
@@ -37,7 +38,6 @@ import urlparse
 
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import IdToken
-from oic.oic.message import OpenIDSchema
 from oic.utils import time_util
 
 
@@ -88,7 +88,8 @@ class CmpIdtoken(Other):
 
     def _func(self, conv):
         res = {}
-        instance, msg = get_protocol_response(conv, AuthorizationResponse)[0]
+        instance, msg = get_protocol_response(conv,
+                                              message.AuthorizationResponse)[0]
 
         kj = conv.client.keyjar
         keys = {}
@@ -720,7 +721,7 @@ class VerifyClaims(Error):
     cid = "verify-claims"
     errmsg = "attributes received not matching claims"
 
-    def _func(self, conv=None):
+    def _userinfo_claims(self, conv):
         userinfo_claims = {}
 
         req = get_authz_request(conv)
@@ -752,15 +753,16 @@ class VerifyClaims(Error):
 
         missing = []
         extra = []
+        mm = []
         # Get the UserInfoResponse, should only be one
-        inst, txt = get_protocol_response(conv, OpenIDSchema)[0]
+        inst, txt = get_protocol_response(conv, message.OpenIDSchema)[0]
         if userinfo_claims:
             for key, restr in userinfo_claims.items():
-                if key in inst:
-                    pass
-                else:
-                    if restr == {"essential": True}:
-                        missing.append(key)
+                try:
+                    if not claims_match(inst[key], restr):
+                        mm.append(key)
+                except KeyError:
+                    missing.append(key)
 
         for key in inst.keys():
             if key not in userinfo_claims:
@@ -780,7 +782,7 @@ class VerifyClaims(Error):
             else:
                 msg += "Unexpected claims in response: %s" % extra
 
-        if missing or extra:
+        if missing or extra or mm:
             self._message = msg
             self._status = WARNING
             return {"returned claims": inst.keys(),
@@ -788,6 +790,63 @@ class VerifyClaims(Error):
 
         return {}
 
+    def _idtoken_claims(self, conv):
+        req = get_authz_request(conv)
+        try:
+            claims = req["claims"]["id_token"]
+        except KeyError:
+            pass
+        else:
+            inst, txt = get_protocol_response(conv,
+                                              message.AccessTokenResponse)[0]
+            try:
+                _idt = inst["id_token"]
+            except KeyError:
+                self._message = "Expected an IDToken got none"
+                self._status = ERROR
+            else:
+                mm = []
+                missing = []
+                for key, val in claims.items():
+                    try:
+                        if not claims_match(_idt[key], val):
+                            mm.append(key)
+                    except KeyError:
+                        missing.append(key)
+
+                if missing or mm:
+                    msg = ""
+                    if missing:
+                        if len(missing) == 1:
+                            msg = "Missing required claim: %s" % missing[0]
+                        else:
+                            msg = "Missing required claims: %s" % missing
+                    if mm:
+                        if msg:
+                            msg += ". "
+                        if len(missing) == 1:
+                            msg = "Claim that didn't match request: %s" % mm[0]
+                        else:
+                            msg = "Claim that didn't match request: %s" % mm
+
+                    self._message = msg
+                    self._status = WARNING
+                    return {"returned claims": _idt.keys(),
+                            "required claims": claims}
+
+        return {}
+
+    def _func(self, conv=None):
+        resp = {}
+        if "userinfo" in self._kwargs:
+            ret = self._userinfo_claims(conv)
+            if ret:
+                resp["userinfo"] = ret
+        if "id_token" in self._kwargs:
+            ret = self._idtoken_claims(conv)
+            if ret:
+                resp["idtoken"] = ret
+        return resp
 
 REQUIRED = {"essential": True}
 OPTIONAL = None
@@ -1165,7 +1224,7 @@ class CheckAsymSignedUserInfo(Error):
     msg = "User info was not signed"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv, OpenIDSchema)[0]
+        instance, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
         header = json.loads(b64d(str(msg.split(".")[0])))
         try:
             assert header["alg"].startswith("RS")
@@ -1232,7 +1291,7 @@ class CheckEncryptedUserInfo(Error):
     msg = "User info was not encrypted"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv, OpenIDSchema)[0]
+        instance, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
         header = json.loads(b64d(str(msg.split(".")[0])))
         try:
             assert header["alg"].startswith("RSA")
@@ -1355,8 +1414,8 @@ class CheckNonce(Error):
         except KeyError:
             pass
         else:
-            instance, msg = get_protocol_response(conv,
-                                                  AuthorizationResponse)[0]
+            instance, msg = get_protocol_response(
+                conv, message.AuthorizationResponse)[0]
 
             try:
                 assert _nonce == instance["id_token"]["nonce"]
@@ -1605,7 +1664,8 @@ class VerifyState(Information):
         # The send state
         _send_state = conv.AuthorizationRequest["state"]
         # the received state
-        inst, txt = get_protocol_response(conv, AuthorizationResponse)[-1]
+        inst, txt = get_protocol_response(conv,
+                                          message.AuthorizationResponse)[-1]
         _recv_state = inst["state"]
 
         try:

@@ -126,7 +126,7 @@ def run_flow(client, index, session, test_id):
                 _args["state"] = session["state"]
                 _args["request_args"] = {
                     "redirect_uri": client.redirect_uris[0]}
-                client.do_access_token_request(**_args)
+                resp = client.do_access_token_request(**_args)
             elif spec["action"] == "userinfo_req":
                 if spec["args"]:
                     _args = copy.deepcopy(spec["args"])
