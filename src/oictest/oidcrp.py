@@ -29,22 +29,22 @@ def flow2sequence(operations, item):
 
 class Client(oic.Client):
     def __init__(self, client_id=None, ca_certs=None,
-                 client_prefs=None, client_authn_method=None, keyjar=None,
+                 client_prefs=None, client_authn_methods=None, keyjar=None,
                  verify_ssl=True, behaviour=None):
         oic.Client.__init__(self, client_id, ca_certs, client_prefs,
-                            client_authn_method, keyjar, verify_ssl)
+                            client_authn_methods, keyjar, verify_ssl)
         if behaviour:
             self.behaviour = behaviour
 
 
 class OIDCTestSetup(object):
-    def __init__(self, config, test_defs, port):
+    def __init__(self, config, test_defs, port, client_cls=Client):
         """
 
         :param config: Imported configuration module
         :return:
         """
-        self.client_cls = Client
+        self.client_cls = client_cls
         self.config = config
         self.test_features = []
         self.test_defs = test_defs
