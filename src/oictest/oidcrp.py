@@ -64,7 +64,7 @@ class OIDCTestSetup(object):
         _key_set = set(kwargs.keys())
         args = {}
 
-        client = self.client_cls(client_authn_method=CLIENT_AUTHN_METHOD,
+        client = self.client_cls(client_authn_methods=CLIENT_AUTHN_METHOD,
                                  behaviour=kwargs["behaviour"],
                                  verify_ssl=self.config.VERIFY_SSL, **args)
 
