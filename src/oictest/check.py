@@ -436,7 +436,7 @@ class CheckRequestClaimsSupport(CheckOPSupported):
 
 class CheckSupportedTrue(CriticalError):
     """
-    Checks that the request parameter is supported
+    Checks that a specific provider info parameter is supported
     """
     cid = "check-X-support"
     msg = "X not supported"
@@ -446,10 +446,15 @@ class CheckSupportedTrue(CriticalError):
         res = {}
 
         try:
-            assert get_provider_info(conv)[self.element] == "true"
-        except (AssertionError, KeyError):
-            self._status = self.status
-            self._message = self.msg
+            val = get_provider_info(conv)[self.element]
+        except KeyError:
+            pass
+        else:
+            if val is True or val == "true":
+                pass
+            else:
+                self._status = self.status
+                self._message = self.msg
 
         return res
 
@@ -464,7 +469,7 @@ class CheckRequestParameterSupported(CheckSupportedTrue):
     mti = False
 
 
-class CheckRequestURIParameterSupported(CriticalError):
+class CheckRequestURIParameterSupported(CheckSupportedTrue):
     """
     Checks that the request parameter is supported
     """
