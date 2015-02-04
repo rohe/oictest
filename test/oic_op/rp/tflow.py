@@ -1104,7 +1104,8 @@ FLOWS = {
              })
         ],
         "profile": "..T",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-error": {"error": ["invalid_configuration_parameter"]},
+                  "verify-bad-request-response": {}},
     },
     'OP-M-09': {
         "desc": 'Registering and then read the client info',

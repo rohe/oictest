@@ -352,4 +352,9 @@ FLOWS = {
     # Signing
     # Encryption
     #
+    # ==== ID Spoofing ====
+    # ==== Issuer Confusion ====
+    # ==== Signature Manipulation ====
+    # ==== Sub Claims Spoofing ====
+    # ==== Redirect URI Manipulation ====
 }
