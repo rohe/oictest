@@ -692,11 +692,16 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         {"id": "-", "status": ERROR,
                          "message": "Failed to find discovery URL"})
             else:
-                if not endpoint_support(conv.client, req.endpoint):
-                    conv.test_output.append(
-                        {"id": "-", "status": ERROR,
-                         "message": "%s not supported" % req.endpoint})
-                    return opresult(environ, start_response, conv, session)
+                try:
+                    endp = req.endpoint
+                except AttributeError:
+                    pass
+                else:
+                    if not endpoint_support(conv.client, endp):
+                        conv.test_output.append(
+                            {"id": "-", "status": ERROR,
+                             "message": "%s not supported" % req.endpoint})
+                        return opresult(environ, start_response, conv, session)
 
                 LOGGER.info("request: %s" % req.request)
                 if req.request == "AuthorizationRequest":
