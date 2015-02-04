@@ -1,0 +1,91 @@
+hr {
+    -moz-border-bottom-colors: none;
+    -moz-border-image: none;
+    -moz-border-left-colors: none;
+    -moz-border-right-colors: none;
+    -moz-border-top-colors: none;
+    border-color: #f4f4f4;
+    border-style: solid none;
+    border-width: 1px;
+    margin-bottom: 5px;
+    margin-top: 0px;
+}
+
+#content{
+    margin: 20px;
+}
+
+form{
+    font-size: 15px;
+}
+
+.leftAlignText {
+    text-align: right;
+}
+
+input[type='text']{
+    width: 100%;
+    height: 30px;
+}
+
+#label {
+    text-align: left;
+}
+
+.infoIcon{
+    opacity:0.45;
+}
+
+.infoBlock{
+    border-radius:5px;
+    padding: 10px;
+    background-color: #ffffff
+}
+
+.block {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 30px;
+    border:2px solid;
+    border-color: #919191;
+    border-radius:5px;
+    background-color: #fcfcfc;
+    position: relative;
+}
+
+.block .close{
+    opacity: 1;
+    position: absolute;
+    top: 0px;
+    right: 0px;
+}
+
+#modalErrorReportContent{
+    padding-top: 30px;
+    padding-bottom: 10px;
+}
+
+.modal-content{
+    padding: 20px;
+}
+
+#advancedFieldTable {
+    height:75vh;
+    overflow: scroll;
+}
+
+.configBlock{
+    font-size: 5px;
+}
+
+.jumbotron{
+    font-size: 17px;
+}
+
+.subClaimsHeader{
+    padding-bottom: 15px;
+}
+
+.requiredText{
+    color: #a50008;
+}

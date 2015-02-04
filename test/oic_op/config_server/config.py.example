@@ -1,0 +1,28 @@
+HOST = "localhost"
+PORT = 8000
+HTTPS = False
+
+OPRP_PATH = '~/projects/oictest/test/oic_op/rp/oprp2.py'
+
+PORT_DYNAMIC_NUM_MIN = 8001
+PORT_DYNAMIC_NUM_MAX = 8500
+
+PORT_STATIC_NUM_MIN = 8501
+PORT_STATIC_NUM_MAX = 9000
+
+if HTTPS:
+    BASE = "https://%s:%d/" % (HOST, PORT)
+else:
+    BASE = "http://%s:%d/" % (HOST, PORT)
+
+# If BASE is https these has to be specified
+SERVER_CERT = "certs/server.crt"
+SERVER_KEY = "certs/server.key"
+CA_BUNDLE = None
+VERIFY_SSL = False
+
+DATABASE_FILE = "./static_ports.db"
+
+OPRP_DIR_PATH = '../rp/'
+
+RP_SSL_MODULE = "sslconf"
