@@ -30,7 +30,7 @@ FLOWS = {
         "desc": 'Verify UMA discovery',
         "sequence": ['_uma_discover_'],
         "profile": ".T.",
-        "tests": {"verify-op-has-registration-endpoint": {}},
+        "tests": {"verify-op-has-dynamic-client-endpoint": {}},
     },
     'OP-B-01': {
         "desc": 'Verify OIDC discovery',
@@ -114,7 +114,27 @@ FLOWS = {
             '_oauth_register_',
             "read-registration"
         ],
-        "profile": "..T..+",
+        "profile": "..T",
+        "tests": {"check-http-response": {}},
+    },
+    "OP-C-07": {
+        "desc": "Modify client registration",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            "modify-registration"
+        ],
+        "profile": "..T",
+        "tests": {"check-http-response": {}},
+    },
+    "OP-C-08": {
+        "desc": "Delete client registration",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            "delete-registration"
+        ],
+        "profile": "..T",
         "tests": {"check-http-response": {}},
     },
     'OP-D-01': {

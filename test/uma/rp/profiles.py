@@ -45,12 +45,9 @@ PROFILEMAP = {
                 (
                     "oauth-registration",
                     {"request_args": {
+                        "token_endpoint_auth_method": ['client_secret_basic'],
                         "response_types": ["code"],
                         # don't register any
-                        "token_endpoint_auth_method": [],
-                        "userinfo_signed_response_alg": [],
-                        "id_token_signed_response_alg": [],
-                        "request_object_signing_alg": [],
                         "grant_types": ["authorization_code"]
                     }}),
         },
@@ -69,12 +66,9 @@ PROFILEMAP = {
             "_oauth_register_": (
                 "oauth-registration",
                 {"request_args": {
+                    "token_endpoint_auth_method": ['client_secret_basic'],
                     "response_types": ["token"],
                     # don't register any
-                    "token_endpoint_auth_method": [],
-                    "userinfo_signed_response_alg": [],
-                    "id_token_signed_response_alg": [],
-                    "request_object_signing_alg": [],
                     "grant_types": ["implicit"]
                 }}),
         }

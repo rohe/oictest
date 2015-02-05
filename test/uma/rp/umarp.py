@@ -23,9 +23,10 @@ from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 from oic.oic.message import AccessTokenResponse
 from oic.oic.message import RegistrationResponse
-from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 from uma.client import Client as umaClient
+
+from uma.message import factory as message_factory
 
 from oictest.base import Conversation
 from oictest.check import factory as check_factory
@@ -63,6 +64,7 @@ CS_INV = dict([(y, x) for x, y in CRYPTSUPPORT.items()])
 
 class NotSupported(Exception):
     pass
+
 
 
 def setup_logging(logfile):
@@ -295,6 +297,8 @@ def profile_info(session, test_id=None):
         try:
             iss = _conv.client.provider_info["issuer"]
         except TypeError:
+            pass
+        except KeyError:
             pass
         else:
             profile = from_code(session["profile"])
@@ -708,11 +712,16 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         {"id": "-", "status": ERROR,
                          "message": "Failed to find discovery URL"})
             else:
-                if not endpoint_support(conv.client, req.endpoint):
-                    conv.test_output.append(
-                        {"id": "-", "status": ERROR,
-                         "message": "%s not supported" % req.endpoint})
-                    return opresult(environ, start_response, conv, session)
+                try:
+                    endp = req.endpoint
+                except AttributeError:
+                    pass
+                else:
+                    if not endpoint_support(conv.client, endp):
+                        conv.test_output.append(
+                            {"id": "-", "status": ERROR,
+                             "message": "%s not supported" % req.endpoint})
+                        return opresult(environ, start_response, conv, session)
 
                 LOGGER.info("request: %s" % req.request)
                 if req.request == "AuthorizationRequest":
