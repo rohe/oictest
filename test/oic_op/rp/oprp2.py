@@ -330,32 +330,45 @@ def dump_log(session, test_id=None):
             return path
 
 
+def _display(environ, start_response, path, tail):
+    item = []
+    for (dirpath, dirnames, filenames) in os.walk(path):
+        if dirnames:
+            item = [(unquote(f),
+                     os.path.join(tail, f)) for f in dirnames]
+            break
+        elif filenames:
+            item = [(unquote(f),
+                     os.path.join(tail, f)) for f in filenames]
+            break
+
+    item.sort()
+    resp = Response(mako_template="logs.mako",
+                    template_lookup=LOOKUP,
+                    headers=[])
+    argv = {"logs": item}
+
+    return resp(environ, start_response, **argv)
+
+
 def display_log(environ, start_response, path, tail):
     path = path.replace(":", "%3A")
     tail = tail.replace(":", "%3A")
     LOGGER.info("display_log: %s" % tail)
     if os.path.isdir(path):
-        item = []
-        for (dirpath, dirnames, filenames) in os.walk(path):
-            if dirnames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in dirnames]
-                break
-            elif filenames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in filenames]
-                break
-
-        item.sort()
-        resp = Response(mako_template="logs.mako",
-                        template_lookup=LOOKUP,
-                        headers=[])
-        argv = {"logs": item}
-
-        return resp(environ, start_response, **argv)
+        return _display(environ, start_response, path, tail)
     elif os.path.isfile(path):
         return static(environ, start_response, path)
     else:
+        if path.endswith("%2F"):
+            path = path[:-3]
+            if tail.endswith("%2F"):
+                tail = tail[:-3]
+            if os.path.isdir(path):
+                return _display(environ, start_response, path, tail)
+            elif os.path.isfile(path):
+                return static(environ, start_response, path)
+
         resp = Response("No saved logs")
         return resp(environ, start_response)
 
