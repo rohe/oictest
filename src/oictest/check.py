@@ -1248,11 +1248,10 @@ class CheckSymSignedIdToken(Error):
             self._status = self.status
             return ()
 
-        _, jwt = res[-1]
+        idt, _ = res[-1]
 
-        header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
-            assert header["alg"].startswith("HS")
+            assert idt.jwt_header["alg"].startswith("HS")
         except AssertionError:
             self._status = self.status
 
@@ -1273,10 +1272,9 @@ class CheckESSignedIdToken(Error):
             self._status = self.status
             return ()
 
-        _, jwt = res[-1]
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        idt, _ = res[-1]
         try:
-            assert header["alg"].startswith("ES")
+            assert idt.jwt_header["alg"].startswith("ES")
         except AssertionError:
             self._status = self.status
 
@@ -1291,10 +1289,9 @@ class CheckEncryptedUserInfo(Error):
     msg = "User info was not encrypted"
 
     def _func(self, conv):
-        instance, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
-        header = json.loads(b64d(str(msg.split(".")[0])))
+        jwt, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
         try:
-            assert header["alg"].startswith("RSA")
+            assert jwt.jwt_header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
@@ -1315,11 +1312,10 @@ class CheckEncryptedIDToken(Error):
             self._status = self.status
             return ()
 
-        _, jwt = res[-1]
+        idt, _ = res[-1]
 
-        header = json.loads(b64d(str(jwt.split(".")[0])))
         try:
-            assert header["alg"].startswith("RSA")
+            assert idt.jwt_header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
@@ -1340,19 +1336,19 @@ class CheckSignedEncryptedIDToken(Error):
             self._status = self.status
             return ()
 
-        _, jwt = res[-1]
+        idt, jwt = res[-1]
 
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        # encryption header
+        enc_header = unpack(jwt)[0]
         try:
-            assert header["alg"].startswith("RSA")
+            assert enc_header["alg"] == self._kwargs["enc_alg"]
+            assert enc_header["enc"] == self._kwargs["enc_enc"]
         except AssertionError:
             self._status = self.status
 
-        dkeys = conv.client.keyjar.get_decrypt_key(owner="")
-        jwt = JWE_RSA().decrypt(jwt, dkeys[0].key)
-        _header = unpack(jwt)[0]
+        # signature header
         try:
-            assert _header["alg"] in ["RS256", "HS256"]
+            assert idt.jwt_header["alg"] == self._kwargs["sign_alg"]
         except AssertionError:
             self._status = self.status
 
@@ -1707,15 +1703,14 @@ class VerifySignedIdTokenHasKID(Error):
             self._status = self.status
             return ()
 
-        _, jwt = res[-1]
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        idt, _ = res[-1]
         # doesn't verify signing kid if JWT is signed and then encrypted
-        if "enc" not in header:
-            if header["alg"].startswith("RS"):
+        if "enc" not in idt.jwt_header:
+            if idt.jwt_header["alg"].startswith("RS"):
                 try:
-                    assert "kid" in header
+                    assert "kid" in idt.jwt_header
                 except AssertionError:
-                    self._message = "%s: header=%s" % (self.msg, header)
+                    self._message = "%s: header=%s" % (self.msg, idt.jwt_header)
                     self._status = self.status
 
         return {}
@@ -1735,19 +1730,18 @@ class VerifySignedIdToken(Error):
             self._status = self.status
             return ()
 
-        (idt, jwt) = res[-1]
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        idt, _ = res[-1]
         try:
-            assert header["alg"] == self._kwargs["alg"]
+            assert idt.jwt_header["alg"] == self._kwargs["alg"]
         except KeyError:
             try:
-                assert header["alg"] != "none"
+                assert idt.jwt_header["alg"] != "none"
             except AssertionError:
                 self._status = self.status
         except AssertionError:
             self._status = self.status
         else:
-            self._message = "Signature algorithm='%s'" % header["alg"]
+            self._message = "Signature algorithm='%s'" % idt.jwt_header["alg"]
 
         return {}
 
@@ -1801,10 +1795,9 @@ class VerifyUnSignedIdToken(Error):
             self._status = self.status
             return ()
 
-        (_, jwt) = res[-1]
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        idt, _ = res[-1]
         try:
-            assert header["alg"] == "none"
+            assert idt.jwt_header["alg"] == "none"
         except AssertionError:
             self._status = self.status
 
@@ -2002,10 +1995,9 @@ class IsIDTokenSigned(Information):
             self._status = self.status
             return ()
 
-        (_, jwt) = res[-1]
-        header = json.loads(b64d(str(jwt.split(".")[0])))
+        (idt, _) = res[-1]
         try:
-            self._message = "IdToken signed using alg=%s" % header["alg"]
+            self._message = "IdToken signed using alg=%s" % idt.jwt_header["alg"]
         except KeyError:
             self._message = "IdToken not signed"
 

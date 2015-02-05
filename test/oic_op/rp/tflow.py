@@ -251,6 +251,58 @@ FLOWS = {
         "profile": "I,IT,CI,CT,CIT..",
         "mti": "MUST"
     },
+    'OP-B-10': {
+        "desc": 'Symmetric ID Token signature with HS256',
+        "sequence": [
+            '_discover_',
+            ("oic-registration",
+             {"request_args": {"id_token_signed_response_alg": "HS256"}}),
+            "_login_", "_accesstoken_"],
+        "profile": "..T.s",
+        "mti": "MUST",
+        "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
+                  "check-http-response": {}}
+    },
+    'OP-B-11': {
+        "desc": 'Asymmetric ID Token signature with ES256',
+        "sequence": [
+            '_discover_',
+            ("oic-registration",
+             {"request_args": {"id_token_signed_response_alg": "ES256"}}),
+            "_login_", "_accesstoken_"],
+        "profile": "..T.s",
+        "mti": "MUST",
+        "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
+                  "check-http-response": {}}
+    },
+    'OP-B-12': {
+        "desc": 'Signed and encrypted ID Token',
+        "sequence": [
+            '_discover_',
+            ("oic-registration",
+             {
+                 "request_args": {
+                     "id_token_signed_response_alg": "RS256",
+                     "id_token_encrypted_response_alg": "RSA1_5",
+                     "id_token_encrypted_response_enc": "A128CBC-HS256"
+                 },
+                 "support": {
+                     "error": {
+                         "id_token_signing_alg_values_supported": "RS256",
+                         "id_token_encryption_alg_values_supported": "RSA1_5",
+                         "id_token_encryption_enc_values_supported":
+                             "A128CBC-HS256"}
+                 }
+             }
+            ),
+            "_login_", "_accesstoken_"],
+        "profile": "..T.se.+",
+        "mti": "MUST",
+        "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
+                                               "enc_alg": "RSA1_5",
+                                               "enc_enc": "A128CBC-HS256"},
+                  "check-http-response": {}}
+    },
     'OP-C-01': {
         "desc": 'UserInfo Endpoint Access with GET and bearer_header',
         "sequence": ['_discover_', '_register_', '_login_',
@@ -360,7 +412,7 @@ FLOWS = {
                      "userinfo_encrypted_response_enc": "A128CBC-HS256"},
                  "support": {
                      "error": {
-                         "userinfo_signing_alg_values_supported": "none",
+                         "userinfo_signing_alg_values_supported": "RS256",
                          "userinfo_encryption_alg_values_supported": "RSA1_5",
                          "userinfo_encryption_enc_values_supported":
                              "A128CBC-HS256"
