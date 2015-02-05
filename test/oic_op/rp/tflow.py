@@ -245,7 +245,7 @@ FLOWS = {
         "mti": "MUST"
     },
     'OP-B-09': {
-        "desc": 'Request with nonce, verifies it was return in id_token',
+        "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
         "tests": {"check-http-response": {}, 'check-nonce': {}},
         "profile": "I,IT,CI,CT,CIT..",
@@ -620,7 +620,7 @@ FLOWS = {
         "mti": "SHOULD",
     },
     'OP-H-03': {
-        "desc": 'Giving a login hint',
+        "desc": 'Providing login_hint',
         "sequence": [
             'rm_cookie',
             '_discover_',
@@ -668,7 +668,7 @@ FLOWS = {
         "mti": "No err"
     },
     'OP-H-06': {
-        "desc": 'Providing preferred acr_values',
+        "desc": 'Providing acr_values',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1024,7 +1024,7 @@ FLOWS = {
         "tests": {"check-http-response": {}},
     },
     'OP-M-04': {
-        "desc": 'Registration with logo uri',
+        "desc": 'Registration with logo_uri',
         "sequence": [
             'note',
             "rm_cookie",
@@ -1038,7 +1038,7 @@ FLOWS = {
         "tests": {"check-http-response": {}},
     },
     'OP-M-05': {
-        "desc": 'Registration with tos url',
+        "desc": 'Registration with tos_uri',
         "sequence": [
             'note',
             'rm_cookie',
@@ -1187,7 +1187,7 @@ FLOWS = {
         "tests": {"new-signing-keys": {}, "check-http-response": {}}
     },
     'OP-N-02': {
-        "desc": 'Request access token, change RSA sign key and request another '
+        "desc": 'Request access token, change RSA signing key and request another '
                 'access token',
         "sequence": [
             '_discover_',
@@ -1233,7 +1233,7 @@ FLOWS = {
     'OP-N-04': {
         # where is the RPs encryption keys used => userinfo encryption
         "desc": 'Request encrypted user info, change RSA enc key and request '
-                'user info again',
+                'UserInfo again',
         "sequence": [
             '_discover_',
             ("oic-registration",
