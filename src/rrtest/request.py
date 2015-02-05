@@ -287,6 +287,14 @@ class PostRequest(Request):
     tests = {"pre": [CheckEndpoint], "post": []}
 
 
+class PutRequest(Request):
+    method = "PUT"
+
+
+class DeleteRequest(Request):
+    method = "DELETE"
+
+
 class Response(object):
     response = ""
     _tests = {}
