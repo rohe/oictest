@@ -333,6 +333,7 @@ def dump_log(session, test_id=None):
 def display_log(environ, start_response, path, tail):
     path = path.replace(":", "%3A")
     tail = tail.replace(":", "%3A")
+    LOGGER.info("display_log: %s" % tail)
     if os.path.isdir(path):
         item = []
         for (dirpath, dirnames, filenames) in os.walk(path):
