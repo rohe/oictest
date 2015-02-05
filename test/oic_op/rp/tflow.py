@@ -581,7 +581,9 @@ FLOWS = {
             '_discover_',
             '_register_',
             '_login_',
-            ('_login_', {"request_args": {"prompt": "none"}})
+            '_accesstoken_',
+            ('_login_', {"request_args": {"prompt": "none"}}),
+            '_accesstoken_'
         ],
         "mti": "MUST",
         'tests': {"same-authn": {}, "check-http-response": {}},
