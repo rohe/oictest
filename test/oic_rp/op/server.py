@@ -394,8 +394,9 @@ def registration(environ, start_response):
 
 def generate_static_client_credentials(parameters):
     redirect_uris = parameters['redirect_uris']
-    cdb = CDB(config.CLIENT_DB + ".db")
-    static_client = cdb.create(redirect_uris=redirect_uris, policy_uri="example.com",logo_uri="example.com")
+    jwks_uri = str(parameters['jwks_uri'])
+    cdb = CDB(config.CLIENT_DB)
+    static_client = cdb.create(redirect_uris=redirect_uris, policy_uri="example.com",logo_uri="example.com", jwks_uri=jwks_uri)
     return static_client['client_id'], static_client['client_secret']
 
 
@@ -417,8 +418,6 @@ def application(environ, start_response):
         return static(environ, start_response, "static/robots.txt")
 
     if path.startswith("static/"):
-        return static(environ, start_response, path)
-    elif path.startswith("export/"):
         return static(environ, start_response, path)
     elif path.startswith("log"):
         return display_log(environ, start_response)

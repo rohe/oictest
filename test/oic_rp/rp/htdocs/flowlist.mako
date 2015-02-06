@@ -17,7 +17,7 @@ def op_choice(base, node, done):
         element += "<li><a href='%s%s'>%s</a> (%s) " % (
             base, key, node[key]["desc"], key)
         if key in done:
-            element += '<img src="static/Check_mark.png" alt="Check">'
+            element += '<img src="static/pictures/Check_mark.png" alt="Check">'
     return element
 %>
 

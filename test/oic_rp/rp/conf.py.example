@@ -12,10 +12,12 @@ VERIFY_SSL = False
 ISSUER = "https://localhost:8080/"
 #ISSUER = "https://oictest.umdc.umu.se:8051/"
 
+KEY_EXPORT_URL = "%sstatic/jwk.json" % BASE
+
 keys = [
     {
         "type": "RSA",
-        "key": "../keys/pyoidc_enc",
+        "key": "keys/rp_enc_key",
         "use": ["enc"],
     },
     {
@@ -26,8 +28,6 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
-
-KEY_EXPORT_URL = "%sexport/jwk.json" % BASE
 
 CLIENT_INFO = {
     "redirect_uris": ["%sauthz_cb" % BASE],

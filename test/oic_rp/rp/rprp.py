@@ -2,11 +2,13 @@ import copy
 import importlib
 import json
 import logging
+import os
 from urlparse import parse_qs, urlparse
 import argparse
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
+from oic.oauth2.message import AccessTokenResponse
 
 from oic.oic import Client, AuthorizationRequest, AuthorizationResponse, \
     AccessTokenResponse
@@ -113,6 +115,8 @@ def run_flow(client, index, session, test_id):
                 else:
                     client.register(_endp)
                 client.client_prefs = spec["args"]
+            elif spec["action"] == "static_registration":
+                client.store_registration_info(spec["args"])
             elif spec["action"] == "authn_req":
                 _endp = client.provider_info["authorization_endpoint"]
                 session["state"] = rndstr()
@@ -148,19 +152,22 @@ def run_flow(client, index, session, test_id):
     return None
 
 
+def generate_jwk(_cli):
+    try:
+        jwks = keyjar_init(_cli, CONF.keys)
+    except KeyError:
+        pass
+    else:
+        # export JWKS
+        p = urlparse(CONF.KEY_EXPORT_URL)
+        f = open("." + p.path, "w")
+        f.write(json.dumps(jwks))
+        f.close()
+
+
 def application(environ, start_response):
     session = environ['beaker.session']
-
     path = environ.get('PATH_INFO', '').lstrip('/')
-
-    if path == "robots.txt":
-        return static(environ, start_response, LOGGER, "static/robots.txt")
-
-    if path.startswith("static/"):
-        return static(environ, start_response, LOGGER, path)
-
-    if path.startswith("export/"):
-        return static(environ, start_response, LOGGER, path)
 
     try:
         _cli = session["client"]
@@ -173,6 +180,14 @@ def application(environ, start_response):
         for arg, val in CONF.CLIENT_INFO.items():
             setattr(_cli, arg, val)
         session["done"] = []
+
+        generate_jwk(_cli)
+
+    if path == "robots.txt":
+        return static(environ, start_response, LOGGER, "static/robots.txt")
+
+    if path.startswith("static/"):
+        return static(environ, start_response, LOGGER, path)
 
     if path == "":  # list
         return flow_list(environ, start_response, FLOWS.FLOWS, session["done"])
@@ -229,6 +244,7 @@ def application(environ, start_response):
         try:
             resp = run_flow(_cli, session["index"], session, session["test_id"])
         except Exception as err:
+            LOGGER.error("%s" % err)
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
         else:

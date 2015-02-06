@@ -26,6 +26,16 @@
     padding: 10px;
 }
 
+.infoIcon + .tooltip > .tooltip-inner {
+    background-color: #000000;
+    opacity:1;
+}
+
+.infoIcon{
+    opacity: 0.40;
+    font-size: 15px;
+}
+
 .jumbotron h4 {
     background-color: #ffffff;
 }
@@ -52,4 +62,8 @@ hr{
 
 .more_info_button{
     color: #63a8dd;
+}
+
+.requiredText{
+    color: #a50008;
 }
