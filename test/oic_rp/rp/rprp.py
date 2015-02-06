@@ -152,19 +152,6 @@ def run_flow(client, index, session, test_id):
     return None
 
 
-def generate_jwk(_cli):
-    try:
-        jwks = keyjar_init(_cli, CONF.keys)
-    except KeyError:
-        pass
-    else:
-        # export JWKS
-        p = urlparse(CONF.KEY_EXPORT_URL)
-        f = open("." + p.path, "w")
-        f.write(json.dumps(jwks))
-        f.close()
-
-
 def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
@@ -180,8 +167,6 @@ def application(environ, start_response):
         for arg, val in CONF.CLIENT_INFO.items():
             setattr(_cli, arg, val)
         session["done"] = []
-
-        generate_jwk(_cli)
 
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
