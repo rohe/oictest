@@ -15,7 +15,7 @@ ISSUER = "https://localhost:8080/"
 keys = [
     {
         "type": "RSA",
-        "key": "../keys/pyoidc_enc",
+        "key": "keys/rp_enc_key",
         "use": ["enc"],
     },
     {
