@@ -170,7 +170,8 @@ FLOWS = {
              "args": {
                  "id_token_signed_response_alg": "HS256",
                  "id_token_encrypted_response_alg": "RSA1_5",
-                 "id_token_encrypted_response_enc": "A128CBC-HS256"}},
+                 "id_token_encrypted_response_enc": "A128CBC-HS256",
+                 "jwks_uri": None}},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["id_token"]}}
         ],
@@ -187,7 +188,7 @@ FLOWS = {
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}}
         ],
-        "desc": "Can Request and Use Signed and Encrypted ID Token Response"
+        "desc": "Can Request and Use unSigned ID Token Response"
     },
     # ? at_hash when code Flow Used
     # Reject incorrect
@@ -195,7 +196,7 @@ FLOWS = {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
-             "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
+             "args": {"issuer": "https://localhost:8080/_/_/ch/normal"}},
             {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": "openid",

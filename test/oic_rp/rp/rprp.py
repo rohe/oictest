@@ -1,5 +1,6 @@
 import copy
 import importlib
+import json
 import logging
 from urlparse import parse_qs, urlparse
 import argparse
@@ -7,12 +8,14 @@ from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
 
-from oic.oic import Client, AuthorizationRequest, AuthorizationResponse
+from oic.oic import Client, AuthorizationRequest, AuthorizationResponse, \
+    AccessTokenResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Response, get_post
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import ServiceError
 from oic.utils.http_util import NotFound
+from oic.utils.keyio import build_keyjar
 
 __author__ = 'roland'
 
@@ -103,7 +106,10 @@ def run_flow(client, index, session, test_id):
             elif spec["action"] == "registration":
                 _endp = client.provider_info["registration_endpoint"]
                 if spec["args"]:
-                    client.register(_endp, **spec["args"])
+                    _args = copy.deepcopy(spec["args"])
+                    if "jwks_uri" in _args:
+                        _args["jwks_uri"] = JWKS_URI
+                    client.register(_endp, **_args)
                 else:
                     client.register(_endp)
                 client.client_prefs = spec["args"]
@@ -126,7 +132,8 @@ def run_flow(client, index, session, test_id):
                 _args["state"] = session["state"]
                 _args["request_args"] = {
                     "redirect_uri": client.redirect_uris[0]}
-                resp = client.do_access_token_request(**_args)
+                atr = client.do_access_token_request(**_args)
+                assert isinstance(atr, AccessTokenResponse)
             elif spec["action"] == "userinfo_req":
                 if spec["args"]:
                     _args = copy.deepcopy(spec["args"])
@@ -134,7 +141,8 @@ def run_flow(client, index, session, test_id):
                     _args = {}
 
                 _args["state"] = session["state"]
-                client.do_user_info_request(**_args)
+                userinfo = client.do_user_info_request(**_args)
+                assert userinfo
 
     session["done"].append(session["item"])
     return None
@@ -158,8 +166,10 @@ def application(environ, start_response):
         _cli = session["client"]
     except KeyError:
         _cli = session["client"] = Client(
-            client_authn_method=CLIENT_AUTHN_METHOD)
+            client_authn_method=CLIENT_AUTHN_METHOD, keyjar=KEYJAR)
+        _cli.kid = KIDD
         _cli.allow["issuer_mismatch"] = True
+        _cli.jwks_uri = JWKS_URI
         for arg, val in CONF.CLIENT_INFO.items():
             setattr(_cli, arg, val)
         session["done"] = []
@@ -187,7 +197,7 @@ def application(environ, start_response):
     elif path in ["authz_cb", "authz_post"]:
         if path != "authz_post":
             args = session["flow"]["flow"][session["index"]-1]["args"]
-            if "code" not in args["response_type"]:
+            if args["response_type"] != ["code"]:
                 return opresult_fragment(environ, start_response)
 
         # Got a real Authn response
@@ -265,6 +275,19 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
                                                           session_opts))
+
+    # Add own keys for signing/encrypting JWTs
+    try:
+        jwks, KEYJAR, KIDD = build_keyjar(CONF.keys)
+    except KeyError:
+        pass
+    else:
+        # export JWKS
+        p = urlparse(CONF.KEY_EXPORT_URL)
+        f = open("."+p.path, "w")
+        f.write(json.dumps(jwks))
+        f.close()
+        JWKS_URI = p.geturl()
 
     if CONF.BASE.startswith("https"):
         from cherrypy.wsgiserver import ssl_pyopenssl

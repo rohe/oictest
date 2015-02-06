@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import ast
 import json
 import re
 import os
 import sys
-import threading
 import traceback
-import logging
 
 from exceptions import KeyError
 from exceptions import Exception
@@ -18,20 +15,12 @@ from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
-from dirg_util.dict import Sqllite3Dict
 from dirg_util.http_util import HttpHandler
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import BadRequest
-from oic.utils.http_util import extract_from_request
-from oic.utils.http_util import ServiceError
-from oic.utils.http_util import Unauthorized
-from oic.utils.http_util import Response
-from oic.utils.http_util import NotFound
-from oic.utils.clientdb import MDXClient
 from oic.utils.http_util import *
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
@@ -271,9 +260,9 @@ def find_identifier(uri):
     if uri.startswith("http"):
         p = urlparse(uri)
         return p.path[1:]  # Skip leading "/"
-    elif uri.startswith("acct"):
-        a, b = uri.split(":")
-        l, d = b.split("@")
+    elif uri.startswith("acct:"):
+        a = uri[5:]
+        l, d = a.split("@")
         return l
 
 
