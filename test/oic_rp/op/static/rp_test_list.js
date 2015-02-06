@@ -2,19 +2,6 @@ var app = angular.module('main', ['ngSanitize']);
 
 app.controller('IndexCtrl', function ($scope, $sce) {
 
-    $scope.toggle_static_client_registration_visibility = function () {
-        var visible = $scope.static_client_registration_info.visible;
-
-        if (visible) {
-            $scope.static_client_registration_info.visible= false;
-            return
-        }
-        else {
-            $scope.static_client_registration_info.visible = true;
-            return
-        }
-    };
-
     $scope.toggle_more_info_visibility = function (test_name) {
         var test = $scope.guidlines[test_name];
 

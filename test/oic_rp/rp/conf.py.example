@@ -29,9 +29,6 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
-#https://localhost:8088/authz_cb
-#https://localhost:8088/static/jwk.json
-
 CLIENT_INFO = {
     "redirect_uris": ["%sauthz_cb" % BASE],
     "application_type": "web",
