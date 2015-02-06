@@ -16,22 +16,6 @@ PROFILEMAP = {
     "C": {
         "_login_": ("oic-login", {"request_args": {"response_type": ["code"]}}),
         "_accesstoken_": "access-token-request",
-        "flows": [
-            'OP-A-01', 'OP-A-02',
-            'OP-B-01s', 'OP-B-02', 'OP-B-03', 'OP-B-04', 'OP-B-05',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-01',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-03',
-            'OP-K-01s', 'OP-K-02s',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ],
         "sub": {
             "none": [],
             "sign": [],
@@ -42,192 +26,33 @@ PROFILEMAP = {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["id_token"]}}),
         "_accesstoken_": None,
-        "flows": [
-            'OP-A-02', 'OP-A-03', 'OP-A-04',
-            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-02',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-J-01', 'OP-J-03',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ]
     },
     "IT": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["id_token", "token"]}}),
         "_accesstoken_": None,
-        "flows": [
-            'OP-A-02', 'OP-A-03', 'OP-A-04',
-            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-02',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-J-01', 'OP-J-03',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ]
     },
     "CI": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["code", "id_token"]}}),
         "_accesstoken_": "access-token-request",
-        "flows": [
-            'OP-A-02', 'OP-A-05', 'OP-A-06', 'OP-A-07',
-            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07', 'OP-B-08',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-02',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-03',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ]
     },
     "CT": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["code", "token"]}}),
-        "_accesstoken_": None,
-        "flows": [
-            'OP-A-02', 'OP-A-05', 'OP-A-06', 'OP-A-07',
-            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-02',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-03',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ]
+        "_accesstoken_": "access-token-request",
+
     },
     "CIT": {
         "_login_": ("oic-login",
                     {"request_args": {
                         "response_type": ["code", "id_token", "token"]}}),
         "_accesstoken_": None,
-        "flows": [
-            'OP-A-02', 'OP-A-05', 'OP-A-06', 'OP-A-07',
-            'OP-B-01s', 'OP-B-02', 'OP-B-04', 'OP-B-07', 'OP-B-08',
-            'OP-C-01', 'OP-C-02', 'OP-C-03',
-            'OP-D-02',
-            'OP-E-01', 'OP-E-02', 'OP-E-03', 'OP-E-04', 'OP-E-05',
-            'OP-F-01', 'OP-F-02',
-            'OP-G-01', 'OP-G-02',
-            'OP-H-01', 'OP-H-02', 'OP-H-03', 'OP-H-04', 'OP-H-05', 'OP-H-06',
-            'OP-I-01', 'OP-I-02',
-            'OP-J-01', 'OP-J-03',
-            'OP-O-01',
-            'OP-P-01',
-            'OP-Q-01'
-        ]
-    },
-    "Extra": {
-        "flows": {
-            "C": [
-                'OP-A-08',
-                'OP-L-04', 'OP-L-05',
-                'OP-M-09',
-                'OP-N-03',
-                'OP-Q-02', 'OP-Q-03', 'OP-Q-04', 'OP-Q-05', 'OP-Q-06',
-                'OP-Q-07', 'OP-Q-08', 'OP-Q-09', 'OP-Q-10', 'OP-Q-11',
-                'OP-Q-12'
-            ],
-            "I": {},
-            "IT": {},
-            "CI": {},
-            "CT": {},
-            "CIT": {}
-        }
     },
     "Discover": {
-        "flow": {
-            "C": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
-                'OP-N-01', 'OP-N-02',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-            "I": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-08',
-                'OP-N-01',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-            "IT": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-08',
-                'OP-N-01',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-            "CI": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
-                'OP-N-01', 'OP-N-02',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-            "CT": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
-                'OP-N-01', 'OP-N-02',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-            "CIT": [
-                'OP-B-06',
-                'OP-L-01', 'OP-L-02', 'OP-L-03',
-                'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
-                'OP-N-01', 'OP-N-02',
-                'OP-O-01', 'OP-O-02', 'OP-O-03'
-            ],
-        },
-        "flows": [
-            'OP-B-06',
-            'OP-L-01', 'OP-L-02', 'OP-L-03',
-            'OP-M-01', 'OP-M-06', 'OP-M-07', 'OP-M-08',
-            'OP-N-01', 'OP-N-02',
-            'OP-O-01', 'OP-O-02', 'OP-O-03'
-        ],
         "*": ("provider-discovery", {})
     },
     "Register": {
-        "flows": [
-            'OP-B-01d', 'OP-B-06',
-            'OP-C-04',
-            'OP-J-02', 'OP-J-04', 'OP-J-05', 'OP-J-06', 'OP-J-07',
-            'OP-K-01d', 'OP-K-02d',
-            'OP-L-01', 'OP-L-02', 'OP-L-03',
-            'OP-M-03', 'OP-M-04', 'OP-M-05',
-            'OP-N-01',
-            'OP-P-02',
-        ],
-        "extras": {
-            'OP-C-05', 'OP-C-06',
-            'OP-K-03', 'OP-K-04',
-            'OP-M-10', 'OP-M-11', 'OP-M-12',
-            'OP-N-04',
-            'OP-O-04', 'OP-O-05',
-            'OP-P-03',
-        },
         "C": (
             "oic-registration",
             {"request_args": {
