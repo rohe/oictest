@@ -86,7 +86,7 @@ FLOWS = {
     'OP-A-05': {
         "desc": 'Request with response_type=code id_token',
         "sequence": ['_discover_', '_register_', '_login_'],
-        "tests": {"check-http-response": {}, 'check-nonce': {}},
+        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
         "profile": "CI..",
         "mti": "MUST"
     },
@@ -247,7 +247,7 @@ FLOWS = {
     'OP-B-09': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
-        "tests": {"check-http-response": {}, 'check-nonce': {}},
+        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
         "profile": "I,IT,CI,CT,CIT..",
         "mti": "MUST"
     },

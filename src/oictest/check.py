@@ -1396,12 +1396,12 @@ class VerifyImplicitResponse(Error):
         return {}
 
 
-class CheckNonce(Error):
+class CheckIdTokenNonce(Error):
     """
     Verify that I in the IDToken gets back the nonce I included in the
     Authorization Request.
     """
-    cid = "check-nonce"
+    cid = "check-idtoken-nonce"
     msg = "Expected same nonce back as sent"
 
     def _func(self, conv):
@@ -1410,11 +1410,10 @@ class CheckNonce(Error):
         except KeyError:
             pass
         else:
-            instance, msg = get_protocol_response(
-                conv, message.AuthorizationResponse)[0]
+            (idt, _) = get_id_tokens(conv)[-1]
 
             try:
-                assert _nonce == instance["id_token"]["nonce"]
+                assert _nonce == idt["nonce"]
             except (AssertionError, KeyError):
                 self._status = self.status
 
