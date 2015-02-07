@@ -1,3 +1,7 @@
+from jwkest import BadSignature
+from oic.oic.message import AtHashError
+from oic.oic.message import CHashError
+
 __author__ = 'roland'
 
 MODE = {}
@@ -142,7 +146,8 @@ FLOWS = {
             {"action": "registration",
              "args": {"id_token_signed_response_alg": "RS256"}},
             {"action": "authn_req",
-             "args": {"scope": "openid", "response_type": ["id_token"]}}
+             "args": {"scope": "openid", "response_type": ["id_token"]},
+             "error": BadSignature}
         ],
         "desc": "Reject Invalid Asymmetric ID Token Signature"
     },
@@ -155,7 +160,8 @@ FLOWS = {
             {"action": "registration",
              "args": {"id_token_signed_response_alg": "HS256"}},
             {"action": "authn_req",
-             "args": {"scope": "openid", "response_type": ["id_token"]}}
+             "args": {"scope": "openid", "response_type": ["id_token"]},
+             "error": BadSignature}
         ],
         "desc": "Reject Invalid Symmetric ID Token Signature"
     },
@@ -202,9 +208,10 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid",
                       "response_type": ["code", "id_token"]}},
-            {"action": "token_req", "args": {}},
+            {"action": "token_req", "args": {},
+             "error": CHashError},
         ],
-        "desc": "Rejects incorrect at_hash when Code Flow is Used"
+        "desc": "Rejects incorrect c_hash when Code Flow is Used"
     },
     # Accept correct
     "RP-19": {
@@ -218,7 +225,7 @@ FLOWS = {
                       "response_type": ["code", "id_token"]}},
             {"action": "token_req", "args": {}},
         ],
-        "desc": "Verifies correct at_hash when Code Flow is Used"
+        "desc": "Verifies correct c_hash when Code Flow is Used"
     },
     # ? at_hash when Implicit Flow Used
     # Reject incorrect
@@ -229,8 +236,9 @@ FLOWS = {
              "args": {"issuer": "https://localhost:8080/_/_/ath/normal"}},
             {"action": "registration", "args": {}},
             {"action": "authn_req",
-             "args": {"scope": "openid", "response_type": ["id_token token"]}},
-            {"action": "token_req", "args": {}},
+             "args": {"scope": "openid",
+                      "response_type": ["id_token token"]},
+             "error": AtHashError},
         ],
         "desc": "Rejects incorrect at_hash when Implicit Flow is Used"
     },
@@ -243,7 +251,6 @@ FLOWS = {
              "args": {"userinfo_signed_response_alg": "HS256"}},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["id_token token"]}},
-            {"action": "token_req", "args": {}},
         ],
         "desc": "Verifies correct at_hash when Code Implicit is Used"
     },
@@ -257,9 +264,24 @@ FLOWS = {
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["id_token"]}}
         ],
-        "desc": "Can Request and Use Signed and Encrypted ID Token Response"
+        "desc": "Can Use Elliptic Curve ID Token Signatures"
     },
     "RP-23": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": "openid",
+                      "claims": {"id_token": {"name": None}},
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}}
+        ],
+        "desc": "Can Request and Use Claims in id_token using the 'claims' "
+                "request parameter"
+    },
+    #
+    "RP-24": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -270,31 +292,30 @@ FLOWS = {
             {"action": "userinfo_req",
              "args": {"authn_method": "bearer_header"}}
         ],
-        "desc": "Rejects incorrect at_hash when Code Flow is Used"
+        "desc": "Accesses UserInfo Endpoint with Header Method"
     },
-    ## Can Request and Use ? ID Token Response
-    # Signed
-    "RP-24": {
+    #
+    "RP-25": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
-            {"action": "registration",
-             "args": {"userinfo_signed_response_alg": "HS256"}},
+            {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
             {"action": "token_req", "args": {}},
             {"action": "userinfo_req",
              "args": {"authn_method": "bearer_header"}}
         ],
-        "desc": "Rejects incorrect at_hash when Code Flow is Used"
+        "desc": "Can Request and Use JSON UserInfo Response"
     },
-    # Encrypted
-    "RP-25": {
+    #
+    "RP-26": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
             {"action": "registration",
              "args": {
+                 "userinfo_signed_response_alg": "none",
                  "userinfo_encrypted_response_alg": "RSA1_5",
                  "userinfo_encrypted_response_enc": "A128CBC-HS256"
              }},
@@ -304,10 +325,9 @@ FLOWS = {
             {"action": "userinfo_req",
              "args": {"authn_method": "bearer_header"}}
         ],
-        "desc": "Rejects incorrect at_hash when Code Flow is Used"
+        "desc": "Can Request and Use Encrypted UserInfo Response"
     },
-    # Signed+Encrypted
-    "RP-26": {
+    "RP-27": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -323,7 +343,7 @@ FLOWS = {
             {"action": "userinfo_req",
              "args": {"authn_method": "bearer_header"}}
         ],
-        "desc": "Rejects incorrect at_hash when Implicit Flow Used"
+        "desc": "Can Request and Use Signed and Encrypted UserInfo Response"
     },
     # ==== Can Use request_uri Request Parameter with ? Request ===
     # Unsigned

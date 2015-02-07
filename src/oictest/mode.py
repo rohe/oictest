@@ -17,14 +17,14 @@ def extract_mode(path):
     if path == ".well-known/webfinger":
         return None, path
 
-    if path.endswith(OIDC_PATTERN):
-        part = path.split("/")
-        return {"test_id": part[0]}, OIDC_PATTERN
-
     part = path.split("/", 5)
 
     mod = {"test_id": part[0]}
+
     if len(part) < 5:  # might be no endpoint
+        if len(part) == 3 and path.endswith(OIDC_PATTERN):
+            return mod, OIDC_PATTERN
+
         return None, "/".join(path[1:])
 
     if part[1] != "_":

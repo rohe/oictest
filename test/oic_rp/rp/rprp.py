@@ -2,16 +2,16 @@ import copy
 import importlib
 import json
 import logging
-import os
 from urlparse import parse_qs, urlparse
 import argparse
 from mako.lookup import TemplateLookup
 from oic.oauth2 import rndstr
 from oic.oauth2 import ResponseError
-from oic.oauth2.message import AccessTokenResponse
 
-from oic.oic import Client, AuthorizationRequest, AuthorizationResponse, \
-    AccessTokenResponse
+from oic.oic import AuthorizationRequest
+from oic.oic import AuthorizationResponse
+from oic.oic import AccessTokenResponse
+from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.http_util import Response, get_post
 from oic.utils.http_util import Redirect
@@ -93,57 +93,53 @@ def run_flow(client, index, session, test_id):
 
             session["index"] += 1  # next to run
 
-            if spec["action"] == "discover":
+            if spec["args"]:
                 if isinstance(spec['args'], basestring):
-                    session["issuer"] = client.discover(spec['args'] % test_id)
+                    _args = spec["args"]
+                else:
+                    _args = copy.deepcopy(spec["args"])
+            else:
+                _args = {}
+
+            if spec["action"] == "discover":
+                if isinstance(_args, basestring):
+                    session["issuer"] = client.discover(_args % test_id)
                 else:
                     session["issuer"] = client.discover(CONF.ISSUER+test_id)
             elif spec["action"] == "provider_info":
-                if spec["args"]:
-                    spec["args"]["issuer"] = include(spec["args"]["issuer"],
+                if _args:
+                    _args["issuer"] = include(_args["issuer"],
                                                      test_id)
-                    client.provider_config(**spec["args"])
+                    client.provider_config(**_args)
                 else:
                     client.provider_config(include(session["issuer"], test_id))
             elif spec["action"] == "registration":
                 _endp = client.provider_info["registration_endpoint"]
-                if spec["args"]:
-                    _args = copy.deepcopy(spec["args"])
+                if _args:
                     if "jwks_uri" in _args:
                         _args["jwks_uri"] = JWKS_URI
                     client.register(_endp, **_args)
                 else:
                     client.register(_endp)
-                client.client_prefs = spec["args"]
+                client.client_prefs = _args
             elif spec["action"] == "static_registration":
-                client.store_registration_info(spec["args"])
+                client.store_registration_info(_args)
             elif spec["action"] == "authn_req":
                 _endp = client.provider_info["authorization_endpoint"]
                 session["state"] = rndstr()
                 session["nonce"] = rndstr()
-                _args = copy.deepcopy(spec["args"])
                 _args["nonce"] = session["nonce"]
                 url, body, ht_args, csi = client.request_info(
                     AuthorizationRequest, method="GET", request_args=_args,
                     state=session["state"], endpoint=_endp)
                 return Redirect(str(url))
             elif spec["action"] == "token_req":
-                if spec["args"]:
-                    _args = copy.deepcopy(spec["args"])
-                else:
-                    _args = {}
-
                 _args["state"] = session["state"]
                 _args["request_args"] = {
                     "redirect_uri": client.redirect_uris[0]}
                 atr = client.do_access_token_request(**_args)
                 assert isinstance(atr, AccessTokenResponse)
             elif spec["action"] == "userinfo_req":
-                if spec["args"]:
-                    _args = copy.deepcopy(spec["args"])
-                else:
-                    _args = {}
-
                 _args["state"] = session["state"]
                 userinfo = client.do_user_info_request(**_args)
                 assert userinfo
@@ -170,8 +166,9 @@ def application(environ, start_response):
 
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
-
-    if path.startswith("static/"):
+    elif path.startswith("static/"):
+        return static(environ, start_response, LOGGER, path)
+    elif path.startswith("export/"):
         return static(environ, start_response, LOGGER, path)
 
     if path == "":  # list
