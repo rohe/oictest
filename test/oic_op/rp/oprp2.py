@@ -295,7 +295,10 @@ def profile_info(session, test_id=None):
             profile = from_code(session["profile"])
 
             if test_id is None:
-                test_id = session["testid"]
+                try:
+                    test_id = session["testid"]
+                except KeyError:
+                    return {}
 
             return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
 
