@@ -317,7 +317,8 @@ FLOWS = {
              "args": {
                  "userinfo_signed_response_alg": "none",
                  "userinfo_encrypted_response_alg": "RSA1_5",
-                 "userinfo_encrypted_response_enc": "A128CBC-HS256"
+                 "userinfo_encrypted_response_enc": "A128CBC-HS256",
+                 "jwks_uri": None
              }},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
@@ -335,7 +336,8 @@ FLOWS = {
              "args": {
                  "userinfo_signed_response_alg": "HS256",
                  "userinfo_encrypted_response_alg": "RSA1_5",
-                 "userinfo_encrypted_response_enc": "A128CBC-HS256"
+                 "userinfo_encrypted_response_enc": "A128CBC-HS256",
+                 "jwks_uri": None
              }},
             {"action": "authn_req",
              "args": {"scope": "openid", "response_type": ["code"]}},
