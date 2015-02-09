@@ -7,27 +7,27 @@ __author__ = 'roland'
 MODE = {}
 
 FLOWS = {
-    "RP-01": {
+    "RP-A-01": {
         "flow": [{"action": "discover", "args": {}}],
         "desc": "Can Discover Identifiers using URL Syntax"
     },
-    "RP-02": {
+    "RP-A-02": {
         "flow": [{"action": "discover", "args": "acct:%s@localhost:8080"}],
         "desc": "Can Discover Identifiers using acct Syntax"
     },
-    "RP-03": {
+    "RP-B-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}}],
         "desc": "Uses openid-configuration Discovery Information"
     },
-    "RP-04": {
+    "RP-C-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}}],
         "desc": "Uses Dynamic Registration"
     },
     # Can Make Request with ? Response Type
-    "RP-05": {
+    "RP-D-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}},
@@ -35,7 +35,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["code"]}}],
         "desc": "Can Make Request with 'code' Response Type"
     },
-    "RP-06": {
+    "RP-D-02": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -44,7 +44,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["id_token"]}}],
         "desc": "Can Make Request with 'id_token' Response Type"
     },
-    "RP-07": {
+    "RP-D-03": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -56,7 +56,7 @@ FLOWS = {
     },
     ### Can Make Access Token Request with ? Authentication
     # Client_secret_basic
-    "RP-08": {
+    "RP-E-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}},
@@ -68,7 +68,7 @@ FLOWS = {
                 "Authentication"
     },
     # client_secret_jwt
-    "RP-09": {
+    "RP-E-02": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -82,7 +82,7 @@ FLOWS = {
                 "Authentication"
     },
     # client_secret_post
-    "RP-10": {
+    "RP-E-03": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -97,7 +97,7 @@ FLOWS = {
                 "Authentication"
     },
     # private_key_jwt
-    "RP-11": {
+    "RP-E-04": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -113,7 +113,7 @@ FLOWS = {
     },
     ### === Accept Valid ? ID Token Signature	===
     # Asymmetric
-    "RP-12": {
+    "RP-F-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -125,7 +125,7 @@ FLOWS = {
         "desc": "Accept Valid Asymmetric ID Token Signature"
     },
     # Symmetric
-    "RP-13": {
+    "RP-F-02": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -138,7 +138,7 @@ FLOWS = {
     },
     ### === Reject Invalid ? ID Token Signature ===
     # Asymmetric
-    "RP-14": {
+    "RP-G-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -152,7 +152,7 @@ FLOWS = {
         "desc": "Reject Invalid Asymmetric ID Token Signature"
     },
     # Symmetric
-    "RP-15": {
+    "RP-G-02": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -165,11 +165,10 @@ FLOWS = {
         ],
         "desc": "Reject Invalid Symmetric ID Token Signature"
     },
-    ### TODO form_post
     ### === Can Request and Use ? ID Token Response ===
     # Signed and Encrypted
     # *signed is already tested*
-    "RP-16": {
+    "RP-H-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -185,7 +184,7 @@ FLOWS = {
         "desc": "Can Request and Use Signed and Encrypted ID Token Response"
     },
     # Unsigned
-    "RP-17": {
+    "RP-H-02": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -199,7 +198,7 @@ FLOWS = {
     },
     # ? at_hash when code Flow Used
     # Reject incorrect
-    "RP-18": {
+    "RP-I-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -214,12 +213,11 @@ FLOWS = {
         "desc": "Rejects incorrect c_hash when Code Flow is Used"
     },
     # Accept correct
-    "RP-19": {
+    "RP-I-02": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
-            {"action": "registration",
-             "args": {"userinfo_signed_response_alg": "HS256"}},
+            {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": "openid",
                       "response_type": ["code", "id_token"]}},
@@ -229,7 +227,7 @@ FLOWS = {
     },
     # ? at_hash when Implicit Flow Used
     # Reject incorrect
-    "RP-20": {
+    "RP-J-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -237,25 +235,25 @@ FLOWS = {
             {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": "openid",
-                      "response_type": ["id_token token"]},
+                      "response_type": ["id_token", "token"]},
              "error": AtHashError},
         ],
         "desc": "Rejects incorrect at_hash when Implicit Flow is Used"
     },
     # Accept correct
-    "RP-21": {
+    "RP-J-02": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
-            {"action": "registration",
-             "args": {"userinfo_signed_response_alg": "HS256"}},
+            {"action": "registration", "args": {}},
             {"action": "authn_req",
-             "args": {"scope": "openid", "response_type": ["id_token token"]}},
+             "args": {"scope": "openid",
+                      "response_type": ["id_token", "token"]}},
         ],
         "desc": "Verifies correct at_hash when Code Implicit is Used"
     },
     # Can Use Elliptic Curve ID Token Signatures
-    "RP-22": {
+    "RP-K-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -266,7 +264,7 @@ FLOWS = {
         ],
         "desc": "Can Use Elliptic Curve ID Token Signatures"
     },
-    "RP-23": {
+    "RP-L-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -281,7 +279,7 @@ FLOWS = {
                 "request parameter"
     },
     #
-    "RP-24": {
+    "RP-M-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -295,7 +293,7 @@ FLOWS = {
         "desc": "Accesses UserInfo Endpoint with Header Method"
     },
     #
-    "RP-25": {
+    "RP-N-01": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -309,7 +307,21 @@ FLOWS = {
         "desc": "Can Request and Use JSON UserInfo Response"
     },
     #
-    "RP-26": {
+    "RP-N-02": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration",
+             "args": {"userinfo_signed_response_alg": "RS256"}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_header"}}
+        ],
+        "desc": "Can Request and Use Signed UserInfo Response"
+    },
+    "RP-N-03": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -328,7 +340,7 @@ FLOWS = {
         ],
         "desc": "Can Request and Use Encrypted UserInfo Response"
     },
-    "RP-27": {
+    "RP-N-04": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -349,9 +361,66 @@ FLOWS = {
     },
     # ==== Can Use request_uri Request Parameter with ? Request ===
     # Unsigned
+    "RP-O-01": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration",
+             "args": {"request_object_signing_alg": "none"}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ],
+        "desc": "Can Use request_uri Request Parameter with Unsigned Request"
+    },
     # Signed
+    "RP-O-02": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration",
+             "args": {"request_object_signing_alg": "RS256"}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ],
+        "desc": "Can Use request_uri Request Parameter with Signed Request"
+    },
     # Encrypted
+    "RP-O-03": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration",
+             "args": {
+                 "request_object_signing_alg": "none",
+                 "request_object_encryption_alg": "RSA1_5",
+                 "request_object_encryption_enc": "A128CBC-HS256"
+             }},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ],
+        "desc": "Can Use request_uri Request Parameter with Encrypted Request"
+    },
     # Signed+Encrypted
+    "RP-O-04": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration",
+             "args": {
+                 "request_object_signing_alg": "RS256",
+                 "request_object_encryption_alg": "RSA1_5",
+                 "request_object_encryption_enc": "A128CBC-HS256"
+             }},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ],
+        "desc": "Can Use request_uri Request Parameter with Signed and "
+                "Encrypted Request"
+    },
     #
     # ==== Requesting UserInfo Claims with ? ====
     # scope Values
