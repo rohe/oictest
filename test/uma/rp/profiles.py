@@ -22,38 +22,37 @@ PROFILEMAP = {
         "_accesstoken_": None,
     },
     "Discover": {
+        "_discover_": "oic-discovery",
+        "_uma_discover_": "uma-discovery",
         "*": {
-            "_discover_": ("oic-discovery", {}),
-            "_uma_discover_": ("uma-discovery", {})
-            }
+            "oic-discovery": {},
+            "uma-discovery": {}
+        }
     },
     "Register": {
+        "_register_": "oic-registration",
+        "_oauth_register_": "oauth-registration",
         "C": {
-            "_register_":
-                (
-                    "oic-registration",
-                    {"request_args": {
-                        "response_types": ["code"],
-                        # don't register any
-                        "token_endpoint_auth_method": [],
-                        "userinfo_signed_response_alg": [],
-                        "id_token_signed_response_alg": [],
-                        "request_object_signing_alg": [],
-                        "grant_types": ["authorization_code"]
-                    }}),
-            "_oauth_register_":
-                (
-                    "oauth-registration",
-                    {"request_args": {
-                        "token_endpoint_auth_method": ['client_secret_basic'],
-                        "response_types": ["code"],
-                        # don't register any
-                        "grant_types": ["authorization_code"]
-                    }}),
+            "oic-registration": {
+                "request_args": {
+                    "response_types": ["code"],
+                    # don't register any
+                    "token_endpoint_auth_method": [],
+                    "userinfo_signed_response_alg": [],
+                    "id_token_signed_response_alg": [],
+                    "request_object_signing_alg": [],
+                    "grant_types": ["authorization_code"]
+                }},
+            "oauth-registration": {
+                "request_args": {
+                    "token_endpoint_auth_method": ['client_secret_basic'],
+                    "response_types": ["code"],
+                    # don't register any
+                    "grant_types": ["authorization_code"]
+                }},
         },
         "T": {
-            "_register_": (
-                "oic-registration",
+            "oic-registration":
                 {"request_args": {
                     "response_types": ["token"],
                     # don't register any
@@ -62,15 +61,14 @@ PROFILEMAP = {
                     "id_token_signed_response_alg": [],
                     "request_object_signing_alg": [],
                     "grant_types": ["implicit"]
-                }}),
-            "_oauth_register_": (
-                "oauth-registration",
-                {"request_args": {
+                }},
+            "oauth-registration": {
+                "request_args": {
                     "token_endpoint_auth_method": ['client_secret_basic'],
                     "response_types": ["token"],
                     # don't register any
                     "grant_types": ["implicit"]
-                }}),
+                }},
         }
     }
 }
@@ -213,14 +211,16 @@ def get_sequence(flowid, spec, flowset):
 
         if _op in ["_discover_", "_uma_discover_"]:
             if _p[DISCOVER] == "T":
-                _op, arg = PROFILEMAP["Discover"]["*"][_op]
+                _op = PROFILEMAP["Discover"][_op]
+                arg = PROFILEMAP["Discover"]["*"][_op]
                 _args = _update(_args, arg)
                 seq.append((PHASES[_op], _args))
             continue
 
         if _op in ["_register_", "_oauth_register_"]:
             if _p[REGISTER] == "T":
-                _op, arg = PROFILEMAP["Register"][_profile][_op]
+                _op = PROFILEMAP["Register"][_op]
+                arg = PROFILEMAP["Register"][_profile][_op]
                 _args = _update(_args, arg)
                 seq.append((PHASES[_op], _args))
             continue
@@ -246,9 +246,10 @@ def get_sequence(flowid, spec, flowset):
         if _op is None:
             continue
 
-        if _op == "oic-registration":  # default minimal registration info
-            _, b = PROFILEMAP["Register"][_profile]
-            _args = _update(_args, b)
+        if _op in ["oic-registration", "oauth-registration"]:
+            # default minimal registration info
+            _da = PROFILEMAP["Register"][_profile][_op]
+            _args = _update(_args, _da)
 
         seq.append((PHASES[_op], _args))
 

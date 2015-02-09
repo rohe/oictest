@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-from testfunc import policy_uri
-from testfunc import logo_uri
-from testfunc import tos_uri
-from testfunc import static_jwk
+from oictest.testfunc import policy_uri
+from oictest.testfunc import logo_uri
+from oictest.testfunc import tos_uri
+from oictest.testfunc import mismatch_return_uri
+from oictest.testfunc import multiple_return_uris
+from oictest.testfunc import redirect_uri_with_query_component
+from oictest.testfunc import redirect_uris_with_query_component
+from oictest.testfunc import redirect_uris_with_fragment
 
 __author__ = 'roland'
 
@@ -89,35 +93,35 @@ FLOWS = {
                 "link to the clients Terms of Service",
         "tests": {"check-http-response": {}},
     },
+    # 'OP-C-05': {
+    #     "desc": 'Uses Keys Registered with jwks_uri Value',
+    #     "sequence": [
+    #         '_uma_discover_',
+    #         '_oauth_register_',
+    #         '_login_',
+    #         ("_accesstoken_",
+    #          {
+    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
+    #              "support": {
+    #                  "warning": {
+    #                      "token_endpoint_auth_methods_supported":
+    #                          "client_secret_jwt"}}
+    #          }),
+    #     ],
+    #     "profile": "..T",
+    #     'tests': {"check-http-response": {}}
+    # },
     'OP-C-05': {
-        "desc": 'Uses Keys Registered with jwks_uri Value',
+        "desc": 'Register and then read the client info',
         "sequence": [
             '_uma_discover_',
             '_oauth_register_',
-            '_login_',
-            ("_accesstoken_",
-             {
-                 "kwargs_mod": {"authn_method": "private_key_jwt"},
-                 "support": {
-                     "warning": {
-                         "token_endpoint_auth_methods_supported":
-                             "client_secret_jwt"}}
-             }),
-        ],
-        "profile": "..T",
-        'tests': {"check-http-response": {}}
-    },
-    'OP-C-06': {
-        "desc": 'Registering and then read the client info',
-        "sequence": [
-            '_uma_discover_',
-            '_oauth_register_',
-            "read-registration"
+            "oauth-read-registration"
         ],
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    "OP-C-07": {
+    "OP-C-06": {
         "desc": "Modify client registration",
         "sequence": [
             '_uma_discover_',
@@ -127,7 +131,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    "OP-C-08": {
+    "OP-C-07": {
         "desc": "Delete client registration",
         "sequence": [
             '_uma_discover_',
@@ -138,10 +142,10 @@ FLOWS = {
         "tests": {"check-http-response": {}},
     },
     'OP-D-01': {
-        "desc": 'Dynamic UMA Client registration Request',
+        "desc": 'Dynamic OpenID Connect Client registration Request',
         "sequence": [
             '_discover_',
-            "_oauth_register_"
+            "_register_"
         ],
         "profile": "..T",
         "tests": {"check-http-response": {}},
@@ -188,48 +192,48 @@ FLOWS = {
                 "link to the clients Terms of Service",
         "tests": {"check-http-response": {}},
     },
+    # 'OP-D-05': {
+    #     "desc": 'Uses Keys Registered with jwks Value',
+    #     "sequence": [
+    #         '_discover_',
+    #         ('_register_',
+    #          {
+    #              "request_args": {
+    #                  "token_endpoint_auth_method": "private_key_jwt"},
+    #              "function": static_jwk
+    #          }),
+    #         '_login_',
+    #         ("_accesstoken_",
+    #          {
+    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
+    #              "support": {
+    #                  "warning": {
+    #                      "token_endpoint_auth_methods_supported":
+    #                          "client_secret_jwt"}}
+    #          }),
+    #     ],
+    #     "profile": "..T",
+    #     "tests": {"check-http-response": {}},
+    # },
+    # 'OP-D-06': {
+    #     "desc": 'Uses Keys Registered with jwks_uri Value',
+    #     "sequence": [
+    #         '_discover_',
+    #         '_register_',
+    #         '_login_',
+    #         ("_accesstoken_",
+    #          {
+    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
+    #              "support": {
+    #                  "warning": {
+    #                      "token_endpoint_auth_methods_supported":
+    #                          "client_secret_jwt"}}
+    #          }),
+    #     ],
+    #     "profile": "..T",
+    #     'tests': {"check-http-response": {}}
+    # },
     'OP-D-05': {
-        "desc": 'Uses Keys Registered with jwks Value',
-        "sequence": [
-            '_discover_',
-            ('_register_',
-             {
-                 "request_args": {
-                     "token_endpoint_auth_method": "private_key_jwt"},
-                 "function": static_jwk
-             }),
-            '_login_',
-            ("_accesstoken_",
-             {
-                 "kwargs_mod": {"authn_method": "private_key_jwt"},
-                 "support": {
-                     "warning": {
-                         "token_endpoint_auth_methods_supported":
-                             "client_secret_jwt"}}
-             }),
-        ],
-        "profile": "..T",
-        "tests": {"check-http-response": {}},
-    },
-    'OP-D-06': {
-        "desc": 'Uses Keys Registered with jwks_uri Value',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            '_login_',
-            ("_accesstoken_",
-             {
-                 "kwargs_mod": {"authn_method": "private_key_jwt"},
-                 "support": {
-                     "warning": {
-                         "token_endpoint_auth_methods_supported":
-                             "client_secret_jwt"}}
-             }),
-        ],
-        "profile": "..T",
-        'tests': {"check-http-response": {}}
-    },
-    'OP-D-07': {
         "desc": 'Registering and then read the client info',
         "sequence": [
             '_discover_',
@@ -273,18 +277,117 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
-    'OP-E-04 ': {
-        "desc": 'Request with response_mode=form_post',
+     'OP-F-01': {
+        "desc": 'The sent redirect_uri does not match the registered',
         "sequence": [
-            '_uma_discover_',
-            '_oauth_register_',
-            ('_login_',
-             {"request_args": {"response_mode": ["form_post"]}})
+            '_discover_',
+            '_register_',
+            "expect_err",
+            ("_login_", {"function": mismatch_return_uri})
+        ],
+        "profile": "..",
+        "note": "The next request should result in the OpenID Connect Provider "
+                "returning an error message to your web browser.",
+        'tests': {"check-http-response": {}},
+        "mti": "MUST",
+    },
+    'OP-F-02': {
+        "desc": 'Reject request without redirect_uri when multiple registered',
+        "sequence": [
+            '_discover_',
+            ('_register_', {"function": multiple_return_uris}),
+            "expect_err",
+            ("_login_", {"request_args": {"redirect_uri": ""}})
+        ],
+        "profile": "..T",
+        'tests': {"check-http-response": {}},
+        "note": "The next request should result in the OpenID Connect Provider "
+                "returning an error message to your web browser.",
+        "mti": "MUST",
+    },
+    'OP-F-03': {
+        "desc": 'Request with redirect_uri with query component',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ("_login_",
+             {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
+        ],
+        "profile": "..T",
+        "mti": "MUST",
+        'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
+                  "check-http-response": {}}
+    },
+    'OP-F-04': {
+        "desc": 'Registration where a redirect_uri has a query component',
+        "sequence": [
+            '_discover_',
+            ('_register_',
+             {"function": (
+                 redirect_uris_with_query_component, {"foo": "bar"})}),
+        ],
+        "profile": "..T",
+        "mti": "MUST",
+        "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
+                     "#section-3.1.2",
+        'tests': {"check-http-response": {}},
+    },
+    'OP-F-05': {
+        "desc": 'Rejects redirect_uri when Query Parameter Does Not Match',
+        "sequence": [
+            '_discover_',
+            ('_register_',
+             {
+                 "function": (
+                     redirect_uris_with_query_component, {"foo": "bar"})}),
+            'expect_err',
+            ("_login_", {
+                # different from the one registered
+                "function": (redirect_uri_with_query_component, {"bar": "foo"})
+            })
+        ],
+        "profile": "..T",
+        "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
+                     "#section-3.1.2",
+        'tests': {"check-http-response": {}},
+        "mti": "MUST",
+    },
+    'OP-F-06': {
+        "desc": 'Reject registration where a redirect_uri has a fragment',
+        "sequence": [
+            '_discover_',
+            ('_register_', {
+                "function": (redirect_uris_with_fragment, {"foo": "bar"})})
+        ],
+        "profile": "..T",
+        "tests": {"verify-bad-request-response": {}},
+        "mti": "MUST",
+        "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
+                     "#section-3.1.2",
+    },
+    'OP-F-07': {
+        "desc": 'No redirect_uri in request with one registered',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            "expect_err",
+            ('_login_', {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "....+",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
+   # 'OP-E-04 ': {
+    #     "desc": 'Request with response_mode=form_post',
+    #     "sequence": [
+    #         '_uma_discover_',
+    #         '_oauth_register_',
+    #         ('_login_',
+    #          {"request_args": {"response_mode": ["form_post"]}})
+    #     ],
+    #     "profile": "....+",
+    #     'tests': {"check-http-response": {}},
+    #     "mti": "MUST"
+    # },
     # 'OP-C-01': {
     #     "desc": 'Publish openid-configuration discovery information',
     #     "sequence": ['_discover_'],
@@ -373,105 +476,6 @@ FLOWS = {
     #             "access token request.",
     #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
     #                  "#section-4.1",
-    # },
-    # 'OP-E-01': {
-    #     "desc": 'The sent redirect_uri does not match the registered',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         "expect_err",
-    #         ("_login_", {"function": mismatch_return_uri})
-    #     ],
-    #     "profile": "..",
-    #     "note": "The next request should result in the OpenID Connect Provider "
-    #             "returning an error message to your web browser.",
-    #     'tests': {"check-http-response": {}},
-    #     "mti": "MUST",
-    # },
-    # 'OP-E-02': {
-    #     "desc": 'Reject request without redirect_uri when multiple registered',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_', {"function": multiple_return_uris}),
-    #         "expect_err",
-    #         ("_login_", {"request_args": {"redirect_uri": ""}})
-    #     ],
-    #     "profile": "..T",
-    #     'tests': {"check-http-response": {}},
-    #     "note": "The next request should result in the OpenID Connect Provider "
-    #             "returning an error message to your web browser.",
-    #     "mti": "MUST",
-    # },
-    # 'OP-E-03': {
-    #     "desc": 'Request with redirect_uri with query component',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         ("_login_",
-    #          {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
-    #     ],
-    #     "profile": "..T",
-    #     "mti": "MUST",
-    #     'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
-    #               "check-http-response": {}}
-    # },
-    # 'OP-E-04': {
-    #     "desc": 'Registration where a redirect_uri has a query component',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {"function": (
-    #              redirect_uris_with_query_component, {"foo": "bar"})}),
-    #     ],
-    #     "profile": "..T",
-    #     "mti": "MUST",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-3.1.2",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-E-05': {
-    #     "desc": 'Rejects redirect_uri when Query Parameter Does Not Match',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "function": (
-    #                  redirect_uris_with_query_component, {"foo": "bar"})}),
-    #         'expect_err',
-    #         ("_login_", {
-    #             # different from the one registered
-    #             "function": (redirect_uri_with_query_component, {"bar": "foo"})
-    #         })
-    #     ],
-    #     "profile": "..T",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-3.1.2",
-    #     'tests': {"check-http-response": {}},
-    #     "mti": "MUST",
-    # },
-    # 'OP-E-06': {
-    #     "desc": 'Reject registration where a redirect_uri has a fragment',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_', {
-    #             "function": (redirect_uris_with_fragment, {"foo": "bar"})})
-    #     ],
-    #     "profile": "..T",
-    #     "tests": {"verify-bad-request-response": {}},
-    #     "mti": "MUST",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-3.1.2",
-    # },
-    # 'OP-E-07': {
-    #     "desc": 'No redirect_uri in request with one registered',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         "expect_err",
-    #         ('_login_', {"request_args": {"redirect_uri": ""}})
-    #     ],
-    #     "profile": "....+",
-    #     'tests': {"check-http-response": {}},
     # },
     # 'OP-F-01d': {
     #     "desc": 'Access token request with client_secret_basic authentication',

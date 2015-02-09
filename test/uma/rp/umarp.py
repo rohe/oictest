@@ -16,6 +16,8 @@ from oic.exception import PyoidcError
 
 from oic.oauth2 import rndstr, OtherError, AuthnToOld
 from oic.oauth2 import ResponseError
+from oic.oauth2.dynreg import ClientInfoResponse
+from oic.oic import PARAMMAP, DEF_SIGN_ALG
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import get_post
 from oic.utils.http_util import BadRequest
@@ -26,7 +28,9 @@ from oic.oic.message import RegistrationResponse
 from oic.oic.message import OpenIDSchema
 from uma.client import Client as umaClient
 
-from uma.message import factory as message_factory
+from uma.message import factory as uma_message_factory
+from oic.oic.message import factory as oic_message_factory
+from oic.oauth2.dynreg import factory as dynreg_message_factory
 
 from oictest.base import Conversation
 from oictest.check import factory as check_factory
@@ -66,6 +70,11 @@ class NotSupported(Exception):
     pass
 
 
+MODULE2FACTORY = {
+    "oic.oic.message": oic_message_factory,
+    "oic.oauth2.dynreg": dynreg_message_factory,
+    "uma.message": uma_message_factory
+}
 
 def setup_logging(logfile):
     hdlr = logging.FileHandler(logfile)
@@ -383,13 +392,23 @@ class UmaClient(umaClient):
         if behaviour:
             self.behaviour = behaviour
 
+    def sign_enc_algs(self, typ):
+        resp = {}
+        for key, val in PARAMMAP.items():
+            try:
+                resp[key] = self.registration_response[val % typ]
+            except (TypeError, KeyError):
+                if key == "sign":
+                    resp[key] = DEF_SIGN_ALG["id_token"]
+        return resp
+
 
 def client_init():
     ots = OIDCTestSetup(CONF, TEST_FLOWS.FLOWS, str(CONF.PORT), UmaClient)
     client_conf = ots.config.CLIENT
     trace = Trace()
     conv = Conversation(ots.client, client_conf, trace, None,
-                        message_factory, check_factory)
+                        uma_message_factory, check_factory)
     conv.cache = CACHE
     return ots, conv
 
@@ -754,6 +773,14 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         kwargs["request_args"] = _extra
 
                 req.call_setup()
+
+                req.request_txt = req.request
+                if req.request:
+                    try:
+                        req.request = MODULE2FACTORY[resp_c.module](req.request)
+                    except AttributeError:
+                        pass
+
                 try:
                     url, body, ht_args = req.construct_request(ots.client,
                                                                **kwargs)
@@ -761,7 +788,7 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     return err_response(environ, start_response, session,
                                         "construct_request", err)
 
-                if req.request == "AuthorizationRequest":
+                if req.request_txt == "AuthorizationRequest":
                     session["response_type"] = kwargs["request_args"][
                         "response_type"]
                     LOGGER.info("redirect.url: %s" % url)
@@ -784,8 +811,9 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         except KeyError:
                             _ctype = resp_c.ctype
 
+                        _msg_factory = MODULE2FACTORY[resp_c.module]
                         response = request_and_return(
-                            conv, url, trace, message_factory(resp_c.response),
+                            conv, url, trace, _msg_factory(resp_c.response),
                             _method, body, _ctype, **_kwargs)
                     except PyoidcError as err:
                         return err_response(environ, start_response, session,
@@ -800,8 +828,13 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
 
                     trace.response(response)
                     LOGGER.info(response.to_dict())
-                    if resp_c.response == "RegistrationResponse":
+                    if resp_c.response in ["ClientInfoResponse",
+                                           "RegistrationResponse"]:
                         if isinstance(response, RegistrationResponse):
+                            ots.client.oidc_registration_info = response
+                            ots.client.store_registration_info(response)
+                        elif isinstance(response, ClientInfoResponse):
+                            ots.client.uma_registration_info = response
                             ots.client.store_registration_info(response)
                     elif resp_c.response == "AccessTokenResponse":
                         if "error" not in response:
@@ -917,12 +950,11 @@ def application(environ, start_response):
         return static(environ, start_response, "static/robots.txt")
     elif path == "favicon.ico":
         return static(environ, start_response, "static/favicon.ico")
-
-    if path.startswith("static/"):
+    elif path.startswith("static/"):
+        return static(environ, start_response, path)
+    elif path.startswith("export/"):
         return static(environ, start_response, path)
 
-    if path.startswith("export/"):
-        return static(environ, start_response, path)
 
     if path == "":  # list
         if session_init(session):
@@ -1098,7 +1130,8 @@ def application(environ, start_response):
 
             LOGGER.info("Response: %s" % info)
             conv.trace.reply(info)
-            resp_cls = message_factory(resp_c.response)
+            _msg_factory = MODULE2FACTORY[resp_c.module]
+            resp_cls = _msg_factory(resp_c.response)
             algs = ots.client.sign_enc_algs("id_token")
             try:
                 response = ots.client.parse_response(

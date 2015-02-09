@@ -1,25 +1,25 @@
 #!/usr/bin/env python
 from rrtest.status import ERROR
 from rrtest.status import WARNING
-from testfunc import store_sector_redirect_uris
-from testfunc import get_principal
-from testfunc import id_token_hint
-from testfunc import request_in_file
-from testfunc import sub_claims
-from testfunc import specific_acr_claims
-from testfunc import login_hint
-from testfunc import policy_uri
-from testfunc import logo_uri
-from testfunc import tos_uri
-from testfunc import static_jwk
-from testfunc import redirect_uris_with_query_component
-from testfunc import redirect_uris_with_fragment
-from testfunc import ui_locales
-from testfunc import claims_locales
-from testfunc import acr_value
-from testfunc import mismatch_return_uri
-from testfunc import multiple_return_uris
-from testfunc import redirect_uri_with_query_component
+from oictest.testfunc import store_sector_redirect_uris
+from oictest.testfunc import get_principal
+from oictest.testfunc import id_token_hint
+from oictest.testfunc import request_in_file
+from oictest.testfunc import sub_claims
+from oictest.testfunc import specific_acr_claims
+from oictest.testfunc import login_hint
+from oictest.testfunc import policy_uri
+from oictest.testfunc import logo_uri
+from oictest.testfunc import tos_uri
+from oictest.testfunc import static_jwk
+from oictest.testfunc import redirect_uris_with_query_component
+from oictest.testfunc import redirect_uris_with_fragment
+from oictest.testfunc import ui_locales
+from oictest.testfunc import claims_locales
+from oictest.testfunc import acr_value
+from oictest.testfunc import mismatch_return_uri
+from oictest.testfunc import multiple_return_uris
+from oictest.testfunc import redirect_uri_with_query_component
 
 __author__ = 'roland'
 

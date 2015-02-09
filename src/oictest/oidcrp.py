@@ -6,6 +6,7 @@ from jwkest import b64d, unpack, BadSyntax
 from oic import oic
 from oic.exception import MessageException
 from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import Message
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
@@ -236,6 +237,8 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
                 _response = ErrorResponse().from_json(_resp.text)
             except MessageException:
                 trace.reply("Non OIDC error message: %s" % _resp.content)
+    elif _resp.status_code == 204:  # No response
+        _response = Message()
     else:
         try:
             uiendp = _cli.provider_info["userinfo_endpoint"]

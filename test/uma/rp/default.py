@@ -20,9 +20,7 @@ CLIENT = {
         "request_object_signing_alg": [
             "RS256", "RS384", "RS512", "HS512", "HS384", "HS256"
         ],
-        "token_endpoint_auth_method": [
-            "client_secret_basic", "client_secret_post",
-            "client_secret_jwt", "private_key_jwt"],
+        "token_endpoint_auth_method": ["client_secret_basic"],
         "response_types": ["code", "token"],
         "grant_types": ["authorization_code", "implicit", "refresh_token"],
         "default_max_age": 3600,

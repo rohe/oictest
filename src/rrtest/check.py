@@ -306,7 +306,7 @@ class VerifyBadRequestResponse(ExpectedError):
             res["content"] = err.to_json()
         elif _response.status_code in [301, 302, 303]:
             pass
-        elif _response.status_code in [200, 201]:
+        elif _response.status_code < 300:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
@@ -337,7 +337,7 @@ class VerifyRandomRequestResponse(ExpectedError):
             pass
         elif _response.status_code in [301, 302, 303]:
             pass
-        elif _response.status_code in [200, 201]:
+        elif _response.status_code in SUCCESSFUL:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()
@@ -365,7 +365,7 @@ class VerifyUnknownClientIdResponse(ExpectedError):
             conv.protocol_response.append((err, _content))
         elif _response.status_code in [301, 302, 303]:
             pass
-        elif _response.status_code in [200, 201]:
+        elif _response.status_code in SUCCESSFUL:
             err = ErrorResponse().deserialize(_content, "json")
             err.verify()
             res["content"] = err.to_json()

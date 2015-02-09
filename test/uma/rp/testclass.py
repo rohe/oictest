@@ -8,6 +8,7 @@ from oic.utils.webfinger import OIC_ISSUER
 
 import copy
 from oic.oauth2.message import SchemeError
+from rrtest.check import CheckHTTPResponse
 from uma.client import UMACONF_PATTERN
 from uma.message import ProviderConfiguration
 
@@ -262,6 +263,10 @@ class OIDCRegistrationRequest(PostRequest):
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
 
+    def call_setup(self):
+        _client = self.conv.client
+        self.kw_args["endpoint"] = _client.provider_info["registration_endpoint"]
+
 
 class OAuthRegistrationRequest(PostRequest):
     request = "RegistrationRequest"
@@ -294,14 +299,14 @@ class OAuthRegistrationRequest(PostRequest):
             pass
 
         # verify the registration info
-        self.tests["post"].append(RegistrationInfo)
+        self.tests["post"].extend([RegistrationInfo, CheckHTTPResponse])
 
 
 class AuthorizationRequest(GetRequest):
     request = "AuthorizationRequest"
     endpoint = "authorization_endpoint"
     _request_args = {"scope": ["openid"]}
-    _tests = {"pre": [CheckResponseType, CheckEndpoint],
+    _tests = {"pre": [CheckResponseType],
               "post": []}
     interaction_check = True
 
@@ -463,10 +468,10 @@ class RefreshAccessToken(PostRequest):
 class ReadRegistration(GetRequest):
     def call_setup(self):
         _client = self.conv.client
-        self.request_args["access_token"] = _client.registration_access_token
+        _rresp = _client.registration_response
+        self.request_args["access_token"] = _rresp["registration_access_token"]
         self.kw_args["authn_method"] = "bearer_header"
-        self.kw_args["endpoint"] = _client.registration_response[
-            "registration_client_uri"]
+        self.kw_args["endpoint"] = _rresp["registration_client_uri"]
 
 
 class ClientUpdateRequest(PutRequest):
@@ -474,11 +479,26 @@ class ClientUpdateRequest(PutRequest):
     module = "oic.oauth2.dynreg"
     endpoint = "dynamic_client_endpoint"
 
+    def call_setup(self):
+        _client = self.conv.client
+        _rresp = _client.registration_response
+        self.request_args["access_token"] = _rresp["registration_access_token"]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = _rresp["registration_client_uri"]
+        self.kw_args["content_type"] = JSON_ENCODED
+        self.request_args["contacts"] = ["roland@example.com"]
+
 
 class ClientDeleteRequest(DeleteRequest):
-    request = "ClientUpdateRequest"
-    module = "oic.oauth2.dynreg"
+    request = "Message"
     endpoint = "dynamic_client_endpoint"
+
+    def call_setup(self):
+        _client = self.conv.client
+        _rresp = _client.registration_response
+        self.request_args["access_token"] = _rresp["registration_access_token"]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = _rresp["registration_client_uri"]
 
 
 # ========== RESPONSE MESSAGES ========
@@ -486,6 +506,7 @@ class ClientDeleteRequest(DeleteRequest):
 class OIDCProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfigurationResponse"
     module = "oic.oic.message"
+
 
 class UMAProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfiguration"
@@ -520,10 +541,12 @@ class OAuthRegistrationResponse(BodyResponse):
 
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
+    module = "oic.oic.message"
 
 
 class AccessTokenResponse(BodyResponse):
     response = "AccessTokenResponse"
+    module = "oic.oic.message"
 
     def __init__(self):
         BodyResponse.__init__(self)
@@ -531,10 +554,15 @@ class AccessTokenResponse(BodyResponse):
 
 class UserinfoResponse(BodyResponse):
     response = "OpenIDSchema"
+    module = "oic.oic.message"
 
     def __init__(self):
         BodyResponse.__init__(self)
 
+
+class NoneResponse(BodyResponse):
+    response = "Message"
+    module = "oic.oic.message"
 
 # ============================================================================
 
@@ -547,9 +575,9 @@ PHASES = {
     "access-token-request": (AccessTokenRequest, AccessTokenResponse),
     "refresh-access-token": (RefreshAccessToken, AccessTokenResponse),
     "userinfo": (UserInfoRequestGetBearerHeader, UserinfoResponse),
-    "read-registration": (ReadRegistration, OIDCRegistrationResponse),
+    "oauth-read-registration": (ReadRegistration, OAuthRegistrationResponse),
     "modify-registration": (ClientUpdateRequest, OAuthRegistrationResponse),
-    "delete-registration": (ClientDeleteRequest, OAuthRegistrationResponse),
+    "delete-registration": (ClientDeleteRequest, NoneResponse),
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,

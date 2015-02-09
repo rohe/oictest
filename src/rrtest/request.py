@@ -183,6 +183,10 @@ class Request(object):
 
         kwargs, cargs, e_arg, _req = self.collect_args(cargs, request)
 
+        if "content_type" in kwargs:
+            self.content_type = kwargs["content_type"]
+            del kwargs["content_type"]
+
         cis = self._construct_message(request, client, kwargs)
         cis.lax = True
 
