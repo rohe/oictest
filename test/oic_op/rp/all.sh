@@ -31,6 +31,7 @@ stopme() {
     pkill -f "edmund"
     pkill -f "xenosmilus2"
     pkill -f "oictest_op"
+    pkill -f 'gsma'
 }
 
 case "$1" in
