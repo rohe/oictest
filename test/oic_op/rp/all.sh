@@ -16,6 +16,7 @@ startme() {
     ./oprp2.py -p C.T.T.ns -t tflow luke &> luke.err &
     ./oprp2.py -p C.T.T.ns -t tflow edmund &> edmund.err &
     ./oprp2.py -p C.T.T.nse -t tflow oictest_op &> oictest.err &
+    ./oprp2.py -p C.F.F -t tflow gsma &> gsma.err &
 }
 
 stopme() {
