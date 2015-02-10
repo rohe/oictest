@@ -1569,6 +1569,7 @@ FLOWS = {
                     }}
             }),
             "_accesstoken_",
+            USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"userinfo": {"phone": None},
