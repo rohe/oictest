@@ -1043,8 +1043,24 @@ def application(environ, start_response):
             return err_response(environ, start_response, session,
                                 "run_sequence", err)
     elif path in ["authz_cb", "authz_post"]:
-        if path != "authz_post":
-            if session["response_type"] and not \
+        try:
+            sequence_info = session["seq_info"]
+            index = session["index"]
+            ots = session["ots"]
+            conv = session["conv"]
+        except KeyError as err:
+            # Todo: find out which port I'm listening on
+            return sorry_response(environ, start_response, CONF.BASE, err)
+        (req_c, resp_c), _ = sequence_info["sequence"][index]
+        try:
+            response_mode = conv.AuthorizationRequest["response_mode"]
+        except KeyError:
+            response_mode = None
+
+        if path == "authz_cb":
+            if response_mode == "form_post":
+                pass
+            elif session["response_type"] and not \
                     session["response_type"] == ["code"]:
                 # but what if it's all returned as a query ?
                 try:
@@ -1057,23 +1073,9 @@ def application(environ, start_response):
                         "Didn't expect response as query parameters")
 
                 return opresult_fragment(environ, start_response)
-        try:
-            sequence_info = session["seq_info"]
-            index = session["index"]
-            ots = session["ots"]
-            conv = session["conv"]
-        except KeyError as err:
-            # Todo: find out which port I'm listening on
-            return sorry_response(environ, start_response, CONF.BASE, err)
-
-        (req_c, resp_c), _ = sequence_info["sequence"][index]
 
         if resp_c:  # None in cases where no OIDC response is expected
             _ctype = resp_c.ctype
-            try:
-                response_mode = conv.AuthorizationRequest["response_mode"]
-            except KeyError:
-                response_mode = None
 
             # parse the response
             if response_mode == "form_post":
