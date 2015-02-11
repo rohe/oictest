@@ -380,11 +380,13 @@ LOOKUP = TemplateLookup(directories=[ROOT + 'templates', ROOT + 'htdocs'],
 
 # ----------------------------------------------------------------------------
 
+
 def rp_test_list(environ, start_response):
     resp = Response(mako_template="rp_test_list.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     return resp(environ, start_response)
+
 
 def registration(environ, start_response):
     resp = Response(mako_template="registration.mako",
@@ -392,11 +394,14 @@ def registration(environ, start_response):
                     headers=[])
     return resp(environ, start_response)
 
+
 def generate_static_client_credentials(parameters):
     redirect_uris = parameters['redirect_uris']
     jwks_uri = str(parameters['jwks_uri'])
     cdb = CDB(config.CLIENT_DB)
-    static_client = cdb.create(redirect_uris=redirect_uris, policy_uri="example.com",logo_uri="example.com", jwks_uri=jwks_uri)
+    static_client = cdb.create(redirect_uris=redirect_uris,
+                               policy_uri="example.com",
+                               logo_uri="example.com", jwks_uri=jwks_uri)
     return static_client['client_id'], static_client['client_secret']
 
 
@@ -411,7 +416,8 @@ def application(environ, start_response):
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
     http_helper = HttpHandler(environ, start_response, session, LOGGER)
-    response_encoder = ResponseEncoder(environ=environ, start_response=start_response)
+    response_encoder = ResponseEncoder(environ=environ,
+                                       start_response=start_response)
     parameters = http_helper.query_dict()
 
     if path == "robots.txt":
@@ -426,19 +432,20 @@ def application(environ, start_response):
     
     trace = Trace()
 
-    mode, endpoint = extract_mode(path)
-
-    if mode:
-        session["test_id"] = mode["test_id"]
-
     if path == "test_list":
         return rp_test_list(environ, start_response)
     elif path == "":
         return registration(environ, start_response)
     elif path == "generate_client_credentials":
         client_id, client_secret = generate_static_client_credentials(parameters)
-        return response_encoder.returnJSON(json.dumps({"client_id": client_id, "client_secret": client_secret}))
+        return response_encoder.returnJSON(
+            json.dumps({"client_id": client_id,
+                        "client_secret": client_secret}))
 
+    mode, endpoint = extract_mode(path)
+
+    if mode:
+        session["test_id"] = mode["test_id"]
 
     if "op" not in session:
         session["op"] = setup_op(mode, COM_ARGS, OP_ARG)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from uma import PAT, AAT
 from oictest.testfunc import policy_uri
 from oictest.testfunc import logo_uri
 from oictest.testfunc import tos_uri
@@ -192,47 +193,6 @@ FLOWS = {
                 "link to the clients Terms of Service",
         "tests": {"check-http-response": {}},
     },
-    # 'OP-D-05': {
-    #     "desc": 'Uses Keys Registered with jwks Value',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "private_key_jwt"},
-    #              "function": static_jwk
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_jwt"}}
-    #          }),
-    #     ],
-    #     "profile": "..T",
-    #     "tests": {"check-http-response": {}},
-    # },
-    # 'OP-D-06': {
-    #     "desc": 'Uses Keys Registered with jwks_uri Value',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_jwt"}}
-    #          }),
-    #     ],
-    #     "profile": "..T",
-    #     'tests': {"check-http-response": {}}
-    # },
     'OP-D-05': {
         "desc": 'Registering and then read the client info',
         "sequence": [
@@ -277,7 +237,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
-     'OP-F-01': {
+    'OP-F-01': {
         "desc": 'The sent redirect_uri does not match the registered',
         "sequence": [
             '_discover_',
@@ -376,324 +336,33 @@ FLOWS = {
         "profile": "....+",
         'tests': {"check-http-response": {}},
     },
-   # 'OP-E-04 ': {
-    #     "desc": 'Request with response_mode=form_post',
+    'OP-G-01': {
+        "desc": 'Acquire PAT',
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_',
+             {
+                 "request_args": {"scope": [PAT]},
+             }),
+            '_accesstoken_'],
+        "profile": "C..",
+        'tests': {"check-http-response": {}},
+        "mti": "MUST"
+    },
+    # 'OP-G-02': {
+    #     "desc": 'Acquire AAT',
     #     "sequence": [
     #         '_uma_discover_',
     #         '_oauth_register_',
     #         ('_login_',
-    #          {"request_args": {"response_mode": ["form_post"]}})
-    #     ],
-    #     "profile": "....+",
+    #          {
+    #              "request_args": {"scope": [AAT]},
+    #          }),
+    #         '_accesstoken_'],
+    #     "profile": "C..",
     #     'tests': {"check-http-response": {}},
     #     "mti": "MUST"
-    # },
-    # 'OP-C-01': {
-    #     "desc": 'Publish openid-configuration discovery information',
-    #     "sequence": ['_discover_'],
-    #     "profile": ".T.",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-C-02': {
-    #     "desc": 'Verify that jwks_uri and claims_supported are published',
-    #     "sequence": ['_discover_'],
-    #     "tests": {"providerinfo-has-jwks_uri": {},
-    #               "providerinfo-has-claims_supported": {},
-    #               "check-http-response": {}},
-    #     "profile": ".T.",
-    # },
-    # 'OP-C-03': {
-    #     "desc": 'Keys in OP JWKs well formed',
-    #     "sequence": ['_discover_'],
-    #     "profile": ".T.",
-    #     "tests": {"verify-base64url": {}, "check-http-response": {}},
-    # },
-    # 'OP-C-05': {
-    #     "desc": 'Can Discover Identifiers using E-Mail Syntax',
-    #     "profile": ".T...+",
-    #     #"profile": ".T.",
-    #     "sequence": [
-    #         ("webfinger",
-    #          {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
-    #     "tests": {"check-http-response": {}},
-    # },
-    # 'OP-C-06': {
-    #     "desc": 'Can Discover Identifiers using URL Syntax',
-    #     "profile": ".T...+",
-    #     "sequence": [
-    #         ("webfinger",
-    #          {"kwarg_func": (get_principal, {"param": "webfinger_url"})})],
-    #     "tests": {"check-http-response": {}},
-    # },
-    # 'OP-D-01': {
-    #     "desc": 'Trying to use access code twice should result in an error',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         '_login_',
-    #         "_accesstoken_",
-    #         "_accesstoken_"
-    #     ],
-    #     "profile": "C,CI,CT,CIT..",
-    #     "tests": {"verify-bad-request-response": {"status": WARNING}},
-    #     "mti": "SHOULD",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-4.1",
-    # },
-    # 'OP-D-02': {
-    #     "desc": 'Trying to use access code twice should result in '
-    #             'revoking previous issued tokens',
-    #     "sequence": [
-    #         '_discover_',
-    #         '_register_',
-    #         '_login_',
-    #         "_accesstoken_",
-    #         "_accesstoken_",
-    #         USERINFO_REQUEST_AUTH_METHOD
-    #     ],
-    #     "profile": "C,CI,CT,CIT..",
-    #     "tests": {"verify-bad-request-response": {"status": WARNING}},
-    #     "mti": "SHOULD",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-4.1",
-    # },
-    # 'OP-D-03': {
-    #     "desc": 'Trying to use access code twice with 30 seconds in between '
-    #             'must result in an error',
-    #     "sequence": [
-    #         'note',
-    #         '_discover_',
-    #         '_register_',
-    #         '_login_',
-    #         "_accesstoken_",
-    #         "intermission",
-    #         "_accesstoken_"
-    #     ],
-    #     "profile": "C,CI,CT,CIT..",
-    #     "tests": {"verify-bad-request-response": {"status": ERROR}},
-    #     "mti": "SHOULD",
-    #     "note": "An 30 second delay is added between the first and the second "
-    #             "access token request.",
-    #     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-    #                  "#section-4.1",
-    # },
-    # 'OP-F-01d': {
-    #     "desc": 'Access token request with client_secret_basic authentication',
-    #     # Register token_endpoint_auth_method=client_secret_basic
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "client_secret_basic"},
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "client_secret_basic"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_basic"}}
-    #          }),
-    #     ],
-    #     "profile": "C,CI,CIT,CT..T",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-F-01s': {
-    #     "desc": 'Access token request with client_secret_basic authentication',
-    #     # client_secret_basic is the default
-    #     "sequence": [
-    #         '_discover_',
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "client_secret_basic"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_basic"}}
-    #          }),
-    #     ],
-    #     "profile": "C,CI,CIT,CT..F",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-F-02d': {
-    #     "desc": 'Access token request with client_secret_post authentication',
-    #     # Should register token_endpoint_auth_method=client_secret_post
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "client_secret_post"},
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "client_secret_post"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_post"}}
-    #          }),
-    #     ],
-    #     "profile": "C,CI,CIT,CT..T",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-F-02s': {
-    #     "desc": 'Access token request with client_secret_post authentication',
-    #     # Should register token_endpoint_auth_method=client_secret_post
-    #     "sequence": [
-    #         '_discover_',
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "client_secret_post"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_post"}}
-    #          }),
-    #     ],
-    #     "profile": "C,CI,CIT,CT..F",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-F-03': {
-    #     "desc": 'Access token request with public_key_jwt authentication',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "public_key_jwt"},
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "public_key_jwt"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "public_key_jwt"}}
-    #          }),
-    #     ],
-    #     "profile": "...s.+",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-F-04': {
-    #     "desc": 'Access token request with client_secret_jwt authentication',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "client_secret_jwt"},
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "client_secret_jwt"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_jwt"}}
-    #          }),
-    #     ],
-    #     "profile": "...s.+",
-    #     'tests': {"check-http-response": {}},
-    # },
-    # 'OP-G-01': {
-    #     "desc": "Can Rollover OP Signing Key",
-    #     "sequence": [
-    #         '_discover_',
-    #         'fetch_keys',
-    #         "note",
-    #         '_discover_',
-    #         'fetch_keys',
-    #     ],
-    #     "note": "Please make your OP roll over signing keys. "
-    #             'If you are not able to cause the server to roll over the key '
-    #             'while running the test, then you will have to self-assert '
-    #             'that your deployment can do OP signing key rollover.',
-    #     "profile": ".T.T.s",
-    #     # "profile": ".T.T.s.+",
-    #     "tests": {"new-signing-keys": {}, "check-http-response": {}}
-    # },
-    # 'OP-G-02': {
-    #     "desc": 'Request access token, change RSA sign key and request another '
-    #             'access token',
-    #     "sequence": [
-    #         '_discover_',
-    #         ('_register_',
-    #          {
-    #              "request_args": {
-    #                  "token_endpoint_auth_method": "private_key_jwt"},
-    #              "support": {"error": {
-    #                  "token_endpoint_auth_methods_supported":
-    #                      "private_key_jwt"}}
-    #          }),
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
-    #          }),
-    #         "rotate_sign_keys",
-    #         ("refresh-access-token",
-    #          {
-    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
-    #          })
-    #     ],
-    #     "profile": "..T.s",
-    #     "tests": {"check-http-response": {}}
-    # },
-    # 'OP-G-03': {
-    #     "desc": "Can Rollover OP Encryption Key",
-    #     "sequence": [
-    #         '_discover_',
-    #         'fetch_keys',
-    #         "note",
-    #         '_discover_',
-    #         'fetch_keys',
-    #     ],
-    #     "note": "Please make your OP roll over encryption keys."
-    #             'If you are not able to cause the server to roll over the keys '
-    #             'while running the test, then you will have to self-assert '
-    #             'that your deployment can do OP encryption key rollover.',
-    #     # "profile": ".T..e.+",
-    #     "profile": ".T..e",
-    #     "tests": {"new-encryption-keys": {}, "check-http-response": {}}
-    # },
-    # 'OP-G-04': {
-    #     # where is the RPs encryption keys used => userinfo encryption
-    #     "desc": 'Request encrypted user info, change RSA enc key and request '
-    #             'user info again',
-    #     "sequence": [
-    #         '_discover_',
-    #         ("oic-registration",
-    #          {
-    #              "request_args": {
-    #                  "userinfo_signed_response_alg": "none",
-    #                  "userinfo_encrypted_response_alg": "RSA1_5",
-    #                  "userinfo_encrypted_response_enc": "A128CBC-HS256"
-    #              },
-    #              "support": {
-    #                  "warning": {
-    #                      "userinfo_signing_alg_values_supported": "none",
-    #                      "userinfo_encryption_alg_values_supported": "RSA1_5",
-    #                      "userinfo_encryption_enc_values_supported":
-    #                          "A128CBC-HS256"
-    #                  }
-    #              }
-    #          }
-    #         ),
-    #         '_login_',
-    #         "_accesstoken_",
-    #         "rotate_sign_keys",
-    #         "userinfo"
-    #     ],
-    #     "profile": "..T.se.+",
-    #     "tests": {"check-http-response": {}}
     # },
 }
 
