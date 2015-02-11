@@ -642,6 +642,8 @@ def setup(kwa, conv, environ, start_response, session):
 def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                  trace, index):
     while index < len(sequence_info["sequence"]):
+        LOGGER.info("###{i}### {f} ###{i}###".format(
+            f=session["testid"], i=index))
         session["index"] = index
         try:
             (req_c, resp_c), _kwa = sequence_info["sequence"][index]
@@ -1038,6 +1040,7 @@ def application(environ, start_response):
         return opresult(environ, start_response, conv, session)
     # expected path format: /<testid>[/<endpoint>]
     elif path in session["flow_names"]:
+        LOGGER.info("<=<=<=<=< %s >=>=>=>=>" % path)
         conv, sequence_info, ots, trace, index = session_setup(session, path)
         session["node"].complete = False
         try:
