@@ -1468,7 +1468,14 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "request"}})
+            ("_login_", {
+                 "kwargs_mod": {"request_method": "request"},
+                 "support": {
+                     "warning": {
+                         "request_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "RS256"
+                     }}
+            })
         ],
         "profile": "...s.+",
         "tests": {"check-http-response": {}}

@@ -554,7 +554,7 @@ def support(conv, args):
                 try:
                     included(val, DEFAULTS[key])
                 except AssertionError:  # Explicitly Not supported
-                    add_test_result(conv, err,
+                    add_test_result(conv, ERROR,
                                     "Not supported: %s=%s" % (key, val))
                     stat = ERROR
                 except KeyError:  # Not in defaults
@@ -563,7 +563,7 @@ def support(conv, args):
                 try:
                     included(val, pi[key])
                 except AssertionError:  # Not supported
-                    add_test_result(conv, err,
+                    add_test_result(conv, ERROR,
                                     "Not supported: %s=%s" % (key, val))
                     stat = err
                 except KeyError:  # Not defined
