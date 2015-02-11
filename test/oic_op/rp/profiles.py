@@ -292,14 +292,18 @@ def get_sequence(flowid, spec):
         if _op == "_discover_":
             if _p[DISCOVER] == "T":
                 _op, arg = PROFILEMAP["Discover"]["*"]
-                _args = _update(_args, arg)
+                if arg:
+                    carg = copy.deepcopy(arg)
+                    _args = _update(_args, carg)
                 seq.append((PHASES[_op], _args))
             continue
 
         if _op == "_register_":
             if _p[REGISTER] == "T":
                 _op, arg = PROFILEMAP["Register"][_profile]
-                _args = _update(_args, arg)
+                if arg:
+                    carg = copy.deepcopy(arg)
+                    _args = _update(_args, carg)
                 seq.append((PHASES[_op], _args))
             continue
 
@@ -326,7 +330,9 @@ def get_sequence(flowid, spec):
 
         if _op == "oic-registration":  # default minimal registration info
             _, b = PROFILEMAP["Register"][_profile]
-            _args = _update(_args, b)
+            if b:
+                cb = copy.deepcopy(b)
+                _args = _update(_args, cb)
 
         seq.append((PHASES[_op], _args))
 
