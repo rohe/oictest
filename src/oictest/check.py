@@ -797,42 +797,40 @@ class VerifyClaims(Error):
         except KeyError:
             pass
         else:
-            inst, txt = get_protocol_response(conv,
-                                              message.AccessTokenResponse)[0]
-            try:
-                _idt = inst["id_token"]
-            except KeyError:
-                self._message = "Expected an IDToken got none"
-                self._status = ERROR
-            else:
-                mm = []
-                missing = []
-                for key, val in claims.items():
-                    try:
-                        if not claims_match(_idt[key], val):
-                            mm.append(key)
-                    except KeyError:
-                        missing.append(key)
+            # inst, txt = get_protocol_response(conv,
+            #                                   message.AccessTokenResponse)[0]
+            res = get_id_tokens(conv)
+            assert len(res)   # must be at least one
+            _idt, _ = res[0]
 
-                if missing or mm:
-                    msg = ""
-                    if missing:
-                        if len(missing) == 1:
-                            msg = "Missing required claim: %s" % missing[0]
-                        else:
-                            msg = "Missing required claims: %s" % missing
-                    if mm:
-                        if msg:
-                            msg += ". "
-                        if len(missing) == 1:
-                            msg = "Claim that didn't match request: %s" % mm[0]
-                        else:
-                            msg = "Claim that didn't match request: %s" % mm
+            mm = []
+            missing = []
+            for key, val in claims.items():
+                try:
+                    if not claims_match(_idt[key], val):
+                        mm.append(key)
+                except KeyError:
+                    missing.append(key)
 
-                    self._message = msg
-                    self._status = WARNING
-                    return {"returned claims": _idt.keys(),
-                            "required claims": claims}
+            if missing or mm:
+                msg = ""
+                if missing:
+                    if len(missing) == 1:
+                        msg = "Missing required claim: %s" % missing[0]
+                    else:
+                        msg = "Missing required claims: %s" % missing
+                if mm:
+                    if msg:
+                        msg += ". "
+                    if len(missing) == 1:
+                        msg = "Claim that didn't match request: %s" % mm[0]
+                    else:
+                        msg = "Claim that didn't match request: %s" % mm
+
+                self._message = msg
+                self._status = WARNING
+                return {"returned claims": _idt.keys(),
+                        "required claims": claims}
 
         return {}
 
