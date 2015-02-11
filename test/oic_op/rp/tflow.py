@@ -717,7 +717,7 @@ FLOWS = {
         "note": "Claims may now be returned in the locale of choice"
                 "The use of this parameter in the request must not cause an "
                 "error at the OP",
-        "profile": "..",
+        "profile": "C,IT,CT,CT,CIT..",
         'tests': {"check-http-response": {}},
         "mti": "No err"
     },
@@ -968,25 +968,25 @@ FLOWS = {
         'tests': {"check-http-response": {}},
     },
     'OP-K-03': {
-        "desc": 'Access token request with public_key_jwt authentication',
+        "desc": 'Access token request with private_key_jwt authentication',
         "sequence": [
             '_discover_',
             ('_register_',
              {
                  "request_args": {
-                     "token_endpoint_auth_method": "public_key_jwt"},
+                     "token_endpoint_auth_method": "private_key_jwt"},
              }),
             '_login_',
             ("_accesstoken_",
              {
-                 "kwargs_mod": {"authn_method": "public_key_jwt"},
+                 "kwargs_mod": {"authn_method": "private_key_jwt"},
                  "support": {
                      "warning": {
                          "token_endpoint_auth_methods_supported":
-                             "public_key_jwt"}}
+                             "private_key_jwt"}}
              }),
         ],
-        "profile": "...s.+",
+        "profile": "C,CI,CIT,CT...s.+",
         'tests': {"check-http-response": {}},
     },
     'OP-K-04': {
@@ -1008,7 +1008,7 @@ FLOWS = {
                              "client_secret_jwt"}}
              }),
         ],
-        "profile": "...s.+",
+        "profile": "C,CI,CIT,CT...s.+",
         'tests': {"check-http-response": {}},
     },
     'OP-L-01': {
@@ -1125,7 +1125,7 @@ FLOWS = {
                              "client_secret_jwt"}}
              }),
         ],
-        "profile": "..T",
+        "profile": "C,CI,CIT,CT..T",
         "tests": {"check-http-response": {}},
     },
     'OP-M-07': {
@@ -1143,7 +1143,7 @@ FLOWS = {
                              "client_secret_jwt"}}
              }),
         ],
-        "profile": "..T",
+        "profile": "C,CI,CIT,CT..T",
         'tests': {"check-http-response": {}}
     },
     'OP-M-08': {
@@ -1264,7 +1264,7 @@ FLOWS = {
                  "kwargs_mod": {"authn_method": "private_key_jwt"},
              })
         ],
-        "profile": "..T.s",
+        "profile": "C,CI,CIT,CT..T.s",
         "tests": {"check-http-response": {}}
     },
     'OP-N-03': {
@@ -1312,7 +1312,7 @@ FLOWS = {
             "rotate_sign_keys",
             "userinfo"
         ],
-        "profile": "..T.se.+",
+        "profile": "C,CI,CIT,CT..T.se.+",
         "tests": {"check-http-response": {}}
     },
     'OP-O-01': {
@@ -1485,7 +1485,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        "profile": "..",
+        "profile": "C,IT,CI,CIT,CT..",
         'tests': {"verify-claims": {"userinfo": {"name": None}},
                   "check-http-response": {}}
     },
@@ -1550,7 +1550,7 @@ FLOWS = {
             }),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD],
-        "profile": "....+",
+        "profile": "C,IT,CI,CIT,CT....+",
         'tests': {"verify-claims": {"userinfo": {"name": None},
                                     "id_token": {"email": None}},
                   "check-http-response": {}}
@@ -1571,7 +1571,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        "profile": "....+",
+        "profile": "C,IT,CI,CIT,CT....+",
         'tests': {"verify-claims": {"userinfo": {"phone": None},
                                     "id_token": {"email": None}},
                   "check-http-response": {}}
@@ -1587,7 +1587,7 @@ FLOWS = {
             }),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD],
-        "profile": "....+",
+        "profile": "C,IT,CI,CIT,CT....+",
         'tests': {"verify-claims": {"userinfo": {"picture": None,
                                                  "email": None}},
                   "check-http-response": {}}
@@ -1609,7 +1609,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        "profile": "....+",
+        "profile": "C,IT,CI,CIT,CT....+",
         'tests': {"verify-claims": {"userinfo": {"picture": None,
                                                  "name": None,
                                                  "email": None}},
