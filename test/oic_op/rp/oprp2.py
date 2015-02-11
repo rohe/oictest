@@ -800,6 +800,10 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                     if resp_c.response == "RegistrationResponse":
                         if isinstance(response, RegistrationResponse):
                             ots.client.store_registration_info(response)
+                        elif "error" in response:
+                            return err_response(
+                                environ, start_response, session,
+                                "id_token_verification", response["error"])
                     elif resp_c.response == "AccessTokenResponse":
                         if "error" not in response:
                             try:
