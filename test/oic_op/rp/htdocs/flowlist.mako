@@ -1,26 +1,23 @@
 <%!
 
 DESC = {
-    "A": "Response Type & Response Mode",
-    "B": "ID Token",
-    "C": "Userinfo Endpoint",
-    "D": "nonce Request Parameter",
-    "E": "scope Request Parameter",
-    "F": "display Request Parameter",
-    "G": "prompt Request Parameter",
-    "H": "Misc Request Parameters",
-    "I": "OAuth behaviors",
-    "J": "redirect_uri",
-    "K": "Client Authentication",
-    "L": "Discovery",
-    "M": "Dynamic Client Registration",
-    "N": "Key Rollover",
-    "O": "request_uri Request Parameter",
-    "P": "request Request Parameter",
-    "Q": "claims Request Parameter",
-    "R": "Third Party initiated Login",
-    "S": "Session Management",
-    "T": "WebFinger",
+    "Response": "Response Type & Response Mode",
+    "IDToken": "ID Token",
+    "UserInfo": "Userinfo Endpoint",
+    "nonce": "nonce Request Parameter",
+    "scope": "scope Request Parameter",
+    "display": "display Request Parameter",
+    "prompt": "prompt Request Parameter",
+    "Req": "Misc Request Parameters",
+    "OAuth": "OAuth behaviors",
+    "redirect_uri": "redirect_uri",
+    "ClientAuth": "Client Authentication",
+    "Discovery": "Discovery",
+    "Registration": "Dynamic Client Registration",
+    "Rollover": "Key Rollover",
+    "request_uri": "request_uri Request Parameter",
+    "request": "request Request Parameter",
+    "claims": "claims Request Parameter",
     }
 
 def op_choice(base, nodes, test_info):
@@ -33,7 +30,7 @@ def op_choice(base, nodes, test_info):
     #    "ERROR":'<img src="static/red.png" alt="Red">',
     #    "CRITICAL":'<img src="static/red.png" alt="Red">'
     #}
-    _id = "_"
+    _grp = "_"
     color = ['<img src="static/black.png" alt="Black">',
              '<img src="static/green.png" alt="Green">',
              '<img src="static/yellow.png" alt="Yellow">',
@@ -43,9 +40,10 @@ def op_choice(base, nodes, test_info):
     element = "<ul>"
 
     for node in nodes:
-        if not node.name[3] == _id:
-            _id = node.name[3]
-            element += "<hr size=2><h3 id='%s'>%s</h3>" % (_id, DESC[_id])
+        p, grp, spec = node.name.split("-", 2)
+        if not grp == _grp:
+            _grp = grp
+            element += "<hr size=2><h3 id='%s'>%s</h3>" % (_grp, DESC[_grp])
         element += "<li><a href='%s%s'>%s</a>%s (%s) " % (base,
             node.name, color[node.state], node.desc, node.name)
 
