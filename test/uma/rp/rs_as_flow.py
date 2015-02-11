@@ -28,22 +28,23 @@ HEADLINES = {
     "H": "redirect_uri",
     "I": "Client Authentication",
     "J": "Key Rollover",
+    "resourceset": "Resource Set Registration Endpoint"
 }
 
 FLOWS = {
-    'OP-A-01': {
+    'UMA-A-01': {
         "desc": 'Verify UMA discovery',
         "sequence": ['_uma_discover_'],
         "profile": ".T.",
         "tests": {"verify-op-has-dynamic-client-endpoint": {}},
     },
-    'OP-B-01': {
+    'UMA-B-01': {
         "desc": 'Verify OIDC discovery',
         "sequence": ['_discover_'],
         "profile": ".T.",
         "tests": {"verify-op-has-registration-endpoint": {}},
     },
-    'OP-C-01': {
+    'UMA-C-01': {
         "desc": 'Dynamic OAuth2 Client registration Request',
         "sequence": [
             '_uma_discover_',
@@ -52,7 +53,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    'OP-C-02': {
+    'UMA-C-02': {
         "desc": 'Registration with policy_uri',
         "sequence": [
             'note',
@@ -66,7 +67,7 @@ FLOWS = {
                 "link to the client policy",
         "tests": {"check-http-response": {}},
     },
-    'OP-C-03': {
+    'UMA-C-03': {
         "desc": 'Registration with logo uri',
         "sequence": [
             'note',
@@ -80,7 +81,7 @@ FLOWS = {
                 "clients logo on the page",
         "tests": {"check-http-response": {}},
     },
-    'OP-C-04': {
+    'UMA-C-04': {
         "desc": 'Registration with tos url',
         "sequence": [
             'note',
@@ -94,25 +95,7 @@ FLOWS = {
                 "link to the clients Terms of Service",
         "tests": {"check-http-response": {}},
     },
-    # 'OP-C-05': {
-    #     "desc": 'Uses Keys Registered with jwks_uri Value',
-    #     "sequence": [
-    #         '_uma_discover_',
-    #         '_oauth_register_',
-    #         '_login_',
-    #         ("_accesstoken_",
-    #          {
-    #              "kwargs_mod": {"authn_method": "private_key_jwt"},
-    #              "support": {
-    #                  "warning": {
-    #                      "token_endpoint_auth_methods_supported":
-    #                          "client_secret_jwt"}}
-    #          }),
-    #     ],
-    #     "profile": "..T",
-    #     'tests': {"check-http-response": {}}
-    # },
-    'OP-C-05': {
+    'UMA-C-05': {
         "desc": 'Register and then read the client info',
         "sequence": [
             '_uma_discover_',
@@ -122,7 +105,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    "OP-C-06": {
+    "UMA-C-06": {
         "desc": "Modify client registration",
         "sequence": [
             '_uma_discover_',
@@ -132,7 +115,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    "OP-C-07": {
+    "UMA-C-07": {
         "desc": "Delete client registration",
         "sequence": [
             '_uma_discover_',
@@ -142,7 +125,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    'OP-D-01': {
+    'UMA-D-01': {
         "desc": 'Dynamic OpenID Connect Client registration Request',
         "sequence": [
             '_discover_',
@@ -151,7 +134,7 @@ FLOWS = {
         "profile": "..T",
         "tests": {"check-http-response": {}},
     },
-    'OP-D-02': {
+    'UMA-D-02': {
         "desc": 'Registration with policy_uri',
         "sequence": [
             'note',
@@ -165,7 +148,7 @@ FLOWS = {
                 "link to the client policy",
         "tests": {"check-http-response": {}},
     },
-    'OP-D-03': {
+    'UMA-D-03': {
         "desc": 'Registration with logo uri',
         "sequence": [
             'note',
@@ -179,7 +162,7 @@ FLOWS = {
                 "clients logo on the page",
         "tests": {"check-http-response": {}},
     },
-    'OP-D-04': {
+    'UMA-D-04': {
         "desc": 'Registration with tos url',
         "sequence": [
             'note',
@@ -193,7 +176,7 @@ FLOWS = {
                 "link to the clients Terms of Service",
         "tests": {"check-http-response": {}},
     },
-    'OP-D-05': {
+    'UMA-D-05': {
         "desc": 'Registering and then read the client info',
         "sequence": [
             '_discover_',
@@ -203,14 +186,14 @@ FLOWS = {
         "profile": "..T..+",
         "tests": {"check-http-response": {}},
     },
-    'OP-E-01': {
+    'UMA-E-01': {
         "desc": 'Request with response_type=code',
         "sequence": ['_uma_discover_', "_oauth_register_", "_login_"],
         "profile": "C..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
-    'OP-E-02': {
+    'UMA-E-02': {
         "desc": 'Authorization request missing the response_type parameter',
         "sequence": [
             '_uma_discover_',
@@ -230,14 +213,14 @@ FLOWS = {
         "profile": "..",
         "mti": "MUST"
     },
-    'OP-E-03': {
+    'UMA-E-03': {
         "desc": 'Request with response_type=token',
         "sequence": ['_uma_discover_', "_oauth_register_", "_login_"],
         "profile": "T..",
         'tests': {"check-http-response": {}},
         "mti": "MUST"
     },
-    'OP-F-01': {
+    'UMA-F-01': {
         "desc": 'The sent redirect_uri does not match the registered',
         "sequence": [
             '_discover_',
@@ -251,7 +234,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": "MUST",
     },
-    'OP-F-02': {
+    'UMA-F-02': {
         "desc": 'Reject request without redirect_uri when multiple registered',
         "sequence": [
             '_discover_',
@@ -265,7 +248,7 @@ FLOWS = {
                 "returning an error message to your web browser.",
         "mti": "MUST",
     },
-    'OP-F-03': {
+    'UMA-F-03': {
         "desc": 'Request with redirect_uri with query component',
         "sequence": [
             '_discover_',
@@ -278,7 +261,7 @@ FLOWS = {
         'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
                   "check-http-response": {}}
     },
-    'OP-F-04': {
+    'UMA-F-04': {
         "desc": 'Registration where a redirect_uri has a query component',
         "sequence": [
             '_discover_',
@@ -292,7 +275,7 @@ FLOWS = {
                      "#section-3.1.2",
         'tests': {"check-http-response": {}},
     },
-    'OP-F-05': {
+    'UMA-F-05': {
         "desc": 'Rejects redirect_uri when Query Parameter Does Not Match',
         "sequence": [
             '_discover_',
@@ -312,7 +295,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": "MUST",
     },
-    'OP-F-06': {
+    'UMA-F-06': {
         "desc": 'Reject registration where a redirect_uri has a fragment',
         "sequence": [
             '_discover_',
@@ -325,7 +308,7 @@ FLOWS = {
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
     },
-    'OP-F-07': {
+    'UMA-F-07': {
         "desc": 'No redirect_uri in request with one registered',
         "sequence": [
             '_discover_',
@@ -336,33 +319,41 @@ FLOWS = {
         "profile": "....+",
         'tests': {"check-http-response": {}},
     },
-    'OP-G-01': {
+    'UMA-G-01': {
         "desc": 'Acquire PAT',
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            'store_pat'],
+        "profile": "C..",
+        'tests': {"check-http-response": {}},
+    },
+    'UMA-G-02': {
+        "desc": 'Acquire AAT',
         "sequence": [
             '_uma_discover_',
             '_oauth_register_',
             ('_login_',
              {
-                 "request_args": {"scope": [PAT]},
+                 "request_args": {"scope": [AAT]},
              }),
-            '_accesstoken_'],
+            '_accesstoken_'
+        ],
         "profile": "C..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
-    # 'OP-G-02': {
-    #     "desc": 'Acquire AAT',
-    #     "sequence": [
-    #         '_uma_discover_',
-    #         '_oauth_register_',
-    #         ('_login_',
-    #          {
-    #              "request_args": {"scope": [AAT]},
-    #          }),
-    #         '_accesstoken_'],
-    #     "profile": "C..",
-    #     'tests': {"check-http-response": {}},
-    #     "mti": "MUST"
-    # },
+    'UMA-resourceset-create': {
+        "desc": "Create resource set",
+        "sequence": [
+            'retrieve_pat',
+            ('create_resource_set', {
+                "request_args": {}
+            })
+        ],
+        "profile": "C..",
+        "tests": {},
+    }
 }
 

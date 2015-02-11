@@ -29,6 +29,31 @@ USERINFO_REQUEST_AUTH_METHOD = (
         "method": "GET"
     })
 
+ORDDESC = ["OP-Response", "OP-IDToken", "OP-UserInfo", "OP-nonce", "OP-scope",
+           "OP-display", "OP-prompt", "OP-Req", "OP-OAuth", "OP-redirect_uri",
+           "OP-ClientAuth", "OP-Discovery", "OP-Registration", "OP-Rollover",
+           "OP-request_uri", "OP-request", "OP-claims"]
+
+DESC = {
+    "Response": "Response Type & Response Mode",
+    "IDToken": "ID Token",
+    "UserInfo": "Userinfo Endpoint",
+    "nonce": "nonce Request Parameter",
+    "scope": "scope Request Parameter",
+    "display": "display Request Parameter",
+    "prompt": "prompt Request Parameter",
+    "Req": "Misc Request Parameters",
+    "OAuth": "OAuth behaviors",
+    "redirect_uri": "redirect_uri",
+    "ClientAuth": "Client Authentication",
+    "Discovery": "Discovery",
+    "Registration": "Dynamic Client Registration",
+    "Rollover": "Key Rollover",
+    "request_uri": "request_uri Request Parameter",
+    "request": "request Request Parameter",
+    "claims": "claims Request Parameter",
+}
+
 FLOWS = {
     'OP-Response-code': {
         "desc": 'Request with response_type=code',

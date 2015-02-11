@@ -125,6 +125,7 @@ def flow_list(environ, start_response, session):
         "profile": session["profile"],
         "test_info": session["test_info"].keys(),
         "base": CONF.BASE,
+        "headlines": TEST_FLOWS.DESC
     }
 
     return resp(environ, start_response, **argv)
@@ -878,9 +879,16 @@ def init_session(session, profile=None):
     if profile is None:
         profile = TEST_PROFILE
 
+    f_names = TEST_FLOWS.FLOWS.keys()
+    f_names.sort()
+    session["flow_names"] = []
+    for k in TEST_FLOWS.ORDDESC:
+        l = [z for z in f_names if z.startswith(k)]
+        session["flow_names"].extend(l)
+
     session["tests"] = [make_node(x, TEST_FLOWS.FLOWS[x]) for x in
-                        flows(profile)]
-    session["flow_names"] = [y.name for y in session["tests"]]
+                        flows(profile, session["flow_names"])]
+
     session["response_type"] = []
     session["test_info"] = {}
     session["profile"] = profile

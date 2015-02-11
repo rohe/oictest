@@ -836,16 +836,16 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                         elif isinstance(response, ClientInfoResponse):
                             ots.client.uma_registration_info = response
                             ots.client.store_registration_info(response)
-                    elif resp_c.response == "AccessTokenResponse":
-                        if "error" not in response:
-                            try:
-                                ots.client.verify_id_token(
-                                    response["id_token"],
-                                    conv.AuthorizationRequest)
-                            except (OtherError, AuthnToOld) as err:
-                                return err_response(
-                                    environ, start_response, session,
-                                    "id_token_verification", err)
+                    # elif resp_c.response == "AccessTokenResponse":
+                    #     if "error" not in response:
+                    #         try:
+                    #             ots.client.verify_id_token(
+                    #                 response["id_token"],
+                    #                 conv.AuthorizationRequest)
+                    #         except (OtherError, AuthnToOld) as err:
+                    #             return err_response(
+                    #                 environ, start_response, session,
+                    #                 "id_token_verification", err)
             try:
                 post_tests(conv, req_c, resp_c)
             except Exception as err:
@@ -1148,13 +1148,13 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
-            if "id_token" in response:
-                try:
-                    ots.client.verify_id_token(response["id_token"],
-                                               conv.AuthorizationRequest)
-                except (OtherError, AuthnToOld) as err:
-                    return err_response(environ, start_response, session,
-                                        "id_token_verification", err)
+            # if "id_token" in response:
+            #     try:
+            #         ots.client.verify_id_token(response["id_token"],
+            #                                    conv.AuthorizationRequest)
+            #     except (OtherError, AuthnToOld) as err:
+            #         return err_response(environ, start_response, session,
+            #                             "id_token_verification", err)
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:

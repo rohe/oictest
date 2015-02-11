@@ -235,17 +235,16 @@ def map_prof(a, b):
     return True
 
 
-def flows(code):
+def flows(code, ordered_list):
     res = []
     p = code.split('.')
 
-    for key, flow in FLOWS.items():
-        sp = flow["profile"].split('.')
+    for key in ordered_list:
+        sp = FLOWS[key]["profile"].split('.')
 
         if map_prof(p, sp):
             res.append(key)
 
-    res.sort()
     return res
 
 

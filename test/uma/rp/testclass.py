@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from base64 import b64encode
+from urllib import urlencode, quote
 from oic.oic import OIDCONF_PATTERN, ProviderConfigurationResponse
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
@@ -8,6 +10,7 @@ from oic.utils.webfinger import OIC_ISSUER
 
 import copy
 from oic.oauth2.message import SchemeError
+from uma import PAT, AAT
 from rrtest.check import CheckHTTPResponse
 from uma.client import UMACONF_PATTERN
 from uma.message import ProviderConfiguration
@@ -106,6 +109,53 @@ class Notice(Process):
 
     def cache(self, cache, conv, items):
         return None
+
+
+class StoreX(Process):
+    id = "X"
+    scope = ""
+
+    def __call__(self, conv, **kwargs):
+        cli = conv.client
+        _grant = cli.grant.values()[0]
+        token = _grant.tokens[0].access_token
+        name = self.id + b64encode(str(cli.client_config["srv_discovery_url"]))
+        f = open(name, 'w')
+        f.write(token)
+        f.close()
+
+
+class StorePAT(StoreX):
+    id = "PAT"
+    scope = PAT
+
+
+class StoreAAT(StoreX):
+    id = "AAT"
+    scope = AAT
+
+
+class RetrieveX(Process):
+    id = "X"
+    scope = ""
+
+    def __call__(self, conv, **kwargs):
+        cli = conv.client
+        name = b64encode(str(cli.client_config["srv_discovery_url"]))
+        f = open(self.id + name)
+        token = f.read()
+        f.close()
+        cli.token[self.scope] = token
+
+
+class RetrievePAT(RetrieveX):
+    id = "PAT"
+    scope = PAT
+
+
+class RetrieveAAT(RetrieveX):
+    id = "AAT"
+    scope = AAT
 
 
 class ExpectError(Notice):
@@ -501,6 +551,19 @@ class ClientDeleteRequest(DeleteRequest):
         self.kw_args["endpoint"] = _rresp["registration_client_uri"]
 
 
+class CreateResourceSetRequest(PostRequest):
+    request = "ResourceSetDescription"
+    endpoint = "resource_set_registration_endpoint"
+
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token["pat"]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = _client.registration_response[
+            "registration_client_uri"]
+        self.kw_args["content_type"] = JSON_ENCODED
+
+
 # ========== RESPONSE MESSAGES ========
 
 class OIDCProviderConfigurationResponse(BodyResponse):
@@ -564,6 +627,12 @@ class NoneResponse(BodyResponse):
     response = "Message"
     module = "oic.oic.message"
 
+
+class CreateResourceSetResponse(BodyResponse):
+    response = "Message"
+    module = "oic.oic.message"
+
+
 # ============================================================================
 
 PHASES = {
@@ -578,6 +647,8 @@ PHASES = {
     "oauth-read-registration": (ReadRegistration, OAuthRegistrationResponse),
     "modify-registration": (ClientUpdateRequest, OAuthRegistrationResponse),
     "delete-registration": (ClientDeleteRequest, NoneResponse),
+    'create_resource_set': (CreateResourceSetRequest,
+                            CreateResourceSetResponse),
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,
@@ -588,5 +659,9 @@ PHASES = {
     "display_userinfo": DisplayUserInfo,
     "display_idtoken": DisplayIDToken,
     "fetch_keys": FetchKeys,
-    "cache-id_token": CacheIdToken
+    "cache-id_token": CacheIdToken,
+    'store_pat': StorePAT,
+    'retrieve_pat': RetrievePAT,
+    'store_aat': StoreAAT,
+    'retrieve_aat': RetrieveAAT
 }
