@@ -1,4 +1,5 @@
 from oic import oic
+from oic.oauth2 import Message, rndstr
 from oic.oic import provider
 
 __author__ = 'roland'
@@ -53,6 +54,7 @@ class Provider(provider.Provider):
         self.err_type = []
         self.server = Server(ca_certs=ca_certs, verify_ssl=verify_ssl)
         self.server.err_type = self.err_type
+        self.claim_access_token = {}
 
     def id_token_as_signed_jwt(self, session, loa="2", alg="", code=None,
                                access_token=None, user_info=None, auth_time=0,
@@ -69,3 +71,23 @@ class Provider(provider.Provider):
             _jws = ".".join(p)
 
         return _jws
+
+    def _collect_user_info(self, session, userinfo_claims=None):
+        ava = provider.Provider._collect_user_info(self, session,
+                                                   userinfo_claims)
+
+        if "aggregated" in self.claims_type:  # add some aggregated claims
+            extra = Message(eye_color="blue", shoe_size=8)
+            _jwt = extra.to_jwt(algorithm="none")
+            ava["_claim_names"] = Message(eye_color="src1", shoe_size="src1")
+            ava["_claim_sources"] = Message(src1={"JWT": _jwt})
+
+        if "distributed" in self.claims_type:
+            urlbase = self.name
+            _tok = rndstr()
+            self.claim_access_token[_tok] = {"age": 30}
+            ava["_claim_names"] = Message(age="src1")
+            ava["_claim_sources"] = Message(
+                src1={"endpoint": urlbase + "claim", "access_token": _tok})
+
+        return ava

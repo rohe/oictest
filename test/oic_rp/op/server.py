@@ -441,6 +441,23 @@ def application(environ, start_response):
         return response_encoder.returnJSON(
             json.dumps({"client_id": client_id,
                         "client_secret": client_secret}))
+    elif path == "claim":
+        _oas = session["op"]
+        authz = environ["HTTP_AUTHORIZATION"]
+        try:
+            assert authz.startswith("Bearer")
+        except AssertionError:
+            resp = BadRequest()
+        else:
+            tok = authz[7:]
+            try:
+                _claims = _oas.claim_access_token[tok]
+            except KeyError:
+                resp = BadRequest()
+            else:
+                del _oas.claim_access_token[tok]
+                resp = Response(json.dumps(_claims), content='application/json')
+        return resp(environ, start_response)
 
     mode, endpoint = extract_mode(path)
 

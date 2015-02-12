@@ -12,7 +12,7 @@ from oic.oic import AuthorizationRequest
 from oic.oic import AuthorizationResponse
 from oic.oic import AccessTokenResponse
 from oic.oic import Client
-from oic.utils.authn.client import CLIENT_AUTHN_METHOD
+from oic.utils.authn.client import CLIENT_AUTHN_METHOD, BearerHeader
 from oic.utils.http_util import Response, get_post
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import ServiceError
@@ -86,6 +86,21 @@ def include(url, test_id):
     return "%s://%s/%s%s" % (p.scheme, p.netloc, test_id, p.path)
 
 
+def get_claims(client):
+    resp = {}
+    for src in client.userinfo["_claim_names"].values():
+        spec = client.userinfo["_claim_sources"][src]
+        ht_args = BearerHeader(client).construct(**spec)
+
+        try:
+            part = client.http_request(spec["endpoint"], "GET", **ht_args)
+        except Exception:
+            raise
+        resp.update(json.loads(part.content))
+
+    return resp
+
+
 def run_flow(client, index, session, test_id):
     if index < len(session["flow"]["flow"]):
         session["index"] = index
@@ -143,6 +158,10 @@ def run_flow(client, index, session, test_id):
                 _args["state"] = session["state"]
                 userinfo = client.do_user_info_request(**_args)
                 assert userinfo
+                client.userinfo = userinfo
+            elif spec["action"] == "fetch_claims":
+                res = get_claims(client)
+                assert res
 
     session["done"].append(session["item"])
     return None

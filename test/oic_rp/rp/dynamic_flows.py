@@ -227,7 +227,7 @@ FLOWS = {
     },
     # ? at_hash when Implicit Flow Used
     # Reject incorrect
-    "RP-J-01": {
+    "RP-at_hash-incorrect": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -241,7 +241,7 @@ FLOWS = {
         "desc": "Rejects incorrect at_hash when Implicit Flow is Used"
     },
     # Accept correct
-    "RP-J-02": {
+    "RP-at_hash-correct": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -253,7 +253,7 @@ FLOWS = {
         "desc": "Verifies correct at_hash when Code Implicit is Used"
     },
     # Can Use Elliptic Curve ID Token Signatures
-    "RP-K-01": {
+    "RP-id_token-Elliptic-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -264,7 +264,7 @@ FLOWS = {
         ],
         "desc": "Can Use Elliptic Curve ID Token Signatures"
     },
-    "RP-L-01": {
+    "RP-id_token-claims": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -279,7 +279,7 @@ FLOWS = {
                 "request parameter"
     },
     #
-    "RP-M-01": {
+    "RP-userinfo-access": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -293,7 +293,7 @@ FLOWS = {
         "desc": "Accesses UserInfo Endpoint with Header Method"
     },
     #
-    "RP-N-01": {
+    "RP-userinfo-json": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -307,7 +307,7 @@ FLOWS = {
         "desc": "Can Request and Use JSON UserInfo Response"
     },
     #
-    "RP-N-02": {
+    "RP-userinfo-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -321,7 +321,7 @@ FLOWS = {
         ],
         "desc": "Can Request and Use Signed UserInfo Response"
     },
-    "RP-N-03": {
+    "RP-userinfo-Enc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -340,7 +340,7 @@ FLOWS = {
         ],
         "desc": "Can Request and Use Encrypted UserInfo Response"
     },
-    "RP-N-04": {
+    "RP-userinfo-Sig+Enc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -361,7 +361,7 @@ FLOWS = {
     },
     # ==== Can Use request_uri Request Parameter with ? Request ===
     # Unsigned
-    "RP-O-01": {
+    "RP-request_uri-Unsigned": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -374,7 +374,7 @@ FLOWS = {
         "desc": "Can Use request_uri Request Parameter with Unsigned Request"
     },
     # Signed
-    "RP-O-02": {
+    "RP-request_uri-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -387,7 +387,7 @@ FLOWS = {
         "desc": "Can Use request_uri Request Parameter with Signed Request"
     },
     # Encrypted
-    "RP-O-03": {
+    "RP-request_uri-Enc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -404,7 +404,7 @@ FLOWS = {
         "desc": "Can Use request_uri Request Parameter with Encrypted Request"
     },
     # Signed+Encrypted
-    "RP-O-04": {
+    "RP-request_uri-Sig+Enc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -423,13 +423,70 @@ FLOWS = {
     },
     #
     # ==== Requesting UserInfo Claims with ? ====
-    # scope Values
-    # claims Request Parameter
-    #
+    "RP-userinfo-scope": {
+        "desc": "Accesses UserInfo Endpoint with Header Method",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_header"}}
+        ]
+    },
+    "RP-userinfo-claims": {
+        "desc": "Accesses UserInfo Endpoint with Header Method",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid"],
+                      "response_type": ["code"],
+                      "claims": {"userinfo": {"name": {"essential": True}}}}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_header"}}
+        ]
+    },
     # ==== Uses ? Claims ====
     # Normal
     # Aggregated
     # Distributed
+    "RP-claims-aggregated": {
+        "desc": "Handles aggregated user information",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/_/aggregated"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_header"}},
+        ]
+    },
+    "RP-claims-distributed": {
+        "desc": "Handles distributed user information",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/_/distributed"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_header"}},
+            {"action": "fetch_claims", "args": {}}
+        ]
+    },
     #
     # ==== Uses Keys Discovered with jwks_uri Value ====
     #
