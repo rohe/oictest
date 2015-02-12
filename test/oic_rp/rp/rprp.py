@@ -83,7 +83,7 @@ def flow_list(environ, start_response, flows, done):
 
 def include(url, test_id):
     p = urlparse(url)
-    return "%s://%s/%s%s" % (p.scheme, p.netloc, test_id, p.path)
+    return "%s://%s/%s%s_/_/_/normal" % (p.scheme, p.netloc, test_id, p.path)
 
 
 def get_claims(client):
@@ -99,6 +99,20 @@ def get_claims(client):
         resp.update(json.loads(part.content))
 
     return resp
+
+
+def catch_exception(spec, func, **kwargs):
+    try:
+        res = func(**kwargs)
+    except Exception as err:
+        try:
+            assert isinstance(err, spec["error"])
+        except AssertionError:
+            raise
+        else:
+            res = None
+
+    return res
 
 
 def run_flow(client, index, session, test_id):
@@ -123,19 +137,19 @@ def run_flow(client, index, session, test_id):
                     session["issuer"] = client.discover(CONF.ISSUER+test_id)
             elif spec["action"] == "provider_info":
                 if _args:
-                    _args["issuer"] = include(_args["issuer"],
-                                                     test_id)
-                    client.provider_config(**_args)
+                    _args["issuer"] = include(_args["issuer"], test_id)
+                    catch_exception(spec, client.provider_config, **_args)
                 else:
-                    client.provider_config(include(session["issuer"], test_id))
+                    catch_exception(spec, client.provider_config,
+                                    issuer=include(session["issuer"], test_id))
             elif spec["action"] == "registration":
                 _endp = client.provider_info["registration_endpoint"]
                 if _args:
                     if "jwks_uri" in _args:
                         _args["jwks_uri"] = JWKS_URI
-                    client.register(_endp, **_args)
+                    catch_exception(spec, client.register, url=_endp, **_args)
                 else:
-                    client.register(_endp)
+                    catch_exception(spec, client.register, url=_endp)
                 client.client_prefs = _args
             elif spec["action"] == "static_registration":
                 client.store_registration_info(_args)
@@ -177,7 +191,7 @@ def application(environ, start_response):
         _cli = session["client"] = Client(
             client_authn_method=CLIENT_AUTHN_METHOD, keyjar=KEYJAR)
         _cli.kid = KIDD
-        _cli.allow["issuer_mismatch"] = True
+        #_cli.allow["issuer_mismatch"] = True
         _cli.jwks_uri = JWKS_URI
         for arg, val in CONF.CLIENT_INFO.items():
             setattr(_cli, arg, val)

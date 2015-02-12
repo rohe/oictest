@@ -113,7 +113,7 @@ FLOWS = {
     },
     ### === Accept Valid ? ID Token Signature	===
     # Asymmetric
-    "RP-F-01": {
+    "RP-id_token-asym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -125,7 +125,7 @@ FLOWS = {
         "desc": "Accept Valid Asymmetric ID Token Signature"
     },
     # Symmetric
-    "RP-F-02": {
+    "RP-id_token-sym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -138,7 +138,7 @@ FLOWS = {
     },
     ### === Reject Invalid ? ID Token Signature ===
     # Asymmetric
-    "RP-G-01": {
+    "RP-id_token-invalid-Asym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -152,7 +152,7 @@ FLOWS = {
         "desc": "Reject Invalid Asymmetric ID Token Signature"
     },
     # Symmetric
-    "RP-G-02": {
+    "RP-id_token-invalid-Sym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -168,7 +168,7 @@ FLOWS = {
     ### === Can Request and Use ? ID Token Response ===
     # Signed and Encrypted
     # *signed is already tested*
-    "RP-H-01": {
+    "RP-id_token-SigEnc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -184,7 +184,7 @@ FLOWS = {
         "desc": "Can Request and Use Signed and Encrypted ID Token Response"
     },
     # Unsigned
-    "RP-H-02": {
+    "RP-id_token-none": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -206,9 +206,8 @@ FLOWS = {
             {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": "openid",
-                      "response_type": ["code", "id_token"]}},
-            {"action": "token_req", "args": {},
-             "error": CHashError},
+                      "response_type": ["code", "id_token"]},
+             "error": CHashError}
         ],
         "desc": "Rejects incorrect c_hash when Code Flow is Used"
     },
@@ -452,10 +451,6 @@ FLOWS = {
              "args": {"authn_method": "bearer_header"}}
         ]
     },
-    # ==== Uses ? Claims ====
-    # Normal
-    # Aggregated
-    # Distributed
     "RP-claims-aggregated": {
         "desc": "Handles aggregated user information",
         "flow": [
@@ -487,24 +482,34 @@ FLOWS = {
             {"action": "fetch_claims", "args": {}}
         ]
     },
-    #
-    # ==== Uses Keys Discovered with jwks_uri Value ====
-    #
-    # ==== Can Rollover RP ? Key ====
-    # Signing
-    # Encryption
-    #
-    # ==== Rejects Discovered issuer Not Matching ? ====
-    # ID Token iss Value
-    # openid-configuration Path Prefix
-    #
+    "RP-issuer-not-matching-config": {
+        "desc": "Rejects Discovered issuer Not Matching openid-configuration "
+                "Path Prefix",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/isso/normal"},
+             "error": Exception}
+        ]
+    },
+    "RP-issuer-not-matching-idtoken": {
+        "desc": "Rejects Discovered issuer Not Matching ID Token iss",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/issi/normal"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ]
+    }
     # ==== Support OP ? Key Rollover ====
     # Signing
     # Encryption
     #
     # ==== ID Spoofing ====
-    # ==== Issuer Confusion ====
-    # ==== Signature Manipulation ====
     # ==== Sub Claims Spoofing ====
     # ==== Redirect URI Manipulation ====
 }

@@ -1,6 +1,6 @@
 from oic import oic
 from oic.oauth2 import Message, rndstr
-from oic.oic import provider
+from oic.oic import provider, ProviderConfigurationResponse
 
 __author__ = 'roland'
 
@@ -35,6 +35,9 @@ class Server(oic.Server):
                 idt["c_hash"] = sort_string(idt["c_hash"])
             except KeyError:
                 pass
+
+        if "issi" in self.err_type:  # mess with the iss value
+            idt["iss"] = "https://example.org/"
 
         return idt
 
@@ -91,3 +94,13 @@ class Provider(provider.Provider):
                 src1={"endpoint": urlbase + "claim", "access_token": _tok})
 
         return ava
+
+    def create_providerinfo(self, pcr_class=ProviderConfigurationResponse,
+                            setup=None):
+        _response = provider.Provider.create_providerinfo(self, pcr_class,
+                                                          setup)
+
+        if "isso" in self.err_type:
+            _response["issuer"] = "https://example.com"
+
+        return _response
