@@ -47,7 +47,7 @@ PROFILEMAP = {
         "_login_": ("oic-login",
                     {"request_args": {
                         "response_type": ["code", "id_token", "token"]}}),
-        "_accesstoken_": None,
+        "_accesstoken_": "access-token-request",
     },
     "Discover": {
         "*": ("provider-discovery", {})

@@ -1076,7 +1076,7 @@ FLOWS = {
     'OP-Registration-Endpoint': {
         "desc": 'Verify that registration_endpoint is published',
         "sequence": ['_discover_'],
-        "profile": ".T.",
+        "profile": ".T.T",
         "tests": {"verify-op-has-registration-endpoint": {}},
     },
     'OP-Registration-Dynamic': {
