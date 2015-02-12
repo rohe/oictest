@@ -11,6 +11,10 @@ hr {
     margin-top: 0px;
 }
 
+.singleLine{
+    padding-top: 25px;
+}
+
 #content{
     margin: 20px;
 }

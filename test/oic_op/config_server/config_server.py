@@ -72,6 +72,69 @@ def op_config(environ, start_response):
                     headers=[])
     return resp(environ, start_response)
 
+def createNewConfigurationDict():
+    """
+    :return Returns a new configuration which follows the internal data structure
+    """
+    staticInputFieldsList = generateStaticInputFields();
+    opConfigurations = {
+        "fetchInfoFromServerDropDown": {
+            "name": "How should the application fetch provider configurations from the server?",
+            "value": "",
+            "values": [{"type": "dynamic", "name": "Dynamically"},
+                       {"type": "static", "name": "Statically"}]
+        },
+        "fetchStaticProviderInfo": {"showInputFields": False, "inputFields": staticInputFieldsList},
+        "fetchDynamicInfoFromServer": {"showInputField": False,
+                                       "inputField": {"label": "Issuer url *", "value": "", "show": False, "isList": False}},
+        "dynamicClientRegistrationDropDown": {
+            "label": "Do the provider support dynamic client registration?",
+            "value": "yes",
+            "values": [{"type": "yes", "name": "yes"},
+                       {"type": "no", "name": "no"}]
+        },
+        "responseTypeDropDown": {
+            "label": "Which response type should be used?",
+            "value": "code",
+            "values": [
+                {"type": "code", "name": "code"},
+                {"type": "id_token", "name": "id_token"},
+                {"type": "id_token token", "name": "id_token token"},
+                {"type": "code id_token", "name": "code id_token"},
+                {"type": "code token", "name": "code token"},
+                {"type": "code id_token token", "name": "code id_token token"}
+            ]
+        },
+        "signingEncryptionFeaturesCheckboxes": {
+            "label": "Select supported features:",
+            "features": [
+                {"name": 'JWT signed with "None" algorithm (Unsigned)', "selected": False, "argument":"n"},
+                {"name": 'JWT signed with algorithm other then "None"', "selected": False, "argument":"s"},
+                {"name": 'Encrypted JWT', "selected": False, "argument":"e"}
+            ]
+        },
+        "supportsStaticClientRegistrationTextFields":[
+            {"id": "redirect_uris", "label": "Redirect uris", "textFieldContent": "", "disabled": True},
+            {"id": "client_id", "label": "Client id *", "textFieldContent": ""},
+            {"id": "client_secret", "label": "Client secret *", "textFieldContent": ""}],
+
+        "clientSubjectType":{
+            "label": "Select which subject identifier type the client should use: ",
+            "value": "public",
+            "values": [{"type": "public", "name": "public"},
+                       {"type": "pairwise", "name": "pairwise"}]
+        },
+        "webfingerSubject": "",
+        "loginHint": "",
+        #Since angular js needs objects to use in ng-model the subClaim elements looks like this ['claim', 'value']
+        "subClaim": [],
+        #Since angular js needs objects to use in ng-model the list elements uses elements like this {"value": ""}
+        "uiLocales": [],
+        "claimsLocales": [],
+        "acrValues": [],
+    }
+    return opConfigurations
+
 def isPyoidcMessageList(fieldType):
     if fieldType == REQUIRED_LIST_OF_SP_SEP_STRINGS:
         return True
@@ -112,49 +175,6 @@ def generateStaticInputFields():
 
 
     return staticProviderConfigFieldsList
-
-def createNewConfigurationDict():
-    """
-    :return Returns a new configuration which follows the internal data structure
-    """
-    staticInputFieldsList = generateStaticInputFields();
-    opConfigurations = {
-        "fetchInfoFromServerDropDown": {
-            "name": "How should the application fetch provider configurations from the server?",
-            "value": "",
-            "values": [{"type": "dynamic", "name": "Dynamically"},
-                       {"type": "static", "name": "Statically"}]
-        },
-        "fetchStaticProviderInfo": {"showInputFields": False, "inputFields": staticInputFieldsList},
-        "fetchDynamicInfoFromServer": {"showInputField": False,
-                                       "inputField": {"label": "Issuer url *", "value": "", "show": False, "isList": False}},
-        "dynamicClientRegistrationDropDown": {
-            "label": "Do the provider support dynamic client registration?",
-            "value": "yes",
-            "values": [{"type": "yes", "name": "yes"},
-                       {"type": "no", "name": "no"}]
-        },
-        "supportsStaticClientRegistrationTextFields":[
-            {"id": "redirect_uris", "label": "Redirect uris", "textFieldContent": "", "disabled": True},
-            {"id": "client_id", "label": "Client id *", "textFieldContent": ""},
-            {"id": "client_secret", "label": "Client secret *", "textFieldContent": ""}],
-
-        "clientSubjectType":{
-            "label": "Select which subject identifier type the client should use: ",
-            "value": "public",
-            "values": [{"type": "public", "name": "public"},
-                       {"type": "pairwise", "name": "pairwise"}]
-        },
-        "webfingerSubject": "",
-        "loginHint": "",
-        #Since angular js needs objects to use in ng-model the subClaim elements looks like this ['claim', 'value']
-        "subClaim": [],
-        #Since angular js needs objects to use in ng-model the list elements uses elements like this {"value": ""}
-        "uiLocales": [],
-        "claimsLocales": [],
-        "acrValues": [],
-    }
-    return opConfigurations
 
 def convertDynamicProviderData(configFileDict, configGuiStructure):
     """
@@ -252,6 +272,15 @@ def convertToValueList(list):
 
     return valueList
 
+def setFeatureList(configStructureDict, oprp_arg):
+    feature_list = configStructureDict['signingEncryptionFeaturesCheckboxes']['features']
+
+    for feature in feature_list:
+        if feature['argument'] in oprp_arg:
+            feature['selected'] = True
+        else:
+            feature['selected'] = False
+
 def convertToConfigGuiStructure(configFileDict):
     """
     Converts a config file structure to a config GUI structure
@@ -270,6 +299,11 @@ def convertToConfigGuiStructure(configFileDict):
     configStructureDict = convertClientRegistrationSupported(configFileDict, configStructureDict)
 
     configStructureDict['clientSubjectType']['value'] = configFileDict['preferences']['subject_type']
+
+    configStructureDict['responseTypeDropDown']['value'] = configFileDict['behaviour']['response_type']
+
+    if 'oprp_arg' in configFileDict:
+        setFeatureList(configStructureDict, configFileDict['oprp_arg'])
 
     if 'webfinger_subject' in configFileDict:
         configStructureDict['webfingerSubject'] = configFileDict['webfinger_subject']
@@ -399,6 +433,44 @@ def clear_optional_keys(configDict):
 
     return configDict
 
+def convertFeaturesToOprpArgument(configGuiStructure):
+    arg = ""
+    for feature in configGuiStructure['signingEncryptionFeaturesCheckboxes']['features']:
+        if feature['selected']:
+            arg += feature['argument']
+    return arg
+
+def convertToResponseTypeArgToArgument(response_type):
+    arguments = {"code": "C",
+                 "id_token": "I",
+                 "id_token token": "IT",
+                 "code id_token": "CI",
+                 "code token": "CT",
+                 "code id_token token": "CIT"}
+
+    return arguments[response_type]
+
+def convertDynamicClientRegistrationToArgument(configGuiStructure):
+    if configGuiStructure['dynamicClientRegistrationDropDown']['value'] == "yes":
+        return "T"
+    return "F"
+
+def convertDynamicDiscoveryToArgument(configGuiStructure):
+    if containsDynamicDiscoveryInfo(configGuiStructure):
+        return "T"
+    return "F"
+
+def collectOprpArgs(configGuiStructure):
+    response_type = convertToResponseTypeArgToArgument(configGuiStructure["responseTypeDropDown"]["value"])
+    supports_dynamic_discovery = convertDynamicDiscoveryToArgument(configGuiStructure)
+    supports_dynamic_client_registration = convertDynamicClientRegistrationToArgument(configGuiStructure)
+    supported_signing_encryption_features = convertFeaturesToOprpArgument(configGuiStructure)
+
+    return response_type + "." + supports_dynamic_discovery + "." + \
+           supports_dynamic_client_registration + "." + supported_signing_encryption_features
+
+def containsDynamicDiscoveryInfo(configGuiStructure):
+    return configGuiStructure['fetchDynamicInfoFromServer']['showInputField'] == True
 
 def convertOpConfigToConfigFile(configGuiStructure, session):
     """
@@ -406,9 +478,9 @@ def convertOpConfigToConfigFile(configGuiStructure, session):
     :param configGuiStructure: Data structure used to hold and show configuration information in the Gui
     :return A dictionary which follows the "Configuration file structure", see setup.rst
     """
-    configDict = session[OP_CONFIG_KEY]
+    configDict = get_default_client()
 
-    if configGuiStructure['fetchDynamicInfoFromServer']['showInputField'] == True:
+    if containsDynamicDiscoveryInfo(configGuiStructure):
         dynamicInputFieldValue = configGuiStructure['fetchDynamicInfoFromServer']['inputField']['value']
         configDict['srv_discovery_url'] = dynamicInputFieldValue
 
@@ -418,6 +490,10 @@ def convertOpConfigToConfigFile(configGuiStructure, session):
     configDict = convertClientRegistration(configGuiStructure, configDict)
 
     configDict['preferences']['subject_type'] = configGuiStructure["clientSubjectType"]["value"]
+
+    configDict['behaviour']['response_type'] = configGuiStructure["responseTypeDropDown"]["value"]
+
+    configDict['oprp_arg'] = convertFeaturesToOprpArgument(configGuiStructure)
 
     configDict = clear_optional_keys(configDict)
 
@@ -448,6 +524,7 @@ def handle_post_op_config(response_encoder, parameters, session):
     :return A default Json structure, which should be ignored
     """
     opConfigurations = parameters['opConfigurations']
+    session["oprp_arg"] = collectOprpArgs(opConfigurations)
     session[OP_CONFIG_KEY] = convertOpConfigToConfigFile(opConfigurations, session)
     return response_encoder.returnJSON({})
 
@@ -568,7 +645,7 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
         try:
             response = requests.get(oprp_url, verify=False)
 
-            if response:
+            if response.status_code == 200:
                 return
         except ConnectionError:
             pass
@@ -595,6 +672,26 @@ def start_rp_process(port, command, working_directory=None):
 
 config_tread_lock = threading.Lock()
 
+
+def kill_existing_process_on_port(port, session):
+    # Check if process is running on specified port
+    try:
+        response = requests.get(get_base_url(port), verify=False)
+
+        if response.status_code == 200 and session[OP_CONFIG_KEY]:
+            p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+            out, err = p.communicate()
+
+            for line in out.splitlines():
+                if "rp_conf_" + str(port) in line:
+                    pid = int(line.split(None, 1)[0])
+                    os.kill(pid, signal.SIGKILL)
+                    break
+
+    except ConnectionError:
+        pass
+
+
 def handle_start_op_tester(session, response_encoder):
 
     if "client_registration" not in session[OP_CONFIG_KEY]:
@@ -613,35 +710,31 @@ def handle_start_op_tester(session, response_encoder):
     with open(config_file.name, "w") as file:
         file.write(config_module)
 
+    kill_existing_process_on_port(port, session)
+
     config_file_name = os.path.basename(config_file.name)
+    config_module = config_file_name.split(".")[0]
 
-    #Check if process is running on specified port
-    try:
-        response = requests.get(get_base_url(port), verify=False)
-
-        if response.status_code == 200 and session[OP_CONFIG_KEY]:
-            p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
-            out, err = p.communicate()
-
-            for line in out.splitlines():
-                if "rp_conf_" + str(port) in line:
-                    pid = int(line.split(None, 1)[0])
-                    os.kill(pid, signal.SIGKILL)
-                    break
-
-    except ConnectionError:
-        pass
+    if "oprp_arg" in session:
+        oprp_arg = session["oprp_arg"]
+    else:
+        oprp_arg = "C.T.T.ns"
 
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, config_file_name.split(".")[0]], "../rp/")
+        start_rp_process(port, [CONF.OPRP_PATH, "-p", oprp_arg, config_module], "../rp/")
         return response_encoder.returnJSON(json.dumps({"oprp_url": str(get_base_url(port))}))
     except Exception as ex:
         return response_encoder.serviceError(ex.message)
 
 
 def allocate_dynamic_port(session):
+    if session["config_file"] and session["dynamic_port"]:
+        return session["config_file"], session["dynamic_port"]
+
     with config_tread_lock:
         config_file, port = save_empty_config_file(session, CONF.PORT_DYNAMIC_NUM_MIN, CONF.PORT_DYNAMIC_NUM_MAX)
+        session["dynamic_port"] = port
+        session["config_file"] = config_file
         return config_file, port
 
 

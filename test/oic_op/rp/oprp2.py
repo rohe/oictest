@@ -936,16 +936,20 @@ def application(environ, start_response):
         return static(environ, start_response, path)
 
     if path == "":  # list
-        if session_init(session):
-            return flow_list(environ, start_response, session)
-        else:
-            try:
-                resp = Redirect("%sopresult#%s" % (CONF.BASE,
-                                                   session["testid"][0]))
-            except KeyError:
+        try:
+            if session_init(session):
                 return flow_list(environ, start_response, session)
             else:
-                return resp(environ, start_response)
+                try:
+                    resp = Redirect("%sopresult#%s" % (CONF.BASE,
+                                                       session["testid"][0]))
+                except KeyError:
+                    return flow_list(environ, start_response, session)
+                else:
+                    return resp(environ, start_response)
+        except Exception as ex:
+            logging.exception(str(ex))
+            raise
     elif path == "logs":
         return display_log(environ, start_response, "log", "log")
     elif path.startswith("log"):
