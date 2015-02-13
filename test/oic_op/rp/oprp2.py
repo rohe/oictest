@@ -37,7 +37,7 @@ from rrtest import Trace
 from rrtest import exception_trace
 from rrtest import Break
 from rrtest.check import ERROR
-from rrtest.check import OK
+from rrtest.check import OK, CRITICAL
 from rrtest.check import CRITICAL
 from rrtest.check import STATUSCODE
 from rrtest.check import WARNING
@@ -859,7 +859,9 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                   "test_output": conv.test_output}
     session["node"].complete = True
 
-    resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[3]))
+    _grp = _tid.split("-")[1]
+
+    resp = Redirect("%sopresult#%s" % (CONF.BASE, _grp))
     return resp(environ, start_response)
 
 
@@ -896,6 +898,7 @@ def init_session(session, profile=None):
     f_names.sort()
     session["flow_names"] = []
     for k in TEST_FLOWS.ORDDESC:
+        k += '-'
         l = [z for z in f_names if z.startswith(k)]
         session["flow_names"].extend(l)
 
