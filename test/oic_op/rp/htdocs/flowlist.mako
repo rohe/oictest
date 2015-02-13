@@ -54,6 +54,9 @@ def op_choice(base, nodes, test_info):
         if node.name in test_info:
             element += "<a href='%stest_info/%s'><img src='static/info32.png'></a>" % (
                     base, node.name)
+        #if node.mti == "MUST":
+        #    element += '<img src="static/must.jpeg">'
+
     element += "</select>"
     return element
 %>
@@ -75,7 +78,8 @@ ICONS = [
     ('<img src="static/red.png" alt="Red">',"Failed"),
     ('<img src="static/greybutton" alt="Grey">', "Based on the provider info this test will probably fail"),
     ('<img src="static/qmark.jpg" alt="QuestionMark">',
-    "The test flow wasn't completed. This may have been expected or not")
+    "The test flow wasn't completed. This may have been expected or not"),
+    ('<img src="static/must.jpeg">', "Mandatory to implement")
     ]
 
 def legends():
