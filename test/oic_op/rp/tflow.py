@@ -1598,7 +1598,10 @@ FLOWS = {
                     "scopes": ["openid", "phone"],
                     "claims": {
                         "id_token": {"email": {"essential": True}},
-                    }}
+                    }},
+                "support": {
+                    "warning": {
+                        "scopes_supported": ["phone"]}},
             }),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
