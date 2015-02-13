@@ -691,11 +691,14 @@ FLOWS = {
     'OP-Req-login_hint': {
         "desc": 'Providing login_hint',
         "sequence": [
-            'rm_cookie',
+            'note',
             '_discover_',
             '_register_',
             ("_login_", {"function": login_hint})
         ],
+        "note": "Please remove the cookies you have received from the "
+                "provider. We are simulating that you want to log in as ",
+                "a specific user. So a fresh log-in page is needed."
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"},
@@ -704,14 +707,15 @@ FLOWS = {
     'OP-Req-ui_locales': {
         "desc": 'Providing ui_locales',
         "sequence": [
-            'rm_cookie',
             'note',
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {},
                          "function": ui_locales}),
         ],
-        "note": "The user interface may now use the locale of choice. "
+        "note": "Please remove the cookies you have received from the "
+                "provider. You need to do this so you can check that the "
+                "log-in page is in the right locale. "
                 "The use of this parameter in the request must not cause an "
                 "error at the OP",
         "profile": "..",
