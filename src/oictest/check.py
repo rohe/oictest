@@ -1968,7 +1968,7 @@ class UsedAcrValue(Check):
         if not res:
             self._message = "No response to get the IdToken from"
             self._status = WARNING
-            return ()
+            return {}
 
         pref = conv.AuthorizationRequest["acr_values"]
         (idt, _) = res[-1]
