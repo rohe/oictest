@@ -1150,9 +1150,14 @@ def application(environ, start_response):
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
             if "id_token" in response:
+                areq = conv.AuthorizationRequest
                 try:
-                    ots.client.verify_id_token(response["id_token"],
-                                               conv.AuthorizationRequest)
+                    #  don't care about acr
+                    del areq["acr_values"]
+                except KeyError:
+                    pass
+                try:
+                    ots.client.verify_id_token(response["id_token"], areq)
                 except (OtherError, AuthnToOld) as err:
                     return err_response(environ, start_response, session,
                                         "id_token_verification", err)
