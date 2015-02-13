@@ -1970,7 +1970,11 @@ class UsedAcrValue(Check):
             self._status = WARNING
             return {}
 
-        pref = conv.AuthorizationRequest["acr_values"]
+        try:
+            pref = conv.AuthorizationRequest["acr_values"]
+        except KeyError:
+            pref = []
+
         (idt, _) = res[-1]
         try:
             self._message = "Used acr value: %s, preferred: %s" % (idt["acr"],

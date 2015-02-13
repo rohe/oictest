@@ -1150,7 +1150,7 @@ def application(environ, start_response):
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
             if "id_token" in response:
-                areq = conv.AuthorizationRequest
+                areq = conv.AuthorizationRequest.to_dict()
                 try:
                     #  don't care about acr
                     del areq["acr_values"]
