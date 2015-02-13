@@ -2,7 +2,6 @@ import json
 
 from jwkest import b64d
 from jwkest import unpack
-from jwkest.jwe import JWE_RSA
 from jwkest.jwk import RSAKey, ECKey
 from jwkest.jwk import base64url_to_long
 from oic.oauth2.message import ErrorResponse
@@ -652,7 +651,6 @@ class LoginRequired(Error):
     cid = "login-required"
 
     def _func(self, conv=None):
-        #self._status = self.status
         resp = conv.last_content
         try:
             assert resp.type() == "AuthorizationErrorResponse"
@@ -1065,9 +1063,9 @@ class SameAuthn(Error):
 
         idt = [i for i, j in res]
 
-        if len(idt) == 1:
-            self._message = " ".join(["Only one authentication when more than",
-                                      "one was expected"])
+        if len(idt) < 2:
+            self._message = " ".join(["Expected more than one authentication",
+                                      "found %d" % len(idt)])
             self._status = self.status
 
         # verify that it is in fact two separate authentications
@@ -1958,7 +1956,7 @@ class NewEncryptionKeys(Error):
         return {}
 
 
-class UsedAcrValue(Information):
+class UsedAcrValue(Check):
     """
     The Acr value in the IdToken
     """
@@ -1969,12 +1967,18 @@ class UsedAcrValue(Information):
         res = get_id_tokens(conv)
         if not res:
             self._message = "No response to get the IdToken from"
-            self._status = self.status
+            self._status = WARNING
             return ()
 
         pref = conv.AuthorizationRequest["acr_values"]
         (idt, _) = res[-1]
-        self._message = "Used acr value: %s, preferred: %s" % (idt["acr"], pref)
+        try:
+            self._message = "Used acr value: %s, preferred: %s" % (idt["acr"],
+                                                                   pref)
+        except KeyError:
+            self._message = "Missing acr value"
+            self._status = WARNING
+
         return {}
 
 

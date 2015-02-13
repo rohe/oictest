@@ -276,15 +276,12 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
 
 
 def test_summation(conv, sid):
-    status = 0
+    status = 1
     for item in conv.test_output:
         if isinstance(item, tuple):
             continue
         if item["status"] > status:
             status = item["status"]
-
-    if status == 0:
-        status = 1
 
     info = {
         "id": sid,
