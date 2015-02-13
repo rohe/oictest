@@ -2,7 +2,7 @@ import json
 
 from jwkest import b64d
 from jwkest import unpack
-from jwkest.jwk import RSAKey, ECKey
+from jwkest.jwk import RSAKey, ECKey, load_jwks_from_url
 from jwkest.jwk import base64url_to_long
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
@@ -598,7 +598,7 @@ class CheckHasClaimsSupported(Error):
 
     def _func(self, conv):
         try:
-            jwks_uri = get_provider_info(conv)["claims_supported"]
+            _ = get_provider_info(conv)["claims_supported"]
         except KeyError:
             self._status = self.status
             self._message = "No 'claims_supported' registered"
@@ -2043,6 +2043,36 @@ class ClaimsCheck(Information):
 
         return {}
 
+
+class BareKeys(Information):
+    """
+    Dynamic OPs MUST publish their public keys as bare JWK keys
+    """
+    cid = "bare-keys"
+    msg = ""
+
+    def _func(self, conv):
+        pi = get_provider_info(conv)
+        resp = conv.client.http_request(pi["jwks_uri"], verify=False,
+                                        allow_redirects=True)
+        if resp.status_code == 200:
+            jwks = json.loads(resp.text)
+            key = {}
+            try:
+                for key in jwks["keys"]:
+                    if key["kty"] == "RSA":
+                        assert "n" in key and "e" in key
+                    elif key["kty"] == "EC":
+                        assert "x" in key and "y" in key
+            except AssertionError:
+                self._status = WARNING
+                self._message = "Missing bare key info on {} key".format(
+                    key["kty"])
+        else:
+            self._status = WARNING
+            self._message = "Could not load jwks from {}".format(pi["jwks_uri"])
+
+        return {}
 
 CLASS_CACHE = {}
 

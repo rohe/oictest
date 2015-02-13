@@ -60,7 +60,7 @@ FLOWS = {
         "sequence": ['_discover_', "_register_", "_login_"],
         "profile": "C..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-Response-Missing': {
         "desc": 'Authorization request missing the response_type parameter',
@@ -80,7 +80,7 @@ FLOWS = {
                 "case (2) occurs the tester must submit a screen shot as proof "
                 "when sending in a certification application",
         "profile": "..",
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-Response-id_token': {
         "desc": 'Request with response_type=id_token',
@@ -93,7 +93,7 @@ FLOWS = {
         ],
         "profile": "I..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
+        "mti": {"dynamic": "MUST"},
         # "tests": {"check-authorization-response": {}},
     },
     'OP-Response-id_token+token': {
@@ -106,14 +106,13 @@ FLOWS = {
         ],
         "profile": "IT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
+        "mti": {"dynamic": "MUST"}
     },
     'OP-Response-code+id_token': {
         "desc": 'Request with response_type=code id_token',
         "sequence": ['_discover_', '_register_', '_login_'],
         "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
         "profile": "CI..",
-        "mti": "MUST"
     },
     'OP-Response-code+token': {
         "desc": 'Request with response_type=code token',
@@ -125,7 +124,6 @@ FLOWS = {
         ],
         "profile": "CT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'OP-Response-code+id_token+token': {
         "desc": 'Request with response_type=code id_token token',
@@ -137,7 +135,6 @@ FLOWS = {
         ],
         "profile": "CIT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'OP-Response-form_post': {
         "desc": 'Request with response_mode=form_post',
@@ -149,7 +146,6 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'OP-IDToken-RS256': {
         "desc": 'Asymmetric ID Token signature with rs256',
@@ -159,7 +155,7 @@ FLOWS = {
              {"request_args": {"id_token_signed_response_alg": "RS256"}}),
             "_login_", "_accesstoken_"],
         "profile": "..T.s",
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"},
                   "check-http-response": {}}
     },
@@ -178,7 +174,7 @@ FLOWS = {
     'OP-IDToken-kid': {
         "desc": 'IDToken has kid',
         "sequence": ['_discover_', '_register_', "_login_", "_accesstoken_"],
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "profile": "...s",
         "tests": {"verify-signed-idtoken-has-kid": {},
                   "check-http-response": {}}
@@ -190,7 +186,7 @@ FLOWS = {
             '_register_',
             ('_login_', {"request_args": {"nonce": "godmorgon"}}),
             '_accesstoken_'],
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "profile": "C..",
         "tests": {"verify-nonce": {}, "check-http-response": {}}
     },
@@ -213,7 +209,7 @@ FLOWS = {
                   "check-http-response": {},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "result": "The test passed if you were prompted to log in"
     },
     'OP-IDToken-max_age=1000': {
@@ -232,7 +228,7 @@ FLOWS = {
                   "check-http-response": {},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-IDToken-none': {
         "desc": 'Unsecured ID Token signature with none',
@@ -251,13 +247,12 @@ FLOWS = {
         ],
         "tests": {"unsigned-idtoken": {}, "check-http-response": {}},
         "profile": "C.T.T.n",
-        "mti": "MUST"
     },
     'OP-IDToken-at_hash': {
         "desc": 'ID Token has at_hash when ID Token and Access Token returned '
                 'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "test": {'verify-athash': {}, "check-http-response": {}},
         "profile": "IT,CIT..",
     },
@@ -267,14 +262,14 @@ FLOWS = {
         "sequence": ['_discover_', '_register_', '_login_'],
         "tests": {'verify-chash': {}, "check-http-response": {}},
         "profile": "CI,CIT..",
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-IDToken-nonce-noncode': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
         "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
         "profile": "I,IT,CI,CT,CIT..",
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-IDToken-HS256': {
         "desc": 'Symmetric ID Token signature with HS256',
@@ -284,7 +279,6 @@ FLOWS = {
              {"request_args": {"id_token_signed_response_alg": "HS256"}}),
             "_login_", "_accesstoken_"],
         "profile": "..T.s",
-        "mti": "MUST",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
                   "check-http-response": {}}
     },
@@ -296,7 +290,6 @@ FLOWS = {
              {"request_args": {"id_token_signed_response_alg": "ES256"}}),
             "_login_", "_accesstoken_"],
         "profile": "..T.s",
-        "mti": "MUST",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
                   "check-http-response": {}}
     },
@@ -322,7 +315,6 @@ FLOWS = {
             ),
             "_login_", "_accesstoken_"],
         "profile": "..T.se.+",
-        "mti": "MUST",
         "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
                                                "enc_alg": "RSA1_5",
                                                "enc_enc": "A128CBC-HS256"},
@@ -339,7 +331,7 @@ FLOWS = {
                       })],
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
+        "mti": {"all": "SHOULD"}
     },
     'OP-UserInfo-Header': {
         "desc": 'UserInfo Endpoint Access with POST and bearer_header',
@@ -352,7 +344,6 @@ FLOWS = {
                       })],
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'OP-UserInfo-Body': {
         "desc": 'UserInfo Endpoint Access with POST and bearer_body',
@@ -365,7 +356,6 @@ FLOWS = {
                       })],
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'OP-UserInfo-RS256': {
         "desc": 'RP registers userinfo_signed_response_alg to signal that it '
@@ -392,7 +382,7 @@ FLOWS = {
         "tests": {"asym-signed-userinfo": {"alg": "RS256"},
                   "check-http-response": {}},
         "profile": "C,IT,CI,CT,CIT..T.s",
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-UserInfo-Enc': {
         "desc": 'Can Provide Encrypted UserInfo Response',
@@ -468,7 +458,7 @@ FLOWS = {
         ],
         "profile": "C,CT..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-nonce-NoReq-noncode': {
         "desc": 'Reject requests without nonce unless using the code flow',
@@ -479,7 +469,7 @@ FLOWS = {
         ],
         "tests": {"verify-error": {"error": ["invalid_request"]}},
         "profile": "I,IT..",
-        "mti": "MUST"
+        "mti": {"all": "MUST"}
     },
     'OP-scope-profile': {
         "desc": 'Scope Requesting profile Claims',
@@ -498,7 +488,7 @@ FLOWS = {
             })
         ],
         "profile": "C,IT,CT,CI,CIT..",
-        "mti": "No err",
+        "mti": {"all": "No err"},
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
     'OP-scope-email': {
@@ -600,7 +590,7 @@ FLOWS = {
         "note": "You should get the normal User Agent page view.",
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "No err"
+        "mti": {"all": "No err"}
     },
     'OP-display-popup': {
         "desc": 'Request with display=popup',
@@ -618,7 +608,7 @@ FLOWS = {
         "note": "You should get a popup User Agent window",
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "No err"
+        "mti": {"all": "No err"}
     },
     'OP-prompt-login': {
         "desc": 'Request with prompt=login',
@@ -634,7 +624,7 @@ FLOWS = {
         "note": "You should get a request for re-authentication",
         "profile": "..",
         'tests': {"multiple-sign-on": {}, "check-http-response": {}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         # "result": "The test passed if you were prompted to log in"
     },
     'OP-prompt-none-NotLoggedIn': {
@@ -645,7 +635,7 @@ FLOWS = {
             '_register_',
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "profile": "..",
         "tests": {"verify-error": {"error": ["login_required",
                                              "interaction_required",
@@ -662,7 +652,7 @@ FLOWS = {
             ('_login_', {"request_args": {"prompt": "none"}}),
             '_accesstoken_'
         ],
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         'tests': {"same-authn": {}, "check-http-response": {}},
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
@@ -676,7 +666,7 @@ FLOWS = {
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
     },
     'OP-Req-id_token_hint': {
         "desc": 'Using prompt=none with user hint through id_token_hint',
@@ -696,7 +686,7 @@ FLOWS = {
         ],
         "profile": "..",
         'tests': {"same-authn": {}, "check-http-response": {}},
-        "mti": "SHOULD",
+        "mti": {"all": "SHOULD"},
     },
     'OP-Req-login_hint': {
         "desc": 'Providing login_hint',
@@ -708,7 +698,7 @@ FLOWS = {
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "No err",
+        "mti": {"all": "No err"},
         "result": "You should be requested to log in as a predefined user"
     },
     'OP-Req-ui_locales': {
@@ -726,7 +716,7 @@ FLOWS = {
                 "error at the OP",
         "profile": "..",
         'tests': {"check-http-response": {}},
-        "mti": "No err"
+        "mti": {"all": "No err"}
     },
     'OP-Req-claims_locales': {
         "desc": 'Providing claims_locales',
@@ -744,7 +734,7 @@ FLOWS = {
                 "error at the OP",
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
-        "mti": "No err"
+        "mti": {"all": "No err"}
     },
     'OP-Req-acr_values': {
         "desc": 'Providing acr_values',
@@ -755,7 +745,7 @@ FLOWS = {
                          "function": acr_value}),
             "_accesstoken_",
         ],
-        "mti": "No err",
+        "mti": {"all": "No err"},
         "profile": "..",
         'tests': {"used-acr-value": {}, "check-http-response": {}}
     },
@@ -770,7 +760,7 @@ FLOWS = {
         ],
         "profile": "C,CI,CT,CIT..",
         "tests": {"verify-bad-request-response": {"status": WARNING}},
-        "mti": "SHOULD",
+        "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
     },
@@ -787,7 +777,7 @@ FLOWS = {
         ],
         "profile": "C,CI,CT,CIT..",
         "tests": {"verify-bad-request-response": {"status": WARNING}},
-        "mti": "SHOULD",
+        "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
     },
@@ -805,7 +795,7 @@ FLOWS = {
         ],
         "profile": "C,CI,CT,CIT..",
         "tests": {"verify-bad-request-response": {"status": ERROR}},
-        "mti": "SHOULD",
+        "mti": {"all": "SHOULD"},
         "note": "An 30 second delay is added between the first and the second "
                 "access token request.",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
@@ -823,7 +813,7 @@ FLOWS = {
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Missing': {
         "desc": 'Reject request without redirect_uri when multiple registered',
@@ -837,7 +827,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Query': {
         "desc": 'Request with redirect_uri with query component',
@@ -848,7 +838,7 @@ FLOWS = {
              {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
         ],
         "profile": "..T",
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
                   "check-http-response": {}}
     },
@@ -861,7 +851,7 @@ FLOWS = {
                  redirect_uris_with_query_component, {"foo": "bar"})}),
         ],
         "profile": "..T",
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
         'tests': {"check-http-response": {}},
@@ -884,7 +874,7 @@ FLOWS = {
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-RegFrag': {
         "desc": 'Reject registration where a redirect_uri has a fragment',
@@ -895,7 +885,7 @@ FLOWS = {
         ],
         "profile": "..T",
         "tests": {"verify-bad-request-response": {}},
-        "mti": "MUST",
+        "mti": {"all": "MUST"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
     },
@@ -1041,20 +1031,24 @@ FLOWS = {
         "sequence": ['_discover_'],
         "profile": ".T.",
         'tests': {"check-http-response": {}},
+        "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-Values': {
         "desc": 'Verify that jwks_uri and claims_supported are published',
         "sequence": ['_discover_'],
         "tests": {"providerinfo-has-jwks_uri": {},
                   "providerinfo-has-claims_supported": {},
+                  "bare-keys": {},
                   "check-http-response": {}},
         "profile": ".T.",
+        "mti": {"Dynamic": "SHOULD"}
     },
     'OP-Discovery-JWKs': {
         "desc": 'Keys in OP JWKs well formed',
         "sequence": ['_discover_'],
         "profile": ".T.",
         "tests": {"verify-base64url": {}, "check-http-response": {}},
+        "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-WebFinger-Email': {
         "desc": 'Can Discover Identifiers using E-Mail Syntax',
@@ -1078,6 +1072,7 @@ FLOWS = {
         "sequence": ['_discover_'],
         "profile": ".T.T",
         "tests": {"verify-op-has-registration-endpoint": {}},
+        "mti": {"Dynamic": "MUST"}
     },
     'OP-Registration-Dynamic': {
         "desc": 'Client registration Request',
@@ -1087,6 +1082,7 @@ FLOWS = {
         ],
         "profile": "..T",
         "tests": {"check-http-response": {}},
+        "mti": {"Dynamic": "MUST"}
     },
     'OP-Registration-policy_uri': {
         "desc": 'Registration with policy_uri',
@@ -1659,6 +1655,7 @@ FLOWS = {
             "_accesstoken_",
         ],
         "profile": "....+",
+        "mti": {"all": "MUST"},
         'tests': {"verify-claims": {"id_token": {"auth_time": None}},
                   "check-http-response": {}}
     },
