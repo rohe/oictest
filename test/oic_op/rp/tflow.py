@@ -697,8 +697,8 @@ FLOWS = {
             ("_login_", {"function": login_hint})
         ],
         "note": "Please remove the cookies you have received from the "
-                "provider. We are simulating that you want to log in as ",
-                "a specific user. So a fresh log-in page is needed."
+                "provider. We are simulating that you want to log in as "
+                "a specific user. So a fresh log-in page is needed.",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"},
