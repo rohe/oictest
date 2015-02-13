@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from base64 import b64encode
+import os
 from urllib import urlencode, quote
 from oic.oic import OIDCONF_PATTERN, ProviderConfigurationResponse
 from oic.utils.keyio import KeyBundle
@@ -118,10 +119,13 @@ class StoreX(Process):
     def __call__(self, conv, **kwargs):
         cli = conv.client
         _grant = cli.grant.values()[0]
-        token = _grant.tokens[0].access_token
-        name = self.id + b64encode(str(cli.client_config["srv_discovery_url"]))
+        info = {
+            "token": _grant.tokens[0].access_token,
+            "provider_info": conv.client.provider_info.to_dict()
+        }
+        name = self.id + b64encode(str(conv.client_config["srv_discovery_url"]))
         f = open(name, 'w')
-        f.write(token)
+        f.write(json.dumps(info))
         f.close()
 
 
@@ -141,11 +145,13 @@ class RetrieveX(Process):
 
     def __call__(self, conv, **kwargs):
         cli = conv.client
-        name = b64encode(str(cli.client_config["srv_discovery_url"]))
-        f = open(self.id + name)
-        token = f.read()
+        name = self.id + b64encode(str(conv.client_config["srv_discovery_url"]))
+        f = open(name)
+        info = json.loads(f.read())
         f.close()
-        cli.token[self.scope] = token
+        cli.token[self.scope] = info["token"]
+        cli.provider_info = ProviderConfigurationResponse().from_dict(
+            info["provider_info"])
 
 
 class RetrievePAT(RetrieveX):
@@ -557,10 +563,10 @@ class CreateResourceSetRequest(PostRequest):
 
     def call_setup(self):
         _client = self.conv.client
-        self.request_args["access_token"] = _client.token["pat"]
+        self.request_args["access_token"] = _client.token[PAT]
         self.kw_args["authn_method"] = "bearer_header"
-        self.kw_args["endpoint"] = _client.registration_response[
-            "registration_client_uri"]
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "resource_set_registration_endpoint"], ["resource_set", "01234"])
         self.kw_args["content_type"] = JSON_ENCODED
 
 

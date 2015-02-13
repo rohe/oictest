@@ -420,7 +420,7 @@ def session_setup(session, path, index=0):
         if key.startswith("_"):
             continue
         elif key in ["tests", "flow_names", "response_type",
-                     "test_info", "profile"]:  # don't touch !
+                     "test_info", "profile"]:
             continue
         else:
             del session[key]

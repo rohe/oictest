@@ -28,7 +28,16 @@ HEADLINES = {
     "H": "redirect_uri",
     "I": "Client Authentication",
     "J": "Key Rollover",
+    "token": "Accessing tokens",
     "resourceset": "Resource Set Registration Endpoint"
+}
+
+RESOURCE = {
+    1: {"name": "Photo Album",
+        "icon_uri": "http://www.example.com/icons/flower.png",
+        "scopes": ["http://photoz.example.com/dev/scopes/view",
+                   "http://photoz.example.com/dev/scopes/all"],
+        "type": "http://www.example.com/rsets/photoalbum"},
 }
 
 FLOWS = {
@@ -319,7 +328,7 @@ FLOWS = {
         "profile": "....+",
         'tests': {"check-http-response": {}},
     },
-    'UMA-G-01': {
+    'UMA-token-PAT': {
         "desc": 'Acquire PAT',
         "sequence": [
             '_uma_discover_',
@@ -330,7 +339,7 @@ FLOWS = {
         "profile": "C..",
         'tests': {"check-http-response": {}},
     },
-    'UMA-G-02': {
+    'UMA-token-AAT': {
         "desc": 'Acquire AAT',
         "sequence": [
             '_uma_discover_',
@@ -348,12 +357,19 @@ FLOWS = {
         "desc": "Create resource set",
         "sequence": [
             'retrieve_pat',
-            ('create_resource_set', {
-                "request_args": {}
-            })
+            ('create_resource_set', {"request_args": RESOURCE[1]})
         ],
         "profile": "C..",
         "tests": {},
-    }
+    },
+    'UMA-resourceset-read': {
+        "desc": "Read resource set"
+    },
+    'UMA-resourceset-update': {
+    },
+    'UMA-resourceset-list': {
+    },
+    'UMA-resourceset-delete': {
+    },
 }
 

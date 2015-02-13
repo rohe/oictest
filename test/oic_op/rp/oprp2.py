@@ -823,13 +823,13 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                             except KeyError:
                                 pass
 
-                            try:
-                                ots.client.verify_id_token(
-                                    response["id_token"], areq)
-                            except (OtherError, AuthnToOld) as err:
-                                return err_response(
-                                    environ, start_response, session,
-                                    "id_token_verification", err)
+                            # try:
+                            #     ots.client.verify_id_token(
+                            #         response["id_token"], areq)
+                            # except (OtherError, AuthnToOld) as err:
+                            #     return err_response(
+                            #         environ, start_response, session,
+                            #         "id_token_verification", err)
             try:
                 post_tests(conv, req_c, resp_c)
             except Exception as err:
@@ -1156,11 +1156,11 @@ def application(environ, start_response):
                     del areq["acr_values"]
                 except KeyError:
                     pass
-                try:
-                    ots.client.verify_id_token(response["id_token"], areq)
-                except (OtherError, AuthnToOld) as err:
-                    return err_response(environ, start_response, session,
-                                        "id_token_verification", err)
+                # try:
+                #     ots.client.verify_id_token(response["id_token"], areq)
+                # except (OtherError, AuthnToOld) as err:
+                #     return err_response(environ, start_response, session,
+                #                         "id_token_verification", err)
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:
