@@ -681,8 +681,8 @@ FLOWS = {
             '_register_',
             ('_login_', {
                 "request_args": {"prompt": "none"},
-                "function": id_token_hint}
-            )
+                "function": id_token_hint}),
+            "_accesstoken_",
         ],
         "profile": "..",
         'tests': {"same-authn": {}, "check-http-response": {}},
