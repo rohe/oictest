@@ -89,6 +89,10 @@ class Information(Check):
     status = INFORMATION
 
 
+class Warnings(Check):
+    status = WARNING
+
+
 class Error(Check):
     status = ERROR
 

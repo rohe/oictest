@@ -993,22 +993,22 @@ FLOWS = {
         'tests': {"check-http-response": {}},
     },
     'OP-ClientAuth-PublicJWT': {
-        "desc": 'Access token request with public_key_jwt authentication',
+        "desc": 'Access token request with private_key_jwt authentication',
         "sequence": [
             '_discover_',
             ('_register_',
              {
                  "request_args": {
-                     "token_endpoint_auth_method": "public_key_jwt"},
+                     "token_endpoint_auth_method": "private_key_jwt"},
              }),
             '_login_',
             ("_accesstoken_",
              {
-                 "kwargs_mod": {"authn_method": "public_key_jwt"},
+                 "kwargs_mod": {"authn_method": "private_key_jwt"},
                  "support": {
                      "warning": {
                          "token_endpoint_auth_methods_supported":
-                             "public_key_jwt"}}
+                             "private_key_jwt"}}
              }),
         ],
         "profile": "C,CI,CT,CIT...s.+",

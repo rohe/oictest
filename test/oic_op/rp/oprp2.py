@@ -36,7 +36,9 @@ from oictest.oidcrp import request_and_return
 from rrtest import Trace
 from rrtest import exception_trace
 from rrtest import Break
-from rrtest.check import ERROR, OK
+from rrtest.check import ERROR
+from rrtest.check import OK
+from rrtest.check import CRITICAL
 from rrtest.check import STATUSCODE
 from rrtest.check import WARNING
 
@@ -113,6 +115,17 @@ def opchoice(environ, start_response, clients):
     return resp(environ, start_response, **argv)
 
 
+def evaluate(session, conv):
+    try:
+        if session["node"].complete:
+            _sum = test_summation(conv, session["testid"])
+            session["node"].state = _sum["status"]
+        else:
+            session["node"].state = INCOMPLETE
+    except AttributeError:
+        pass
+
+
 def flow_list(environ, start_response, session):
     resp = Response(mako_template="flowlist.mako",
                     template_lookup=LOOKUP,
@@ -132,15 +145,7 @@ def flow_list(environ, start_response, session):
 
 
 def opresult(environ, start_response, conv, session):
-    try:
-        if session["node"].complete:
-            _sum = test_summation(conv, session["testid"])
-            session["node"].state = _sum["status"]
-        else:
-            session["node"].state = INCOMPLETE
-    except AttributeError:
-        pass
-
+    evaluate(session, conv)
     return flow_list(environ, start_response, session)
 
 
@@ -257,27 +262,30 @@ def represent_result(session):
     if session["index"] + 1 < len(session["seq_info"]["sequence"]):
         return "PARTIAL RESULT"
 
-    text = "PASSED"
+    _stat = test_summation(session["conv"], session["testid"])["status"]
+
+    if _stat < WARNING or _stat > CRITICAL:
+        text = "PASSED"
+    elif _stat == WARNING:
+        text = "WARNING"
+    else:
+        text = "FAILED"
+
     warnings = []
     for item in session["conv"].test_output:
         if isinstance(item, tuple):
             continue
-        else:
-            if item["status"] >= ERROR:
-                text = "FAILED"
-                break
-            elif item["status"] == WARNING:
-                warnings.append(item["message"])
-                text = "PASSED WITH WARNINGS"
+        elif item["status"] == WARNING:
+            warnings.append(item["message"])
 
-    if text.startswith("PASSED"):
+    if text == "PASSED":
         try:
             text = "UNKNOWN - %s" % session["seq_info"]["node"].kwargs["result"]
         except KeyError:
             pass
 
     if warnings:
-        text = "%s\n%s" % (text, "\n".join(warnings))
+        text = "%s\nWarnings:\n%s" % (text, "\n".join(warnings))
 
     return text
 
@@ -809,10 +817,15 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                                 "id_token_verification", response["error"])
                     elif resp_c.response == "AccessTokenResponse":
                         if "error" not in response:
+                            areq = conv.AuthorizationRequest.to_dict()
+                            try:
+                                del areq["acr_values"]
+                            except KeyError:
+                                pass
+
                             try:
                                 ots.client.verify_id_token(
-                                    response["id_token"],
-                                    conv.AuthorizationRequest)
+                                    response["id_token"], areq)
                             except (OtherError, AuthnToOld) as err:
                                 return err_response(
                                     environ, start_response, session,
