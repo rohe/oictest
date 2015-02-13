@@ -7,27 +7,27 @@ __author__ = 'roland'
 MODE = {}
 
 FLOWS = {
-    "RP-A-01": {
+    "RP-Webfinger-url": {
         "flow": [{"action": "discover", "args": {}}],
         "desc": "Can Discover Identifiers using URL Syntax"
     },
-    "RP-A-02": {
+    "RP-Webfinger-acct": {
         "flow": [{"action": "discover", "args": "acct:%s@localhost:8080"}],
         "desc": "Can Discover Identifiers using acct Syntax"
     },
-    "RP-B-01": {
+    "RP-Discover-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}}],
         "desc": "Uses openid-configuration Discovery Information"
     },
-    "RP-C-01": {
+    "RP-Registration-01": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}}],
         "desc": "Uses Dynamic Registration"
     },
     # Can Make Request with ? Response Type
-    "RP-D-01": {
+    "RP-Request-code": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}},
@@ -35,7 +35,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["code"]}}],
         "desc": "Can Make Request with 'code' Response Type"
     },
-    "RP-D-02": {
+    "RP-Request-id_token": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -44,7 +44,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["id_token"]}}],
         "desc": "Can Make Request with 'id_token' Response Type"
     },
-    "RP-D-03": {
+    "RP-Request-id_token+token": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -56,7 +56,7 @@ FLOWS = {
     },
     ### Can Make Access Token Request with ? Authentication
     # Client_secret_basic
-    "RP-E-01": {
+    "RP-TokenEndpoint-client_secret_basic": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}},
@@ -68,7 +68,7 @@ FLOWS = {
                 "Authentication"
     },
     # client_secret_jwt
-    "RP-E-02": {
+    "RP-TokenEndpoint-client_secret_jwt": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -82,7 +82,7 @@ FLOWS = {
                 "Authentication"
     },
     # client_secret_post
-    "RP-E-03": {
+    "RP-TokenEndpoint-client_secret_post": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -97,7 +97,7 @@ FLOWS = {
                 "Authentication"
     },
     # private_key_jwt
-    "RP-E-04": {
+    "RP-TokenEndpoint-private_key_jwt": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -113,7 +113,7 @@ FLOWS = {
     },
     ### === Accept Valid ? ID Token Signature	===
     # Asymmetric
-    "RP-id_token-asym-Sig": {
+    "RP-IdToken-Asym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -124,8 +124,19 @@ FLOWS = {
         ],
         "desc": "Accept Valid Asymmetric ID Token Signature"
     },
+    "RP-IdToken-Asym-Sig-2": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/RS256/_/_/normal"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["id_token"]}}
+        ],
+        "desc": "Accept Valid Asymmetric ID Token Signature"
+    },
     # Symmetric
-    "RP-id_token-sym-Sig": {
+    "RP-IdToken-Sym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -138,7 +149,7 @@ FLOWS = {
     },
     ### === Reject Invalid ? ID Token Signature ===
     # Asymmetric
-    "RP-id_token-invalid-Asym-Sig": {
+    "RP-IdToken-invalid-Asym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -152,7 +163,7 @@ FLOWS = {
         "desc": "Reject Invalid Asymmetric ID Token Signature"
     },
     # Symmetric
-    "RP-id_token-invalid-Sym-Sig": {
+    "RP-IdToken-invalid-Sym-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -168,7 +179,7 @@ FLOWS = {
     ### === Can Request and Use ? ID Token Response ===
     # Signed and Encrypted
     # *signed is already tested*
-    "RP-id_token-SigEnc": {
+    "RP-IdToken-SigEnc": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -184,7 +195,7 @@ FLOWS = {
         "desc": "Can Request and Use Signed and Encrypted ID Token Response"
     },
     # Unsigned
-    "RP-id_token-none": {
+    "RP-IdToken-none": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -198,7 +209,7 @@ FLOWS = {
     },
     # ? at_hash when code Flow Used
     # Reject incorrect
-    "RP-I-01": {
+    "RP-CHash-incorrect": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -212,7 +223,7 @@ FLOWS = {
         "desc": "Rejects incorrect c_hash when Code Flow is Used"
     },
     # Accept correct
-    "RP-I-02": {
+    "RP-CHash-correct": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -226,7 +237,7 @@ FLOWS = {
     },
     # ? at_hash when Implicit Flow Used
     # Reject incorrect
-    "RP-at_hash-incorrect": {
+    "RP-AtHash-incorrect": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -240,7 +251,7 @@ FLOWS = {
         "desc": "Rejects incorrect at_hash when Implicit Flow is Used"
     },
     # Accept correct
-    "RP-at_hash-correct": {
+    "RP-AtHash-correct": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -252,7 +263,7 @@ FLOWS = {
         "desc": "Verifies correct at_hash when Code Implicit is Used"
     },
     # Can Use Elliptic Curve ID Token Signatures
-    "RP-id_token-Elliptic-Sig": {
+    "RP-IdToken-Elliptic-Sig": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -263,7 +274,7 @@ FLOWS = {
         ],
         "desc": "Can Use Elliptic Curve ID Token Signatures"
     },
-    "RP-id_token-claims": {
+    "RP-IdToken-claims": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
