@@ -122,7 +122,7 @@ def evaluate(session, conv):
             session["node"].state = _sum["status"]
         else:
             session["node"].state = INCOMPLETE
-    except AttributeError:
+    except (AttributeError, KeyError):
         pass
 
 
