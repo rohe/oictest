@@ -335,7 +335,8 @@ FLOWS = {
             '_oauth_register_',
             ('_login_', {"request_args": {"scope": [PAT]}}),
             '_accesstoken_',
-            'store_pat'],
+            # 'store_pat'
+        ],
         "profile": "C..",
         'tests': {"check-http-response": {}},
     },
@@ -356,7 +357,10 @@ FLOWS = {
     'UMA-resourceset-create': {
         "desc": "Create resource set",
         "sequence": [
-            'retrieve_pat',
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
             ('create_resource_set', {"request_args": RESOURCE[1]})
         ],
         "profile": "C..",
