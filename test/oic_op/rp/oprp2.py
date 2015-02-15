@@ -1149,18 +1149,18 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
-            if "id_token" in response:
-                areq = conv.AuthorizationRequest.to_dict()
-                try:
-                    #  don't care about acr
-                    del areq["acr_values"]
-                except KeyError:
-                    pass
-                # try:
-                #     ots.client.verify_id_token(response["id_token"], areq)
-                # except (OtherError, AuthnToOld) as err:
-                #     return err_response(environ, start_response, session,
-                #                         "id_token_verification", err)
+            # if "id_token" in response:
+            #     areq = conv.AuthorizationRequest.to_dict()
+            #     try:
+            #         #  don't care about acr
+            #         del areq["acr_values"]
+            #     except KeyError:
+            #         pass
+            #     try:
+            #         ots.client.verify_id_token(response["id_token"], areq)
+            #     except (OtherError, AuthnToOld) as err:
+            #         return err_response(environ, start_response, session,
+            #                             "id_token_verification", err)
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:
