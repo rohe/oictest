@@ -50,8 +50,10 @@ class Trace(object):
             txt = resp
             self.trace.append("%f %s" % (delta, txt))
         else:
-            self.trace.append("%f %s: %s" % (delta, resp.__class__.__name__,
-                                             txt))
+            cl_name = resp.__class__.__name__
+            if cl_name == "OpenIDSchema":
+                cl_name = "UserInfo"
+            self.trace.append("%f %s: %s" % (delta, cl_name, txt))
 
     def info(self, msg):
         delta = time.time() - self.start
