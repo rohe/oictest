@@ -15,7 +15,7 @@ from oictest.regalg import REGISTERED_JWE_enc_ALGORITHMS
 from rrtest import check
 from rrtest import Unknown
 
-from rrtest.check import Check
+from rrtest.check import Check, OK
 from rrtest.check import Information
 from rrtest.check import WARNING
 from rrtest.check import CONT_JSON
@@ -1849,6 +1849,8 @@ class VerifySubValue(Error):
         return {}
 
 
+
+        return {}
 class VerifyBase64URL(Check):
     """
     Verifies that the base64 encoded parts of a JWK is in fact base64url
@@ -1857,34 +1859,54 @@ class VerifyBase64URL(Check):
     cid = "verify-base64url"
     msg = "JWKS not accoding to spec"
 
+    def _chk(self, key, params):
+        st = OK
+        txt = []
+        for y in params:
+            try:
+                base64url_to_long(key[y])
+            except ValueError:
+                st = WARNING
+                if "kid" in key:
+                    txt.append(
+                        "'%s' not base64url encoded in key with kid '%s'" % (
+                            y, key["kid"]))
+                else:
+                    txt.append(
+                        "'%s' not base64url encoded in %s key" % (
+                            y, key["kty"]))
+        return st, txt
+
     def _func(self, conv):
-        # There should be two entrie in the KeyJar, one is myself and the
-        # other the OP
-        for issuer, kbs in conv.client.keyjar.issuer_keys.items():
-            if issuer == "":  # myself
-                continue
+        pi = get_provider_info(conv)
+        resp = conv.client.http_request(pi["jwks_uri"], verify=False,
+                                        allow_redirects=True)
+        if resp.status_code == 200:
+            jwks = json.loads(resp.text)
+            txt = []
+            s = OK
+            key = {}  # Just to get rid of 'undefined' warning
+            try:
+                for key in jwks["keys"]:
+                    _txt = []
+                    _st = OK
+                    if key["kty"] == "RSA":
+                        _st, _txt = self._chk(key, ["e", "n"])
+                    elif key["kty"] == "EC":
+                        _st, _txt = self._chk(key, ["x", "y"])
+                    txt.extend(_txt)
+                    if s < _st <= CRITICAL:
+                        s = _st
+            except KeyError:
+                self._status = WARNING
+                self._message = "Missing bare key info on %s key" % key["kty"]
             else:
-                for kb in kbs:
-                    if kb.imp_jwks is not None:
-                        for key in kb.imp_jwks["keys"]:
-                            if key["kty"] == "RSA":
-                                _longs = RSAKey.longs
-                            elif key["kty"] == "EC":
-                                _longs = ECKey.longs
-                            else:
-                                _longs = []
-                            for p in _longs:
-                                try:
-                                    _val = key[p]
-                                except KeyError:
-                                    pass
-                                else:
-                                    if _val:
-                                        try:
-                                            _ = base64url_to_long(_val)
-                                        except ValueError:
-                                            self._status = WARNING
-                                            break
+                if s != OK:
+                    self._status = s
+                    self._message = "\n". join(txt)
+        else:
+            self._status = WARNING
+            self._message = "Could not load jwks from {}".format(pi["jwks_uri"])
 
         return {}
 
