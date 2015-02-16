@@ -39,6 +39,30 @@ class Server(oic.Server):
         if "issi" in self.err_type:  # mess with the iss value
             idt["iss"] = "https://example.org/"
 
+        if "itsub" in self.err_type:  # missing sub claim
+            try:
+                del idt["itsub"]
+            except KeyError:
+                pass
+
+        if "aud" in self.err_type:  # invalid aud claim
+            try:
+                idt["aud"] = "https://example.com/"
+            except KeyError:
+                pass
+
+        if "iat" in self.err_type:  # missing iat claim
+            try:
+                del idt["iat"]
+            except KeyError:
+                pass
+
+        if "nonce" in self.err_type:  # invalid nonce if present
+            try:
+                idt["nonce"] = "012345678"
+            except KeyError:
+                pass
+
         return idt
 
 
@@ -92,6 +116,9 @@ class Provider(provider.Provider):
             ava["_claim_names"] = Message(age="src1")
             ava["_claim_sources"] = Message(
                 src1={"endpoint": urlbase + "claim", "access_token": _tok})
+
+        if "sub" in self.err_type:
+            ava["uisub"] = "foobar"
 
         return ava
 

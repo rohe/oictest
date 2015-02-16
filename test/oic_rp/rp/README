@@ -1,0 +1,81 @@
+The RP test tool
+
+The RP test tool is designed to test OpenID Connect RP libraries. It is not for
+testing websites that uses OpenID Connect for authentication and access control
+purposes.
+
+That does not mean that it completely impossible to test a website, but that
+has not been the target for this tool.
+
+It is all in the URL
+
+We had the choice to either run a number of OpenID Connect providers (OPs) each
+with a different configuration or just run one but then have some way of
+telling it what is expected from it. We chose the later.
+For the RP to be able to tell the OP what to do it uses a specially crafted url
+path.
+
+The basic format of the path is: <id>/<signalg>/encalg>/<errtype>/<claims>/<endpoint>
+The absence of a specification is marked with a underscore ('_'). The id MUST
+be present!!
+
+The meaning of the parts is as follows:
+
+1 id
+
+When the OPs logs are written to disc, the file name will be
+"log"/<remote_address>/<id> . remote_address being the IP address of the host
+from which the tester runs her tests.
+
+2 signalg
+
+Which algorithm that the OP should use for signing JWTs, this algorithm is use
+for all signing. So it will for instance be used both for id_token and user
+info signing. A typical value would be RSA256.
+
+3 encalg
+
+The encryption algorithms used, this is actually a tuple. The encryption alg
+and the encryption enc algorithms. The tuple are joined by a ':' so a typical
+value could be RSA1_5:A128CBC-HS256.
+
+4 errtype
+
+This is about getting the OP to make 'errors', presently these are defined:
+
+ath (the at_hash is incorrect)
+aud (ID Token with invalid aud)
+ch (the c_hash is incorrect)
+iat (ID Token without iat claim)
+idts (the id_token signature is invalid)
+issi (the id_token iss value is not the same as the provider info issuer)
+isso (the provider info issuer is not the same as the discovery url)
+itsub (ID Token without sub claim)
+kmm (signing/encryption with a key the RP doesn't have access to)
+nonce (the nonce value returned is not the same as the received)
+state (the state value returned is not the same as the received)
+
+5 user info claims
+
+normal
+aggregated
+distributed
+
+Example
+pr-01/_/_/_/normal/authorization_endpoint
+The log file will be named 'log/<remote_address>/rp-01
+No signing of any item
+No encryption of any item
+No intentional errors
+Normal userinfo claims
+
+pr-01/RS256/_/iss/normal/token_endpoint
+The log file will be named 'log/<remote_address>/rp-01
+IdToken will be signed using the RS256 algorithm
+No encryption of any item
+The iss value will not be the same as the provider info issuer previously
+returned
+Normal userinfo claims
+Provider configuration information
+If the above described URL format is used when retrieving the provider
+configuration information the endpoint URLs will use the same format !

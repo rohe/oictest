@@ -27,7 +27,7 @@ FLOWS = {
         "desc": "Uses Dynamic Registration"
     },
     # Can Make Request with ? Response Type
-    "RP-Request-code": {
+    "rp-rtyp-code": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration", "args": {}},
@@ -35,7 +35,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["code"]}}],
         "desc": "Can Make Request with 'code' Response Type"
     },
-    "RP-Request-id_token": {
+    "rp-rtyp-idt": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -44,7 +44,7 @@ FLOWS = {
                   "args": {"scope": "openid", "response_type": ["id_token"]}}],
         "desc": "Can Make Request with 'id_token' Response Type"
     },
-    "RP-Request-id_token+token": {
+    "rp-rtyp-idttoken": {
         "flow": [{"action": "discover", "args": {}},
                  {"action": "provider_info", "args": {}},
                  {"action": "registration",
@@ -52,6 +52,17 @@ FLOWS = {
                  {"action": "authn_req",
                   "args": {"scope": "openid",
                            "response_type": ["id_token", "token"]}}],
+        "desc": "Can Make Request with 'id_token token' Response Type"
+    },
+    "rp-rmod-form": {
+        "flow": [{"action": "discover", "args": {}},
+                 {"action": "provider_info", "args": {}},
+                 {"action": "registration",
+                  "args": {"id_token_signed_response_alg": "RS256"}},
+                 {"action": "authn_req",
+                  "args": {"scope": "openid",
+                           "response_type": ["id_token", "token"],
+                           "response_mode": ["form_post"]}}],
         "desc": "Can Make Request with 'id_token token' Response Type"
     },
     ### Can Make Access Token Request with ? Authentication
@@ -149,7 +160,7 @@ FLOWS = {
     },
     ### === Reject Invalid ? ID Token Signature ===
     # Asymmetric
-    "RP-IdToken-invalid-Asym-Sig": {
+    "rp-alg-rs256": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -162,8 +173,21 @@ FLOWS = {
         ],
         "desc": "Reject Invalid Asymmetric ID Token Signature"
     },
+    "rp-alg-es256": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/idts/normal"}},
+            {"action": "registration",
+             "args": {"id_token_signed_response_alg": "ES256"}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["id_token"]},
+             "error": BadSignature}
+        ],
+        "desc": "Reject Invalid Asymmetric ID Token Signature"
+    },
     # Symmetric
-    "RP-IdToken-invalid-Sym-Sig": {
+    "rp-alg-hs256": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -209,7 +233,7 @@ FLOWS = {
     },
     # ? at_hash when code Flow Used
     # Reject incorrect
-    "RP-CHash-incorrect": {
+    "rp-idt-c_hash": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -237,7 +261,7 @@ FLOWS = {
     },
     # ? at_hash when Implicit Flow Used
     # Reject incorrect
-    "RP-AtHash-incorrect": {
+    "rp-idt-at_hash": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
@@ -289,7 +313,7 @@ FLOWS = {
                 "request parameter"
     },
     #
-    "RP-userinfo-access": {
+    "rp-ui-hdr": {
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info", "args": {}},
@@ -299,6 +323,19 @@ FLOWS = {
             {"action": "token_req", "args": {}},
             {"action": "userinfo_req",
              "args": {"authn_method": "bearer_header"}}
+        ],
+        "desc": "Accesses UserInfo Endpoint with Header Method"
+    },
+    "rp-ui-body": {
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info", "args": {}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": "openid", "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+            {"action": "userinfo_req",
+             "args": {"authn_method": "bearer_body", "method": "post"}}
         ],
         "desc": "Accesses UserInfo Endpoint with Header Method"
     },
@@ -503,12 +540,51 @@ FLOWS = {
              "error": Exception}
         ]
     },
-    "RP-issuer-not-matching-idtoken": {
+    "RP-idt-iss": {
         "desc": "Rejects Discovered issuer Not Matching ID Token iss",
         "flow": [
             {"action": "discover", "args": {}},
             {"action": "provider_info",
              "args": {"issuer": "https://localhost:8080/_/_/issi/normal"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ]
+    },
+    "RP-idt-sub": {
+        "desc": "Reject ID Token without sub claim",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/sub/normal"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ]
+    },
+    "RP-idt-aud": {
+        "desc": "Reject ID Token with invalid aud claim",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/aud/normal"}},
+            {"action": "registration", "args": {}},
+            {"action": "authn_req",
+             "args": {"scope": ["openid", "profile"],
+                      "response_type": ["code"]}},
+            {"action": "token_req", "args": {}},
+        ]
+    },
+    "RP-idt-iat": {
+        "desc": "Reject ID Token without iat claim",
+        "flow": [
+            {"action": "discover", "args": {}},
+            {"action": "provider_info",
+             "args": {"issuer": "https://localhost:8080/_/_/iat/normal"}},
             {"action": "registration", "args": {}},
             {"action": "authn_req",
              "args": {"scope": ["openid", "profile"],

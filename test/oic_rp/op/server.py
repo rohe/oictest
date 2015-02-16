@@ -33,6 +33,7 @@ from oictest.mode import setup_op
 from oictest.mode import mode2path
 from response_encoder import ResponseEncoder
 from oic.utils.client_management import CDB
+
 __author__ = 'rohe0002'
 
 from mako.lookup import TemplateLookup
