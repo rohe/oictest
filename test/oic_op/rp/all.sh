@@ -1,37 +1,36 @@
 #!/bin/bash
 
+declare -A SERVICES
+
+SERVICES=(["adfs"]="C.T.F.ns"
+    ["azure_ad"]="C.T.F.ns"
+    ["google"]="C.T.F.ns"
+    ["ping"]="C.T.F.ns"
+    ["salesforce"]="C.T.F.ns"
+    ["telekom"]="C.T.F.ns"
+    ["thinktecture_code"]="C.T.F.ns"
+    ["thinktecture_impl"]="IT.T.F.ns"
+    ["thinktecture_hybr"]="CIT.T.F.ns"
+    ["luke"]="C.T.T.ns"
+    ["edmund"]="C.T.T.ns"
+    ["oictest_op"]="C.T.T.nse"
+    ["gsma"]="C.F.F"
+    ["gluu"]="C.T.T.nse")
+
 startme() {
-    ./oprp2.py -p C.T.F.ns -t tflow adfs &> adfs.err &
-    ./oprp2.py -p C.T.F.ns -t tflow azure_ad &> azure.err &
+for srv in "${!SERVICES[@]}" ; do
+        NAME="${srv%%:*}"
+        PROFILE="${SERVICES["$NAME"]}"
+        ERRFILE="$NAME.err"
 
-    ./oprp2.py -p C.T.F.ns -t tflow google &> google.err &
-    ./oprp2.py -p C.T.F.ns -t tflow ping &> ping.err &
-    ./oprp2.py -p C.T.F.ns -t tflow salesforce &> salesforce.err &
-    ./oprp2.py -p C.T.F.ns -t tflow telekom &> telekom.err &
-
-    ./oprp2.py -p C.T.F.ns -t tflow thinktecture_code &> thinktecture_code.err &
-    ./oprp2.py -p IT.T.F.ns -t tflow thinktecture_impl &> thinktecture_impl.err &
-    ./oprp2.py -p CIT.T.F.ns -t tflow thinktecture_hybr &> thinktecture_hybr.err &
-
-    ./oprp2.py -p C.T.T.ns -t tflow luke &> luke.err &
-    ./oprp2.py -p C.T.T.ns -t tflow edmund &> edmund.err &
-    ./oprp2.py -p C.T.T.nse -t tflow oictest_op &> oictest.err &
-    ./oprp2.py -p C.F.F -t tflow gsma &> gsma.err &
+        ./oprp2.py -p ${PROFILE} -t tflow ${NAME} &> ${ERRFILE} &
+    done
 }
 
 stopme() {
-    pkill -f "adfs"
-    pkill -f "azure_ad"
-    pkill -f "google"
-    pkill -f "ping"
-    pkill -f "salesforce"
-    pkill -f "telekom"
-    pkill -f "thinktecture"
-    pkill -f "luke"
-    pkill -f "edmund"
-    pkill -f "xenosmilus2"
-    pkill -f "oictest_op"
-    pkill -f 'gsma'
+    for srv in "${SERVICES[@]}" ; do
+        pkill -f "${srv%%:*}"
+    done
 }
 
 case "$1" in

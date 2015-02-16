@@ -16,11 +16,6 @@ PROFILEMAP = {
     "C": {
         "_login_": ("oic-login", {"request_args": {"response_type": ["code"]}}),
         "_accesstoken_": "access-token-request",
-        "sub": {
-            "none": [],
-            "sign": [],
-            "sign_encr": []
-        }
     },
     "I": {
         "_login_": ("oic-login",
@@ -98,7 +93,7 @@ PROFILEMAP = {
                 "userinfo_signed_response_alg": [],
                 "id_token_signed_response_alg": [],
                 "request_object_signing_alg": [],
-                "grant_types": []
+                "grant_types": ["authorization_code", "implicit"]
             }}
         ),
         "CT": (
@@ -110,7 +105,7 @@ PROFILEMAP = {
                 "userinfo_signed_response_alg": [],
                 "id_token_signed_response_alg": [],
                 "request_object_signing_alg": [],
-                "grant_types": []
+                "grant_types": ["authorization_code", "implicit"]
             }}
         ),
         "CIT": (
@@ -122,7 +117,7 @@ PROFILEMAP = {
                 "userinfo_signed_response_alg": [],
                 "id_token_signed_response_alg": [],
                 "request_object_signing_alg": [],
-                "grant_types": []
+                "grant_types": ["authorization_code", "implicit"]
             }}
         ),
     }
@@ -235,12 +230,15 @@ def map_prof(a, b):
     return True
 
 
-def flows(code, ordered_list):
+def flows(code, ordered_list, flows_=None):
     res = []
     p = code.split('.')
 
+    if flows_ is None:
+        flows_ = FLOWS
+
     for key in ordered_list:
-        sp = FLOWS[key]["profile"].split('.')
+        sp = flows_[key]["profile"].split('.')
 
         if map_prof(p, sp):
             res.append(key)
@@ -268,7 +266,7 @@ DISCOVER = 1
 REGISTER = 2
 
 
-def get_sequence(flowid, spec):
+def get_sequence(flowid, spec, flows_=None):
     """
     Return a sequence of request/responses that together defined the test flow.
 
@@ -280,8 +278,11 @@ def get_sequence(flowid, spec):
     _p = spec.split('.')
     seq = []
 
+    if flows_ is None:
+        flows_ = FLOWS
+
     _profile = _p[RESPONSE]
-    for op in FLOWS[flowid]["sequence"]:
+    for op in flows_[flowid]["sequence"]:
         if isinstance(op, tuple):
             _op, _args = op
         else:
@@ -338,8 +339,12 @@ def get_sequence(flowid, spec):
     return seq
 
 
-def extras():
-    all = FLOWS.keys()
+def extras(flows_=None):
+    if flows is None:
+        all = FLOWS.keys()
+    else:
+        all = flows_.keys()
+
     for prof in ["Basic", "Implicit", "Hybrid"]:
         for _flow in PROFILEMAP[prof]["flows"]:
             if _flow in all:

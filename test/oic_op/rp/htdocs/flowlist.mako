@@ -1,26 +1,6 @@
 <%!
 
-DESC = {
-    "Response": "Response Type & Response Mode",
-    "IDToken": "ID Token",
-    "UserInfo": "Userinfo Endpoint",
-    "nonce": "nonce Request Parameter",
-    "scope": "scope Request Parameter",
-    "display": "display Request Parameter",
-    "prompt": "prompt Request Parameter",
-    "Req": "Misc Request Parameters",
-    "OAuth": "OAuth behaviors",
-    "redirect_uri": "redirect_uri",
-    "ClientAuth": "Client Authentication",
-    "Discovery": "Discovery",
-    "Registration": "Dynamic Client Registration",
-    "Rollover": "Key Rollover",
-    "request_uri": "request_uri Request Parameter",
-    "request": "request Request Parameter",
-    "claims": "claims Request Parameter",
-    }
-
-def op_choice(base, nodes, test_info):
+def op_choice(base, nodes, test_info, headlines):
     """
     Creates a list of test flows
     """
@@ -43,7 +23,7 @@ def op_choice(base, nodes, test_info):
         p, grp, spec = node.name.split("-", 2)
         if not grp == _grp:
             _grp = grp
-            element += "<hr size=2><h3 id='%s'>%s</h3>" % (_grp, DESC[_grp])
+            element += "<hr size=2><h3 id='%s'>%s</h3>" % (_grp, headlines[_grp])
         element += "<li><a href='%s%s'>%s</a>%s (%s) " % (base,
             node.name, color[node.state], node.desc, node.name)
 
@@ -145,7 +125,7 @@ def legends():
           <h3>You are testing using: ${display_profile(profile)}</h3>
           If you want to change this you can do it <a href="pedit">here</a>
           <h3>Chose the next test flow you want to run from this list: </h3>
-          ${op_choice(base, flows, test_info)}
+          ${op_choice(base, flows, test_info, headlines)}
           <h3>Legends</h3>
           ${legends()}
       </div>

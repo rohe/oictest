@@ -577,17 +577,18 @@ FLOWS = {
     'OP-display-page': {
         "desc": 'Request with display=page',
         "sequence": [
-            'rm_cookie',
+            'note',
             '_discover_',
             '_register_',
-            'note',
             ('_login_',
              {
                  "request_args": {"display": "page"},
                  "support": {"warning": {"display_values_supported": "page"}}
              })
         ],
-        "note": "You should get the normal User Agent page view.",
+        "note": "To make sure you get a login page please remove any cookies"
+                "you have received from the OpenID Provider. "
+                "You should get the normal User Agent page view.",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
@@ -605,7 +606,9 @@ FLOWS = {
                  "support": {"warning": {"display_values_supported": "popup"}}
              })
         ],
-        "note": "You should get a popup User Agent window",
+        "note": "To make sure you get a login page please remove any cookies"
+                "you have received from the OpenID Provider. "
+                "You should get a popup User Agent window",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
@@ -630,11 +633,16 @@ FLOWS = {
     'OP-prompt-none-NotLoggedIn': {
         "desc": 'Request with prompt=none when not logged in',
         "sequence": [
-            'rm_cookie',
+            'note',
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
+        "note": "This test tests what happens if the authentication requests "
+                "specifies that the user should not be allowed to login and no"
+                "recent enough authentication is present. "
+                "Please remove any cookies you may have received from the "
+                "OpenID provider.",
         "mti": {"all": "MUST"},
         "profile": "..",
         "tests": {"verify-error": {"error": ["login_required",
@@ -676,7 +684,7 @@ FLOWS = {
             "_login_",
             "_accesstoken_",
             "cache-id_token",
-            'rm_cookie',
+            'note',
             '_discover_',
             '_register_',
             ('_login_', {
@@ -684,6 +692,13 @@ FLOWS = {
                 "function": id_token_hint}),
             "_accesstoken_",
         ],
+        "note": "This test tests what happens if the authentication request "
+                "specifies that the user should not be allowed to login and "
+                "the RP has received an ID Token at a previous login by the "
+                "user. The RP should send the ID Token to the OpenID provider "
+                "as a hint to who the user is. "
+                "Please remove any cookies you may have received from the "
+                "OpenID provider.",
         "profile": "..",
         'tests': {"same-authn": {}, "check-http-response": {}},
         "mti": {"all": "SHOULD"},

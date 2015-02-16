@@ -415,7 +415,8 @@ def session_setup(session, path, index=0):
 
     session["testid"] = path
     session["node"] = get_node(session["tests"], path)
-    sequence_info = {"sequence": get_sequence(path, session["profile"]),
+    sequence_info = {"sequence": get_sequence(path, session["profile"],
+                                              TEST_FLOWS.FLOWS),
                      "mti": session["node"].mti,
                      "tests": session["node"].tests}
     session["seq_info"] = sequence_info
@@ -567,7 +568,8 @@ def support(conv, args):
                                     "Not supported: %s=%s" % (key, val))
                     stat = ERROR
                 except KeyError:  # Not in defaults
-                    conv.trace.info("Not explicit: %s=%s" % (key, val))
+                    conv.trace.info("Not explicit: %s=%s using default" % (key,
+                                                                           val))
             else:
                 try:
                     included(val, pi[key])
@@ -823,13 +825,6 @@ def run_sequence(sequence_info, session, conv, ots, environ, start_response,
                             except KeyError:
                                 pass
 
-                            # try:
-                            #     ots.client.verify_id_token(
-                            #         response["id_token"], areq)
-                            # except (OtherError, AuthnToOld) as err:
-                            #     return err_response(
-                            #         environ, start_response, session,
-                            #         "id_token_verification", err)
             try:
                 post_tests(conv, req_c, resp_c)
             except Exception as err:
@@ -903,7 +898,7 @@ def init_session(session, profile=None):
         session["flow_names"].extend(l)
 
     session["tests"] = [make_node(x, TEST_FLOWS.FLOWS[x]) for x in
-                        flows(profile, session["flow_names"])]
+                        flows(profile, session["flow_names"], TEST_FLOWS.FLOWS)]
 
     session["response_type"] = []
     session["test_info"] = {}
@@ -963,9 +958,9 @@ def application(environ, start_response):
                     return flow_list(environ, start_response, session)
                 else:
                     return resp(environ, start_response)
-        except Exception as ex:
-            logging.exception(str(ex))
-            raise
+        except Exception as err:
+            return err_response(environ, start_response, session,
+                                "session_setup", err)
     elif path == "logs":
         return display_log(environ, start_response, "log", "log")
     elif path.startswith("log"):
@@ -1149,18 +1144,7 @@ def application(environ, start_response):
             LOGGER.info("Parsed response: %s" % response.to_dict())
             conv.protocol_response.append((response, info))
             conv.trace.response(response)
-            # if "id_token" in response:
-            #     areq = conv.AuthorizationRequest.to_dict()
-            #     try:
-            #         #  don't care about acr
-            #         del areq["acr_values"]
-            #     except KeyError:
-            #         pass
-            #     try:
-            #         ots.client.verify_id_token(response["id_token"], areq)
-            #     except (OtherError, AuthnToOld) as err:
-            #         return err_response(environ, start_response, session,
-            #                             "id_token_verification", err)
+
         try:
             post_tests(conv, req_c, resp_c)
         except Exception as err:
