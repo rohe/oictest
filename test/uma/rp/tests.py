@@ -180,7 +180,6 @@ class AuthorizationRequest(GetRequest):
     _request_args = {"scope": ["openid"]}
     _tests = {"pre": [CheckResponseType, CheckEndpoint],
               "post": []}
-    interaction_check = True
 
 
 class AuthorizationRequestCode(AuthorizationRequest):

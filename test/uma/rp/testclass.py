@@ -364,7 +364,6 @@ class AuthorizationRequest(GetRequest):
     _request_args = {"scope": ["openid"]}
     _tests = {"pre": [CheckResponseType],
               "post": []}
-    interaction_check = True
 
 
 class AccessTokenRequest(PostRequest):
