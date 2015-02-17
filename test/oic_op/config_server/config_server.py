@@ -667,6 +667,9 @@ def start_rp_process(port, command, working_directory=None):
 
     if retcode is None:
         check_if_oprp_started(port)
+    else:
+        LOGGER.error("Return code " + str(retcode) + " != None. Command executed: " + str(command))
+        raise NoResponseException("RP (%s) failed to start" % get_base_url(port))
 
 
 
@@ -721,7 +724,7 @@ def handle_start_op_tester(session, response_encoder):
         oprp_arg = "C.T.T.ns"
 
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, "-p", oprp_arg, config_module], "../rp/")
+        start_rp_process(port, [CONF.OPRP_PATH, "-p", oprp_arg, "-t", CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.returnJSON(json.dumps({"oprp_url": str(get_base_url(port))}))
     except Exception as ex:
         return response_encoder.serviceError(ex.message)

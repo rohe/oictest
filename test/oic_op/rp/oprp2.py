@@ -1189,10 +1189,16 @@ if __name__ == '__main__':
     sys.path.insert(0, ".")
     CONF = importlib.import_module(args.config)
 
-    if args.testflows:
-        TEST_FLOWS = importlib.import_module(args.testflows)
-    else:
-        TEST_FLOWS = importlib.import_module("tflow")
+    setup_logging("rp_%s.log" % CONF.PORT)
+
+    try:
+        if args.testflows:
+            TEST_FLOWS = importlib.import_module(args.testflows)
+        else:
+            TEST_FLOWS = importlib.import_module("tflow")
+    except ImportError as ex:
+        exception_trace("importing_test_flows", ex, LOGGER)
+        raise
 
     if args.directory:
         _dir = args.directory
@@ -1212,8 +1218,6 @@ if __name__ == '__main__':
                             output_encoding='utf-8')
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
-
-    setup_logging("rp_%s.log" % CONF.PORT)
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,

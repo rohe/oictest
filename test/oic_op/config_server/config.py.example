@@ -26,3 +26,5 @@ DATABASE_FILE = "./static_ports.db"
 OPRP_DIR_PATH = '../rp/'
 
 RP_SSL_MODULE = "sslconf"
+
+OPRP_TEST_FLOW = "tflow"
