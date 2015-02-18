@@ -251,7 +251,8 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         if uiendp == url:
             _iss = _cli.provider_info["issuer"]
             kwargs["key"] = _cli.keyjar.get("ver", issuer=_iss)
-            kwargs["key"].extend(_cli.keyjar.get("enc", issuer=_iss))
+            #kwargs["key"].extend(_cli.keyjar.get("enc", issuer=_iss))
+            kwargs["key"].extend(_cli.keyjar.get("enc", issuer=""))
         elif "keyjar" not in kwargs:
             kwargs["keyjar"] = conv.keyjar
 
