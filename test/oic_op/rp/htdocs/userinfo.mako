@@ -38,7 +38,7 @@
             % endfor
           </table>
         <br>
-        To go back click this ${link(back)}.
+        To go back click this ${link(url)}.
       </div>
 
     </div> <!-- /container -->

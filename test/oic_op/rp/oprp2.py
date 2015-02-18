@@ -267,6 +267,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
     parser.add_argument('-t', dest='testflows')
+    parser.add_argument('-c', dest='testclass')
     parser.add_argument('-d', dest='directory')
     parser.add_argument('-p', dest='profile')
     parser.add_argument('-P', dest='profiles')
@@ -302,6 +303,11 @@ if __name__ == '__main__':
     else:
         PROFILES = importlib.import_module("profiles")
 
+    if args.testclass:
+        TEST_CLASS = importlib.import_module(args.testclass)
+    else:
+        from oictest import testclass as TEST_CLASS
+
     if args.directory:
         _dir = args.directory
         if not _dir.endswith("/"):
@@ -322,7 +328,8 @@ if __name__ == '__main__':
     setup_logging("rp_%s.log" % CONF.PORT)
 
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
-               "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES}
+               "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES,
+               "test_class": TEST_CLASS}
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,

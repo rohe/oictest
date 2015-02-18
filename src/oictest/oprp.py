@@ -25,6 +25,8 @@ from oictest.check import get_protocol_response
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
+from oictest.prof_util import flows
+from oictest.prof_util import from_code
 
 from rrtest import Trace
 from rrtest import exception_trace
@@ -105,13 +107,14 @@ def evaluate(session, conv):
 
 class OPRP(object):
     def __init__(self, lookup, conf, test_flows, cache, test_profile,
-                 profiles, environ=None, start_response=None):
+                 profiles, test_class, environ=None, start_response=None):
         self.lookup = lookup
         self.conf = conf
         self.test_flows = test_flows
         self.cache = cache
         self.test_profile = test_profile
         self.profiles = profiles
+        self.test_class = test_class
         self.environ = environ
         self.start_response = start_response
                 
@@ -275,7 +278,8 @@ class OPRP(object):
         session["node"] = get_node(session["tests"], path)
         sequence_info = {
             "sequence": self.profiles.get_sequence(
-                path, session["profile"], self.test_flows.FLOWS),
+                path, session["profile"], self.test_flows.FLOWS,
+                self.profiles.PROFILEMAP, self.test_class.PHASES),
             "mti": session["node"].mti,
             "tests": session["node"].tests}
         session["seq_info"] = sequence_info
@@ -288,26 +292,36 @@ class OPRP(object):
         return conv, sequence_info, ots, conv.trace, index
 
     def err_response(self, session, where, err):
-        if err:
-            if isinstance(err, Break):
-                session["node"].state = WARNING
+        exception_trace(where, err, LOGGER)
+
+        if "node" in session:
+            if err:
+                if isinstance(err, Break):
+                    session["node"].state = WARNING
+                else:
+                    session["node"].state = ERROR
             else:
                 session["node"].state = ERROR
-            exception_trace(where, err, LOGGER)
-            session["conv"].trace.error("%s:%s" % (err.__class__.__name__,
-                                                   str(err)))
-            session["conv"].test_output.append(
-                {"id": "-", "status": ERROR, "message": "%s" % err})
-        else:
-            session["node"].state = ERROR
-            session["conv"].test_output.append(
-                {"id": "-", "status": ERROR, "message": "Error in %s" % where})
 
-        _tid = session["testid"]
-        self.dump_log(session, _tid)
-        session["test_info"][_tid] = {
-            "trace": session["conv"].trace,
-            "test_output": session["conv"].test_output}
+        if "conv" in session:
+            if err:
+                session["conv"].trace.error("%s:%s" % (err.__class__.__name__,
+                                                       str(err)))
+                session["conv"].test_output.append(
+                    {"id": "-", "status": ERROR, "message": "%s" % err})
+            else:
+                session["conv"].test_output.append(
+                    {"id": "-", "status": ERROR,
+                     "message": "Error in %s" % where})
+
+        try:
+            _tid = session["testid"]
+            self.dump_log(session, _tid)
+            session["test_info"][_tid] = {
+                "trace": session["conv"].trace,
+                "test_output": session["conv"].test_output}
+        except KeyError:
+            pass
 
         return self.flow_list(session)
 
@@ -374,9 +388,8 @@ class OPRP(object):
             session["flow_names"].extend(l)
 
         session["tests"] = [make_node(x, self.test_flows.FLOWS[x]) for x in
-                            self.profiles.flows(
-                                profile, session["flow_names"],
-                                self.test_flows.FLOWS)]
+                            flows(profile, session["flow_names"],
+                                  self.test_flows.FLOWS)]
 
         session["response_type"] = []
         session["test_info"] = {}
@@ -611,7 +624,8 @@ class OPRP(object):
         resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
         return resp(self.environ, self.start_response)
 
-    def profile_info(self, session, test_id=None):
+    @staticmethod
+    def profile_info(session, test_id=None):
         try:
             _conv = session["conv"]
         except KeyError:
@@ -622,7 +636,7 @@ class OPRP(object):
             except TypeError:
                 pass
             else:
-                profile = self.profiles.from_code(session["profile"])
+                profile = from_code(session["profile"])
 
                 if test_id is None:
                     try:

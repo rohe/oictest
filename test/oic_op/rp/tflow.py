@@ -586,7 +586,7 @@ FLOWS = {
                  "support": {"warning": {"display_values_supported": "page"}}
              })
         ],
-        "note": "To make sure you get a login page please remove any cookies"
+        "note": "To make sure you get a login page please remove any cookies "
                 "you have received from the OpenID Provider. "
                 "You should get the normal User Agent page view.",
         "profile": "..",
@@ -596,7 +596,6 @@ FLOWS = {
     'OP-display-popup': {
         "desc": 'Request with display=popup',
         "sequence": [
-            'rm_cookie',
             '_discover_',
             '_register_',
             'note',
@@ -606,9 +605,9 @@ FLOWS = {
                  "support": {"warning": {"display_values_supported": "popup"}}
              })
         ],
-        "note": "To make sure you get a login page please remove any cookies"
+        "note": "To make sure you get a login page please remove any cookies "
                 "you have received from the OpenID Provider. "
-                "You should get a popup User Agent window",
+                "You should get a popup User Agent window now",
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
@@ -639,7 +638,7 @@ FLOWS = {
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
         "note": "This test tests what happens if the authentication requests "
-                "specifies that the user should not be allowed to login and no"
+                "specifies that the user should not be allowed to login and no "
                 "recent enough authentication is present. "
                 "Please remove any cookies you may have received from the "
                 "OpenID provider.",
@@ -748,7 +747,7 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD,
             'display_userinfo'],
-        "note": "Claims may now be returned in the locale of choice"
+        "note": "Claims may now be returned in the locale of choice "
                 "The use of this parameter in the request must not cause an "
                 "error at the OP",
         "profile": "C,IT,CI,CT,CIT..",
