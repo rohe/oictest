@@ -79,9 +79,9 @@ def application(environ, start_response):
 
     if path == "reset":
         oprp.reset_session(session)
-        return oprp.flow_list(environ, start_response, session)
+        return oprp.flow_list(session)
     elif path == "pedit":
-        return oprp.profile_edit(environ, start_response, session)
+        return oprp.profile_edit(session)
     elif path == "profile":
         info = parse_qs(get_post(environ))
         cp = session["profile"].split(".")

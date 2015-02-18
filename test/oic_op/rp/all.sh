@@ -14,11 +14,10 @@ SERVICES=(["adfs"]="C.T.F.ns"
     ["luke"]="C.T.T.ns"
     ["edmund"]="C.T.T.ns"
     ["oictest_op"]="C.T.T.nse"
-    ["gsma"]="C.F.F"
     ["gluu"]="C.T.T.nse")
 
 startme() {
-for srv in "${!SERVICES[@]}" ; do
+    for srv in "${!SERVICES[@]}" ; do
         NAME="${srv%%:*}"
         PROFILE="${SERVICES["$NAME"]}"
         ERRFILE="$NAME.err"
