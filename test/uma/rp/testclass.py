@@ -559,13 +559,14 @@ class ClientDeleteRequest(DeleteRequest):
 class CreateResourceSetRequest(PostRequest):
     request = "ResourceSetDescription"
     endpoint = "resource_set_registration_endpoint"
+    module = "uma.message"
 
     def call_setup(self):
         _client = self.conv.client
         self.request_args["access_token"] = _client.token[PAT]
         self.kw_args["authn_method"] = "bearer_header"
         self.kw_args["endpoint"] = os.path.join(_client.provider_info[
-            "resource_set_registration_endpoint"], ["resource_set", "01234"])
+            "resource_set_registration_endpoint"], "resource_set")
         self.kw_args["content_type"] = JSON_ENCODED
 
 
@@ -633,9 +634,9 @@ class NoneResponse(BodyResponse):
     module = "oic.oic.message"
 
 
-class CreateResourceSetResponse(BodyResponse):
-    response = "Message"
-    module = "oic.oic.message"
+class ResourceSetResponse(BodyResponse):
+    response = "ResourceSetDescription"
+    module = "uma.message"
 
 
 # ============================================================================
@@ -652,8 +653,7 @@ PHASES = {
     "oauth-read-registration": (ReadRegistration, OAuthRegistrationResponse),
     "modify-registration": (ClientUpdateRequest, OAuthRegistrationResponse),
     "delete-registration": (ClientDeleteRequest, NoneResponse),
-    'create_resource_set': (CreateResourceSetRequest,
-                            CreateResourceSetResponse),
+    'create_resource_set': (CreateResourceSetRequest, ResourceSetResponse),
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,

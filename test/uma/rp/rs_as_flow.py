@@ -11,6 +11,8 @@ from oictest.testfunc import redirect_uris_with_fragment
 
 __author__ = 'roland'
 
+URL = "https://oictest.umdc.umu.se/static/players/%s"
+
 USERINFO_REQUEST_AUTH_METHOD = (
     "userinfo", {
         "kwargs_mod": {"authn_method": "bearer_header"},
@@ -33,11 +35,32 @@ HEADLINES = {
 }
 
 RESOURCE = {
-    1: {"name": "Photo Album",
-        "icon_uri": "http://www.example.com/icons/flower.png",
-        "scopes": ["http://photoz.example.com/dev/scopes/view",
-                   "http://photoz.example.com/dev/scopes/all"],
-        "type": "http://www.example.com/rsets/photoalbum"},
+    "AL2014": {
+        "name": "American League Roster All Star game 2014",
+        "scopes": ["get", "delete", "post", "put"],
+    },
+    "Jeter": {
+        "name": "Derek Jeter",
+        "icon_uri": URL % "Jeter",
+        "scopes": ["get", "delete", "put"],
+        "type": "Shortstop"
+    },
+    "Cabrera": {
+        "name": "Miguel Cabrera",
+        "icon_uri": URL % "Cabrera",
+        "scopes": ["get", "delete", "put"],
+        "type": "First Base"},
+    "martinez": {
+        "name": "Victor Martinez",
+        "icon_uri": URL % "Martinez",
+        "scopes": ["read", "delete", "put"],
+        "type": "Designated hitter"
+    },
+    "scherzer": {
+        "name": "Max Scherzer",
+        "icon_uri": URL % "Scherzer",
+        "scopes": ["get", "delete", "put"],
+        "type": "Pitcher"},
 }
 
 FLOWS = {
@@ -335,7 +358,7 @@ FLOWS = {
             '_oauth_register_',
             ('_login_', {"request_args": {"scope": [PAT]}}),
             '_accesstoken_',
-            # 'store_pat'
+            'store_pat'
         ],
         "profile": "C..",
         'tests': {"check-http-response": {}},
@@ -357,23 +380,21 @@ FLOWS = {
     'UMA-resourceset-create': {
         "desc": "Create resource set",
         "sequence": [
-            '_uma_discover_',
-            '_oauth_register_',
-            ('_login_', {"request_args": {"scope": [PAT]}}),
-            '_accesstoken_',
-            ('create_resource_set', {"request_args": RESOURCE[1]})
+            'retrieve_pat',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "rsid": "AL2014"})
         ],
         "profile": "C..",
         "tests": {},
     },
-    'UMA-resourceset-read': {
-        "desc": "Read resource set"
-    },
-    'UMA-resourceset-update': {
-    },
-    'UMA-resourceset-list': {
-    },
-    'UMA-resourceset-delete': {
-    },
+    # 'UMA-resourceset-read': {
+    #     "desc": "Read resource set"
+    # },
+    # 'UMA-resourceset-update': {
+    # },
+    # 'UMA-resourceset-list': {
+    # },
+    # 'UMA-resourceset-delete': {
+    # },
 }
 
