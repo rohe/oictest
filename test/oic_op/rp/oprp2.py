@@ -12,6 +12,7 @@ from mako.lookup import TemplateLookup
 from oic.oic.message import factory as message_factory
 
 from oic.oauth2 import ResponseError
+from oic.utils import exception_trace
 from oic.utils.http_util import Redirect
 from oic.utils.http_util import get_post
 from oic.utils.http_util import BadRequest
@@ -285,10 +286,16 @@ if __name__ == '__main__':
     sys.path.insert(0, ".")
     CONF = importlib.import_module(args.config)
 
-    if args.testflows:
-        TEST_FLOWS = importlib.import_module(args.testflows)
-    else:
-        TEST_FLOWS = importlib.import_module("tflow")
+    setup_logging("rp_%s.log" % CONF.PORT)
+
+    try:
+        if args.testflows:
+            TEST_FLOWS = importlib.import_module(args.testflows)
+        else:
+            TEST_FLOWS = importlib.import_module("tflow")
+    except ImportError as ex:
+        exception_trace("importing_test_flows", ex, LOGGER)
+        raise
 
     if args.profiles:
         PROFILES = importlib.import_module(args.profiles)
