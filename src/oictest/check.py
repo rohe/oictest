@@ -1051,7 +1051,7 @@ class MultipleSignOn(Error):
 
 
 class SameAuthn(Error):
-    """ Verifies that multiple authentication was used in the flow """
+    """ Verifies that the same authentication was used twice in the flow. """
     cid = "same-authn"
 
     def _func(self, conv):
