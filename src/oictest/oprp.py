@@ -8,14 +8,10 @@ import logging
 from jwkest import JWKESTException
 
 from jwkest.jws import alg2keytype
-from urlparse import parse_qs
 from oic.exception import PyoidcError
 
 from oic.oauth2 import rndstr
-from oic.oauth2 import ResponseError
 from oic.utils.http_util import NotFound
-from oic.utils.http_util import get_post
-from oic.utils.http_util import BadRequest
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
 from oic.oic.message import AccessTokenResponse
@@ -45,10 +41,6 @@ from testclass import Notice
 from testclass import DisplayUserInfo
 from testclass import DisplayIDToken
 from testclass import Webfinger
-
-from profiles import get_sequence
-from profiles import from_code
-from profiles import flows
 
 LOGGER = logging.getLogger("")
 
@@ -113,12 +105,13 @@ def evaluate(session, conv):
 
 class OPRP(object):
     def __init__(self, lookup, conf, test_flows, cache, test_profile,
-                 environ=None, start_response=None):
+                 profiles, environ=None, start_response=None):
         self.lookup = lookup
         self.conf = conf
         self.test_flows = test_flows
         self.cache = cache
         self.test_profile = test_profile
+        self.profiles = profiles
         self.environ = environ
         self.start_response = start_response
                 
@@ -136,7 +129,7 @@ class OPRP(object):
                         template_lookup=self.lookup,
                         headers=[])
     
-        dump_log(session)
+        self.dump_log(session)
     
         argv = {
             "flows": session["tests"],
@@ -171,10 +164,10 @@ class OPRP(object):
                         template_lookup=self.lookup,
                         headers=[])
     
-        # dump_log(session, test_id=testid)
+        # self.dump_log(session, test_id=testid)
     
         info = session["test_info"][testid]
-        _pinfo = profile_info(session, testid)
+        _pinfo = self.profile_info(session, testid)
         argv = {
             "profile": _pinfo,
             "trace": info["trace"],
@@ -280,10 +273,11 @@ class OPRP(object):
 
         session["testid"] = path
         session["node"] = get_node(session["tests"], path)
-        sequence_info = {"sequence": get_sequence(path, session["profile"],
-                                                  self.test_flows.FLOWS),
-                         "mti": session["node"].mti,
-                         "tests": session["node"].tests}
+        sequence_info = {
+            "sequence": self.profiles.get_sequence(
+                path, session["profile"], self.test_flows.FLOWS),
+            "mti": session["node"].mti,
+            "tests": session["node"].tests}
         session["seq_info"] = sequence_info
         session["index"] = index
         session["response_type"] = ""
@@ -310,7 +304,7 @@ class OPRP(object):
                 {"id": "-", "status": ERROR, "message": "Error in %s" % where})
 
         _tid = session["testid"]
-        dump_log(session, _tid)
+        self.dump_log(session, _tid)
         session["test_info"][_tid] = {
             "trace": session["conv"].trace,
             "test_output": session["conv"].test_output}
@@ -359,7 +353,7 @@ class OPRP(object):
             else:
                 kwargs["url"] += "&key=%s" % key
 
-            return req(self.lookup, **kwargs)
+            return req(self.lookup, self.environ, self.start_response, **kwargs)
         else:
             try:
                 req(conv)
@@ -380,8 +374,9 @@ class OPRP(object):
             session["flow_names"].extend(l)
 
         session["tests"] = [make_node(x, self.test_flows.FLOWS[x]) for x in
-                            flows(profile, session["flow_names"],
-                                  self.test_flows.FLOWS)]
+                            self.profiles.flows(
+                                profile, session["flow_names"],
+                                self.test_flows.FLOWS)]
 
         session["response_type"] = []
         session["test_info"] = {}
@@ -408,236 +403,6 @@ class OPRP(object):
         else:
             return False
 
-    def application(self, environ, start_response):
-        LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
-        session = environ['beaker.session']
-
-        path = environ.get('PATH_INFO', '').lstrip('/')
-        LOGGER.info("path: %s" % path)
-
-        if path == "robots.txt":
-            return static(environ, start_response, "static/robots.txt")
-        elif path == "favicon.ico":
-            return static(environ, start_response, "static/favicon.ico")
-
-        if path.startswith("static/"):
-            return static(environ, start_response, path)
-
-        if path.startswith("export/"):
-            return static(environ, start_response, path)
-
-        self.environ = environ
-        self.start_response = start_response
-
-        if path == "":  # list
-            try:
-                if self.session_init(session):
-                    return self.flow_list(session)
-                else:
-                    try:
-                        resp = Redirect("%sopresult#%s" % (
-                            self.conf.BASE, session["testid"][0]))
-                    except KeyError:
-                        return self.flow_list(session)
-                    else:
-                        return resp(environ, start_response)
-            except Exception as err:
-                return self.err_response(session, "session_setup", err)
-        elif path == "logs":
-            return self.display_log("log", "log")
-        elif path.startswith("log"):
-            if path == "log":
-                path = os.path.join(
-                    path, quote_plus(self.conf.CLIENT["srv_discovery_url"]))
-                tail = path
-            else:
-                head, tail = os.path.split(path)
-            return self.display_log(path, tail)
-        elif "flow_names" not in session:
-            self.session_init(session)
-
-        if path == "reset":
-            self.reset_session(session)
-            return self.flow_list(environ, start_response, session)
-        elif path == "pedit":
-            return self.profile_edit(environ, start_response, session)
-        elif path == "profile":
-            info = parse_qs(get_post(environ))
-            cp = session["profile"].split(".")
-            cp[0] = info["rtype"][0]
-
-            crsu = []
-            for name, cs in CRYPTSUPPORT.items():
-                try:
-                    if info[name] == ["on"]:
-                        crsu.append(cs)
-                except KeyError:
-                    pass
-
-            if len(cp) == 3:
-                if len(crsu) == 3:
-                    pass
-                else:
-                    cp.append("".join(crsu))
-            else:  # len >= 4
-                cp[3] = "".join(crsu)
-
-            try:
-                if info["extra"] == ['on']:
-                    if len(cp) == 3:
-                        cp.extend(["", "+"])
-                    elif len(cp) == 4:
-                        cp.append("+")
-                    elif len(cp) == 5:
-                        cp[4] = "+"
-                else:
-                    if len(cp) == 5:
-                        cp = cp[:-1]
-            except KeyError:
-                if len(cp) == 5:
-                    cp = cp[:-1]
-
-            # reset all testsflows
-            self.reset_session(session, ".".join(cp))
-            return self.flow_list(session)
-        elif path.startswith("test_info"):
-            p = path.split("/")
-            try:
-                return self.test_info(p[1], session)
-            except KeyError:
-                return self.not_found()
-        elif path == "continue":
-            try:
-                sequence_info = session["seq_info"]
-            except KeyError:  # Cookie delete broke session
-                query = parse_qs(environ["QUERY_STRING"])
-                path = query["path"][0]
-                index = int(query["index"][0])
-                conv, sequence_info, ots, trace, index = self.session_setup(
-                    session, path, index)
-                try:
-                    conv.cache_key = query["key"][0]
-                except KeyError:
-                    pass
-            except Exception as err:
-                return self.err_response(session, "session_setup", err)
-            else:
-                index = session["index"]
-                ots = session["ots"]
-                conv = session["conv"]
-
-            index += 1
-            try:
-                return self.run_sequence(sequence_info, session, conv, ots,
-                                         conv.trace, index)
-            except Exception, err:
-                return self.err_response(session, "run_sequence", err)
-        elif path == "opresult":
-
-            try:
-                conv = session["conv"]
-            except KeyError as err:
-                homepage = ""
-                return self.sorry_response(homepage, err)
-
-            return self.opresult(conv, session)
-        # expected path format: /<testid>[/<endpoint>]
-        elif path in session["flow_names"]:
-            LOGGER.info("<=<=<=<=< %s >=>=>=>=>" % path)
-            conv, sequence_info, ots, trace, index = self.session_setup(session,
-                                                                        path)
-            session["node"].complete = False
-            try:
-                return self.run_sequence(sequence_info, session, conv, ots,
-                                         trace, index)
-            except Exception as err:
-                return self.err_response(session, "run_sequence", err)
-        elif path in ["authz_cb", "authz_post"]:
-            try:
-                sequence_info = session["seq_info"]
-                index = session["index"]
-                ots = session["ots"]
-                conv = session["conv"]
-            except KeyError as err:
-                # Todo: find out which port I'm listening on
-                return self.sorry_response(self.conf.BASE, err)
-            (req_c, resp_c), _ = sequence_info["sequence"][index]
-            try:
-                response_mode = conv.AuthorizationRequest["response_mode"]
-            except KeyError:
-                response_mode = None
-
-            if path == "authz_cb":
-                if response_mode == "form_post":
-                    pass
-                elif session["response_type"] and not \
-                        session["response_type"] == ["code"]:
-                    # but what if it's all returned as a query ?
-                    try:
-                        qs = environ["QUERY_STRING"]
-                    except KeyError:
-                        qs = ""
-                    if qs:
-                        session["conv"].trace.response("QUERY_STRING:%s" % qs)
-                        session["conv"].info(
-                            "Didn't expect response as query parameters")
-
-                    return self.opresult_fragment()
-
-            if resp_c:  # None in cases where no OIDC response is expected
-                _ctype = resp_c.ctype
-
-                # parse the response
-                if response_mode == "form_post":
-                    info = parse_qs(get_post(environ))
-                    _ctype = "dict"
-                elif path == "authz_post":
-                    query = parse_qs(get_post(environ))
-                    try:
-                        info = query["fragment"][0]
-                    except KeyError:
-                        return self.sorry_response(self.conf.BASE,
-                                                   "missing fragment ?!")
-                    _ctype = "urlencoded"
-                elif resp_c.where == "url":
-                    info = environ["QUERY_STRING"]
-                    _ctype = "urlencoded"
-                else:  # resp_c.where == "body"
-                    info = get_post(environ)
-
-                LOGGER.info("Response: %s" % info)
-                conv.trace.reply(info)
-                resp_cls = message_factory(resp_c.response)
-                algs = ots.client.sign_enc_algs("id_token")
-                try:
-                    response = ots.client.parse_response(
-                        resp_cls, info, _ctype,
-                        conv.AuthorizationRequest["state"],
-                        keyjar=ots.client.keyjar, algs=algs)
-                except ResponseError as err:
-                    return self.err_response(session, "run_sequence", err)
-                except Exception as err:
-                    return self.err_response(session, "run_sequence", err)
-
-                LOGGER.info("Parsed response: %s" % response.to_dict())
-                conv.protocol_response.append((response, info))
-                conv.trace.response(response)
-
-            try:
-                post_tests(conv, req_c, resp_c)
-            except Exception as err:
-                return self.err_response(session, "post_test", err)
-
-            index += 1
-            try:
-                return self.run_sequence(sequence_info, session, conv, ots,
-                                         conv.trace, index)
-            except Exception as err:
-                return self.err_response(session, "run_sequence", err)
-        else:
-            resp = BadRequest()
-            return resp(environ, start_response)
-
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
             LOGGER.info("###{i}### {f} ###{i}###".format(
@@ -648,12 +413,12 @@ class OPRP(object):
             except (ValueError, TypeError):  # Not a tuple
                 ret = self.none_request_response(sequence_info, index, session,
                                                  conv)
-                dump_log(session)
+                self.dump_log(session)
                 if ret:
                     return ret
             else:
                 try:
-                    kwargs = setup(_kwa, conv, session)
+                    kwargs = setup(_kwa, conv)
                 except NotSupported:
                     return self.opresult(conv, session)
                 except Exception as err:
@@ -820,7 +585,7 @@ class OPRP(object):
 
             index += 1
             _tid = session["testid"]
-            dump_log(session, _tid)
+            self.dump_log(session, _tid)
             session["test_info"][_tid] = {"trace": conv.trace,
                                           "test_output": conv.test_output}
 
@@ -836,7 +601,7 @@ class OPRP(object):
             return self.err_response(session, "post_test", err)
 
         _tid = session["testid"]
-        dump_log(session, _tid)
+        self.dump_log(session, _tid)
         session["test_info"][_tid] = {"trace": conv.trace,
                                       "test_output": conv.test_output}
         session["node"].complete = True
@@ -846,8 +611,58 @@ class OPRP(object):
         resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
         return resp(self.environ, self.start_response)
 
+    def profile_info(self, session, test_id=None):
+        try:
+            _conv = session["conv"]
+        except KeyError:
+            pass
+        else:
+            try:
+                iss = _conv.client.provider_info["issuer"]
+            except TypeError:
+                pass
+            else:
+                profile = self.profiles.from_code(session["profile"])
+
+                if test_id is None:
+                    try:
+                        test_id = session["testid"]
+                    except KeyError:
+                        return {}
+
+                return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
+
+        return {}
+
+    def dump_log(self, session, test_id=None):
+        try:
+            _conv = session["conv"]
+        except KeyError:
+            pass
+        else:
+            _pi = self.profile_info(session, test_id)
+            if _pi:
+                path = log_path(session, _pi["Test ID"])
+                sline = 60*"="
+                output = ["%s: %s" % (k, _pi[k]) for k in ["Issuer", "Profile",
+                                                           "Test ID"]]
+
+                output.extend(["", sline, ""])
+                output.extend(trace_output(_conv.trace))
+                output.extend(["", sline, ""])
+                output.extend(test_output(_conv.test_output))
+                output.extend(["", sline, ""])
+                # and lastly the result
+                output.append("RESULT: %s" % represent_result(session))
+                output.append("")
+
+                f = open(path, "w")
+                f.write("\n".join(output))
+                f.close()
+                return path
 
 # =============================================================================
+
 
 def get_id_token(client, conv):
     return client.grant[conv.AuthorizationRequest["state"]].get_id_token()
@@ -946,58 +761,6 @@ def represent_result(session):
         text = "%s\nWarnings:\n%s" % (text, "\n".join(warnings))
 
     return text
-
-
-def profile_info(session, test_id=None):
-    try:
-        _conv = session["conv"]
-    except KeyError:
-        pass
-    else:
-        try:
-            iss = _conv.client.provider_info["issuer"]
-        except TypeError:
-            pass
-        else:
-            profile = from_code(session["profile"])
-
-            if test_id is None:
-                try:
-                    test_id = session["testid"]
-                except KeyError:
-                    return {}
-
-            return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
-
-    return {}
-
-
-def dump_log(session, test_id=None):
-    try:
-        _conv = session["conv"]
-    except KeyError:
-        pass
-    else:
-        _pi = profile_info(session, test_id)
-        if _pi:
-            path = log_path(session, _pi["Test ID"])
-            sline = 60*"="
-            output = ["%s: %s" % (k, _pi[k]) for k in ["Issuer", "Profile",
-                                                       "Test ID"]]
-
-            output.extend(["", sline, ""])
-            output.extend(trace_output(_conv.trace))
-            output.extend(["", sline, ""])
-            output.extend(test_output(_conv.test_output))
-            output.extend(["", sline, ""])
-            # and lastly the result
-            output.append("RESULT: %s" % represent_result(session))
-            output.append("")
-
-            f = open(path, "w")
-            f.write("\n".join(output))
-            f.close()
-            return path
 
 
 def clear_session(session):
@@ -1176,3 +939,5 @@ def get_node(tests, nid):
         return l[0]
     except ValueError:
         return None
+
+# -----------------------------------------------------------------------------
