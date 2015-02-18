@@ -1286,8 +1286,9 @@ class CheckEncryptedUserInfo(Error):
 
     def _func(self, conv):
         jwt, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
+        p = unpack(msg)
         try:
-            assert jwt.jwt_header["alg"].startswith("RSA")
+            assert p[0]["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
