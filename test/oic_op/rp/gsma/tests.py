@@ -8,13 +8,12 @@ from oictest.testfunc import acr_value
 
 __author__ = 'roland'
 
-ORDDESC = ["OP-Response", "OP-IDToken", "OP-nonce", "OP-scope",
-           "OP-display", "OP-prompt", "OP-Req", "OP-OAuth"]
+ORDDESC = ["GSMA-Response", "GSMA-IDToken", "GSMA-scope",
+           "GSMA-display", "GSMA-prompt", "GSMA-Req", "GSMA-OAuth"]
 
 DESC = {
     "Response": "Response Type & Response Mode",
     "IDToken": "ID Token",
-    "nonce": "nonce Request Parameter",
     "scope": "scope Request Parameter",
     "display": "display Request Parameter",
     "prompt": "prompt Request Parameter",
@@ -23,14 +22,14 @@ DESC = {
 }
 
 FLOWS = {
-    'OP-Response-code': {
+    'GSMA-Response-code': {
         "desc": 'Request with response_type=code',
         "sequence": ['_discover_', "_register_", "_login_"],
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"}
     },
-    'OP-Response-Missing': {
+    'GSMA-Response-Missing': {
         "desc": 'Authorization request missing the response_type parameter',
         "sequence": [
             '_discover_',
@@ -50,7 +49,7 @@ FLOWS = {
         "profile": "..",
         "mti": {"all": "MUST"}
     },
-    'OP-IDToken-Signature': {
+    'GSMA-IDToken-Signature': {
         # RS256 is MTI
         "desc": 'If left to itself is the OP signing the ID Token and with '
                 'what',
@@ -62,7 +61,7 @@ FLOWS = {
         "tests": {"is-idtoken-signed": {"alg": "RS256"},
                   "check-http-response": {}}
     },
-    'OP-IDToken-kid': {
+    'GSMA-IDToken-kid': {
         "desc": 'IDToken has kid',
         "sequence": ['_discover_', '_register_', "_login_", "_accesstoken_"],
         "mti": {"all": "MUST"},
@@ -70,18 +69,7 @@ FLOWS = {
         "tests": {"verify-signed-idtoken-has-kid": {},
                   "check-http-response": {}}
     },
-    'OP-IDToken-nonce-code': {
-        "desc": 'ID Token has nonce when requested for code flow',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_', {"request_args": {"nonce": "godmorgon"}}),
-            '_accesstoken_'],
-        "mti": {"all": "MUST"},
-        "profile": "..",
-        "tests": {"verify-nonce": {}, "check-http-response": {}}
-    },
-    'OP-IDToken-max_age=1': {
+    'GSMA-IDToken-max_age=1': {
         "desc": 'Requesting ID Token with max_age=1 seconds Restriction',
         "sequence": [
             '_discover_',
@@ -103,7 +91,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
         "result": "The test passed if you were prompted to log in"
     },
-    'OP-IDToken-max_age=1000': {
+    'GSMA-IDToken-max_age=1000': {
         "desc": 'Requesting ID Token with max_age=1000 seconds Restriction',
         "sequence": [
             '_discover_',
@@ -121,7 +109,7 @@ FLOWS = {
                                    "required": True}},
         "mti": {"all": "MUST"}
     },
-    'OP-IDToken-at_hash': {
+    'GSMA-IDToken-at_hash': {
         "desc": 'ID Token has at_hash when ID Token and Access Token returned '
                 'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
@@ -129,14 +117,14 @@ FLOWS = {
         "test": {'verify-athash': {}, "check-http-response": {}},
         "profile": "IT,CIT..",
     },
-    'OP-IDToken-nonce-noncode': {
+    'GSMA-IDToken-nonce-noncode': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
         "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
         "profile": "..",
         "mti": {"all": "MUST"}
     },
-    'OP-IDToken-HS256': {
+    'GSMA-IDToken-HS256': {
         "desc": 'Symmetric ID Token signature with HS256',
         "sequence": [
             '_discover_',
@@ -147,7 +135,7 @@ FLOWS = {
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
                   "check-http-response": {}}
     },
-    'OP-IDToken-ES256': {
+    'GSMA-IDToken-ES256': {
         "desc": 'Asymmetric ID Token signature with ES256',
         "sequence": [
             '_discover_',
@@ -158,7 +146,7 @@ FLOWS = {
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
                   "check-http-response": {}}
     },
-    'OP-IDToken-SigEnc': {
+    'GSMA-IDToken-SigEnc': {
         "desc": 'Signed and encrypted ID Token',
         "sequence": [
             '_discover_',
@@ -185,18 +173,7 @@ FLOWS = {
                                                "enc_enc": "A128CBC-HS256"},
                   "check-http-response": {}}
     },
-    'OP-nonce-NoReq-code': {
-        "desc": 'Login no nonce, code flow',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_', {"request_args": {"nonce": ""}})
-        ],
-        "profile": "C,CT..",
-        'tests': {"check-http-response": {}},
-        "mti": {"all": "MUST"}
-    },
-    'OP-scope-profile': {
+    'GSMA-scope-profile': {
         "desc": 'Scope Requesting profile Claims',
         "sequence": [
             '_discover_',
@@ -216,7 +193,7 @@ FLOWS = {
         "mti": {"all": "No err"},
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
-    'OP-scope-email': {
+    'GSMA-scope-email': {
         "desc": 'Scope Requesting email Claims',
         "sequence": [
             '_discover_',
@@ -236,7 +213,7 @@ FLOWS = {
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
-    'OP-scope-address': {
+    'GSMA-scope-address': {
         "desc": 'Scope Requesting address Claims',
         "sequence": [
             '_discover_',
@@ -256,7 +233,7 @@ FLOWS = {
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
-    'OP-scope-phone': {
+    'GSMA-scope-phone': {
         "desc": 'Scope Requesting phone Claims',
         "sequence": [
             '_discover_',
@@ -276,7 +253,7 @@ FLOWS = {
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
-    'OP-scope-All': {
+    'GSMA-scope-All': {
         "desc": 'Scope Requesting all Claims',
         "sequence": [
             '_discover_',
@@ -299,7 +276,7 @@ FLOWS = {
         "mti": "No err",
         'tests': {"verify-claims": {}, "check-http-response": {}}
     },
-    'OP-display-page': {
+    'GSMA-display-page': {
         "desc": 'Request with display=page',
         "sequence": [
             'note',
@@ -318,7 +295,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
     },
-    'OP-display-popup': {
+    'GSMA-display-popup': {
         "desc": 'Request with display=popup',
         "sequence": [
             'rm_cookie',
@@ -338,7 +315,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
     },
-    'OP-prompt-login': {
+    'GSMA-prompt-login': {
         "desc": 'Request with prompt=login',
         "sequence": [
             '_discover_',
@@ -355,7 +332,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
         # "result": "The test passed if you were prompted to log in"
     },
-    'OP-prompt-none-NotLoggedIn': {
+    'GSMA-prompt-none-NotLoggedIn': {
         "desc": 'Request with prompt=none when not logged in',
         "sequence": [
             'note',
@@ -375,7 +352,7 @@ FLOWS = {
                                              "session_selection_required",
                                              "consent_required"]}},
     },
-    'OP-prompt-none-LoggedIn': {
+    'GSMA-prompt-none-LoggedIn': {
         "desc": 'Request with prompt=none when logged in',
         "sequence": [
             '_discover_',
@@ -390,7 +367,7 @@ FLOWS = {
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
     },
-    'OP-Req-NotUnderstood': {
+    'GSMA-Req-NotUnderstood': {
         "desc": 'Request with extra query component',
         "sequence": [
             '_discover_',
@@ -401,7 +378,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"},
     },
-    'OP-Req-id_token_hint': {
+    'GSMA-Req-id_token_hint': {
         "desc": 'Using prompt=none with user hint through id_token_hint',
         "sequence": [
             '_discover_',
@@ -428,7 +405,7 @@ FLOWS = {
         'tests': {"same-authn": {}, "check-http-response": {}},
         "mti": {"all": "SHOULD"},
     },
-    'OP-Req-login_hint': {
+    'GSMA-Req-login_hint': {
         "desc": 'Providing login_hint',
         "sequence": [
             'note',
@@ -444,7 +421,7 @@ FLOWS = {
         "mti": {"all": "No err"},
         "result": "You should be requested to log in as a predefined user"
     },
-    'OP-Req-ui_locales': {
+    'GSMA-Req-ui_locales': {
         "desc": 'Providing ui_locales',
         "sequence": [
             'note',
@@ -462,7 +439,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
     },
-    'OP-Req-acr_values': {
+    'GSMA-Req-acr_values': {
         "desc": 'Providing acr_values',
         "sequence": [
             '_discover_',
@@ -475,7 +452,7 @@ FLOWS = {
         "profile": "..",
         'tests': {"used-acr-value": {}, "check-http-response": {}}
     },
-    'OP-OAuth-2nd': {
+    'GSMA-OAuth-2nd': {
         "desc": 'Trying to use access code twice should result in an error',
         "sequence": [
             '_discover_',
@@ -490,7 +467,7 @@ FLOWS = {
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
     },
-    'OP-OAuth-2nd-30s': {
+    'GSMA-OAuth-2nd-30s': {
         "desc": 'Trying to use access code twice with 30 seconds in between '
                 'must result in an error',
         "sequence": [

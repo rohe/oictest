@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 from oic.oic import OIDCONF_PATTERN
 from oic.utils.keyio import KeyBundle
-from oic.utils.keyio import dump_jwks
 from oic.utils.http_util import Response
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 
-import copy
 from oic.oauth2.consumer import ConfigurationError
 from oic.oauth2.message import SchemeError
 
@@ -15,6 +13,8 @@ from rrtest.request import GetRequest
 from rrtest.request import PostRequest
 from rrtest.request import Process
 from rrtest.request import UrlResponse
+
+from oictest.testclass import RegistrationRequest
 
 __author__ = 'rohe0002'
 
