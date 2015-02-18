@@ -1,7 +1,7 @@
 import copy
 from tflow import FLOWS
 
-from testclass import PHASES
+from oictest.testclass import PHASES
 
 __author__ = 'roland'
 

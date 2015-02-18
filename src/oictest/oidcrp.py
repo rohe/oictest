@@ -106,7 +106,10 @@ class OIDCTestSetup(object):
             reg_info = self.config.CLIENT["client_registration"]
             client.redirect_uris = reg_info["redirect_uris"]
             client.client_id = reg_info["client_id"]
-            client.client_secret = reg_info["client_secret"]
+            try:
+                client.client_secret = reg_info["client_secret"]
+            except KeyError:
+                pass
 
         if "provider_info" in _key_set:
             client.provider_info = ProviderConfigurationResponse(
