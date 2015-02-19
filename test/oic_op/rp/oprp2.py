@@ -260,6 +260,7 @@ if __name__ == '__main__':
     import cherrypy
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
+    from OpenSSL import SSL
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
@@ -335,6 +336,7 @@ if __name__ == '__main__':
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
+        SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
         try:
             cherrypy.server.ssl_certificate_chain = CONF.CERT_CHAIN
         except AttributeError:
