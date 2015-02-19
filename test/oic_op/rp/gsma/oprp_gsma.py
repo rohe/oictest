@@ -22,7 +22,7 @@ from oic.oic.message import RegistrationResponse
 from message import factory
 
 from oictest.oidcrp import request_and_return
-from oictest.oprp import OPRP, static, CRYPTSUPPORT
+from oictest.oprp import OPRP, CRYPTSUPPORT
 from oictest.oprp import endpoint_support
 from oictest.oprp import post_tests
 from oictest.oprp import NotSupported
@@ -258,21 +258,21 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     LOGGER.info("path: %s" % path)
 
-    if path == "robots.txt":
-        return static(environ, start_response, "static/robots.txt")
-    elif path == "favicon.ico":
-        return static(environ, start_response, "static/favicon.ico")
-
-    if path.startswith("static/"):
-        return static(environ, start_response, path)
-
-    if path.startswith("export/"):
-        return static(environ, start_response, path)
-
     oprp = OPRP(**RP_ARGS)
 
     oprp.environ = environ
     oprp.start_response = start_response
+
+    if path == "robots.txt":
+        return oprp.static("static/robots.txt")
+    elif path == "favicon.ico":
+        return oprp.static("static/favicon.ico")
+
+    if path.startswith("static/"):
+        return oprp.static(path)
+
+    if path.startswith("export/"):
+        return oprp.static(path)
 
     if path == "":  # list
         try:
