@@ -543,8 +543,6 @@ if __name__ == '__main__':
                             input_encoding='utf-8',
                             output_encoding='utf-8')
 
-    setup_logging("rp_%s.log" % CONF.PORT)
-
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
                "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES}
 

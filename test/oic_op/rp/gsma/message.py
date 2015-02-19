@@ -9,8 +9,9 @@ from oic.oauth2 import SINGLE_OPTIONAL_STRING
 from oic.oauth2 import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2 import SINGLE_OPTIONAL_INT
 from oic.oauth2 import OPTIONAL_LIST_OF_SP_SEP_STRINGS
-from oic.oauth2.exception import InvalidRequest
-from oic.oauth2.exception import NotForMe
+
+from oic.exception import InvalidRequest
+from oic.exception import NotForMe
 
 from oic import oic
 from oic.oic import OpenIDSchema
