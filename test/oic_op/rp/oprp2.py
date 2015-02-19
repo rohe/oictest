@@ -257,6 +257,7 @@ def application(environ, start_response):
 
 
 if __name__ == '__main__':
+    import cherrypy
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
 
@@ -334,6 +335,10 @@ if __name__ == '__main__':
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
+        try:
+            cherrypy.server.ssl_certificate_chain = CONF.CERT_CHAIN
+        except AttributeError:
+            pass
         extra = " using SSL/TLS"
     else:
         extra = ""
