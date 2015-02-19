@@ -54,14 +54,14 @@ class NotSupported(Exception):
     pass
 
 
-def setup_logging(logfile):
+def setup_logging(logfile, logger):
     hdlr = logging.FileHandler(logfile)
     base_formatter = logging.Formatter(
         "%(asctime)s %(name)s:%(levelname)s %(message)s")
 
     hdlr.setFormatter(base_formatter)
-    LOGGER.addHandler(hdlr)
-    LOGGER.setLevel(logging.DEBUG)
+    logger.addHandler(hdlr)
+    logger.setLevel(logging.DEBUG)
 
 
 def pprint_json(json_txt):
