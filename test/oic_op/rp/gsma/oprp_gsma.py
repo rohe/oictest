@@ -292,8 +292,11 @@ def application(environ, start_response):
         return oprp.display_log("log", "log")
     elif path.startswith("log"):
         if path == "log":
-            path = os.path.join(
-                path, quote_plus(oprp.conf.CLIENT["srv_discovery_url"]))
+            try:
+                _id = oprp.conf.CLIENT["srv_discovery_url"]
+            except KeyError:
+                _id = oprp.conf.CLIENT["service_id"]
+            path = os.path.join(path, quote_plus(_id))
             tail = path
         else:
             head, tail = os.path.split(path)

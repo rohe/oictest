@@ -27,7 +27,6 @@ from oictest.check import factory as check_factory
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 from oictest.oprp import OPRP
-from oictest.oprp import static
 from oictest.oprp import CRYPTSUPPORT
 from oictest.oprp import endpoint_support
 from oictest.oprp import post_tests
@@ -82,7 +81,7 @@ class UMAoprp(OPRP):
         trace = Trace()
         conv = Conversation(ots.client, client_conf, trace, None,
                             uma_message_factory, check_factory)
-        conv.cache = CACHE
+        conv.cache = self.cache
         return ots, conv
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
@@ -98,7 +97,7 @@ class UMAoprp(OPRP):
                     return ret
             else:
                 try:
-                    kwargs = setup(_kwa, conv, session)
+                    kwargs = setup(_kwa, conv)
                 except NotSupported:
                     return self.opresult(conv, session)
                 except Exception as err:
@@ -301,8 +300,8 @@ class UMAoprp(OPRP):
         self.dump_log(session)
 
         argv = {
-            "target": args.target,
-            "role": args.role,
+            "target": args.you,
+            "role": args.me,
             "flows": session["tests"],
             "profile": session["profile"],
             "test_info": session["test_info"].keys(),
@@ -320,21 +319,21 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     LOGGER.info("path: %s" % path)
 
-    if path == "robots.txt":
-        return static(environ, start_response, "static/robots.txt")
-    elif path == "favicon.ico":
-        return static(environ, start_response, "static/favicon.ico")
-
-    if path.startswith("static/"):
-        return static(environ, start_response, path)
-
-    if path.startswith("export/"):
-        return static(environ, start_response, path)
-
     oprp = UMAoprp(**RP_ARGS)
 
     oprp.environ = environ
     oprp.start_response = start_response
+
+    if path == "robots.txt":
+        return oprp.static("static/robots.txt")
+    elif path == "favicon.ico":
+        return oprp.static("static/favicon.ico")
+
+    if path.startswith("static/"):
+        return oprp.static(path)
+
+    if path.startswith("export/"):
+        return oprp.static(path)
 
     if path == "":  # list
         try:
@@ -551,10 +550,11 @@ if __name__ == '__main__':
     from cherrypy import wsgiserver
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-m', dest='mailaddr')
-    parser.add_argument('-t', dest='target')
-    parser.add_argument('-r', dest='role')
+    parser.add_argument('-t', dest='testflow')
+    parser.add_argument('-m', dest='me')
+    parser.add_argument('-y', dest='you')
     parser.add_argument('-d', dest='directory')
+    parser.add_argument('-c', dest='testclass')
     parser.add_argument('-p', dest='profile')
     parser.add_argument('-P', dest='profiles')
     parser.add_argument(dest="config")
@@ -570,17 +570,24 @@ if __name__ == '__main__':
         'session.timeout': 900
     }
 
-    CACHE = {}
     sys.path.insert(0, ".")
     CONF = importlib.import_module(args.config)
 
-    TEST_FLOWS = importlib.import_module("%s_%s_flow" % (args.role,
-                                                         args.target))
+    setup_logging("rp_%s.log" % CONF.PORT, LOGGER)
+
+    TEST_FLOWS = importlib.import_module("%s_%s_flow" % (args.me,
+                                                         args.you))
 
     if args.profiles:
         PROFILES = importlib.import_module(args.profiles)
     else:
         PROFILES = importlib.import_module("profiles")
+
+    if args.testclass:
+        TEST_CLASS = importlib.import_module(args.testclass)
+    else:
+        from oictest import testclass as TEST_CLASS
+
 
     if args.directory:
         _dir = args.directory
@@ -599,10 +606,9 @@ if __name__ == '__main__':
                             input_encoding='utf-8',
                             output_encoding='utf-8')
 
-    setup_logging("rp_%s.log" % CONF.PORT)
-
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
-               "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES}
+               "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES,
+               "test_class": TEST_CLASS}
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,

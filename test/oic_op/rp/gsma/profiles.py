@@ -1,8 +1,6 @@
 import copy
 from tests import FLOWS
 
-from oictest.testclass import PHASES
-
 __author__ = 'roland'
 
 PMAP = {"C": "Basic"}
@@ -176,7 +174,7 @@ DISCOVER = 1
 REGISTER = 2
 
 
-def get_sequence(flowid, spec, flows_=None):
+def get_sequence(flowid, spec, flows_, profilemap, phases):
     """
     Return a sequence of request/responses that together defined the test flow.
 
@@ -188,9 +186,6 @@ def get_sequence(flowid, spec, flows_=None):
     _p = spec.split('.')
     seq = []
 
-    if flows_ is None:
-        flows_ = FLOWS
-
     _profile = _p[RESPONSE]
     for op in flows_[flowid]["sequence"]:
         if isinstance(op, tuple):
@@ -201,20 +196,20 @@ def get_sequence(flowid, spec, flows_=None):
 
         if _op == "_discover_":
             if _p[DISCOVER] == "T":
-                _op, arg = PROFILEMAP["Discover"]["*"]
+                _op, arg = profilemap["Discover"]["*"]
                 if arg:
                     carg = copy.deepcopy(arg)
                     _args = _update(_args, carg)
-                seq.append((PHASES[_op], _args))
+                seq.append((phases[_op], _args))
             continue
 
         if _op == "_register_":
             if _p[REGISTER] == "T":
-                _op, arg = PROFILEMAP["Register"][_profile]
+                _op, arg = profilemap["Register"][_profile]
                 if arg:
                     carg = copy.deepcopy(arg)
                     _args = _update(_args, carg)
-                seq.append((PHASES[_op], _args))
+                seq.append((phases[_op], _args))
             continue
 
         _args = {}
@@ -231,7 +226,7 @@ def get_sequence(flowid, spec, flows_=None):
                 _op = op
 
             try:
-                op = PROFILEMAP[_profile][_op]
+                op = profilemap[_profile][_op]
             except KeyError:
                 break
 
@@ -239,12 +234,12 @@ def get_sequence(flowid, spec, flows_=None):
             continue
 
         if _op == "oic-registration":  # default minimal registration info
-            _, b = PROFILEMAP["Register"][_profile]
+            _, b = profilemap["Register"][_profile]
             if b:
                 cb = copy.deepcopy(b)
                 _args = _update(_args, cb)
 
-        seq.append((PHASES[_op], _args))
+        seq.append((phases[_op], _args))
 
     return seq
 

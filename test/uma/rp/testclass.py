@@ -639,6 +639,11 @@ class ResourceSetResponse(BodyResponse):
     module = "uma.message"
 
 
+class StatusResponse(BodyResponse):
+    response = "StatusResponse"
+    module = "uma.message"
+
+
 # ============================================================================
 
 PHASES = {
@@ -653,7 +658,7 @@ PHASES = {
     "oauth-read-registration": (ReadRegistration, OAuthRegistrationResponse),
     "modify-registration": (ClientUpdateRequest, OAuthRegistrationResponse),
     "delete-registration": (ClientDeleteRequest, NoneResponse),
-    'create_resource_set': (CreateResourceSetRequest, ResourceSetResponse),
+    'create_resource_set': (CreateResourceSetRequest, StatusResponse),
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,
