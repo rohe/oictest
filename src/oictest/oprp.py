@@ -69,29 +69,29 @@ def pprint_json(json_txt):
     return json.dumps(_jso, sort_keys=True, indent=2, separators=(',', ': '))
 
 
-def static(environ, start_response, path):
-    LOGGER.info("[static]sending: %s" % (path,))
-
-    try:
-        text = open(path).read()
-        if path.endswith(".ico"):
-            start_response('200 OK', [('Content-Type', "image/x-icon")])
-        elif path.endswith(".html"):
-            start_response('200 OK', [('Content-Type', 'text/html')])
-        elif path.endswith(".json"):
-            start_response('200 OK', [('Content-Type', 'application/json')])
-        elif path.endswith(".jwt"):
-            start_response('200 OK', [('Content-Type', 'application/jwt')])
-        elif path.endswith(".txt"):
-            start_response('200 OK', [('Content-Type', 'text/plain')])
-        elif path.endswith(".css"):
-            start_response('200 OK', [('Content-Type', 'text/css')])
-        else:
-            start_response('200 OK', [('Content-Type', "text/plain")])
-        return [text]
-    except IOError:
-        resp = NotFound()
-        return resp(environ, start_response)
+# def static(environ, start_response, path):
+#     LOGGER.info("[static]sending: %s" % (path,))
+#
+#     try:
+#         text = open(path).read()
+#         if path.endswith(".ico"):
+#             start_response('200 OK', [('Content-Type', "image/x-icon")])
+#         elif path.endswith(".html"):
+#             start_response('200 OK', [('Content-Type', 'text/html')])
+#         elif path.endswith(".json"):
+#             start_response('200 OK', [('Content-Type', 'application/json')])
+#         elif path.endswith(".jwt"):
+#             start_response('200 OK', [('Content-Type', 'application/jwt')])
+#         elif path.endswith(".txt"):
+#             start_response('200 OK', [('Content-Type', 'text/plain')])
+#         elif path.endswith(".css"):
+#             start_response('200 OK', [('Content-Type', 'text/css')])
+#         else:
+#             start_response('200 OK', [('Content-Type', "text/plain")])
+#         return [text]
+#     except IOError:
+#         resp = NotFound()
+#         return resp(environ, start_response)
 
 
 def evaluate(session, conv):
@@ -234,12 +234,13 @@ class OPRP(object):
 
     def display_log(self, path, tail):
         path = path.replace(":", "%3A")
+        LOGGER.info("display_log.path: %s" % path)
         tail = tail.replace(":", "%3A")
-        LOGGER.info("display_log: %s" % tail)
+        LOGGER.info("display_log.tail: %s" % tail)
         if os.path.isdir(path):
             return self._display(path, tail)
         elif os.path.isfile(path):
-            return static(path)
+            return self.static(path)
         else:
             if path.endswith("%2F"):
                 path = path[:-3]
@@ -248,7 +249,7 @@ class OPRP(object):
                 if os.path.isdir(path):
                     return self._display(path, tail)
                 elif os.path.isfile(path):
-                    return static(self.environ, self.start_response, path)
+                    return self.static(path)
 
             resp = Response("No saved logs")
             return resp(self.environ, self.start_response)

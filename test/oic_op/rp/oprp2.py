@@ -17,7 +17,6 @@ from oic.utils.http_util import Redirect
 from oic.utils.http_util import get_post
 from oic.utils.http_util import BadRequest
 from oictest.oprp import setup_logging
-from oictest.oprp import static
 from oictest.oprp import OPRP
 from oictest.oprp import CRYPTSUPPORT
 from oictest.oprp import post_tests
@@ -34,21 +33,18 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     LOGGER.info("path: %s" % path)
 
-    if path == "robots.txt":
-        return static(environ, start_response, "static/robots.txt")
-    elif path == "favicon.ico":
-        return static(environ, start_response, "static/favicon.ico")
-
-    if path.startswith("static/"):
-        return static(environ, start_response, path)
-
-    if path.startswith("export/"):
-        return static(environ, start_response, path)
-
     oprp = OPRP(**RP_ARGS)
-
     oprp.environ = environ
     oprp.start_response = start_response
+
+    if path == "robots.txt":
+        return oprp.static("static/robots.txt")
+    elif path == "favicon.ico":
+        return oprp.static("static/favicon.ico")
+    elif path.startswith("static/"):
+        return oprp.static(path)
+    elif path.startswith("export/"):
+        return oprp.static(path)
 
     if path == "":  # list
         try:
