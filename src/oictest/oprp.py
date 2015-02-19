@@ -118,14 +118,14 @@ class OPRP(object):
         self.environ = environ
         self.start_response = start_response
                 
-    def opchoice(self, clients):
-        resp = Response(mako_template="opchoice.mako",
-                        template_lookup=self.lookup,
-                        headers=[])
-        argv = {
-            "op_list": clients.keys()
-        }
-        return resp(self.environ, self.start_response, **argv)
+    # def opchoice(self, clients):
+    #     resp = Response(mako_template="opchoice.mako",
+    #                     template_lookup=self.lookup,
+    #                     headers=[])
+    #     argv = {
+    #         "op_list": clients.keys()
+    #     }
+    #     return resp(self.environ, self.start_response, **argv)
         
     def flow_list(self, session):
         resp = Response(mako_template="flowlist.mako",

@@ -119,34 +119,11 @@ def opresult(environ, start_response, conv, session):
     return flow_list(environ, start_response, session)
 
 
-def operror(environ, start_response, error=None):
-    resp = Response(mako_template="operror.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "error": error
-    }
-    return resp(environ, start_response, **argv)
-
-
 def opresult_fragment(environ, start_response):
     resp = Response(mako_template="opresult_repost.mako",
                     template_lookup=LOOKUP,
                     headers=[])
     argv = {}
-    return resp(environ, start_response, **argv)
-
-
-def test_error(environ, start_response, conv, exc):
-    resp = Response(mako_template="testerror.mako",
-                    template_lookup=LOOKUP,
-                    headers=[])
-    argv = {
-        "trace": conv.trace,
-        "output": conv.test_output,
-        "exception": exc
-    }
-
     return resp(environ, start_response, **argv)
 
 
