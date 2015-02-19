@@ -684,8 +684,6 @@ FLOWS = {
             "_accesstoken_",
             "cache-id_token",
             'note',
-            '_discover_',
-            '_register_',
             ('_login_', {
                 "request_args": {"prompt": "none"},
                 "function": id_token_hint}),

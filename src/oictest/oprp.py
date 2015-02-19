@@ -44,7 +44,7 @@ from testclass import DisplayUserInfo
 from testclass import DisplayIDToken
 from testclass import Webfinger
 
-LOGGER = logging.getLogger("")
+LOGGER = logging.getLogger(__name__)
 
 INCOMPLETE = 5
 CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
