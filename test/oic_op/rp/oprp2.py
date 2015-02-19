@@ -336,6 +336,7 @@ if __name__ == '__main__':
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
+        SRV.ssl_adapter.context = SSL.Context(SSL.SSLv23_METHOD)
         SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
         try:
             cherrypy.server.ssl_certificate_chain = CONF.CERT_CHAIN
