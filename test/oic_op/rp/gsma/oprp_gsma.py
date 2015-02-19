@@ -542,7 +542,7 @@ if __name__ == '__main__':
         if not _dir.endswith("/"):
             _dir += "/"
     else:
-        _dir = "../"
+        _dir = "./"
 
     LOOKUP = TemplateLookup(directories=[_dir + 'templates', _dir + 'htdocs'],
                             module_directory=_dir + 'modules',
