@@ -257,10 +257,8 @@ def application(environ, start_response):
 
 
 if __name__ == '__main__':
-    import cherrypy
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
-    from OpenSSL import SSL
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
@@ -302,9 +300,9 @@ if __name__ == '__main__':
         PROFILES = importlib.import_module("profiles")
 
     if args.testclass:
-        TEST_CLASS = importlib.import_module(args.testclass)
+        test_class = importlib.import_module(args.testclass)
     else:
-        from oictest import testclass as TEST_CLASS
+        from oictest import testclass as test_class
 
     if args.directory:
         _dir = args.directory
@@ -325,19 +323,21 @@ if __name__ == '__main__':
 
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
                "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES,
-               "test_class": TEST_CLASS}
+               "test_class": test_class}
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
                                                           session_opts))
 
     if CONF.BASE.startswith("https"):
+        import cherrypy
         from cherrypy.wsgiserver import ssl_pyopenssl
+        # from OpenSSL import SSL
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
-        SRV.ssl_adapter.context = SSL.Context(SSL.SSLv23_METHOD)
-        SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
+        # SRV.ssl_adapter.context = SSL.Context(SSL.SSLv23_METHOD)
+        # SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
         try:
             cherrypy.server.ssl_certificate_chain = CONF.CERT_CHAIN
         except AttributeError:

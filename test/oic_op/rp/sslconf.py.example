@@ -1,5 +1,11 @@
+import os
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
 # If BASE is https these has to be specified
-SERVER_CERT = "certs/server.crt"
-SERVER_KEY = "certs/server.key"
+SERVER_CERT = "%s/certs/server.crt" % BASEDIR
+SERVER_KEY = "%s/certs/server.key" % BASEDIR
+CERT_CHAIN = "/etc/ssl/certs/bundle.pem"
+
 CA_BUNDLE = None
 VERIFY_SSL = False
