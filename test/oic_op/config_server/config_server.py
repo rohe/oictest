@@ -5,6 +5,7 @@ import importlib
 import json
 import os
 import threading
+import time
 import argparse
 import datetime
 import logging
@@ -781,6 +782,8 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
 
             if response.status_code == 200:
                 return
+
+            time.sleep(1)
         except ConnectionError:
             pass
 
