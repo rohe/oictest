@@ -8,11 +8,12 @@ from oictest.testfunc import acr_value
 
 __author__ = 'roland'
 
-ORDDESC = ["GSMA-Response", "GSMA-IDToken", "GSMA-scope",
+ORDDESC = ["GSMA-Response", "GSMA-acr_values", "GSMA-IDToken", "GSMA-scope",
            "GSMA-display", "GSMA-prompt", "GSMA-Req", "GSMA-OAuth"]
 
 DESC = {
     "Response": "Response Type & Response Mode",
+    "acr_values": "acr_values Request Parameter",
     "IDToken": "ID Token",
     "scope": "scope Request Parameter",
     "display": "display Request Parameter",
@@ -47,6 +48,39 @@ FLOWS = {
                 "case (2) occurs the tester must submit a screen shot as proof "
                 "when sending in a certification application",
         "profile": "..",
+        "mti": {"all": "MUST"}
+    },
+    "GSMA-acr_values-1": {
+        "desc": 'Request with acr_values=["1"]',
+        "sequence": [
+            '_discover_',
+            "_register_",
+            ("_login_", {"reqeust_args": {"acr_values": ["1"]}})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"}
+    },
+    "GSMA-acr_values-2": {
+        "desc": 'Request with acr_values=["2"]',
+        "sequence": [
+            '_discover_',
+            "_register_",
+            ("_login_", {"reqeust_args": {"acr_values": ["2"]}})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"}
+    },
+    "GSMA-acr_values-3": {
+        "desc": 'Request with acr_values=["3"]',
+        "sequence": [
+            '_discover_',
+            "_register_",
+            ("_login_", {"reqeust_args": {"acr_values": ["3"]}})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"}
     },
     'GSMA-IDToken-Signature': {

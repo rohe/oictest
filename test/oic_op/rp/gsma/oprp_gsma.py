@@ -123,7 +123,8 @@ class GSMAoprp(OPRP):
                     LOGGER.info("request: %s" % req.request)
                     if req.request == "AuthorizationRequest":
                         # New state for each request
-                        kwargs["request_args"].update({"state": rndstr()})
+                        kwargs["request_args"].update({"state": rndstr(),
+                                                       "nonce": rndstr()})
                         if not ots.client.provider_info:
                             return self.err_response(session, req.request,
                                                      "No provider info")
