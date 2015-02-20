@@ -743,6 +743,7 @@ def create_config_file(port, rp_config_folder):
     with open(rp_config_folder + "rp_conf_" + str(port) + ".py",
               "w") as config_file:
         config_file.write("")
+        config_file.close()
         return config_file, port
 
 
@@ -787,6 +788,7 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
 
 
 def start_rp_process(port, command, working_directory=None):
+    LOGGER.info("Starting RP on {} with command {}".format(port, command))
     try:
         p = subprocess.Popen(command,
                              stdout=subprocess.PIPE,
