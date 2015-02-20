@@ -1850,8 +1850,6 @@ class VerifySubValue(Error):
         return {}
 
 
-
-        return {}
 class VerifyBase64URL(Check):
     """
     Verifies that the base64 encoded parts of a JWK is in fact base64url
@@ -1882,6 +1880,11 @@ class VerifyBase64URL(Check):
         pi = get_provider_info(conv)
         resp = conv.client.http_request(pi["jwks_uri"], verify=False,
                                         allow_redirects=True)
+        try:
+            err_status = self._kwargs["err_status"]
+        except KeyError:
+            err_status = WARNING
+
         if resp.status_code == 200:
             jwks = json.loads(resp.text)
             txt = []
@@ -1899,14 +1902,14 @@ class VerifyBase64URL(Check):
                     if s < _st <= CRITICAL:
                         s = _st
             except KeyError:
-                self._status = WARNING
+                self._status = err_status
                 self._message = "Missing bare key info on %s key" % key["kty"]
             else:
                 if s != OK:
                     self._status = s
                     self._message = "\n". join(txt)
         else:
-            self._status = WARNING
+            self._status = err_status
             self._message = "Could not load jwks from {}".format(pi["jwks_uri"])
 
         return {}

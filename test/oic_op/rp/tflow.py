@@ -1063,7 +1063,8 @@ FLOWS = {
         "desc": 'Keys in OP JWKs well formed',
         "sequence": ['_discover_'],
         "profile": ".T.",
-        "tests": {"verify-base64url": {}, "check-http-response": {}},
+        "tests": {"verify-base64url": {"err_status": ERROR},
+                  "check-http-response": {}},
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-WebFinger-Email': {
