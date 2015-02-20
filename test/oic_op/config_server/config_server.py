@@ -7,22 +7,26 @@ import os
 import threading
 import argparse
 import datetime
-from dirg_util.http_util import HttpHandler
-from mako.lookup import TemplateLookup
 import logging
 import sys
-from oic.utils.http_util import NotFound
-from dirg_util.session import Session
-from oic.utils.http_util import Response
+import requests
+import subprocess
+import signal
+
+from dirg_util.http_util import HttpHandler
+from mako.lookup import TemplateLookup
+
 from issuer_port_database import MySqllite3Dict
 from requests.exceptions import ConnectionError
 from response_encoder import ResponseEncoder
-from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS, \
-    OPTIONAL_LIST_OF_STRINGS, OPTIONAL_LIST_OF_SP_SEP_STRINGS, \
-    REQUIRED_LIST_OF_STRINGS
+
+from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
+from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
+from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oic.message import ProviderConfigurationResponse
-import requests
-import subprocess, signal
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import Response
 
 LOGGER = logging.getLogger("")
 
@@ -32,7 +36,7 @@ LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         output_encoding='utf-8')
 
 SERVER_ENV = {}
-OP_CONFIG_KEY = "op_config"
+OP_CONFIG = "op_config"
 NO_PORT_ERROR_MESSAGE = "It appears that no ports are available at the " \
                         "moment. Please try again later."
 
@@ -79,13 +83,13 @@ def op_config(environ, start_response):
     return resp(environ, start_response)
 
 
-def createNewConfigurationDict():
+def create_new_configuration_dict():
     """
     :return Returns a new configuration which follows the internal data
     structure
     """
-    staticInputFieldsList = generateStaticInputFields();
-    opConfigurations = {
+    static_input_fields_list = generate_static_input_fields()
+    op_configurations = {
         "fetchInfoFromServerDropDown": {
             "name": "How should the application fetch provider configurations "
                     "from the server?",
@@ -94,7 +98,7 @@ def createNewConfigurationDict():
                        {"type": "static", "name": "Statically"}]
         },
         "fetchStaticProviderInfo": {"showInputFields": False,
-                                    "inputFields": staticInputFieldsList},
+                                    "inputFields": static_input_fields_list},
         "fetchDynamicInfoFromServer": {"showInputField": False,
                                        "inputField": {"label": "Issuer url *",
                                                       "value": "",
@@ -147,38 +151,39 @@ def createNewConfigurationDict():
         # Since angular js needs objects to use in ng-model the subClaim
         # elements looks like this ['claim', 'value']
         "subClaim": [],
-        #Since angular js needs objects to use in ng-model the list elements
+        # Since angular js needs objects to use in ng-model the list elements
         # uses elements like this {"value": ""}
         "uiLocales": [],
         "claimsLocales": [],
         "acrValues": [],
     }
-    return opConfigurations
+    return op_configurations
 
 
-def isPyoidcMessageList(fieldType):
-    if fieldType == REQUIRED_LIST_OF_SP_SEP_STRINGS:
+def is_pyoidc_message_list(field_type):
+    if field_type == REQUIRED_LIST_OF_SP_SEP_STRINGS:
         return True
-    elif fieldType == OPTIONAL_LIST_OF_STRINGS:
+    elif field_type == OPTIONAL_LIST_OF_STRINGS:
         return True
-    elif fieldType == OPTIONAL_LIST_OF_SP_SEP_STRINGS:
+    elif field_type == OPTIONAL_LIST_OF_SP_SEP_STRINGS:
         return True
-    elif fieldType == REQUIRED_LIST_OF_STRINGS:
+    elif field_type == REQUIRED_LIST_OF_STRINGS:
         return True
     return False
 
 
-def generateStaticInputFields():
+def generate_static_input_fields():
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
-    :return The static input fields presented as the internal data structure
+    
+    :return:The static input fields presented as the internal data structure
     """
-    staticProviderConfigKeyList = ProviderConfigurationResponse.c_param.keys()
-    staticProviderConfigKeyList.sort()
-    staticProviderConfigFieldsDict = ProviderConfigurationResponse.c_param
+    _config_key_list = ProviderConfigurationResponse.c_param.keys()
+    _config_key_list.sort()
+    _config_fields_dict = ProviderConfigurationResponse.c_param
 
-    staticProviderConfigFieldsList = []
+    _config_fields_list = []
 
     required_fields = ["issuer",
                        'authorization_endpoint',
@@ -187,18 +192,18 @@ def generateStaticInputFields():
                        'subject_types_supported',
                        'id_token_signing_alg_values_supported']
 
-    for staticFieldLabel in staticProviderConfigKeyList:
-        staticFieldType = staticProviderConfigFieldsDict[staticFieldLabel]
-        configField = {"id": staticFieldLabel, "label": staticFieldLabel,
-                       "values": [], "show": False, "required": False,
-                       "isList": isPyoidcMessageList(staticFieldType)}
-        if staticFieldLabel in required_fields:
-            configField['required'] = True
-            configField['show'] = True
-            configField['label'] += " *"
-        staticProviderConfigFieldsList.append(configField)
+    for _field_label in _config_key_list:
+        _field_type = _config_fields_dict[_field_label]
+        config_field = {'id': _field_label, 'label': _field_label,
+                        'values': [], 'show': False, 'required': False,
+                        'isList': is_pyoidc_message_list(_field_type)}
+        if _field_label in required_fields:
+            config_field['required'] = True
+            config_field['show'] = True
+            config_field['label'] += " *"
+        _config_fields_list.append(config_field)
 
-    return staticProviderConfigFieldsList
+    return _config_fields_list
 
 
 def convertDynamicProviderData(configFileDict, configGuiStructure):
@@ -333,7 +338,7 @@ def convertToConfigGuiStructure(configFileDict):
     :param configFileDict: The configuration file from which should be converted
     :return The updated configuration GUI data structure
     """
-    configStructureDict = createNewConfigurationDict()
+    configStructureDict = create_new_configuration_dict()
 
     if "srv_discovery_url" in configFileDict:
         configStructureDict = convertDynamicProviderData(configFileDict,
@@ -388,9 +393,12 @@ def handle_get_op_config(session, response_encoder):
     :return A configuration Gui structure which is based on the configuration
     file saved in the session
     """
-    if OP_CONFIG_KEY in session:
+    if OP_CONFIG in session:
 
-        op_config = session[OP_CONFIG_KEY]
+        try:
+            op_config = session[OP_CONFIG]
+        except KeyError:
+            op_config = None
 
         if not isinstance(op_config, dict):
             return response_encoder.serviceError(
@@ -635,8 +643,7 @@ def handle_post_op_config(response_encoder, parameters, session):
     """
     opConfigurations = parameters['opConfigurations']
     session["oprp_arg"] = collectOprpArgs(opConfigurations)
-    session[OP_CONFIG_KEY] = convertOpConfigToConfigFile(opConfigurations,
-                                                         session)
+    session[OP_CONFIG] = convertOpConfigToConfigFile(opConfigurations, session)
     return response_encoder.returnJSON({})
 
 
@@ -646,7 +653,7 @@ def handle_does_op_config_exist(session, response_encoder):
     :return Returns a dictionary {"doesConfigFileExist" : true} if the
     session contains a config file else {"doesConfigFileExist" : false}
     """
-    result = json.dumps({"doesConfigFileExist": (OP_CONFIG_KEY in session)})
+    result = json.dumps({"doesConfigFileExist": (OP_CONFIG in session)})
     return response_encoder.returnJSON(result)
 
 
@@ -654,9 +661,8 @@ def handle_download_config_file(session, response_encoder):
     """
     :return Return the configuration file stored in the session
     """
-    configDict = session[OP_CONFIG_KEY]
-    fileDict = json.dumps({"configDict": configDict})
-    return response_encoder.returnJSON(fileDict)
+    filedict = json.dumps({"configDict": session[OP_CONFIG]})
+    return response_encoder.returnJSON(filedict)
 
 
 def handle_upload_config_file(parameters, session, response_encoder):
@@ -665,7 +671,7 @@ def handle_upload_config_file(parameters, session, response_encoder):
     :return Default response, should be ignored
     """
     try:
-        session[OP_CONFIG_KEY] = json.loads(parameters['configFileContent'])
+        session[OP_CONFIG] = json.loads(parameters['configFileContent'])
     except ValueError:
         return response_encoder.serviceError(
             "Failed to load the configuration file. Make sure the config file "
@@ -683,23 +689,23 @@ def get_base_url(port):
     return 'https://%s:%d/' % (CONF.HOST, port)
 
 
-def convertFromUnicode(data):
+def convert_from_unicode(data):
     if isinstance(data, basestring):
         return str(data)
     elif isinstance(data, collections.Mapping):
-        return dict(map(convertFromUnicode, data.iteritems()))
+        return dict(map(convert_from_unicode, data.iteritems()))
     elif isinstance(data, collections.Iterable):
-        return type(data)(map(convertFromUnicode, data))
+        return type(data)(map(convert_from_unicode, data))
     else:
         return data
 
 
 def create_module_string(client_config, port):
-    CLIENT = copy.deepcopy(client_config)
+    _client = copy.deepcopy(client_config)
 
     base = get_base_url(port)
 
-    CLIENT['client_info'] = {
+    _client['client_info'] = {
         "application_type": "web",
         "application_name": "OIC test tool",
         "contacts": ["roland.hedberg@umu.se"],
@@ -707,16 +713,16 @@ def create_module_string(client_config, port):
         "post_logout_redirect_uris": ["%slogout" % base]
     }
 
-    if 'client_registration' in CLIENT:
-        del CLIENT['client_info']
+    if 'client_registration' in _client:
+        del _client['client_info']
 
-    CLIENT['key_export_url'] = "%sexport/jwk_%%s.json" % base
-    CLIENT['base_url'] = base
+    _client['key_export_url'] = "%sexport/jwk_%%s.json" % base
+    _client['base_url'] = base
 
-    CLIENT = convertFromUnicode(CLIENT)
+    _client = convert_from_unicode(_client)
 
     return "from " + CONF.RP_SSL_MODULE + " import *\nPORT = " + str(
-        port) + "\nBASE =\'" + str(base) + "\'\nCLIENT = " + str(CLIENT)
+        port) + "\nBASE =\'" + str(base) + "\'\nCLIENT = " + str(_client)
 
 
 class NoPortAvailable(Exception):
@@ -740,7 +746,7 @@ def create_config_file(port, rp_config_folder):
         return config_file, port
 
 
-def save_empty_config_file(session, min_port, max_port):
+def save_empty_config_file(min_port, max_port):
     rp_config_folder = CONF.OPRP_DIR_PATH
 
     if not os.path.exists(rp_config_folder):
@@ -767,7 +773,7 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
         oprp_url = get_base_url(port)
 
     stop_time = datetime.datetime.now() + datetime.timedelta(seconds=timeout)
-    response = None
+
     while datetime.datetime.now() < stop_time:
         try:
             response = requests.get(oprp_url, verify=False)
@@ -789,15 +795,16 @@ def start_rp_process(port, command, working_directory=None):
         retcode = p.poll()  # returns None while subprocess is running
 
     except Exception as ex:
-        LOGGER.fatal("Failed to run oprp script: " + command[
-            0] + " Error message: " + ex.strerror)
-        raise Exception("Failed to run oprp script: " + ex.strerror)
+        LOGGER.fatal(
+            "Failed to run oprp script: {} Error message: ".format(
+                command[0], ex))
+        raise Exception("Failed to run oprp script: {}".format(ex))
 
     if retcode is None:
         check_if_oprp_started(port)
     else:
-        LOGGER.error("Return code " + str(
-            retcode) + " != None. Command executed: " + str(command))
+        LOGGER.error("Return code {} != None. Command executed: {}".format(
+            retcode, command))
         raise NoResponseException(
             "RP (%s) failed to start" % get_base_url(port))
 
@@ -810,22 +817,32 @@ def kill_existing_process_on_port(port, session):
     try:
         response = requests.get(get_base_url(port), verify=False)
 
-        if response.status_code == 200 and session[OP_CONFIG_KEY]:
-            p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
-            out, err = p.communicate()
-
-            for line in out.splitlines():
-                if "rp_conf_" + str(port) in line:
-                    pid = int(line.split(None, 1)[0])
-                    os.kill(pid, signal.SIGKILL)
-                    break
+        try:
+            _ = session[OP_CONFIG]
+        except KeyError:
+            pass
+        else:
+            if response.status_code == 200:
+                p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+                out, err = p.communicate()
+    
+                for line in out.splitlines():
+                    if "rp_conf_" + str(port) in line:
+                        pid = int(line.split(None, 1)[0])
+                        os.kill(pid, signal.SIGKILL)
+                        break
 
     except ConnectionError:
         pass
 
 
 def handle_start_op_tester(session, response_encoder):
-    if "client_registration" not in session[OP_CONFIG_KEY]:
+    try:
+        _config = session[OP_CONFIG]
+    except KeyError:
+        _config = {}
+    
+    if "client_registration" not in _config:
         try:
             config_file, port = allocate_dynamic_port(session)
         except NoPortAvailable:
@@ -837,10 +854,10 @@ def handle_start_op_tester(session, response_encoder):
     if not port:
         return response_encoder.serviceError(NO_PORT_ERROR_MESSAGE)
 
-    config_module = create_module_string(session[OP_CONFIG_KEY], port)
+    config_module = create_module_string(session[OP_CONFIG], port)
 
-    with open(config_file.name, "w") as file:
-        file.write(config_module)
+    with open(config_file.name, "w") as _file:
+        _file.write(config_module)
 
     kill_existing_process_on_port(port, session)
 
@@ -862,19 +879,20 @@ def handle_start_op_tester(session, response_encoder):
 
 
 def allocate_dynamic_port(session):
-    if session["config_file"] and session["dynamic_port"]:
+    try:
         return session["config_file"], session["dynamic_port"]
+    except KeyError:
+        pass
 
     with config_tread_lock:
-        config_file, port = save_empty_config_file(session,
-                                                   CONF.PORT_DYNAMIC_NUM_MIN,
+        config_file, port = save_empty_config_file(CONF.PORT_DYNAMIC_NUM_MIN,
                                                    CONF.PORT_DYNAMIC_NUM_MAX)
         session["dynamic_port"] = port
         session["config_file"] = config_file
         return config_file, port
 
 
-def allocate_static_port(session, issuer):
+def allocate_static_port(issuer):
     with config_tread_lock:
         static_ports_db = MySqllite3Dict(CONF.DATABASE_FILE)
 
@@ -887,7 +905,7 @@ def allocate_static_port(session, issuer):
 
 
 def handle_create_new_config_file(response_encoder, session):
-    session[OP_CONFIG_KEY] = get_default_client()
+    session[OP_CONFIG] = get_default_client()
     return response_encoder.returnJSON("{}")
 
 
@@ -899,7 +917,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 
     if issuer not in static_ports_db.values():
         try:
-            port = allocate_static_port(session, issuer)
+            port = allocate_static_port(issuer)
         except NoPortAvailable as ex:
             LOGGER.fatal(ex.message)
             return response_encoder.serviceError(ex.message)
@@ -919,7 +937,11 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 
 def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
-    session = Session(environ)
+    LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
+    LOGGER.info("path: %s" % path)
+
+    session = environ['beaker.session']
+
     http_helper = HttpHandler(environ, start_response, session, LOGGER)
     response_encoder = ResponseEncoder(environ=environ,
                                        start_response=start_response)
@@ -997,13 +1019,26 @@ if __name__ == '__main__':
                                                           session_opts))
 
     if CONF.BASE.startswith("https"):
+        import cherrypy
         from cherrypy.wsgiserver import ssl_pyopenssl
+        # from OpenSSL import SSL
 
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
+        # SRV.ssl_adapter.context = SSL.Context(SSL.SSLv23_METHOD)
+        # SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
+        try:
+            cherrypy.server.ssl_certificate_chain = CONF.CERT_CHAIN
+        except AttributeError:
+            pass
+        extra = " using SSL/TLS"
+    else:
+        extra = ""
 
-    LOGGER.info("Config server starting listening on port:%s" % CONF.PORT)
-    print "Config server starting listening on port:%s" % CONF.PORT
+    txt = "Config server started, listening on port:%s%s" % (CONF.PORT, extra)
+    LOGGER.info(txt)
+    print txt
+
     try:
         SRV.start()
     except KeyboardInterrupt:
