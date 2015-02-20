@@ -10,7 +10,7 @@ from jwkest import JWKESTException
 from jwkest.jws import alg2keytype
 from oic.exception import PyoidcError
 
-from oic.oauth2 import rndstr
+from oic.oauth2 import rndstr, ErrorResponse
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from oic.utils.http_util import Redirect
@@ -431,6 +431,11 @@ class OPRP(object):
                 if ret:
                     return ret
             else:
+                if conv.protocol_response:
+                    # If last response was an error response, bail out.
+                    inst, txt = conv.protocol_response[-1]
+                    if isinstance(inst, ErrorResponse):
+                        return self.err_response(session,"", inst)
                 try:
                     kwargs = setup(_kwa, conv)
                 except NotSupported:
@@ -580,10 +585,6 @@ class OPRP(object):
                         if resp_c.response == "RegistrationResponse":
                             if isinstance(response, RegistrationResponse):
                                 ots.client.store_registration_info(response)
-                            elif "error" in response:
-                                return self.err_response(
-                                    session, "id_token_verification",
-                                    response["error"])
                         elif resp_c.response == "AccessTokenResponse":
                             if "error" not in response:
                                 areq = conv.AuthorizationRequest.to_dict()

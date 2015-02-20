@@ -2,6 +2,7 @@ import copy
 import json
 from urlparse import urlparse
 from jwkest import b64d, unpack, BadSyntax
+from jwkest.jwe import DecryptionFailed
 
 from oic import oic
 from oic.exception import MessageException
@@ -250,15 +251,26 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
 
         if uiendp == url:
             _iss = _cli.provider_info["issuer"]
-            kwargs["key"] = _cli.keyjar.get("ver", issuer=_iss)
-            #kwargs["key"].extend(_cli.keyjar.get("enc", issuer=_iss))
-            kwargs["key"].extend(_cli.keyjar.get("enc", issuer=""))
+            _ver_keys = _cli.keyjar.get("ver", issuer=_iss)
+            _info = [(k.kid, k.kty) for k in _ver_keys]
+            trace.info("Available verification keys: {}".format(_info))
+            kwargs["key"] = _ver_keys
+            _dec_keys = _cli.keyjar.get("enc", issuer="")
+            _info = [(k.kid, k.kty) for k in _dec_keys]
+            trace.info("Available decryption keys: {}".format(_info))
+            kwargs["key"].extend(_dec_keys)
         elif "keyjar" not in kwargs:
             kwargs["keyjar"] = conv.keyjar
 
         trace.reply("BODY: %s" % _resp.text)
-        _response = _cli.parse_request_response(_resp, response, body_type,
-                                                state, **kwargs)
+        try:
+            _response = _cli.parse_request_response(_resp, response, body_type,
+                                                    state, **kwargs)
+        except DecryptionFailed:
+            p = unpack(response)
+            trace.log(
+                "Failed decryption on response with JWT header {}".format(p[0]))
+            raise
 
         # Need special handling of id_token
         if "id_token" in _response:
