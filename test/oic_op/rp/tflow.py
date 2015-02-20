@@ -253,14 +253,14 @@ FLOWS = {
                 'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": {"all": "MUST"},
-        "test": {'verify-athash': {}, "check-http-response": {}},
+        "test": {"check-http-response": {}},
         "profile": "IT,CIT..",
     },
     'OP-IDToken-c_hash': {
         "desc": 'ID Token has c_hash when ID Token and Authorization Code '
                 'returned from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
-        "tests": {'verify-chash': {}, "check-http-response": {}},
+        "tests": {"check-http-response": {}},
         "profile": "CI,CIT..",
         "mti": {"all": "MUST"}
     },
