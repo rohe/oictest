@@ -296,7 +296,7 @@
                   data-placement="right"
                   directive-callback=""></span>
 
-                    <span>Login hint (OP-H-03)</span>
+                    <span>Login hint</span>
                 </div>
 
                 <form class="col-sm-3">
@@ -318,7 +318,7 @@
                   data-placement="right"
                   directive-callback=""></span>
 
-            UI locales (OP-H-04)
+            UI locales
         </span>
 
                 <div class="col-sm-3">
@@ -365,7 +365,7 @@
                   data-placement="right"
                   directive-callback=""></span>
 
-                    Claims locales (OP-H-05)
+                    Claims locales
 
                 </div>
 
@@ -413,7 +413,7 @@
                   data-placement="right"
                   directive-callback=""></span>
 
-                    Acr values (OP-Q-12 & (OP-H-06?))
+                    Acr values
 
                 </div>
 
