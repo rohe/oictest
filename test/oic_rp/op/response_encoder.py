@@ -6,14 +6,14 @@ class ResponseEncoder:
         self.environ = environ
         self.start_response = start_response
 
-    def returnJSON(self, text):
+    def return_json(self, text):
         """
         :return A response with the content type json
         """
         resp = Response(text, headers=[('Content-Type', "application/json")])
         return resp(self.environ, self.start_response)
 
-    def serviceError(self, message, html=None):
+    def service_error(self, message, html=None):
         """
         :return A error response which is used to show error messages in the client
         """
