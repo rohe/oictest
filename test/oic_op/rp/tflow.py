@@ -1195,7 +1195,9 @@ FLOWS = {
              })
         ],
         "profile": "..T",
-        "tests": {"verify-error": {"error": ["invalid_configuration_parameter"]},
+        "tests": {"verify-error": {
+            "error": ["invalid_configuration_parameter",
+                      "invalid_client_metadata"]},
                   "verify-bad-request-response": {}},
     },
     'OP-Registration-Read': {
