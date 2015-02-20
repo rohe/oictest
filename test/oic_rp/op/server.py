@@ -439,7 +439,7 @@ def application(environ, start_response):
         return registration(environ, start_response)
     elif path == "generate_client_credentials":
         client_id, client_secret = generate_static_client_credentials(parameters)
-        return response_encoder.returnJSON(
+        return response_encoder.return_json(
             json.dumps({"client_id": client_id,
                         "client_secret": client_secret}))
     elif path == "claim":

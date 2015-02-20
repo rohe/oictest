@@ -127,10 +127,10 @@ def create_new_configuration_dict():
             "label": "Select supported features:",
             "features": [
                 {"name": 'JWT signed with "None" algorithm (Unsigned)',
-                 "selected": False, "argument": "n"},
+                 "selected": False, "abbreviation": "n"},
                 {"name": 'JWT signed with algorithm other then "None"',
-                 "selected": False, "argument": "s"},
-                {"name": 'Encrypted JWT', "selected": False, "argument": "e"}
+                 "selected": False, "abbreviation": "s"},
+                {"name": 'Encrypted JWT', "selected": False, "abbreviation": "e"}
             ]
         },
         "supportsStaticClientRegistrationTextFields": [
@@ -207,185 +207,200 @@ def generate_static_input_fields():
     return _config_fields_list
 
 
-def convertDynamicProviderData(configFileDict, configGuiStructure):
+def dynamic_discovery_to_gui_structure(config_file_dict, config_gui_structure):
     """
     Converts the configuration file structure to the Internal data structure
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
-    :param configFileDict: Internal data structure containing all info
+    :param config_file_dict: Internal data structure containing all info
     gathered in the web interface
     :return The updated presentation of the internal data structure
     """
-    configGuiStructure["fetchInfoFromServerDropDown"]["value"] = "dynamic"
-    configGuiStructure["fetchDynamicInfoFromServer"]["showInputField"] = True
-    configGuiStructure["fetchDynamicInfoFromServer"]["inputField"]["value"] = \
-    configFileDict["srv_discovery_url"]
+    config_gui_structure["fetchInfoFromServerDropDown"]["value"] = "dynamic"
+    config_gui_structure["fetchDynamicInfoFromServer"]["showInputField"] = True
+    config_gui_structure["fetchDynamicInfoFromServer"]["inputField"]["value"] = \
+    config_file_dict["srv_discovery_url"]
 
-    return configGuiStructure
+    return config_gui_structure
 
 
-def isListInstance(element):
+def is_list_instance(element):
     return not isinstance(element, basestring)
 
 
-def convertStaticProviderInfoToGui(configFileDict, configGuiStructure):
+def convert_static_provider_info_to_gui(config_file_dict, config_gui_structure):
     """
     Converts a static provider from config file to a gui structure
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
-    :param configFileDict: The configuration file from which the
+    :param config_file_dict: The configuration file from which the
     configuration static provider data should be gathered
     :return The updated configuration GUI data structure
     """
     PROVIDER_INFO_KEY = "provider_info"
 
-    configGuiStructure["fetchInfoFromServerDropDown"]["value"] = "static"
-    configGuiStructure["fetchStaticProviderInfo"]["showInputFields"] = True
+    config_gui_structure["fetchInfoFromServerDropDown"]["value"] = "static"
+    config_gui_structure["fetchStaticProviderInfo"]["showInputFields"] = True
 
-    for inputFieldId in configFileDict[PROVIDER_INFO_KEY]:
-        for inputField in configGuiStructure["fetchStaticProviderInfo"][
+    for inputFieldId in config_file_dict[PROVIDER_INFO_KEY]:
+        for input_field in config_gui_structure["fetchStaticProviderInfo"][
             "inputFields"]:
-            if inputField['id'] == inputFieldId:
-                inputField['show'] = True
-                attributeValue = configFileDict[PROVIDER_INFO_KEY][inputFieldId]
+            if input_field['id'] == inputFieldId:
+                input_field['show'] = True
+                attributeValue = config_file_dict[PROVIDER_INFO_KEY][inputFieldId]
 
-                if isListInstance(attributeValue):
-                    inputField['values'] = convertToValueList(attributeValue)
+                if is_list_instance(attributeValue):
+                    input_field['values'] = convert_to_value_list(attributeValue)
                 else:
-                    inputField['values'] = attributeValue
+                    input_field['values'] = attributeValue
 
-    return configGuiStructure
+    return config_gui_structure
 
-
-def containElements(any_structure):
-    return any_structure
-
-
-def convertClientRegistrationSupported(configFileDict, configGuiStructure):
+def client_registration_supported_to_gui(config_file_dict, config_gui_structure):
     """
     Converts a required information from config file to a config GUI structure
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
-    :param configFileDict: The configuration file from which the
+    :param config_file_dict: The configuration file from which the
     configuration required information data should be gathered
     :return The updated configuration GUI data structure
     """
-    supportsDynamicClientRegistration = False
+    supports_dynamic_client_registration = False
 
-    if "client_registration" not in configFileDict:
-        return configGuiStructure
+    if "client_registration" not in config_file_dict:
+        return config_gui_structure
 
-    if "client_id" in configFileDict["client_registration"]:
-        supportsDynamicClientRegistration = True
-        configGuiStructure["dynamicClientRegistrationDropDown"]["value"] = "no"
+    if "client_id" in config_file_dict["client_registration"]:
+        supports_dynamic_client_registration = True
+        config_gui_structure["dynamicClientRegistrationDropDown"]["value"] = "no"
 
-        for textFiled in configGuiStructure[
+        for text_field in config_gui_structure[
             "supportsStaticClientRegistrationTextFields"]:
-            if textFiled["id"] == "client_id":
-                textFiled["textFieldContent"] = \
-                configFileDict["client_registration"]["client_id"]
+            if text_field["id"] == "client_id":
+                text_field["textFieldContent"] = \
+                config_file_dict["client_registration"]["client_id"]
 
-    if "client_secret" in configFileDict["client_registration"]:
-        supportsDynamicClientRegistration = True
-        configGuiStructure["dynamicClientRegistrationDropDown"]["value"] = "no"
+    if "client_secret" in config_file_dict["client_registration"]:
+        supports_dynamic_client_registration = True
+        config_gui_structure["dynamicClientRegistrationDropDown"]["value"] = "no"
 
-        for textFiled in configGuiStructure[
+        for text_field in config_gui_structure[
             "supportsStaticClientRegistrationTextFields"]:
-            if textFiled["id"] == "client_secret":
-                textFiled["textFieldContent"] = \
-                configFileDict["client_registration"]["client_secret"]
+            if text_field["id"] == "client_secret":
+                text_field["textFieldContent"] = \
+                config_file_dict["client_registration"]["client_secret"]
 
-    if not supportsDynamicClientRegistration:
-        configGuiStructure["dynamicClientRegistrationDropDown"]["value"] = "yes"
+    if not supports_dynamic_client_registration:
+        config_gui_structure["dynamicClientRegistrationDropDown"]["value"] = "yes"
 
-    return configGuiStructure
+    return config_gui_structure
 
 
-def convertSubClaimsToLists(subClaims):
+def convert_sub_claims_to_lists(sub_claims):
     lists = []
 
-    if 'value' in subClaims:
-        lists.append({"value": subClaims['value']})
+    if 'value' in sub_claims:
+        lists.append({"value": sub_claims['value']})
 
-    elif "values" in subClaims:
-        for element in subClaims['values']:
+    elif "values" in sub_claims:
+        for element in sub_claims['values']:
             lists.append({"value": element})
 
     return lists
 
 
-def convertToValueList(list):
-    valueList = []
+def convert_to_value_list(list):
+    value_list = []
     for element in list:
-        valueList.append({"value": element})
+        value_list.append({"value": element})
 
-    return valueList
+    return value_list
 
 
-def setFeatureList(configStructureDict, oprp_arg):
-    feature_list = configStructureDict['signingEncryptionFeaturesCheckboxes'][
+def set_feature_list(config_structure_dict, oprp_arg):
+    feature_list = config_structure_dict['signingEncryptionFeaturesCheckboxes'][
         'features']
 
     for feature in feature_list:
-        if feature['argument'] in oprp_arg:
-            feature['selected'] = True
-        else:
-            feature['selected'] = False
+        feature['selected'] = feature['abbreviation'] in oprp_arg
 
 
-def convertToConfigGuiStructure(configFileDict):
+def convert_abbreviation_to_response_type(response_type_abbreviation):
+    response_types = {
+        "C": "code",
+        "I": "id_token",
+        "IT": "id_token token",
+        "CI": "code id_token",
+        "CT": "code token",
+        "CIT": "code id_token token"
+    }
+
+    return response_types[response_type_abbreviation]
+
+def parse_profile(profile):
+    if isinstance(profile, basestring):
+        args = profile.split(".")
+
+    response_type = convert_abbreviation_to_response_type(args[0])
+    crypto_feature_support = args[3]
+
+    return response_type, crypto_feature_support
+
+
+def convert_config_file(config_file_dict):
     """
     Converts a config file structure to a config GUI structure
-    :param configFileDict: The configuration file from which should be converted
+    :param config_file_dict: The configuration file from which should be converted
     :return The updated configuration GUI data structure
     """
-    configStructureDict = create_new_configuration_dict()
+    config_structure_dict = create_new_configuration_dict()
 
-    if "srv_discovery_url" in configFileDict:
-        configStructureDict = convertDynamicProviderData(configFileDict,
-                                                         configStructureDict)
+    if "srv_discovery_url" in config_file_dict:
+        config_structure_dict = dynamic_discovery_to_gui_structure(config_file_dict,
+                                                         config_structure_dict)
 
-    elif "provider_info" in configFileDict:
+    elif "provider_info" in config_file_dict:
         # Now we know it's an static provider
-        configStructureDict = convertStaticProviderInfoToGui(configFileDict,
-                                                             configStructureDict)
+        config_structure_dict = convert_static_provider_info_to_gui(config_file_dict,
+                                                             config_structure_dict)
 
-    configStructureDict = convertClientRegistrationSupported(configFileDict,
-                                                             configStructureDict)
+    config_structure_dict = client_registration_supported_to_gui(config_file_dict,
+                                                             config_structure_dict)
 
-    configStructureDict['clientSubjectType']['value'] = \
-    configFileDict['preferences']['subject_type']
+    config_structure_dict['clientSubjectType']['value'] = \
+    config_file_dict['preferences']['subject_type']
 
-    configStructureDict['responseTypeDropDown']['value'] = \
-    configFileDict['behaviour']['response_type']
+    response_type, crypto_feature_support = parse_profile(config_file_dict['behaviour']['profile'])
 
-    if 'oprp_arg' in configFileDict:
-        setFeatureList(configStructureDict, configFileDict['oprp_arg'])
+    config_structure_dict['responseTypeDropDown']['value'] = response_type
 
-    if 'webfinger_subject' in configFileDict:
-        configStructureDict['webfingerSubject'] = configFileDict[
+    if crypto_feature_support:
+        set_feature_list(config_structure_dict, crypto_feature_support)
+
+    if 'webfinger_subject' in config_file_dict:
+        config_structure_dict['webfingerSubject'] = config_file_dict[
             'webfinger_subject']
 
-    if 'login_hint' in configFileDict:
-        configStructureDict['loginHint'] = configFileDict['login_hint']
+    if 'login_hint' in config_file_dict:
+        config_structure_dict['loginHint'] = config_file_dict['login_hint']
 
-    if "sub_claim" in configFileDict:
-        configStructureDict['subClaim'] = convertSubClaimsToLists(
-            configFileDict['sub_claim'])
+    if "sub_claim" in config_file_dict:
+        config_structure_dict['subClaim'] = convert_sub_claims_to_lists(
+            config_file_dict['sub_claim'])
 
-    if "ui_locales" in configFileDict:
-        configStructureDict['uiLocales'] = convertToValueList(
-            configFileDict['ui_locales'])
+    if "ui_locales" in config_file_dict:
+        config_structure_dict['uiLocales'] = convert_to_value_list(
+            config_file_dict['ui_locales'])
 
-    if "claims_locales" in configFileDict:
-        configStructureDict['claimsLocales'] = convertToValueList(
-            configFileDict['claims_locales'])
+    if "claims_locales" in config_file_dict:
+        config_structure_dict['claimsLocales'] = convert_to_value_list(
+            config_file_dict['claims_locales'])
 
-    if "acr_values" in configFileDict:
-        configStructureDict['acrValues'] = convertToValueList(
-            configFileDict['acr_values'])
+    if "acr_values" in config_file_dict:
+        config_structure_dict['acrValues'] = convert_to_value_list(
+            config_file_dict['acr_values'])
 
-    return configStructureDict
+    return config_structure_dict
 
 
 def handle_get_op_config(session, response_encoder):
@@ -402,109 +417,108 @@ def handle_get_op_config(session, response_encoder):
             op_config = None
 
         if not isinstance(op_config, dict):
-            return response_encoder.serviceError(
+            return response_encoder.service_error(
                 "No JSON object could be decoded. Please check if the file is "
                 "a valid json file")
 
-        configGuiStructure = convertToConfigGuiStructure(op_config)
-        return response_encoder.returnJSON(json.dumps(configGuiStructure))
+        config_gui_structure = convert_config_file(op_config)
+        return response_encoder.return_json(json.dumps(config_gui_structure))
 
-    return response_encoder.serviceError(
+    return response_encoder.service_error(
         "No file saved in this current session")
 
 
-def convertStaticProviderInfoToFile(configGuiStructure, configFileDict):
+def convert_static_provider_info_to_file(config_gui_structure, config_file_dict):
     """
     Converts static information in the internal data structure and updates
     the configDict
     which follows the "Configuration file structure", see setup.rst
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
-    :param configFileDict: configuration dictionary which follows the
+    :param config_file_dict: configuration dictionary which follows the
     "Configuration file structure"
     :return Configuration dictionary updated with the new static information
     """
-    visibleInputFieldList = []
-    providerAttributeDict = {}
+    visible_input_field_list = []
+    provider_attribute_dict = {}
 
-    for inputField in configGuiStructure['fetchStaticProviderInfo'][
+    for inputField in config_gui_structure['fetchStaticProviderInfo'][
         'inputFields']:
         if inputField['show'] == True:
-            visibleInputFieldList.append(inputField)
+            visible_input_field_list.append(inputField)
 
-    for inputField in visibleInputFieldList:
+    for inputField in visible_input_field_list:
         attributId = inputField['id']
 
         if inputField['isList']:
-            providerAttributeDict[attributId] = convertToList(
+            provider_attribute_dict[attributId] = convert_to_list(
                 inputField['values'])
         else:
-            providerAttributeDict[attributId] = inputField['values']
+            provider_attribute_dict[attributId] = inputField['values']
 
-    configFileDict['provider_info'] = providerAttributeDict
+    config_file_dict['provider_info'] = provider_attribute_dict
 
-    return configFileDict
+    return config_file_dict
 
 
-def convertClientRegistration(configGuiStructure, configFileDict):
+def client_registration_to_gui_structure(config_gui_structure, config_file_dict):
     """
     Converts required information in the web interface to the
     a configuration dictionary which follows the "Configuration file
     structure", see setup.rst
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
-    :param configFileDict: configuration dictionary which follows the
+    :param config_file_dict: configuration dictionary which follows the
     "Configuration file structure"
     :return Configuration dictionary updated with the new required information
     """
     support_dynamic_client_registration = \
-    configGuiStructure['dynamicClientRegistrationDropDown']['value'] == 'yes'
+    config_gui_structure['dynamicClientRegistrationDropDown']['value'] == 'yes'
 
     if not support_dynamic_client_registration:
-        for attribute in configGuiStructure[
+        for attribute in config_gui_structure[
             'supportsStaticClientRegistrationTextFields']:
-            if 'client_registration' not in configFileDict:
-                configFileDict['client_registration'] = {}
+            if 'client_registration' not in config_file_dict:
+                config_file_dict['client_registration'] = {}
 
             if attribute['id'] == 'client_id':
-                configFileDict['client_registration']['client_id'] = attribute[
+                config_file_dict['client_registration']['client_id'] = attribute[
                     'textFieldContent']
             elif attribute['id'] == 'client_secret':
-                configFileDict['client_registration']['client_secret'] = \
+                config_file_dict['client_registration']['client_secret'] = \
                 attribute['textFieldContent']
             elif attribute['id'] == 'redirect_uris':
-                configFileDict['client_registration']['redirect_uris'] = [
+                config_file_dict['client_registration']['redirect_uris'] = [
                     attribute['textFieldContent']]
 
     else:
         try:
-            del configFileDict['client_registration']['client_id']
+            del config_file_dict['client_registration']['client_id']
         except KeyError:
             pass
 
         try:
-            del configFileDict['client_registration']['client_secret']
+            del config_file_dict['client_registration']['client_secret']
         except KeyError:
             pass
 
-    return configFileDict
+    return config_file_dict
 
 
-def convertSubClaimsToDict(subClaimsGui):
-    subClaims = {"values": []}
+def convert_sub_claims_to_dict(sub_claims_gui):
+    sub_claims = {"values": []}
 
-    if len(subClaimsGui) == 1:
-        singleClaim = subClaimsGui[0]
-        return singleClaim
+    if len(sub_claims_gui) == 1:
+        return sub_claims_gui[0]
 
-    elif len(subClaimsGui) > 1:
-        for element in subClaimsGui:
-            subClaims["values"].append(element['value'])
+    elif len(sub_claims_gui) > 1:
+        for element in sub_claims_gui:
+            sub_claims["values"].append(element['value'])
 
-    return subClaims
+    return sub_claims
 
 
-def convertToList(valueDict):
+def convert_to_list(valueDict):
     list = []
     for element in valueDict:
         list.append(element['value'])
@@ -523,116 +537,110 @@ def clear_optional_keys(configDict):
     return configDict
 
 
-def convertFeaturesToOprpArgument(configGuiStructure):
+def parse_crypto_feature_abbreviation(configGuiStructure):
     arg = ""
     for feature in configGuiStructure['signingEncryptionFeaturesCheckboxes'][
         'features']:
         if feature['selected']:
-            arg += feature['argument']
+            arg += feature['abbreviation']
     return arg
 
 
-def convertToResponseTypeArgToArgument(response_type):
-    arguments = {"code": "C",
+def convert_response_type_to_abbreviation(response_type):
+    abbreviations_dict = {"code": "C",
                  "id_token": "I",
                  "id_token token": "IT",
                  "code id_token": "CI",
                  "code token": "CT",
                  "code id_token token": "CIT"}
 
-    return arguments[response_type]
+    return abbreviations_dict[response_type]
 
 
-def convertDynamicClientRegistrationToArgument(configGuiStructure):
-    if configGuiStructure['dynamicClientRegistrationDropDown'][
+def convert_dynamic_client_registration_to_abbreviation(config_gui_structure):
+    if config_gui_structure['dynamicClientRegistrationDropDown'][
         'value'] == "yes":
         return "T"
     return "F"
 
 
-def convertDynamicDiscoveryToArgument(configGuiStructure):
-    if containsDynamicDiscoveryInfo(configGuiStructure):
+def convert_dynamic_discovery_to_abbreviation(config_gui_structure):
+    if contains_dynamic_discovery_info(config_gui_structure):
         return "T"
     return "F"
 
-
-def collectOprpArgs(configGuiStructure):
-    response_type = convertToResponseTypeArgToArgument(
-        configGuiStructure["responseTypeDropDown"]["value"])
-    supports_dynamic_discovery = convertDynamicDiscoveryToArgument(
-        configGuiStructure)
-    supports_dynamic_client_registration = \
-        convertDynamicClientRegistrationToArgument(
-        configGuiStructure)
-    supported_signing_encryption_features = convertFeaturesToOprpArgument(
-        configGuiStructure)
-
-    return response_type + "." + supports_dynamic_discovery + "." + \
-           supports_dynamic_client_registration + "." + \
-           supported_signing_encryption_features
-
-
-def containsDynamicDiscoveryInfo(configGuiStructure):
-    return configGuiStructure['fetchDynamicInfoFromServer'][
+def contains_dynamic_discovery_info(config_gui_structure):
+    return config_gui_structure['fetchDynamicInfoFromServer'][
                'showInputField'] == True
 
+def generate_profile(config_gui_structure):
 
-def convertOpConfigToConfigFile(configGuiStructure, session):
+    response_type_abbr = convert_response_type_to_abbreviation(config_gui_structure["responseTypeDropDown"]["value"])
+    dynamic_discovery_abbr = convert_dynamic_discovery_to_abbreviation(config_gui_structure)
+    dynamic_client_registration_abbr = convert_dynamic_client_registration_to_abbreviation(config_gui_structure)
+    crypto_features_abbr = parse_crypto_feature_abbreviation(config_gui_structure)
+
+    profile = response_type_abbr + "." + \
+              dynamic_discovery_abbr + "." + \
+              dynamic_client_registration_abbr + "." + \
+              crypto_features_abbr + "."
+
+    return profile
+
+
+def convert_config_gui_structure(config_gui_structure, session):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
-    :param configGuiStructure: Data structure used to hold and show
+    :param config_gui_structure: Data structure used to hold and show
     configuration information in the Gui
     :return A dictionary which follows the "Configuration file structure",
     see setup.rst
     """
-    configDict = get_default_client()
+    config_dict = get_default_client()
 
-    if containsDynamicDiscoveryInfo(configGuiStructure):
+    if contains_dynamic_discovery_info(config_gui_structure):
         dynamicInputFieldValue = \
-        configGuiStructure['fetchDynamicInfoFromServer']['inputField']['value']
-        configDict['srv_discovery_url'] = dynamicInputFieldValue
+        config_gui_structure['fetchDynamicInfoFromServer']['inputField']['value']
+        config_dict['srv_discovery_url'] = dynamicInputFieldValue
 
-    elif configGuiStructure['fetchStaticProviderInfo'][
+    elif config_gui_structure['fetchStaticProviderInfo'][
         'showInputFields'] == True:
-        configDict = convertStaticProviderInfoToFile(configGuiStructure,
-                                                     configDict)
+        config_dict = convert_static_provider_info_to_file(config_gui_structure,
+                                                     config_dict)
 
-    configDict = convertClientRegistration(configGuiStructure, configDict)
+    config_dict = client_registration_to_gui_structure(config_gui_structure, config_dict)
 
-    configDict['preferences']['subject_type'] = \
-    configGuiStructure["clientSubjectType"]["value"]
+    config_dict['preferences']['subject_type'] = \
+    config_gui_structure["clientSubjectType"]["value"]
 
-    configDict['behaviour']['response_type'] = \
-    configGuiStructure["responseTypeDropDown"]["value"]
+    config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
 
-    configDict['oprp_arg'] = convertFeaturesToOprpArgument(configGuiStructure)
+    config_dict = clear_optional_keys(config_dict)
 
-    configDict = clear_optional_keys(configDict)
+    if config_gui_structure['webfingerSubject'] != "":
+        config_dict['webfinger_subject'] = config_gui_structure['webfingerSubject']
 
-    if configGuiStructure['webfingerSubject'] != "":
-        configDict['webfinger_subject'] = configGuiStructure['webfingerSubject']
+    if config_gui_structure['loginHint'] != "":
+        config_dict['login_hint'] = config_gui_structure['loginHint']
 
-    if configGuiStructure['loginHint'] != "":
-        configDict['login_hint'] = configGuiStructure['loginHint']
+    if config_gui_structure['subClaim']:
+        config_dict['sub_claim'] = convert_sub_claims_to_dict(
+            config_gui_structure['subClaim'])
 
-    if configGuiStructure['subClaim']:
-        configDict['sub_claim'] = convertSubClaimsToDict(
-            configGuiStructure['subClaim'])
+    if config_gui_structure['uiLocales']:
+        config_dict['ui_locales'] = convert_to_list(
+            config_gui_structure['uiLocales'])
 
-    if configGuiStructure['uiLocales']:
-        configDict['ui_locales'] = convertToList(
-            configGuiStructure['uiLocales'])
+    if config_gui_structure['claimsLocales']:
+        config_dict['claims_locales'] = convert_to_list(
+            config_gui_structure['claimsLocales'])
 
-    if configGuiStructure['claimsLocales']:
-        configDict['claims_locales'] = convertToList(
-            configGuiStructure['claimsLocales'])
+    if config_gui_structure['acrValues']:
+        config_dict['acr_values'] = convert_to_list(
+            config_gui_structure['acrValues'])
 
-    if configGuiStructure['acrValues']:
-        configDict['acr_values'] = convertToList(
-            configGuiStructure['acrValues'])
-
-    return configDict
+    return config_dict
 
 
 def handle_post_op_config(response_encoder, parameters, session):
@@ -642,10 +650,10 @@ def handle_post_op_config(response_encoder, parameters, session):
     gathered in the web interface
     :return A default Json structure, which should be ignored
     """
-    opConfigurations = parameters['opConfigurations']
-    session["oprp_arg"] = collectOprpArgs(opConfigurations)
-    session[OP_CONFIG] = convertOpConfigToConfigFile(opConfigurations, session)
-    return response_encoder.returnJSON({})
+    config_gui_structure = parameters['opConfigurations']
+    session["profile"] = generate_profile(config_gui_structure)
+    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, session)
+    return response_encoder.return_json({})
 
 
 def handle_does_op_config_exist(session, response_encoder):
@@ -655,7 +663,7 @@ def handle_does_op_config_exist(session, response_encoder):
     session contains a config file else {"doesConfigFileExist" : false}
     """
     result = json.dumps({"doesConfigFileExist": (OP_CONFIG in session)})
-    return response_encoder.returnJSON(result)
+    return response_encoder.return_json(result)
 
 
 def handle_download_config_file(session, response_encoder):
@@ -663,7 +671,7 @@ def handle_download_config_file(session, response_encoder):
     :return Return the configuration file stored in the session
     """
     filedict = json.dumps({"configDict": session[OP_CONFIG]})
-    return response_encoder.returnJSON(filedict)
+    return response_encoder.return_json(filedict)
 
 
 def handle_upload_config_file(parameters, session, response_encoder):
@@ -674,11 +682,11 @@ def handle_upload_config_file(parameters, session, response_encoder):
     try:
         session[OP_CONFIG] = json.loads(parameters['configFileContent'])
     except ValueError:
-        return response_encoder.serviceError(
+        return response_encoder.service_error(
             "Failed to load the configuration file. Make sure the config file "
             "follows the appopriate format")
 
-    return response_encoder.returnJSON({})
+    return response_encoder.return_json({})
 
 
 def get_default_client():
@@ -851,13 +859,13 @@ def handle_start_op_tester(session, response_encoder):
         try:
             config_file, port = allocate_dynamic_port(session)
         except NoPortAvailable:
-            return response_encoder.serviceError(NO_PORT_ERROR_MESSAGE)
+            return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
     else:
         config_file, port = create_config_file(session['port'],
                                                CONF.OPRP_DIR_PATH)
 
     if not port:
-        return response_encoder.serviceError(NO_PORT_ERROR_MESSAGE)
+        return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
     config_module = create_module_string(session[OP_CONFIG], port)
 
@@ -870,17 +878,17 @@ def handle_start_op_tester(session, response_encoder):
     config_module = config_file_name.split(".")[0]
 
     if "oprp_arg" in session:
-        oprp_arg = session["oprp_arg"]
+        oprp_arg = session["profile"]
     else:
         oprp_arg = "C.T.T.ns"
 
     try:
         start_rp_process(port, [CONF.OPRP_PATH, "-p", oprp_arg, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
-        return response_encoder.returnJSON(
+        return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(port))}))
     except Exception as ex:
-        return response_encoder.serviceError(ex.message)
+        return response_encoder.service_error(ex.message)
 
 
 def allocate_dynamic_port(session):
@@ -911,7 +919,7 @@ def allocate_static_port(issuer):
 
 def handle_create_new_config_file(response_encoder, session):
     session[OP_CONFIG] = get_default_client()
-    return response_encoder.returnJSON("{}")
+    return response_encoder.return_json("{}")
 
 
 def handle_get_redirect_url(session, response_encoder, parameters):
@@ -925,7 +933,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
             port = allocate_static_port(issuer)
         except NoPortAvailable as ex:
             LOGGER.fatal(ex.message)
-            return response_encoder.serviceError(ex.message)
+            return response_encoder.service_error(ex.message)
 
     if not port:
         for port in static_ports_db.keys():
@@ -936,7 +944,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 
     redirect_url = get_base_url(port) + "authn_cb"
 
-    return response_encoder.returnJSON(
+    return response_encoder.return_json(
         json.dumps({"redirect_url": redirect_url}))
 
 
