@@ -1170,7 +1170,9 @@ FLOWS = {
         "desc": 'Uses Keys Registered with jwks_uri Value',
         "sequence": [
             '_discover_',
-            '_register_',
+            ('_register_',
+             {"request_args": {
+                 "token_endpoint_auth_method": "private_key_jwt"}}),
             '_login_',
             ("_accesstoken_",
              {
@@ -1178,7 +1180,7 @@ FLOWS = {
                  "support": {
                      "warning": {
                          "token_endpoint_auth_methods_supported":
-                             "client_secret_jwt"}}
+                             "private_key_jwt"}}
              }),
         ],
         "profile": "C,CI,CT,CIT..T",
