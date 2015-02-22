@@ -3,8 +3,29 @@
     border-color:#CFCFCF;
     font-size: 17px;
     background-color: #ffffff;
-    margin-left: 0px;
-    margin-right: 0px;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.category_row{
+    background-color: #2d6aae;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.marging_text{
+    margin-left: 15px;
+}
+
+.category_text{
+    margin-left: 15px;
+    font-size: 17px;
+    font-weight: bold;
+    color:#ffffff;
+}
+
+h3{
+    font-size: 18px;
 }
 
 .test_setup{
@@ -23,7 +44,6 @@
     border:2px solid;
     border-color:#CFCFCF;
     word-wrap:break-word;
-    padding: 10px;
 }
 
 .jumbotron h4 {
