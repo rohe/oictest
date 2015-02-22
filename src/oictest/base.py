@@ -44,6 +44,7 @@ class Conversation(tool.Conversation):
         self.response_message = None
         self.info = None
         self.AuthorizationRequest = None
+        self.etag = {}
 
     def my_endpoints(self):
         return self.client.redirect_uris

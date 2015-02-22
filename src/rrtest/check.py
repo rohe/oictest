@@ -1,5 +1,6 @@
 import inspect
 import json
+#from oic.oauth2 import SUCCESSFUL
 from oic.oauth2.message import ErrorResponse
 from oic.oauth2.message import MissingRequiredAttribute
 

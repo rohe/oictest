@@ -226,3 +226,18 @@ def login_hint(request_args, conv, kwargs):
 def get_principal(args, conv, kwargs):
     args["principal"] = conv.client_config[kwargs["param"]]
     return args
+
+
+def set_if_match_and_rsid(args, conv, kwargs):
+    # _client = conv.client
+    # url = "{}/resource_set/{}". format(
+    #     _client.resource_set_registration_endpoint,
+    #     conv.lid2rsid[kwargs["lid"]])
+    args["If-Match"] = conv.etag[kwargs["lid"]]
+    args["rsid"] = conv.lid2rsid[kwargs["lid"]]
+    return args
+
+
+def get_rsid(args, conv, kwargs):
+    args["rsid"] = conv.lid2rsid[kwargs["lid"]]
+    return args

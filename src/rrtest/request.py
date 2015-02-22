@@ -183,6 +183,13 @@ class Request(object):
 
         kwargs, cargs, e_arg, _req = self.collect_args(cargs, request)
 
+        try:
+            if_match = kwargs["If-Match"]
+        except KeyError:
+            if_match = None
+        else:
+            del kwargs["If-Match"]
+
         if "content_type" in kwargs:
             self.content_type = kwargs["content_type"]
             del kwargs["content_type"]
@@ -194,6 +201,12 @@ class Request(object):
             h_arg = client.init_authentication_method(cis, **kwargs)
         else:
             h_arg = {}
+
+        if if_match:
+            try:
+                h_arg["headers"]["If-Match"] = if_match
+            except KeyError:
+                h_arg["headers"] = {"If-Match": if_match}
 
         try:
             _method = cargs["method"]
@@ -307,6 +320,10 @@ class Response(object):
         self.tests = copy.deepcopy(self._tests)
 
     def __call__(self, conv, response):
+        pass
+
+    @staticmethod
+    def post_process(conv, response, kwargs):
         pass
 
 

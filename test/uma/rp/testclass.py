@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from base64 import b64encode
 import os
-from urllib import urlencode, quote
 from oic.oic import OIDCONF_PATTERN, ProviderConfigurationResponse
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
@@ -570,17 +569,70 @@ class CreateResourceSetRequest(PostRequest):
         self.kw_args["content_type"] = JSON_ENCODED
 
 
+class UpdateResourceSet(PutRequest):
+    request = "ResourceSetDescription"
+    endpoint = "resource_set_registration_endpoint"
+    module = "uma.message"
+
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "resource_set_registration_endpoint"], "resource_set")
+        self.kw_args["content_type"] = JSON_ENCODED
+
+
+class ReadResourceSet(GetRequest):
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "resource_set_registration_endpoint"], "resource_set")
+
+
+class ListResourceSet(GetRequest):
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "resource_set_registration_endpoint"], "resource_set")
+
+
+class DeleteResourceSet(DeleteRequest):
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "resource_set_registration_endpoint"], "resource_set")
+
+
 # ========== RESPONSE MESSAGES ========
 
 class OIDCProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfigurationResponse"
     module = "oic.oic.message"
 
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        _client = conv.client
+        _client.oidc_provider_info = response
+        _client.provider_info = response
+
 
 class UMAProviderConfigurationResponse(BodyResponse):
     response = "ProviderConfiguration"
     module = "uma.message"
 
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        _client = conv.client
+        _client.uma_provider_info = response
+        _client.provider_info = response
+        
 
 class OIDCRegistrationResponse(BodyResponse):
     response = "RegistrationResponse"
@@ -593,7 +645,13 @@ class OIDCRegistrationResponse(BodyResponse):
                 setattr(_client, prop, response[prop])
             except KeyError:
                 pass
-
+    
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        _client = conv.client
+        _client.oidc_registration_info = response
+        _client.store_registration_info(response)
+        
 
 class OAuthRegistrationResponse(BodyResponse):
     response = "ClientInfoResponse"
@@ -607,6 +665,12 @@ class OAuthRegistrationResponse(BodyResponse):
             except KeyError:
                 pass
 
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        _client = conv.client
+        _client.uma_registration_info = response
+        _client.store_registration_info(response)
+        
 
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
@@ -620,6 +684,16 @@ class AccessTokenResponse(BodyResponse):
     def __init__(self):
         BodyResponse.__init__(self)
 
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        _client = conv.client
+        if PAT in conv.AuthorizationRequest["scope"]:
+            _client.access_token_response[PAT] = response
+            _client.token[PAT] = response["access_token"]
+        elif AAT in conv.AuthorizationRequest["scope"]:
+            _client.access_token_response[AAT] = response
+            _client.token[AAT] = response["access_token"]
+        
 
 class UserinfoResponse(BodyResponse):
     response = "OpenIDSchema"
@@ -643,6 +717,23 @@ class StatusResponse(BodyResponse):
     response = "StatusResponse"
     module = "uma.message"
 
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        #  bind an local id to a specific resource set
+        if conv.last_response.status_code == 201:
+            try:
+                conv.lid2rsid[kwargs["lid"]] = response["_id"]
+            except AttributeError:
+                conv.lid2rsid = {kwargs["lid"]: response["_id"]}
+            except KeyError:
+                pass
+
+        try:
+            conv.etag[kwargs["lid"]] = conv.last_response.headers["etag"]
+        except KeyError:
+            pass
+
+        return
 
 # ============================================================================
 
@@ -658,7 +749,13 @@ PHASES = {
     "oauth-read-registration": (ReadRegistration, OAuthRegistrationResponse),
     "modify-registration": (ClientUpdateRequest, OAuthRegistrationResponse),
     "delete-registration": (ClientDeleteRequest, NoneResponse),
+    #
     'create_resource_set': (CreateResourceSetRequest, StatusResponse),
+    'update_resource_set': (UpdateResourceSet, StatusResponse),
+    'read_resource_set': (ReadResourceSet, ResourceSetResponse),
+    'list_resource_set': (ListResourceSet, BodyResponse),
+    'delete_resource_set': (DeleteResourceSet, None),
+    #
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,
     "rotate_enc_keys": RotateEncKeys,

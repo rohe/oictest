@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import importlib
+import json
 import os
 from urllib import quote_plus
 from urlparse import parse_qs
@@ -11,11 +12,14 @@ from jwkest import JWKESTException
 from mako.lookup import TemplateLookup
 from oic.exception import PyoidcError
 
-from oic.oauth2 import rndstr, ResponseError
-from oic.oauth2.dynreg import ClientInfoResponse
+from oic.oauth2 import rndstr
+from oic.oauth2 import ResponseError
+from oic.oauth2 import ErrorResponse
 from oic.oic import PARAMMAP, DEF_SIGN_ALG
-from oic.utils.http_util import Redirect, get_post, BadRequest, Response
-from oic.oic.message import RegistrationResponse
+from oic.utils.http_util import Redirect
+from oic.utils.http_util import get_post
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Response
 from uma.client import Client as umaClient
 
 from uma.message import factory as uma_message_factory
@@ -62,6 +66,7 @@ class UmaClient(umaClient):
                            client_authn_methods, keyjar, verify_ssl=verify_ssl)
         if behaviour:
             self.behaviour = behaviour
+        self.access_token_response = {}
 
     def sign_enc_algs(self, typ):
         resp = {}
@@ -72,6 +77,30 @@ class UmaClient(umaClient):
                 if key == "sign":
                     resp[key] = DEF_SIGN_ALG["id_token"]
         return resp
+
+    def get_info(self, url, trace, method, req, data=None):
+        if data:
+            kwargs = {"data": data}
+        else:
+            kwargs = {}
+
+        if "authn_method" in req.kw_args:
+            if req.kw_args["authn_method"] == "bearer_header":
+                kwargs["headers"] = {
+                    "Authorization": "Bearer {}".format(
+                        req.request_args["access_token"])}
+
+        r = self.http_request(url, method, **kwargs)
+        trace.reply("STATUS: %s" % r.status_code)
+        trace.reply("BODY: %s" % r.text)
+
+        if r.status_code == 200:
+            info = json.loads(r.text)
+            if "error" in info:
+                info = ErrorResponse(**info)
+            return info
+        else:
+            return None
 
 
 class UMAoprp(OPRP):
@@ -125,7 +154,7 @@ class UMAoprp(OPRP):
                     if conv.last_response.status >= 400:
                         return self.err_response(session, "discover",
                                                  conv.last_response.text)
-
+                    resp_c.post_process(conv, _r[2], kwargs)
                     for x in ots.client.keyjar[
                             ots.client.provider_info["issuer"]]:
                         try:
@@ -202,7 +231,9 @@ class UMAoprp(OPRP):
                         except AttributeError:
                             pass
 
-                    if req.request_txt == "ResourceSetDescription":
+                    if isinstance(req, (self.test_class.ReadResourceSet,
+                                        self.test_class.DeleteResourceSet,
+                                        self.test_class.UpdateResourceSet)):
                         req.kw_args["endpoint"] += "/" + kwargs["rsid"]
 
                     try:
@@ -234,12 +265,22 @@ class UMAoprp(OPRP):
                             try:
                                 _ctype = kwargs["ctype"]
                             except KeyError:
-                                _ctype = resp_c.ctype
+                                if resp_c:
+                                    _ctype = resp_c.ctype
+                                else:
+                                    _ctype = ""
 
-                            _msg_factory = MODULE2FACTORY[resp_c.module]
-                            response = request_and_return(
-                                conv, url, trace, _msg_factory(resp_c.response),
-                                _method, body, _ctype, **_kwargs)
+                            try:
+                                _msg_factory = MODULE2FACTORY[resp_c.module]
+                            except AttributeError:
+                                response = ots.client.get_info(url, trace,
+                                                               _method, req,
+                                                               body)
+                            else:
+                                response = request_and_return(
+                                    conv, url, trace,
+                                    _msg_factory(resp_c.response),
+                                    _method, body, _ctype, **_kwargs)
                         except PyoidcError as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
@@ -247,20 +288,24 @@ class UMAoprp(OPRP):
                             return self.err_response(session,
                                                      "request_and_return", err)
 
-                        if response is None:  # bail out
+                        if resp_c and response is None:  # bail out
                             return self.err_response(session,
                                                      "request_and_return", None)
 
                         trace.response(response)
-                        LOGGER.info(response.to_dict())
-                        if resp_c.response in ["ClientInfoResponse",
-                                               "RegistrationResponse"]:
-                            if isinstance(response, RegistrationResponse):
-                                ots.client.oidc_registration_info = response
-                                ots.client.store_registration_info(response)
-                            elif isinstance(response, ClientInfoResponse):
-                                ots.client.uma_registration_info = response
-                                ots.client.store_registration_info(response)
+                        try:
+                            LOGGER.info(response.to_dict())
+                        except AttributeError:  # Not a Message instance
+                            LOGGER.info(response)
+
+                        try:
+                            _ = resp_c.response
+                        except AttributeError:
+                            pass
+                        else:
+                            if response:
+                                resp_c.post_process(conv, response, kwargs)
+
                 try:
                     post_tests(conv, req_c, resp_c)
                 except Exception as err:
@@ -289,7 +334,8 @@ class UMAoprp(OPRP):
                                       "test_output": conv.test_output}
         session["node"].complete = True
 
-        resp = Redirect("%sopresult#%s" % (CONF.BASE, _tid[3]))
+        inst, grp, spec = _tid.split("-", 2)
+        resp = Redirect("%sopresult#%s" % (CONF.BASE, grp))
         return resp(self.environ, self.start_response)
 
     def flow_list(self, session):

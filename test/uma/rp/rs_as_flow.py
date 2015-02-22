@@ -8,6 +8,8 @@ from oictest.testfunc import multiple_return_uris
 from oictest.testfunc import redirect_uri_with_query_component
 from oictest.testfunc import redirect_uris_with_query_component
 from oictest.testfunc import redirect_uris_with_fragment
+from testfunc import set_if_match_and_rsid
+from testfunc import get_rsid
 
 __author__ = 'roland'
 
@@ -39,13 +41,17 @@ RESOURCE = {
         "name": "American League Roster All Star game 2014",
         "scopes": ["get", "delete", "post", "put"],
     },
-    "Jeter": {
+    "AL2014mod": {
+        "name": "American League Roster, All Star game 2014",
+        "scopes": ["get", "delete", "post", "put"],
+    },
+    "jeter": {
         "name": "Derek Jeter",
         "icon_uri": URL % "Jeter",
         "scopes": ["get", "delete", "put"],
         "type": "Shortstop"
     },
-    "Cabrera": {
+    "cabrera": {
         "name": "Miguel Cabrera",
         "icon_uri": URL % "Cabrera",
         "scopes": ["get", "delete", "put"],
@@ -60,6 +66,16 @@ RESOURCE = {
         "name": "Max Scherzer",
         "icon_uri": URL % "Scherzer",
         "scopes": ["get", "delete", "put"],
+        "type": "Pitcher"},
+    "no_name": {
+        "name": "",
+        "icon_uri": URL % "Scherzer",
+        "scopes": ["get", "delete", "put"],
+        "type": "Pitcher"},
+    "no_scope": {
+        "name": "Max Scherzer",
+        "icon_uri": URL % "Scherzer",
+        "scopes": [],
         "type": "Pitcher"},
 }
 
@@ -223,7 +239,6 @@ FLOWS = {
         "sequence": ['_uma_discover_', "_oauth_register_", "_login_"],
         "profile": "C..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'UMA-Request-no-response_type': {
         "desc": 'Authorization request missing the response_type parameter',
@@ -243,14 +258,12 @@ FLOWS = {
                 "case (2) occurs the tester must submit a screen shot as proof "
                 "when sending in a certification application",
         "profile": "..",
-        "mti": "MUST"
     },
     'UMA-Request-response_type=token': {
         "desc": 'Request with response_type=token',
         "sequence": ['_uma_discover_', "_oauth_register_", "_login_"],
         "profile": "T..",
         'tests': {"check-http-response": {}},
-        "mti": "MUST"
     },
     'UMA-redirect_uri-NotReg': {
         "desc": 'The sent redirect_uri does not match the registered',
@@ -264,7 +277,6 @@ FLOWS = {
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
     },
     'UMA-redirect_uri-Missing': {
         "desc": 'Reject request without redirect_uri when multiple registered',
@@ -278,7 +290,6 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
-        "mti": "MUST",
     },
     'UMA-redirect_uri-Query': {
         "desc": 'Request with redirect_uri with query component',
@@ -289,7 +300,6 @@ FLOWS = {
              {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
         ],
         "profile": "..T",
-        "mti": "MUST",
         'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
                   "check-http-response": {}}
     },
@@ -302,7 +312,6 @@ FLOWS = {
                  redirect_uris_with_query_component, {"foo": "bar"})}),
         ],
         "profile": "..T",
-        "mti": "MUST",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
         'tests': {"check-http-response": {}},
@@ -325,7 +334,6 @@ FLOWS = {
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
         'tests': {"check-http-response": {}},
-        "mti": "MUST",
     },
     'UMA-redirect_uri-RegFrag': {
         "desc": 'Reject registration where a redirect_uri has a fragment',
@@ -336,7 +344,6 @@ FLOWS = {
         ],
         "profile": "..T",
         "tests": {"verify-bad-request-response": {}},
-        "mti": "MUST",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
     },
@@ -357,8 +364,7 @@ FLOWS = {
             '_uma_discover_',
             '_oauth_register_',
             ('_login_', {"request_args": {"scope": [PAT]}}),
-            '_accesstoken_',
-            'store_pat'
+            '_accesstoken_'
         ],
         "profile": "C..",
         'tests': {"check-http-response": {}},
@@ -377,24 +383,158 @@ FLOWS = {
         "profile": "C..",
         'tests': {"check-http-response": {}},
     },
-    'UMA-resourceset-create': {
-        "desc": "Create resource set",
+    'UMA-resourceset-register': {
+        "desc": "Register resource set",
         "sequence": [
-            'retrieve_pat',
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
             ('create_resource_set', {"request_args": RESOURCE["AL2014"],
-                                     "rsid": "AL2014"})
+                                     "lid": "AL2014"})
         ],
         "profile": "C..",
         "tests": {},
     },
-    # 'UMA-resourceset-read': {
-    #     "desc": "Read resource set"
-    # },
+    'UMA-resourceset-multi-register': {
+        "desc": "Register sequence of resource sets",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('create_resource_set', {"request_args": RESOURCE["jeter"],
+                                     "lid": "jeter"}),
+            ('create_resource_set', {"request_args": RESOURCE["cabrera"],
+                                     "lid": "cabrera"}),
+            ('create_resource_set', {"request_args": RESOURCE["martinez"],
+                                     "lid": "martinez"}),
+            ('create_resource_set', {"request_args": RESOURCE["scherzer"],
+                                     "lid": "scherzer"}),
+        ],
+        "profile": "C..",
+        "tests": {},
+    },
+    'UMA-resourceset-read': {
+        "desc": "Read resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('read_resource_set', {
+                "kwarg_func": (get_rsid, {"lid": "AL2014"})})
+        ],
+        "profile": "C..",
+        "tests": {}
+    },
+    'UMA-resourceset-list': {
+        "desc": "List resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('create_resource_set', {"request_args": RESOURCE["jeter"],
+                                     "lid": "jeter"}),
+            ('create_resource_set', {"request_args": RESOURCE["cabrera"],
+                                     "lid": "cabrera"}),
+            ('create_resource_set', {"request_args": RESOURCE["martinez"],
+                                     "lid": "martinez"}),
+            ('create_resource_set', {"request_args": RESOURCE["scherzer"],
+                                     "lid": "scherzer"}),
+            ('list_resource_set', {})
+        ],
+        "profile": "C..",
+        "tests": {}
+    },
     # 'UMA-resourceset-update': {
     # },
-    # 'UMA-resourceset-list': {
-    # },
-    # 'UMA-resourceset-delete': {
-    # },
+    'UMA-resourceset-delete': {
+        "desc": "Delete resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('create_resource_set', {"request_args": RESOURCE["jeter"],
+                                     "lid": "jeter"}),
+            ('create_resource_set', {"request_args": RESOURCE["cabrera"],
+                                     "lid": "cabrera"}),
+            ('create_resource_set', {"request_args": RESOURCE["martinez"],
+                                     "lid": "martinez"}),
+            ('create_resource_set', {"request_args": RESOURCE["scherzer"],
+                                     "lid": "scherzer"}),
+            ('delete_resource_set', {"lid": "scherzer"}),
+            ('list_resource_set', {})
+        ],
+        "profile": "C..",
+        "tests": {}
+    },
+    'UMA-resourceset-delete-last': {
+        "desc": "Delete last resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["scherzer"],
+                                     "lid": "scherzer"}),
+            ('delete_resource_set', {"lid": "scherzer"}),
+            ('list_resource_set', {})
+        ],
+        "profile": "C..",
+        "tests": {}
+    },
+    'UMA-resourceset-register-reject-incorrect': {
+        "desc": "Reject register of incorrect resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["no_name"],
+                                     "lid": "AL2014"})
+        ],
+        "profile": "C..",
+        "tests": {"verify-bad-request-response": {}},
+    },
+    'UMA-resourceset-read-unknown': {
+        "desc": "Read non-existent resource set",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('read_resource_set', {"rsid": "000000000000"})
+        ],
+        "profile": "C..",
+        "tests": {"verify-bad-request-response": {}}
+    },
+    'UMA-resourceset-update': {
+        "desc": 'Modify resource set',
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('update_resource_set', {
+                "request_args": RESOURCE["AL2014mod"],
+                "kwarg_func": (set_if_match_and_rsid, {"lid": "AL2014"})})
+        ],
+        "profile": "C..",
+        "tests": {},
+    },
 }
-
