@@ -12,15 +12,12 @@ oicTest
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    install
-   howto
-
-.. toctree::
-    :maxdepth: 1
-
-    contents
+   setup/setup_op_test
+   how_to_use_rp_test
+   contents
 
 Indices and tables
 ==================
