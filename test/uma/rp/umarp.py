@@ -111,6 +111,7 @@ class UMAoprp(OPRP):
         conv = Conversation(ots.client, client_conf, trace, None,
                             uma_message_factory, check_factory)
         conv.cache = self.cache
+        conv.check_factory = self.check_factory
         return ots, conv
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
@@ -594,6 +595,7 @@ def application(environ, start_response):
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
+    from check import factory
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-t', dest='testflow')
@@ -634,7 +636,6 @@ if __name__ == '__main__':
     else:
         from oictest import testclass as TEST_CLASS
 
-
     if args.directory:
         _dir = args.directory
         if not _dir.endswith("/"):
@@ -654,7 +655,7 @@ if __name__ == '__main__':
 
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
                "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES,
-               "test_class": TEST_CLASS}
+               "test_class": TEST_CLASS, "check_factory": factory}
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,

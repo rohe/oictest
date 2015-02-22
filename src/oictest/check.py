@@ -2100,6 +2100,7 @@ class BareKeys(Information):
 
         return {}
 
+
 CLASS_CACHE = {}
 
 

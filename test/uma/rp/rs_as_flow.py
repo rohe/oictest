@@ -532,9 +532,11 @@ FLOWS = {
                                      "lid": "AL2014"}),
             ('update_resource_set', {
                 "request_args": RESOURCE["AL2014mod"],
-                "kwarg_func": (set_if_match_and_rsid, {"lid": "AL2014"})})
+                "kwarg_func": (set_if_match_and_rsid, {"lid": "AL2014"})}),
+            ('read_resource_set', {
+                "kwarg_func": (get_rsid, {"lid": "AL2014"})})
         ],
         "profile": "C..",
-        "tests": {},
+        "tests": {"match-resource-set": {"rset": RESOURCE["AL2014mod"]}},
     },
 }

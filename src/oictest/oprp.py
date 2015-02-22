@@ -20,7 +20,6 @@ from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 
 from oictest.base import Conversation
-from oictest.check import factory as check_factory
 from oictest.check import get_protocol_response
 from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
@@ -107,7 +106,8 @@ def evaluate(session, conv):
 
 class OPRP(object):
     def __init__(self, lookup, conf, test_flows, cache, test_profile,
-                 profiles, test_class, environ=None, start_response=None):
+                 profiles, test_class, check_factory, environ=None,
+                 start_response=None):
         self.lookup = lookup
         self.conf = conf
         self.test_flows = test_flows
@@ -115,9 +115,10 @@ class OPRP(object):
         self.test_profile = test_profile
         self.profiles = profiles
         self.test_class = test_class
+        self.check_factory = check_factory
         self.environ = environ
         self.start_response = start_response
-                
+
     # def opchoice(self, clients):
     #     resp = Response(mako_template="opchoice.mako",
     #                     template_lookup=self.lookup,
@@ -259,8 +260,9 @@ class OPRP(object):
         client_conf = ots.config.CLIENT
         trace = Trace()
         conv = Conversation(ots.client, client_conf, trace, None,
-                            message_factory, check_factory)
+                            message_factory, self.check_factory)
         conv.cache = self.cache
+        conv.check_factory = self.check_factory
         return ots, conv
 
     def session_setup(self, session, path, index=0):

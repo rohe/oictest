@@ -259,6 +259,7 @@ def application(environ, start_response):
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
+    from oictest.check import factory as check_factory
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
@@ -323,7 +324,7 @@ if __name__ == '__main__':
 
     RP_ARGS = {"lookup": LOOKUP, "conf": CONF, "test_flows": TEST_FLOWS,
                "cache": {}, "test_profile": TEST_PROFILE, "profiles": PROFILES,
-               "test_class": test_class}
+               "test_class": test_class, "check_factory": check_factory}
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
