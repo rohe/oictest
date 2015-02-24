@@ -8,7 +8,6 @@ from oictest.testfunc import multiple_return_uris
 from oictest.testfunc import redirect_uri_with_query_component
 from oictest.testfunc import redirect_uris_with_query_component
 from oictest.testfunc import redirect_uris_with_fragment
-from testfunc import set_if_match_and_rsid
 from testfunc import get_rsid
 
 __author__ = 'roland'
@@ -473,7 +472,8 @@ FLOWS = {
                                      "lid": "martinez"}),
             ('create_resource_set', {"request_args": RESOURCE["scherzer"],
                                      "lid": "scherzer"}),
-            ('delete_resource_set', {"lid": "scherzer"}),
+            ('delete_resource_set', {
+                "kwarg_func": (get_rsid, {"lid": "scherzer"})}),
             ('list_resource_set', {})
         ],
         "profile": "C..",
@@ -488,7 +488,8 @@ FLOWS = {
             '_accesstoken_',
             ('create_resource_set', {"request_args": RESOURCE["scherzer"],
                                      "lid": "scherzer"}),
-            ('delete_resource_set', {"lid": "scherzer"}),
+            ('delete_resource_set', {
+                "kwarg_func": (get_rsid, {"lid": "scherzer"})}),
             ('list_resource_set', {})
         ],
         "profile": "C..",
@@ -532,7 +533,7 @@ FLOWS = {
                                      "lid": "AL2014"}),
             ('update_resource_set', {
                 "request_args": RESOURCE["AL2014mod"],
-                "kwarg_func": (set_if_match_and_rsid, {"lid": "AL2014"})}),
+                "kwarg_func": (get_rsid, {"lid": "AL2014"})}),
             ('read_resource_set', {
                 "kwarg_func": (get_rsid, {"lid": "AL2014"})})
         ],

@@ -709,7 +709,7 @@ class NoneResponse(BodyResponse):
 
 
 class ResourceSetResponse(BodyResponse):
-    response = "ResourceSetDescription"
+    response = "ResourceSetResponse"
     module = "uma.message"
 
 
