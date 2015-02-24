@@ -290,103 +290,48 @@
             ##### UI locales ######
 
             <div class="row">
-        <span class="col-sm-3">
-            <br>
-            <span class="glyphicon glyphicon-info-sign infoIcon"
-                  title="End-User's preferred languages and scripts for the user interface, represented as a space-separated list of BCP47 [RFC5646] language tag values, ordered by preference. For instance, the value 'fr-CA fr en' represents a preference for French as spoken in Canada, then French (without a region designation), followed by English (without a region designation). An error SHOULD NOT result if some or all of the requested locales are not supported by the OpenID Provider."
-                  data-toggle="tooltip"
-                  data-placement="right"
-                  directive-callback=""></span>
+                <span class="col-sm-3">
+                    <span class="glyphicon glyphicon-info-sign infoIcon"
+                          title="End-User's preferred languages and scripts for the user interface, represented as a space-separated list of BCP47 [RFC5646] language tag values, ordered by preference. For instance, the value 'fr-CA fr en' represents a preference for French as spoken in Canada, then French (without a region designation), followed by English (without a region designation). An error SHOULD NOT result if some or all of the requested locales are not supported by the OpenID Provider."
+                          data-toggle="tooltip"
+                          data-placement="right"
+                          directive-callback=""></span>
 
-            UI locales
-        </span>
+                    UI locales
+                </span>
 
                 <div class="col-sm-3">
-                    New element:
-                    <form>
-                        <div class="input-group">
-                            <input type="text" ng-model="uiLocale.value" class="form-control">
-                    <span class="input-group-btn">
-                        <button class="btn btn-default btn-sm"
-                                ng-click="addUiLocale()">
-                            Add
-                        </button>
-                    </span>
-                        </div>
-                    </form>
+                    <input type="text" ng-model="opConfig.uiLocales" class="form-control">
                 </div>
 
-                <div class="col-sm-3">
-                    Added elements:
-                    <form ng-repeat="locale in opConfig.uiLocales">
-                        <div class="input-group">
-                            <input type="text" ng-model="locale.value" class="form-control">
-                        <span class="input-group-btn">
-                            <button class="btn btn-danger btn-sm"
-                                    ng-click="removeUiLocale($index)">
-                                X
-                            </button>
-                        </span>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="col-sm-3">
+                <div class="col-sm-6">
                 </div>
             </div>
 
             <div class="row">
 
                 <div class="col-sm-3">
-                    <br>
-            <span class="glyphicon glyphicon-info-sign infoIcon"
-                  title="End-User's preferred languages and scripts for Claims being returned, represented as a space-separated list of BCP47 [RFC5646] language tag values, ordered by preference. An error SHOULD NOT result if some or all of the requested locales are not supported by the OpenID Provider."
-                  data-toggle="tooltip"
-                  data-placement="right"
-                  directive-callback=""></span>
+                    <span class="glyphicon glyphicon-info-sign infoIcon"
+                          title="End-User's preferred languages and scripts for Claims being returned, represented as a space-separated list of BCP47 [RFC5646] language tag values, ordered by preference. An error SHOULD NOT result if some or all of the requested locales are not supported by the OpenID Provider."
+                          data-toggle="tooltip"
+                          data-placement="right"
+                          directive-callback=""></span>
 
                     Claims locales
 
                 </div>
 
                 <div class="col-sm-3">
-                    New element:
-                    <form>
-                        <div class="input-group">
-                            <input type="text" ng-model="claimLocale.value" class="form-control">
-                    <span class="input-group-btn">
-                        <button class="btn btn-default btn-sm"
-                                ng-click="addClaimLocale()">
-                            Add
-                        </button>
-                    </span>
-                        </div>
-                    </form>
+                    <input type="text" ng-model="opConfig.claimsLocales" class="form-control">
                 </div>
 
-                <div class="col-sm-3">
-                    Added elements:
-                    <form ng-repeat="locale in opConfig.claimsLocales">
-                        <div class="input-group">
-                            <input type="text" ng-model="locale.value" class="form-control">
-                        <span class="input-group-btn">
-                            <button class="btn btn-danger btn-sm"
-                                    ng-click="removeClaimLocale($index)">
-                                X
-                            </button>
-                        </span>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="col-sm-3">
+                <div class="col-sm-6">
                 </div>
 
             </div>
 
             <div class="row">
                 <div class="col-sm-3">
-                    <br>
             <span class="glyphicon glyphicon-info-sign infoIcon"
                   title="Requested Authentication Context Class Reference values. Space-separated string that specifies the acr values that the Authorization Server is being requested to use for processing this authentication request, with the values appearing in order of preference. The Authentication Context Class satisfied by the authentication performed is returned as the acr Claim Value, as specified in Section 2.1.2.1. The acr Claim is requested as a Voluntary Claim by this parameter."
                   data-toggle="tooltip"
@@ -398,36 +343,10 @@
                 </div>
 
                 <div class="col-sm-3">
-                    New element:
-                    <form>
-                        <div class="input-group">
-                            <input type="text" ng-model="acrValue.value" class="form-control">
-                    <span class="input-group-btn">
-                        <button class="btn btn-default btn-sm"
-                                ng-click="addAcrValues()">
-                            Add
-                        </button>
-                    </span>
-                        </div>
-                    </form>
+                    <input type="text" ng-model="opConfig.acrValues" class="form-control">
                 </div>
 
-                <div class="col-sm-3">
-                    Added elements:
-                    <form ng-repeat="locale in opConfig.acrValues">
-                        <div class="input-group">
-                            <input type="text" ng-model="locale.value" class="form-control">
-                        <span class="input-group-btn">
-                            <button class="btn btn-danger btn-sm"
-                                    ng-click="removeAcrValues($index)">
-                                X
-                            </button>
-                        </span>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="col-sm-3">
+                <div class="col-sm-6">
                 </div>
             </div>
 

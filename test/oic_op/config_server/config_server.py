@@ -150,14 +150,9 @@ def create_new_configuration_dict():
         },
         "webfingerSubject": "",
         "loginHint": "",
-        # Since angular js needs objects to use in ng-model the subClaim
-        # elements looks like this ['claim', 'value']
-        "subClaim": [],
-        # Since angular js needs objects to use in ng-model the list elements
-        # uses elements like this {"value": ""}
-        "uiLocales": [],
-        "claimsLocales": [],
-        "acrValues": [],
+        "uiLocales": "",
+        "claimsLocales": "",
+        "acrValues": "",
     }
     return op_configurations
 
@@ -401,21 +396,14 @@ def convert_config_file(config_file_dict):
     if 'login_hint' in config_file_dict:
         config_structure_dict['loginHint'] = config_file_dict['login_hint']
 
-    if "sub_claim" in config_file_dict:
-        config_structure_dict['subClaim'] = convert_sub_claims_to_lists(
-            config_file_dict['sub_claim'])
-
     if "ui_locales" in config_file_dict:
-        config_structure_dict['uiLocales'] = convert_to_value_list(
-            config_file_dict['ui_locales'])
+        config_structure_dict['uiLocales'] = config_file_dict['ui_locales']
 
     if "claims_locales" in config_file_dict:
-        config_structure_dict['claimsLocales'] = convert_to_value_list(
-            config_file_dict['claims_locales'])
+        config_structure_dict['claimsLocales'] = config_file_dict['claims_locales']
 
     if "acr_values" in config_file_dict:
-        config_structure_dict['acrValues'] = convert_to_value_list(
-            config_file_dict['acr_values'])
+        config_structure_dict['acrValues'] = config_file_dict['acr_values']
 
     return config_structure_dict
 
@@ -652,21 +640,14 @@ def convert_config_gui_structure(config_gui_structure):
     if config_gui_structure['loginHint'] != "":
         config_dict['login_hint'] = config_gui_structure['loginHint']
 
-    if config_gui_structure['subClaim']:
-        config_dict['sub_claim'] = convert_sub_claims_to_dict(
-            config_gui_structure['subClaim'])
+    if config_gui_structure['uiLocales'] != "":
+        config_dict['ui_locales'] = config_gui_structure['uiLocales']
 
-    if config_gui_structure['uiLocales']:
-        config_dict['ui_locales'] = convert_to_list(
-            config_gui_structure['uiLocales'])
+    if config_gui_structure['claimsLocales'] != "":
+        config_dict['claims_locales'] = config_gui_structure['claimsLocales']
 
-    if config_gui_structure['claimsLocales']:
-        config_dict['claims_locales'] = convert_to_list(
-            config_gui_structure['claimsLocales'])
-
-    if config_gui_structure['acrValues']:
-        config_dict['acr_values'] = convert_to_list(
-            config_gui_structure['acrValues'])
+    if config_gui_structure['acrValues'] != "":
+        config_dict['acr_values'] = config_gui_structure['acrValues']
 
     return config_dict
 
@@ -723,7 +704,7 @@ def get_default_client():
 def get_base_url(port):
     return 'https://%s:%d/' % (CONF.HOST, port)
 
-
+#TODO throws an unhandled exception if swedish chars is used.
 def convert_from_unicode(data):
     if isinstance(data, basestring):
         return str(data)

@@ -252,39 +252,6 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         $scope.opConfig.subClaim.splice(index, 1);
     };
 
-    $scope.uiLocale = {'value': ''};
-
-    $scope.addUiLocale = function (newElement) {
-        $scope.opConfig.uiLocales.splice(0, 0, makeCopy($scope.uiLocale))
-        $scope.uiLocale = {'value': ''}
-    };
-
-    $scope.removeUiLocale = function (index) {
-        $scope.opConfig.uiLocales.splice(index, 1);
-    };
-
-    $scope.claimLocale = {'value': ''};
-
-    $scope.addClaimLocale = function () {
-        $scope.opConfig.claimsLocales.splice(0, 0, makeCopy($scope.claimLocale));
-        $scope.claimLocale = {'value': ''};
-    };
-
-    $scope.removeClaimLocale = function (index) {
-        $scope.opConfig.claimsLocales.splice(index, 1);
-    };
-
-    $scope.acrValue = {'value': ''};
-
-    $scope.addAcrValues = function () {
-        $scope.opConfig.acrValues.splice(0, 0, makeCopy($scope.acrValue))
-        $scope.acrValue = {'value': ''};
-    };
-
-    $scope.removeAcrValues = function (index) {
-        $scope.opConfig.acrValues.splice(index, 1);
-    };
-
     $scope.staticProviderInfoElement = {'value': ''};
 
     $scope.addStaticProviderInfoElement = function (input_field_id) {
