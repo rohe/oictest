@@ -241,3 +241,13 @@ def set_if_match_and_rsid(args, conv, kwargs):
 def get_rsid(args, conv, kwargs):
     args["rsid"] = conv.lid2rsid[kwargs["lid"]]
     return args
+
+
+def get_resource_set_id(args, conv, kwargs):
+    args["resource_set_id"] = conv.lid2rsid[kwargs["lid"]]
+    return args
+
+
+def get_ticket(args, conv, kwargs):
+    args["ticket"] = conv.ticket[kwargs["lid"]]
+    return args

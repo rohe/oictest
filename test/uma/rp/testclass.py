@@ -610,6 +610,15 @@ class DeleteResourceSet(DeleteRequest):
             "resource_set_registration_endpoint"], "resource_set")
 
 
+class PermissionRegistration(PostRequest):
+    request = "PermissionRegistrationRequest"
+    module = "uma.messsage"
+
+
+class AuthzDataRequest(PostRequest):
+    request = "AuthorizationDataRequest"
+    module = "uma.messsage"
+
 # ========== RESPONSE MESSAGES ========
 
 class OIDCProviderConfigurationResponse(BodyResponse):
@@ -735,6 +744,24 @@ class StatusResponse(BodyResponse):
 
         return
 
+
+class RequestResponse(BodyResponse):
+    response = "PermissionRegistrationResponse"
+    module = "uma.message"
+
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        try:
+            conv.ticket[kwargs["lid"]] = response["ticket"]
+        except KeyError:
+            conv.ticket = {kwargs["lid"]: response["ticket"]}
+
+
+class AuthzDataResponse(BodyResponse):
+    response = "AuthorizationDataResponse"
+    module = "uma.message"
+
+
 # ============================================================================
 
 PHASES = {
@@ -755,6 +782,9 @@ PHASES = {
     'read_resource_set': (ReadResourceSet, ResourceSetResponse),
     'list_resource_set': (ListResourceSet, BodyResponse),
     'delete_resource_set': (DeleteResourceSet, None),
+    #
+    "register_request": (PermissionRegistration, RequestResponse),
+    "authzdata_request": (AuthzDataRequest, AuthzDataResponse),
     #
     "intermission": TimeDelay,
     "rotate_sign_keys": RotateSigKeys,

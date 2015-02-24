@@ -8,7 +8,7 @@ from oictest.testfunc import multiple_return_uris
 from oictest.testfunc import redirect_uri_with_query_component
 from oictest.testfunc import redirect_uris_with_query_component
 from oictest.testfunc import redirect_uris_with_fragment
-from testfunc import get_rsid
+from testfunc import get_rsid, get_resource_set_id, get_ticket
 
 __author__ = 'roland'
 
@@ -540,4 +540,40 @@ FLOWS = {
         "profile": "C..",
         "tests": {"match-resource-set": {"rset": RESOURCE["AL2014mod"]}},
     },
+    'UMA-permission-request': {
+        "desc": "Registers a requested permission",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('register_request', {
+                "request_args": {"scopes": ["get", "put"]},
+                "function": (get_resource_set_id, {"lid": "AL2014"})})
+        ],
+        "profile": "C..",
+        "tests": {}
+    },
+    "UMA-clientreq_authzdata": {
+        "desc": "Client Requests Authorization Data",
+        "sequence": [
+            '_uma_discover_',
+            '_oauth_register_',
+            ('_login_', {"request_args": {"scope": [PAT]}}),
+            '_accesstoken_',
+            ('create_resource_set', {"request_args": RESOURCE["AL2014"],
+                                     "lid": "AL2014"}),
+            ('register_request', {
+                "request_args": {"scopes": ["get", "put"]},
+                "function": (get_resource_set_id, {"lid": "AL2014"})}),
+            ('_login_', {"request_args": {"scope": [AAT]}}),
+            '_accesstoken_',
+            ('authzdata_request', {
+                "function": (get_ticket, {"lid": "AL2014"})})
+        ],
+        "profile": "C..",
+        "tests": {}
+    }
 }
