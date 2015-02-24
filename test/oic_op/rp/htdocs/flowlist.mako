@@ -104,7 +104,7 @@ def legends():
 <!DOCTYPE html>
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Tests</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -120,7 +120,7 @@ def legends():
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OICTEST</h1>
+        <h1>OpenID Certification OP Tests</h1>
           <em>Explanations of legends at <a href="#legends">end of page</a></em>
           <h3>You are testing using: ${display_profile(profile)}</h3>
           If you want to change this you can do it <a href="pedit">here</a>

@@ -12,7 +12,7 @@
 </%block>
 
 <%block name="title">
-    oictest application
+    OpenID Certification OP Test Tool Configuration
 </%block>
 
 <%block name="header">
@@ -29,7 +29,7 @@
 <div id="content">
 
     <h2>
-        Test tool configuration
+        OpenID Certification OP Test Tool Configuration
     </h2>
 
     <div class="row">
