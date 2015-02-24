@@ -968,7 +968,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 
     session['port'] = port
 
-    redirect_url = get_base_url(port) + "authn_cb"
+    redirect_url = get_base_url(port) + "authz_cb"
 
     return response_encoder.return_json(
         json.dumps({"redirect_url": redirect_url}))
