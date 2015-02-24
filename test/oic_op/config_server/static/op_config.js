@@ -154,11 +154,11 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     };
 
     function setRedirectUrl(redirectUrl) {
-        var inputfields = $scope.opConfig.supportsStaticClientRegistrationTextFields
+        var input_fields = $scope.opConfig.supportsStaticClientRegistrationTextFields
 
-        for (var i = 0; i < inputfields.length; i++) {
-            if (inputfields[i].id == "redirect_uris") {
-                inputfields[i].textFieldContent = redirectUrl;
+        for (var i = 0; i < input_fields.length; i++) {
+            if (input_fields[i].id == "redirect_uris") {
+                input_fields[i].textFieldContent = redirectUrl;
                 $scope.contains_redirect_url = true;
                 break;
             }
@@ -219,9 +219,9 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param staticInputFieldIndex - Index of a static input field
      */
     $scope.addElementToList = function (staticInputFieldIndex) {
-        var currentInputField = $scope.opConfig.fetchStaticProviderInfo.inputFields[staticInputFieldIndex];
+        var currentInputField = $scope.opConfig.fetchStaticProviderInfo.input_fields[staticInputFieldIndex];
         var newConfigTextField = {"index": currentInputField.values.length, "textFieldContent": ""};
-        $scope.opConfig.fetchStaticProviderInfo.inputFields[staticInputFieldIndex].values.splice(currentInputField.values.length, 0, newConfigTextField);
+        $scope.opConfig.fetchStaticProviderInfo.input_fields[staticInputFieldIndex].values.splice(currentInputField.values.length, 0, newConfigTextField);
     };
 
 
@@ -231,7 +231,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param valueListIndex - Index of list item to remove
      */
     $scope.removeElementFromList = function (staticProviderIndex, valueListIndex) {
-        var valueList = $scope.opConfig.fetchStaticProviderInfo.inputFields[staticProviderIndex].values
+        var valueList = $scope.opConfig.fetchStaticProviderInfo.input_fields[staticProviderIndex].values
         valueList.splice(valueListIndex, 1);
     };
 
@@ -252,59 +252,26 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         $scope.opConfig.subClaim.splice(index, 1);
     };
 
-    $scope.uiLocale = {'value': ''};
-
-    $scope.addUiLocale = function (newElement) {
-        $scope.opConfig.uiLocales.splice(0, 0, makeCopy($scope.uiLocale))
-        $scope.uiLocale = {'value': ''}
-    };
-
-    $scope.removeUiLocale = function (index) {
-        $scope.opConfig.uiLocales.splice(index, 1);
-    };
-
-    $scope.claimLocale = {'value': ''};
-
-    $scope.addClaimLocale = function () {
-        $scope.opConfig.claimsLocales.splice(0, 0, makeCopy($scope.claimLocale));
-        $scope.claimLocale = {'value': ''};
-    };
-
-    $scope.removeClaimLocale = function (index) {
-        $scope.opConfig.claimsLocales.splice(index, 1);
-    };
-
-    $scope.acrValue = {'value': ''};
-
-    $scope.addAcrValues = function () {
-        $scope.opConfig.acrValues.splice(0, 0, makeCopy($scope.acrValue))
-        $scope.acrValue = {'value': ''};
-    };
-
-    $scope.removeAcrValues = function (index) {
-        $scope.opConfig.acrValues.splice(index, 1);
-    };
-
     $scope.staticProviderInfoElement = {'value': ''};
 
-    $scope.addStaticProviderInfoElement = function (inputFieldId) {
-        selected_input = $('#input_' + inputFieldId);
+    $scope.addStaticProviderInfoElement = function (input_field_id) {
+        selected_input = $('#input_' + input_field_id);
 
         var new_element = selected_input.val();
 
-        var allInputFields = $scope.opConfig.fetchStaticProviderInfo.inputFields;
+        var allInputFields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
         for (var i = 0; i < allInputFields.length; i++){
-            if (allInputFields[i].id == inputFieldId){
+            if (allInputFields[i].id == input_field_id){
                 allInputFields[i].values.splice(0, 0, makeCopy({'value': new_element}));
                 selected_input.val("")
             }
         }
     };
 
-    $scope.removeStaticProviderInfoElement = function (index, inputFieldId) {
-        var allInputFields = $scope.opConfig.fetchStaticProviderInfo.inputFields;
+    $scope.removeStaticProviderInfoElement = function (index, input_field_id) {
+        var allInputFields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
         for (var i = 0; i < allInputFields.length; i++){
-            if (allInputFields[i].id == inputFieldId){
+            if (allInputFields[i].id == input_field_id){
                 allInputFields[i].values.splice(index, 1);
             }
         }
@@ -463,30 +430,44 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         opConfigurationFactory.doesConfigFileExist().success(doesConfigFileExistSuccessCallback).error(errorCallback);
     };
 
-    function showMissingRequiredInfoError(infoType) {
-        bootbox.alert("In order to go to continue you need to enter all the required " + infoType + " information");
+    function showMissingRequiredInfoError(infoType, emptyRequiredInfoFields) {
+        var errorText = "<p>In order to go to continue you need to enter all the required " + infoType + " information.</p>";
+
+        if (typeof emptyRequiredInfoFields !== "undefined" && emptyRequiredInfoFields.length > 0){
+            errorText += "<p> Missing required fields: </p>";
+
+            for (var i = 0; i < emptyRequiredInfoFields.length; i++){
+                errorText += "<li>" + emptyRequiredInfoFields[i] + "</li>"
+            }
+        }
+        bootbox.alert(errorText);
     }
 
     function containsRequiredProviderInfo() {
         var fetchingProviderConfig = $scope.opConfig.fetchInfoFromServerDropDown.value;
-        var requiredField = "";
+        var input_field_data = "";
 
         if (fetchingProviderConfig == "dynamic") {
-            requiredField = $scope.opConfig.fetchDynamicInfoFromServer.inputField.value;
+            var issuerUrlInputField = $scope.opConfig.fetchDynamicInfoFromServer.input_field;
+            input_field_data = issuerUrlInputField.value;
 
-            if (requiredField == "") {
-                showMissingRequiredInfoError("provider");
+            if (input_field_data == "") {
+                showMissingRequiredInfoError("provider", [issuerUrlInputField.label]);
                 return false
             }
         }
         else if (fetchingProviderConfig == "static") {
-            var inputFields = $scope.opConfig.fetchStaticProviderInfo.inputFields;
-            for (var i = 0; i < inputFields.length; i++) {
-                requiredField = inputFields[i].values;
-                if ((requiredField == [] || requiredField == "") && inputFields[i].required) {
-                    showMissingRequiredInfoError("provider");
-                    return false
+            var input_fields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
+            var emptyRequiredInfoFields = []
+            for (var i = 0; i < input_fields.length; i++) {
+                input_field_data = input_fields[i].values;
+                if ((input_field_data == [] || input_field_data == "") && input_fields[i].required) {
+                    emptyRequiredInfoFields.push(input_fields[i].label)
                 }
+            }
+            if (emptyRequiredInfoFields.length > 0){
+                showMissingRequiredInfoError("provider", emptyRequiredInfoFields);
+                return false
             }
         }
         else {
@@ -502,13 +483,13 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         var issuer = "";
 
         if (fetchingProviderConfig == "dynamic") {
-            issuer = $scope.opConfig.fetchDynamicInfoFromServer.inputField.value;
+            issuer = $scope.opConfig.fetchDynamicInfoFromServer.input_field.value;
         }
         else if (fetchingProviderConfig == "static") {
-            var inputFields = $scope.opConfig.fetchStaticProviderInfo.inputFields;
-            for (var i = 0; i < inputFields.length; i++) {
-                if (inputFields[i].id == "issuer") {
-                    issuer = inputFields[i].values;
+            var input_fields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
+            for (var i = 0; i < input_fields.length; i++) {
+                if (input_fields[i].id == "issuer") {
+                    issuer = input_fields[i].values;
                     break;
                 }
             }
