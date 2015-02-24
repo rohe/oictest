@@ -91,11 +91,11 @@
 
             <div class="row" ng-show="opConfig.fetchDynamicInfoFromServer.showInputField == true">
                 <span class="col-sm-2">
-                    {{opConfig.fetchDynamicInfoFromServer.inputField.label}}
+                    {{opConfig.fetchDynamicInfoFromServer.input_field.label}}
                 </span>
 
                 <form class="col-sm-5">
-                    <input type="text" ng-model="opConfig.fetchDynamicInfoFromServer.inputField.value"
+                    <input type="text" ng-model="opConfig.fetchDynamicInfoFromServer.input_field.value"
                            class="form-control">
                 </form>
             </div>
@@ -110,25 +110,25 @@
 
             <div ng-show="opConfig.fetchStaticProviderInfo.showInputFields">
 
-                <div ng-repeat="inputField in opConfig.fetchStaticProviderInfo.inputFields"
-                     ng-show="inputField.show == true || inputField.required == true">
+                <div ng-repeat="input_field in opConfig.fetchStaticProviderInfo.input_fields"
+                     ng-show="input_field.show == true || input_field.required == true">
                     <hr>
                     <div class="row">
 
                         <div class="col-sm-5">
-                            <br>
-                            <span>{{inputField.label}}</span>
+                            <br ng-show="input_field.isList">
+                            <span>{{input_field.label}}</span>
                         </div>
 
-                        <div ng-show="inputField.isList">
+                        <div ng-show="input_field.isList">
                             <div class="col-sm-3">
                                 New element:
                                 <form>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="input_{{inputField.id}}">
+                                        <input type="text" class="form-control" id="input_{{input_field.id}}">
                                 <span class="input-group-btn">
                                     <button class="btn btn-default btn-sm"
-                                            ng-click="addStaticProviderInfoElement(inputField.id)">
+                                            ng-click="addStaticProviderInfoElement(input_field.id)">
                                         Add
                                     </button>
                                 </span>
@@ -138,12 +138,12 @@
 
                             <div class="col-sm-4">
                                 Added elements:
-                                <form ng-repeat="element in inputField.values">
+                                <form ng-repeat="element in input_field.values">
                                     <div class="input-group">
                                         <input type="text" ng-model="element.value" class="form-control">
                                 <span class="input-group-btn">
                                     <button class="btn btn-danger btn-sm"
-                                            ng-click="removeStaticProviderInfoElement($index, inputField.id)">
+                                            ng-click="removeStaticProviderInfoElement($index, input_field.id)">
                                         X
                                     </button>
                                 </span>
@@ -152,10 +152,10 @@
                             </div>
                         </div>
 
-                        <div class="col-sm-3" ng-show="!inputField.isList"></div>
+                        <div class="col-sm-3" ng-show="!input_field.isList"></div>
 
-                        <div class="col-sm-4" ng-show="!inputField.isList">
-                            <input type="text" class="form-control" ng-model="inputField.values">
+                        <div class="col-sm-4" ng-show="!input_field.isList">
+                            <input type="text" class="form-control" ng-model="input_field.values">
                         </div>
                     </div>
                 </div>
@@ -267,26 +267,6 @@
 
                 Test specific request parameters:
             </h4>
-
-            ##    <div class="row">
-            ##        <div class="col-sm-3">
-            ##            <span class="glyphicon glyphicon-info-sign infoIcon"
-            ##                  title="Sets the identifier for the target End-User that is the subject of the discovery request. For example user in the webfinger request; user@localhost:8092"
-            ##                  data-toggle="tooltip"
-            ##                  data-placement="right"
-            ##                  directive-callback=""></span>
-            ##
-            ##            <span>Webfinger subject</span>
-            ##        </div>
-            ##
-            ##        <form class="col-sm-3">
-            ##            <input type="text" ng-model="opConfig.webfingerSubject" class="form-control">
-            ##        </form>
-            ##
-            ##        <div class="col-sm-6">
-            ##        </div>
-            ##    </div>
-            ##
 
             <div class="row">
                 <div class="col-sm-3">
@@ -476,10 +456,10 @@
 
                 <div id="advancedFieldTable">
                     <table class="table table-striped">
-                        <tr ng-repeat="inputField in opConfig.fetchStaticProviderInfo.inputFields">
-                            <td><input type="checkbox" ng-model="inputField.show" ng-disabled="inputField.required">
+                        <tr ng-repeat="input_field in opConfig.fetchStaticProviderInfo.input_fields">
+                            <td><input type="checkbox" ng-model="input_field.show" ng-disabled="input_field.required">
                             </td>
-                            <td>{{inputField.label}}</td>
+                            <td>{{input_field.label}}</td>
                         <tr>
                     </table>
                 </div>
