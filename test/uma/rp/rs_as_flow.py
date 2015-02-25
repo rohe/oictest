@@ -22,7 +22,7 @@ USERINFO_REQUEST_AUTH_METHOD = (
 
 ORDDESC = ["UMA-DiscoveryUMA", "UMA-DiscoveryOIDC", "UMA-RegOAuth2",
            "UMA-RegOIDC", "UMA-Request", "UMA-redirect_uri", "UMA-token",
-           "UMA-resourceset"]
+           "UMA-resourceset", "UMA-permission", "UMA-clientreq"]
 
 DESC = {
     "DiscoveryUMA": "UMA Dynamic Discovery",
@@ -32,7 +32,9 @@ DESC = {
     "Request": "Misc Request Parameters",
     "redirect_uri": "redirect_uri",
     "token": "Accessing tokens",
-    "resourceset": "Resource Set Registration Endpoint"
+    "resourceset": "Resource Set Registration",
+    "permission": "Permission registration/introspection",
+    "clientreq": "Client request"
 }
 
 RESOURCE = {
@@ -556,7 +558,7 @@ FLOWS = {
         "profile": "C..",
         "tests": {}
     },
-    "UMA-clientreq_authzdata": {
+    "UMA-clientreq-authzdata": {
         "desc": "Client Requests Authorization Data",
         "sequence": [
             '_uma_discover_',
@@ -570,10 +572,9 @@ FLOWS = {
                 "function": (get_resource_set_id, {"lid": "AL2014"})}),
             ('_login_', {"request_args": {"scope": [AAT]}}),
             '_accesstoken_',
-            ('authzdata_request', {
-                "function": (get_ticket, {"lid": "AL2014"})})
+            ('authzdata_request', {"function": (get_ticket, {"lid": "AL2014"})})
         ],
         "profile": "C..",
-        "tests": {}
+        "tests": {"verify-bad-request-response": {}}
     }
 }

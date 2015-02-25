@@ -249,5 +249,10 @@ def get_resource_set_id(args, conv, kwargs):
 
 
 def get_ticket(args, conv, kwargs):
-    args["ticket"] = conv.ticket[kwargs["lid"]]
+    args["ticket"] = conv.ticket[conv.lid2rsid[kwargs["lid"]]]
+    return args
+
+
+def get_rpt(args, conv, kwargs):
+    args["rpt"] = conv.rpt[kwargs["lid"]]
     return args

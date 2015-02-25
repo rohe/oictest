@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from base64 import b64encode
 import os
+from oic import oauth2
 from oic.oic import OIDCONF_PATTERN, ProviderConfigurationResponse
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
@@ -10,11 +11,14 @@ from oic.utils.webfinger import OIC_ISSUER
 
 import copy
 from oic.oauth2.message import SchemeError
+import uma
 from uma import PAT, AAT
-from rrtest.check import CheckHTTPResponse
 from uma.client import UMACONF_PATTERN
 from uma.message import ProviderConfiguration
+from uma.message import PermissionRegistrationResponse
+from uma.message import AuthorizationDataResponse
 
+from rrtest.check import CheckHTTPResponse
 from rrtest.request import BodyResponse
 from rrtest.request import DeleteRequest
 from rrtest.request import GetRequest
@@ -559,6 +563,7 @@ class CreateResourceSetRequest(PostRequest):
     request = "ResourceSetDescription"
     endpoint = "resource_set_registration_endpoint"
     module = "uma.message"
+    content_type = JSON_ENCODED
 
     def call_setup(self):
         _client = self.conv.client
@@ -573,6 +578,7 @@ class UpdateResourceSet(PutRequest):
     request = "ResourceSetDescription"
     endpoint = "resource_set_registration_endpoint"
     module = "uma.message"
+    content_type = JSON_ENCODED
 
     def call_setup(self):
         _client = self.conv.client
@@ -612,12 +618,29 @@ class DeleteResourceSet(DeleteRequest):
 
 class PermissionRegistration(PostRequest):
     request = "PermissionRegistrationRequest"
-    module = "uma.messsage"
+    module = "uma.message"
+    content_type = JSON_ENCODED
+
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(_client.provider_info[
+            "permission_registration_endpoint"], "resource_set")
 
 
 class AuthzDataRequest(PostRequest):
     request = "AuthorizationDataRequest"
-    module = "uma.messsage"
+    module = "uma.message"
+    content_type = JSON_ENCODED
+
+    def call_setup(self):
+        _client = self.conv.client
+        self.request_args["access_token"] = _client.token[PAT]
+        self.kw_args["authn_method"] = "bearer_header"
+        self.kw_args["endpoint"] = os.path.join(
+            _client.provider_info["rpt_endpoint"], "resource_set")
+
 
 # ========== RESPONSE MESSAGES ========
 
@@ -627,9 +650,10 @@ class OIDCProviderConfigurationResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        _client = conv.client
-        _client.oidc_provider_info = response
-        _client.provider_info = response
+        if isinstance(response, ProviderConfigurationResponse):
+            _client = conv.client
+            _client.oidc_provider_info = response
+            _client.provider_info = response
 
 
 class UMAProviderConfigurationResponse(BodyResponse):
@@ -638,9 +662,10 @@ class UMAProviderConfigurationResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        _client = conv.client
-        _client.uma_provider_info = response
-        _client.provider_info = response
+        if isinstance(response, uma.message.ProviderConfiguration):
+            _client = conv.client
+            _client.uma_provider_info = response
+            _client.provider_info = response
         
 
 class OIDCRegistrationResponse(BodyResponse):
@@ -657,9 +682,10 @@ class OIDCRegistrationResponse(BodyResponse):
     
     @staticmethod
     def post_process(conv, response, kwargs):
-        _client = conv.client
-        _client.oidc_registration_info = response
-        _client.store_registration_info(response)
+        if isinstance(response, message.RegistrationResponse):
+            _client = conv.client
+            _client.oidc_registration_info = response
+            _client.store_registration_info(response)
         
 
 class OAuthRegistrationResponse(BodyResponse):
@@ -676,10 +702,11 @@ class OAuthRegistrationResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        _client = conv.client
-        _client.uma_registration_info = response
-        _client.store_registration_info(response)
-        
+        if isinstance(response, oauth2.dynreg.ClientInfoResponse):
+            _client = conv.client
+            _client.uma_registration_info = response
+            _client.store_registration_info(response)
+
 
 class AuthzResponse(UrlResponse):
     response = "AuthorizationResponse"
@@ -695,13 +722,14 @@ class AccessTokenResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        _client = conv.client
-        if PAT in conv.AuthorizationRequest["scope"]:
-            _client.access_token_response[PAT] = response
-            _client.token[PAT] = response["access_token"]
-        elif AAT in conv.AuthorizationRequest["scope"]:
-            _client.access_token_response[AAT] = response
-            _client.token[AAT] = response["access_token"]
+        if isinstance(response, message.AccessTokenResponse):
+            _client = conv.client
+            if PAT in conv.AuthorizationRequest["scope"]:
+                _client.access_token_response[PAT] = response
+                _client.token[PAT] = response["access_token"]
+            elif AAT in conv.AuthorizationRequest["scope"]:
+                _client.access_token_response[AAT] = response
+                _client.token[AAT] = response["access_token"]
         
 
 class UserinfoResponse(BodyResponse):
@@ -728,19 +756,20 @@ class StatusResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        #  bind an local id to a specific resource set
-        if conv.last_response.status_code == 201:
+        if isinstance(response, uma.message.StatusResponse):
+            #  bind an local id to a specific resource set
+            if conv.last_response.status_code == 201:
+                try:
+                    conv.lid2rsid[kwargs["lid"]] = response["_id"]
+                except AttributeError:
+                    conv.lid2rsid = {kwargs["lid"]: response["_id"]}
+                except KeyError:
+                    pass
+
             try:
-                conv.lid2rsid[kwargs["lid"]] = response["_id"]
-            except AttributeError:
-                conv.lid2rsid = {kwargs["lid"]: response["_id"]}
+                conv.etag[kwargs["lid"]] = conv.last_response.headers["etag"]
             except KeyError:
                 pass
-
-        try:
-            conv.etag[kwargs["lid"]] = conv.last_response.headers["etag"]
-        except KeyError:
-            pass
 
         return
 
@@ -751,15 +780,28 @@ class RequestResponse(BodyResponse):
 
     @staticmethod
     def post_process(conv, response, kwargs):
-        try:
-            conv.ticket[kwargs["lid"]] = response["ticket"]
-        except KeyError:
-            conv.ticket = {kwargs["lid"]: response["ticket"]}
+        if isinstance(response, PermissionRegistrationResponse):
+            # Store ticket
+            _rsid = kwargs["request_args"]["resource_set_id"]
+            try:
+                conv.ticket[_rsid] = response["ticket"]
+            except AttributeError:
+                conv.ticket = {_rsid: response["ticket"]}
 
 
 class AuthzDataResponse(BodyResponse):
     response = "AuthorizationDataResponse"
     module = "uma.message"
+
+    @staticmethod
+    def post_process(conv, response, kwargs):
+        if isinstance(response, AuthorizationDataResponse):
+            # store RPT
+            _tick = kwargs["request_args"]["ticket"]
+            try:
+                conv.RPT[_tick] = response["rpt"]
+            except AttributeError:
+                conv.RPT = {_tick: response["rpt"]}
 
 
 # ============================================================================
