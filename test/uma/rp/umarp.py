@@ -209,6 +209,8 @@ class UMAoprp(OPRP):
                             return self.err_response(session, req.request,
                                                      "No provider info")
 
+                    req.rm_nonstandard_args(MODULE2FACTORY)
+
                     # Extra arguments outside the OIDC spec
                     try:
                         _extra = ots.config.CLIENT["extra"][req.request]
@@ -231,6 +233,12 @@ class UMAoprp(OPRP):
                                 req.request)
                         except AttributeError:
                             pass
+                        except KeyError:
+                            try:
+                                req.request = MODULE2FACTORY['oic.oic.message'](
+                                    req.request)
+                            except AttributeError:
+                                pass
 
                     if isinstance(req, (self.test_class.ReadResourceSet,
                                         self.test_class.DeleteResourceSet,
@@ -271,17 +279,31 @@ class UMAoprp(OPRP):
                                 else:
                                     _ctype = ""
 
-                            try:
-                                _msg_factory = MODULE2FACTORY[resp_c.module]
-                            except AttributeError:
+                            response = None
+                            if resp_c:
+                                if resp_c.module:
+                                    _mod = resp_c.module
+                                else:
+                                    _mod = "oic.oic.message"
+                                try:
+                                    _msg_factory = MODULE2FACTORY[_mod]
+                                except AttributeError:
+                                    pass
+                                else:
+                                    try:
+                                        _resp = _msg_factory(resp_c.response)
+                                    except Exception as err:
+                                        pass
+                                    else:
+                                        response = request_and_return(
+                                            conv, url, trace, _resp, _method,
+                                            body, _ctype, **_kwargs)
+
+                            if response is None:
                                 response = ots.client.get_info(url, trace,
                                                                _method, req,
                                                                body)
-                            else:
-                                response = request_and_return(
-                                    conv, url, trace,
-                                    _msg_factory(resp_c.response),
-                                    _method, body, _ctype, **_kwargs)
+
                         except PyoidcError as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
@@ -560,7 +582,11 @@ def application(environ, start_response):
 
             LOGGER.info("Response: %s" % info)
             conv.trace.reply(info)
-            resp_cls = MODULE2FACTORY[resp_c.module](resp_c.response)
+            if resp_c:
+                resp_cls = MODULE2FACTORY[resp_c.module](resp_c.response)
+            else:
+                resp_cls = None
+
             algs = ots.client.sign_enc_algs("id_token")
             try:
                 response = ots.client.parse_response(

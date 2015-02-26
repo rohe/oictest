@@ -17,6 +17,8 @@ from uma.client import UMACONF_PATTERN
 from uma.message import ProviderConfiguration
 from uma.message import PermissionRegistrationResponse
 from uma.message import AuthorizationDataResponse
+from oictest.testclass import Note, RmCookie, ExpectError, DisplayIDToken, \
+    FetchKeys, CacheIdToken
 
 from rrtest.check import CheckHTTPResponse
 from rrtest.request import BodyResponse
@@ -100,21 +102,6 @@ class TimeDelay(Process):
         return None
 
 
-class Notice(Process):
-    def __init__(self):
-        self.tests = {"post": [], "pre": []}
-        self.template = ""
-
-    def __call__(self, lookup, environ, start_response, **kwargs):
-        resp = Response(mako_template=self.template,
-                        template_lookup=lookup,
-                        headers=[])
-        return resp(environ, start_response, **kwargs)
-
-    def cache(self, cache, conv, items):
-        return None
-
-
 class StoreX(Process):
     id = "X"
     scope = ""
@@ -165,128 +152,6 @@ class RetrievePAT(RetrieveX):
 class RetrieveAAT(RetrieveX):
     id = "AAT"
     scope = AAT
-
-
-class ExpectError(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "expect_err.mako"
-
-
-class RmCookie(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "rmcookie.mako"
-
-    def cache(self, cache, conv, items):
-        pack = {}
-        for item in items:
-            if item == "id_token":
-                pack[item] = conv.id_token
-
-        key = hash("%s%f" % (items, time.time()))
-        cache[str(key)] = pack
-        return key
-
-
-class Note(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "note.mako"
-
-
-class DisplayUserInfo(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "userinfo.mako"
-
-
-class DisplayIDToken(Notice):
-    def __init__(self):
-        Notice.__init__(self)
-        self.template = "idtoken.mako"
-
-
-class FetchKeys(Process):
-    def __call__(self, conv, **kwargs):
-        pi = conv.client.provider_info
-        kb = KeyBundle(source=pi["jwks_uri"])
-        kb.verify_ssl = False
-        kb.update()
-
-        try:
-            conv.keybundle.append(kb)
-        except AttributeError:
-            conv.keybundle = [kb]
-
-
-class CacheIdToken(Process):
-    def __call__(self, conv, **kwargs):
-        res = get_id_tokens(conv)
-        try:
-            conv.cache["id_token"] = res
-        except KeyError:
-            conv.cache = {"id_token": res}
-
-
-class RotateKeys(Process):
-    def __init__(self):
-        self.jwk_name = "export/jwk.json"
-        self.tests = {"post": [], "pre": []}
-        self.new_key = {}
-        self.kid_template = "_%d"
-        self.key_usage = ""
-
-    def __call__(self, conv, **kwargs):
-        # find the name of the file to which the JWKS should be written
-        try:
-            _uri = conv.client.registration_response["jwks_uri"]
-        except KeyError:
-            raise RequirementsNotMet("No dynamic key handling")
-
-        r = urlparse(_uri)
-        # find the old key for this key usage and mark that as inactive
-        for kb in conv.client.keyjar.issuer_keys[""]:
-            for key in kb.keys():
-                if key.use in self.new_key["use"]:
-                    key.inactive = True
-
-        kid = 0
-        # only one key
-        _nk = self.new_key
-        _typ = _nk["type"].upper()
-
-        if _typ == "RSA":
-            kb = KeyBundle(source="file://%s" % _nk["key"],
-                           fileformat="der", keytype=_typ,
-                           keyusage=_nk["use"])
-        else:
-            kb = {}
-
-        for k in kb.keys():
-            k.serialize()
-            k.kid = self.kid_template % kid
-            kid += 1
-            conv.client.kid[k.use][k.kty] = k.kid
-        conv.client.keyjar.add_kb("", kb)
-
-        dump_jwks(conv.client.keyjar[""], r.path[1:])
-
-
-class RotateSigKeys(RotateKeys):
-    def __init__(self):
-        RotateKeys.__init__(self)
-        self.new_key = {"type": "RSA", "key": "../keys/second_sig.key",
-                        "use": ["sig"]}
-        self.kid_template = "sig%d"
-
-
-class RotateEncKeys(RotateKeys):
-    def __init__(self):
-        RotateKeys.__init__(self)
-        self.new_key = {"type": "RSA", "key": "../keys/second_enc.key",
-                        "use": ["enc"]}
-        self.kid_template = "enc%d"
 
 
 class OIDCRegistrationRequest(PostRequest):
@@ -829,13 +694,13 @@ PHASES = {
     "authzdata_request": (AuthzDataRequest, AuthzDataResponse),
     #
     "intermission": TimeDelay,
-    "rotate_sign_keys": RotateSigKeys,
-    "rotate_enc_keys": RotateEncKeys,
+    #"rotate_sign_keys": RotateSigKeys,
+    #"rotate_enc_keys": RotateEncKeys,
     "note": Note,
     "rm_cookie": RmCookie,
     "expect_err": ExpectError,
     "webfinger": (Webfinger, None),
-    "display_userinfo": DisplayUserInfo,
+    #"display_userinfo": DisplayUserInfo,
     "display_idtoken": DisplayIDToken,
     "fetch_keys": FetchKeys,
     "cache-id_token": CacheIdToken,
