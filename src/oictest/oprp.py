@@ -522,13 +522,15 @@ class OPRP(object):
                             return self.err_response(session, req.request,
                                                      "No provider info")
 
+                    req.rm_nonstandard_args(message_factory)
+
                     # Extra arguments outside the OIDC spec
                     try:
                         _extra = ots.config.CLIENT["extra"][req.request]
                     except KeyError:
                         pass
                     except Exception as err:
-                        return self.err_response(session, "config_exta", err)
+                        return self.err_response(session, "config_extra", err)
                     else:
                         try:
                             kwargs["request_args"].update(_extra)
@@ -536,6 +538,7 @@ class OPRP(object):
                             kwargs["request_args"] = _extra
 
                     req.call_setup()
+
                     try:
                         url, body, ht_args = req.construct_request(ots.client,
                                                                    **kwargs)
@@ -874,6 +877,23 @@ def endpoint_support(client, endpoint):
         return False
 
 
+def run_func(spec, conv, req_args):
+    if isinstance(spec, tuple):
+        func, args = spec
+    else:
+        func = spec
+        args = {}
+
+    try:
+        req_args = func(req_args, conv, args)
+    except KeyError as err:
+        conv.trace.error("function: %s failed" % func)
+        conv.trace.error(str(err))
+        raise NotSupported
+    else:
+        return req_args
+
+
 def setup(kwa, conv):
     kwargs = copy.deepcopy(kwa)  # decouple
 
@@ -883,23 +903,7 @@ def setup(kwa, conv):
     except KeyError:
         pass
     else:
-        if isinstance(spec, tuple):
-            func, args = spec
-        else:
-            func = spec
-            args = {}
-
-        try:
-            req_args = kwargs["request_args"]
-        except KeyError:
-            req_args = {}
-
-        try:
-            kwargs["request_args"] = func(req_args, conv, args)
-        except KeyError as err:
-            conv.trace.error("function: %s failed" % func)
-            conv.trace.error(str(err))
-            raise NotSupported
+        kwargs["request_args"] = run_func(spec, conv, kwargs["request_args"])
         del kwargs["function"]
 
     try:
@@ -907,19 +911,7 @@ def setup(kwa, conv):
     except KeyError:
         pass
     else:
-        if isinstance(spec, tuple):
-            func, args = spec
-        else:
-            func = spec
-            args = {}
-
-        try:
-            kwargs = func(kwargs, conv, args)
-        except KeyError as err:
-            conv.trace.error("function: %s failed" % func)
-            conv.trace.error(str(err))
-            raise NotSupported
-
+        kwargs = run_func(spec, conv, kwargs)
         del kwargs["kwarg_func"]
 
     try:
