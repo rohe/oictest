@@ -2,8 +2,8 @@ import json
 
 from jwkest import b64d
 from jwkest import unpack
-from jwkest.jwk import RSAKey, ECKey, load_jwks_from_url
 from jwkest.jwk import base64url_to_long
+from oic.exception import MessageException
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
 from oic.oic import claims_match
@@ -165,7 +165,7 @@ class VerifyPromptNoneResponse(Check):
                     self._message = "Not an error I expected '%s'" % err[
                         "error"]
                     self._status = CRITICAL
-            except:
+            except MessageException:
                 resp = AuthorizationResponse().deserialize(_query, "urlencoded")
                 resp.verify()
                 res["content"] = resp.to_json()
@@ -542,7 +542,7 @@ class CheckContentTypeHeader(Error):
                     self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
             else:  # has to be uuencoded
-                if not "application/x-www-form-urlencoded" in ctype:
+                if "application/x-www-form-urlencoded" not in ctype:
                     self._status = self.status
                     self._message = "Wrong content type: %s" % ctype
         except KeyError:
@@ -581,7 +581,7 @@ class CheckHasJwksURI(Error):
 
     def _func(self, conv):
         try:
-            jwks_uri = get_provider_info(conv)["jwks_uri"]
+            _ = get_provider_info(conv)["jwks_uri"]
         except KeyError:
             self._status = self.status
             self._message = "No 'jwks_uri' registered"
@@ -614,7 +614,7 @@ class CheckProviderInfo(Error):
     msg = "Provider information error"
 
     def _func(self, conv=None):
-        #self._status = self.status
+        # self._status = self.status
         return {}
 
 
@@ -627,7 +627,7 @@ class CheckRegistrationResponse(Error):
     msg = "Registration response error"
 
     def _func(self, conv=None):
-        #self._status = self.status
+        # self._status = self.status
         return {}
 
 
@@ -639,7 +639,7 @@ class CheckAuthorizationResponse(Error):
     cid = "check-authorization-response"
 
     def _func(self, conv=None):
-        #self._status = self.status
+        # self._status = self.status
         return {}
 
 
@@ -848,7 +848,7 @@ REQUIRED = {"essential": True}
 OPTIONAL = None
 
 
-class verifyIDToken(CriticalError):
+class VerifyIDToken(CriticalError):
     """
     Verifies that the IDToken contains what it should
     """
@@ -981,14 +981,14 @@ class VerifyAccessTokenResponse(Error):
     def _func(self, conv=None):
         resp, text = get_protocol_response(conv, message.AccessTokenResponse)[0]
 
-        #This specification further constrains that only Bearer Tokens [OAuth
+        # This specification further constrains that only Bearer Tokens [OAuth
         # .Bearer] are issued at the Token Endpoint. The OAuth 2.0 response
         # parameter "token_type" MUST be set to "Bearer".
         if "token_type" in resp and resp["token_type"].lower() != "bearer":
             self._message = "token_type has to be 'Bearer'"
             self._status = self.status
 
-        #In addition to the OAuth 2.0 response parameters, the following
+        # In addition to the OAuth 2.0 response parameters, the following
         # parameters MUST be included in the response if the grant_type is
         # authorization_code and the Authorization Request scope parameter
         # contained openid: id_token
@@ -1106,7 +1106,7 @@ class CheckKeys(CriticalError):
     msg = "Missing keys"
 
     def _func(self, conv=None):
-        #cls = conv.request_spec"].request
+        # cls = conv.request_spec"].request
         client = conv.client
         # key type
         keys = client.keyjar.get_signing_key("rsa")
@@ -1386,7 +1386,7 @@ class VerifyImplicitResponse(Error):
             assert _resp
             # Can't do this check since in the response_message the id_token is
             # unpacked
-            #assert _resp == conv.response_message
+            # assert _resp == conv.response_message
         except AssertionError:
             self._status = self.status
 
@@ -1668,8 +1668,6 @@ class VerifyState(Information):
     msg = "The State variable in not the same as sent"
 
     def _func(self, conv):
-        _send_state = _recv_state = ""
-
         # The send state
         _send_state = conv.AuthorizationRequest["state"]
         # the received state
@@ -1850,15 +1848,38 @@ class VerifySubValue(Error):
         return {}
 
 
+class VerifyDifferentSub(Error):
+    """
+    Verifies that the sub claim returned in the id_token matched the
+    asked for.
+    """
+    cid = "verify-different-sub"
+    msg = "Verify different RPs get different sub values"
+
+    def _func(self, conv):
+        sub = [idt["sub"] for idt, _ in get_id_tokens(conv)]
+
+        try:
+            assert sub[0] != sub[1]
+        except AssertionError:
+            self._status = self.status
+        except IndexError:
+            self._message = "Not enough subs"
+            self._status = self.status
+
+        return {}
+
+
 class VerifyBase64URL(Check):
     """
     Verifies that the base64 encoded parts of a JWK is in fact base64url
     encoded and not just base64 encoded
     """
     cid = "verify-base64url"
-    msg = "JWKS not accoding to spec"
+    msg = "JWKS not according to spec"
 
-    def _chk(self, key, params):
+    @staticmethod
+    def _chk(key, params):
         st = OK
         txt = []
         for y in params:
@@ -1939,8 +1960,8 @@ class NewSigningKeys(Error):
     msg = "Can't detect any change in signing keys"
 
     def _func(self, conv):
-        kbl1 = conv.keybundle[0]._keys  # The old
-        kbl2 = conv.keybundle[1]._keys  # The new
+        kbl1 = conv.keybundle[0].available_keys()  # The old
+        kbl2 = conv.keybundle[1].available_keys()  # The new
 
         new = 0
         for key in kbl2:
@@ -1964,8 +1985,8 @@ class NewEncryptionKeys(Error):
     msg = "Can't detect any change in encryption keys"
 
     def _func(self, conv):
-        kbl1 = conv.keybundle[0]._keys  # The old
-        kbl2 = conv.keybundle[1]._keys  # The new
+        kbl1 = conv.keybundle[0].available_keys()  # The old
+        kbl2 = conv.keybundle[1].available_keys()  # The new
 
         new = 0
         for key in kbl2:
@@ -2028,7 +2049,8 @@ class IsIDTokenSigned(Information):
 
         (idt, _) = res[-1]
         try:
-            self._message = "IdToken signed using alg=%s" % idt.jwt_header["alg"]
+            self._message = "IdToken signed using alg=%s" % idt.jwt_header[
+                "alg"]
         except KeyError:
             self._message = "IdToken not signed"
 
