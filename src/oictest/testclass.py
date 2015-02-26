@@ -248,10 +248,6 @@ class RegistrationRequest(PostRequest):
                         except KeyError:
                             continue
             self.request_args[arg] = copy.copy(val)
-        try:
-            del self.request_args["key_export_url"]
-        except KeyError:
-            pass
 
         # verify the registration info
         self.tests["post"].append(RegistrationInfo)
