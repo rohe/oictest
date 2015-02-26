@@ -276,8 +276,8 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         if "id_token" in _response:
             _dict = json.loads(_resp.text)
             conv.id_token = _dict["id_token"]
-            header = json.loads(b64d(str(conv.id_token.split(".")[0])))
-            trace.info("IdToken JWT header: %s" % header)
+            #header = json.loads(b64d(str(conv.id_token.split(".")[0])))
+            #trace.info("IdToken JWT header: %s" % header)
         else:
             try:
                 res = unpack(_resp.content)
