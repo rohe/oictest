@@ -15,6 +15,7 @@ DUMMY_URL = "https://remove.this.url/"
 class Request(object):
     request = ""
     method = ""
+    module = ""
     content_type = URL_ENCODED
     accept = None
     lax = False
@@ -78,11 +79,14 @@ class Request(object):
 
         return kwargs, cargs, e_arg, _req
 
+    def _only_std(self, request, args):
+        return dict([(k, v) for k, v in args.items() if k in request.c_param])
+
     def _construct_message(self, request, client, kwargs):
         if request:
             if request.__name__ == "RegistrationRequest":
                 # don't overwrite
-                _kwa = copy.deepcopy(client.behaviour)
+                _kwa = self._only_std(request, client.behaviour)
                 _kwa.update(kwargs["request_args"])
                 kwargs["request_args"] = _kwa
             elif request.__name__ == "AuthorizationRequest":
@@ -294,6 +298,25 @@ class Request(object):
             if key in self.conv.client.behaviour:
                 self.conv.client.behaviour[key] = val
 
+    def rm_nonstandard_args(self, msg_factory):
+        if not self.request:
+            return
+
+        try:
+            inst = msg_factory[self.module](self.request)
+        except TypeError:
+            inst = msg_factory(self.request)
+        except KeyError:
+            if not self.module:
+                inst = msg_factory["oic.oic.message"](self.request)
+            else:
+                raise
+
+        # remove non-standard request attributes
+        _args = dict([(k, v) for k, v in self.request_args.items()
+                      if k in inst.c_param])
+        self.request_args = _args
+
 
 class GetRequest(Request):
     method = "GET"
@@ -314,6 +337,7 @@ class DeleteRequest(Request):
 
 class Response(object):
     response = ""
+    module = ""
     _tests = {}
 
     def __init__(self):
