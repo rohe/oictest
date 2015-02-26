@@ -22,7 +22,7 @@ from oic.oic.message import RegistrationResponse
 from message import factory
 
 from oictest.oidcrp import request_and_return
-from oictest.oprp import OPRP, CRYPTSUPPORT
+from oictest.oprp import OPRP, CRYPTSUPPORT, run_func
 from oictest.oprp import endpoint_support
 from oictest.oprp import post_tests
 from oictest.oprp import NotSupported
@@ -125,6 +125,13 @@ class GSMAoprp(OPRP):
                         # New state for each request
                         kwargs["request_args"].update({"state": rndstr(),
                                                        "nonce": rndstr()})
+
+                        try:
+                            kwargs["request_args"] = run_func(
+                                kwargs["filter"], conv, kwargs["request_args"])
+                        except KeyError:
+                            pass
+
                         if not ots.client.provider_info:
                             return self.err_response(session, req.request,
                                                      "No provider info")
@@ -137,13 +144,15 @@ class GSMAoprp(OPRP):
                             return self.err_response(session, req.request,
                                                      "No provider info")
 
+                    req.rm_nonstandard_args(factory)
+
                     # Extra arguments outside the OIDC spec
                     try:
                         _extra = ots.config.CLIENT["extra"][req.request]
                     except KeyError:
                         pass
                     except Exception as err:
-                        return self.err_response(session, "config_exta", err)
+                        return self.err_response(session, "config_extra", err)
                     else:
                         try:
                             kwargs["request_args"].update(_extra)

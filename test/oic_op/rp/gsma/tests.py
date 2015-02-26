@@ -5,6 +5,7 @@ from oictest.testfunc import id_token_hint
 from oictest.testfunc import login_hint
 from oictest.testfunc import ui_locales
 from oictest.testfunc import acr_value
+from testfunc import rm
 
 __author__ = 'roland'
 
@@ -55,7 +56,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             "_register_",
-            ("_login_", {"reqeust_args": {"acr_values": ["1"]}})
+            ("_login_", {"request_args": {"acr_values": ["1"]}})
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
@@ -66,7 +67,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             "_register_",
-            ("_login_", {"reqeust_args": {"acr_values": ["2"]}})
+            ("_login_", {"request_args": {"acr_values": ["2"]}})
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
@@ -77,11 +78,30 @@ FLOWS = {
         "sequence": [
             '_discover_',
             "_register_",
-            ("_login_", {"reqeust_args": {"acr_values": ["3"]}})
+            ("_login_", {"request_args": {"acr_values": ["3"]}})
         ],
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"}
+    },
+    'GSMA-IDToken-basic': {
+        # RS256 is MTI
+        "desc": 'End-to-end test case to include all the mandatory parameter '
+                'in the authorization request and receive authorization code '
+                'as well as ID Token and Access Token',
+        "sequence": ['_discover_', "_register_",
+                     "_login_", '_accesstoken_'],
+        "profile": "..",
+        "tests": {"check-http-response": {}}
+    },
+    'GSMA-IDToken-different-sub': {
+        # RS256 is MTI
+        "desc": "Verify that 2 RPs don't get the same sub",
+        "sequence": ['_discover_', "_register_", "_login_", '_accesstoken_',
+                     "_register_", "_login", "_accesstoken_"],
+        "profile": "..",
+        "tests": {"check-http-response": {},
+                  "verify-different-sub": {}}
     },
     'GSMA-IDToken-Signature': {
         # RS256 is MTI
@@ -151,7 +171,7 @@ FLOWS = {
         "test": {'verify-athash': {}, "check-http-response": {}},
         "profile": "IT,CIT..",
     },
-    'GSMA-IDToken-nonce-noncode': {
+    'GSMA-IDToken-nonce': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
         "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
@@ -401,7 +421,51 @@ FLOWS = {
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
     },
-    'GSMA-Req-NotUnderstood': {
+    'GSMA-Req-No-state': {
+        "desc": 'Request without state parameter',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"function": (rm, {"args": ["state"]})})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"},
+    },
+    'GSMA-Req-No-nonce': {
+        "desc": 'Request without state parameter',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"function": (rm, {"args": ["nonce"]})})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"},
+    },
+    'GSMA-Req-No-acr_values': {
+        "desc": 'Request without acr_values parameter',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"function": (rm, {"args": ["acr_values"]})})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"},
+    },
+    'GSMA-Req-No-redirect_uri': {
+        "desc": 'Request without redirect_uri parameter',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"function": (rm, {"args": ["redirect_uri"]})})
+        ],
+        "profile": "..",
+        'tests': {"check-http-response": {}},
+        "mti": {"all": "MUST"},
+    },
+    'GSMA-Req-extra-parameter': {
         "desc": 'Request with extra query component',
         "sequence": [
             '_discover_',
