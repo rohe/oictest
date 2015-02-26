@@ -44,16 +44,30 @@ class Trace(object):
     def response(self, resp):
         delta = time.time() - self.start
         try:
-            txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
-                             separators=(',', ': '))
-        except AttributeError:
-            txt = resp
-            self.trace.append("%f %s" % (delta, txt))
-        else:
             cl_name = resp.__class__.__name__
-            if cl_name == "OpenIDSchema":
-                cl_name = "UserInfo"
+        except AttributeError:
+            cl_name = ""
+
+        if cl_name == "IdToken":
+            _d = {
+                "id_token": {
+                    "header parameters": resp.jwt_header,
+                    "claims": resp.to_dict()
+                }}
+            txt = json.dumps(_d, sort_keys=True, indent=2,
+                             separators=(',', ': '))
             self.trace.append("%f %s: %s" % (delta, cl_name, txt))
+        else:
+            try:
+                txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
+                                 separators=(',', ': '))
+            except AttributeError:
+                txt = resp
+                self.trace.append("%f %s" % (delta, txt))
+            else:
+                if cl_name == "OpenIDSchema":
+                    cl_name = "UserInfo"
+                self.trace.append("%f %s: %s" % (delta, cl_name, txt))
 
     def info(self, msg):
         delta = time.time() - self.start
