@@ -884,13 +884,14 @@ def handle_start_op_tester(session, response_encoder):
     config_file_name = os.path.basename(config_file.name)
     config_module = config_file_name.split(".")[0]
 
-    if "oprp_arg" in session:
-        oprp_arg = session["profile"]
+    if "profile" in session:
+        profile = session["profile"]
     else:
-        oprp_arg = "C.T.T.ns"
+        LOGGER.debug("The session contains no profile. Using default profile")
+        return response_encoder.service_error("Failed to start server because of internal error: Failed to generate profile information")
 
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, "-p", oprp_arg, "-t",
+        start_rp_process(port, [CONF.OPRP_PATH, "-p", profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(port))}))
