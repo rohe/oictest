@@ -381,8 +381,9 @@ class Webfinger(Operation):
         wf = WebFinger(OIC_ISSUER)
         wf.httpd = PBase()
         _url = wf.query(kwargs["principal"])
-        self.trace.request("URL: %s" % _url)
+        self.trace.request("Request URL: %s" % _url)
         url = wf.discovery_query(kwargs["principal"])
+        self.trace.request("Discovery URL: %s" % url)
         return url
 
     def call_setup(self):

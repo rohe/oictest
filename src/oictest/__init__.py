@@ -38,6 +38,10 @@ KEY_EXPORT_ARGS = {
 }
 
 
+class ConfigurationError(Exception):
+    pass
+
+
 def start_key_server(url, wdir="", script_path=""):
     """
 

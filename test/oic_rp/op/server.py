@@ -648,15 +648,26 @@ if __name__ == '__main__':
                                         SessionMiddleware(application,
                                                           session_opts))
 
-    https = ""
-    if config.SERVICE_URL.startswith("https"):
-        https = " using HTTPS"
-        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
-            config.SERVER_CERT, config.SERVER_KEY, config.CERT_CHAIN)
+    if _baseurl.startswith("https"):
+        import cherrypy
+        from cherrypy.wsgiserver import ssl_pyopenssl
+        # from OpenSSL import SSL
 
-    LOGGER.info("OC server starting listening on port:%s%s" % (args.port,
-                                                               https))
-    print "OC server starting listening on port:%s%s" % (args.port, https)
+        SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
+            config.SERVER_CERT, config.SERVER_KEY, config.CA_BUNDLE)
+        # SRV.ssl_adapter.context = SSL.Context(SSL.SSLv23_METHOD)
+        # SRV.ssl_adapter.context.set_options(SSL.OP_NO_SSLv3)
+        try:
+            cherrypy.server.ssl_certificate_chain = config.CERT_CHAIN
+        except AttributeError:
+            pass
+        extra = " using SSL/TLS"
+    else:
+        extra = ""
+
+    txt = "RP server starting listening on port:%s%s" % (config.PORT, extra)
+    LOGGER.info(txt)
+    print txt
     try:
         SRV.start()
     except KeyboardInterrupt:

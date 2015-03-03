@@ -1,6 +1,7 @@
 import json
 from urllib import urlencode
 from urlparse import urlparse
+from oictest import ConfigurationError
 from oictest.check import get_id_tokens
 
 __author__ = 'roland'
@@ -224,5 +225,8 @@ def login_hint(request_args, conv, kwargs):
 
 
 def get_principal(args, conv, kwargs):
-    args["principal"] = conv.client_config[kwargs["param"]]
+    try:
+        args["principal"] = conv.client_config[kwargs["param"]]
+    except KeyError:
+        raise ConfigurationError("Missing parameter: %s" % kwargs["param"])
     return args

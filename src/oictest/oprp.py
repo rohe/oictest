@@ -18,6 +18,7 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
+from oictest import ConfigurationError
 
 from oictest.base import Conversation
 from oictest.check import get_protocol_response
@@ -133,7 +134,7 @@ class OPRP(object):
                         template_lookup=self.lookup,
                         headers=[])
     
-        self.dump_log(session)
+        self.dump_log(session, session["testid"])
     
         argv = {
             "flows": session["tests"],
@@ -441,6 +442,8 @@ class OPRP(object):
                 try:
                     kwargs = setup(_kwa, conv)
                 except NotSupported:
+                    session["test_info"][session["testid"]] = {
+                        "trace": conv.trace, "test_output": conv.test_output}
                     return self.opresult(conv, session)
                 except Exception as err:
                     return self.err_response(session, "function()", err)
@@ -641,17 +644,17 @@ class OPRP(object):
             try:
                 iss = _conv.client.provider_info["issuer"]
             except TypeError:
-                pass
-            else:
-                profile = from_code(session["profile"])
+                iss = ""
 
-                if test_id is None:
-                    try:
-                        test_id = session["testid"]
-                    except KeyError:
-                        return {}
+            profile = from_code(session["profile"])
 
-                return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
+            if test_id is None:
+                try:
+                    test_id = session["testid"]
+                except KeyError:
+                    return {}
+
+            return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
 
         return {}
 
@@ -664,6 +667,9 @@ class OPRP(object):
             _pi = self.profile_info(session, test_id)
             if _pi:
                 path = log_path(session, _pi["Test ID"])
+                if not path:
+                    return
+
                 sline = 60*"="
                 output = ["%s: %s" % (k, _pi[k]) for k in ["Issuer", "Profile",
                                                            "Test ID"]]
@@ -739,8 +745,13 @@ def trace_output(trace):
 def log_path(session, test_id=None):
     _conv = session["conv"]
 
-    iss = _conv.client.provider_info["issuer"]
-    qiss = quote_plus(iss)
+    try:
+        iss = _conv.client.provider_info["issuer"]
+    except TypeError:
+        return ""
+    else:
+        qiss = quote_plus(iss)
+
     profile = session["profile"]
 
     if not os.path.isdir("log/%s/%s" % (qiss, profile)):
@@ -890,6 +901,8 @@ def run_func(spec, conv, req_args):
         conv.trace.error("function: %s failed" % func)
         conv.trace.error(str(err))
         raise NotSupported
+    except ConfigurationError:
+        raise
     else:
         return req_args
 
