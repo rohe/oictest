@@ -737,7 +737,7 @@ def create_module_string(client_config, port):
 
     _client = convert_from_unicode(_client)
 
-    return "from " + CONF.RP_SSL_MODULE + " import *\nPORT = " + str(
+    return "from " + CONF.OPRP_SSL_MODULE + " import *\nPORT = " + str(
         port) + "\nBASE =\'" + str(base) + "\'\nCLIENT = " + str(_client)
 
 
@@ -906,8 +906,8 @@ def allocate_dynamic_port(session):
         pass
 
     with config_tread_lock:
-        config_file, port = save_empty_config_file(CONF.PORT_DYNAMIC_NUM_MIN,
-                                                   CONF.PORT_DYNAMIC_NUM_MAX)
+        config_file, port = save_empty_config_file(CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
+                                                   CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MAX)
         session["dynamic_port"] = port
         session["config_file"] = config_file
         return config_file, port
@@ -915,11 +915,11 @@ def allocate_dynamic_port(session):
 
 def allocate_static_port(issuer):
     with config_tread_lock:
-        static_ports_db = MySqllite3Dict(CONF.DATABASE_FILE)
+        static_ports_db = MySqllite3Dict(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
 
         stored_ports = static_ports_db.keys()
-        port = get_next_free_port(stored_ports, CONF.PORT_STATIC_NUM_MAX,
-                                  CONF.PORT_STATIC_NUM_MIN)
+        port = get_next_free_port(stored_ports, CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MAX,
+                                  CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MIN)
 
         static_ports_db[port] = issuer
         return port
@@ -932,7 +932,7 @@ def handle_create_new_config_file(response_encoder, session):
 
 def handle_get_redirect_url(session, response_encoder, parameters):
     issuer = parameters['issuer']
-    static_ports_db = MySqllite3Dict(CONF.DATABASE_FILE)
+    static_ports_db = MySqllite3Dict(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
 
     port = None
 
