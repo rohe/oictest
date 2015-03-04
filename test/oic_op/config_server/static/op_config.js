@@ -260,8 +260,8 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         var new_element = selected_input.val();
 
         var allInputFields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
-        for (var i = 0; i < allInputFields.length; i++){
-            if (allInputFields[i].id == input_field_id){
+        for (var i = 0; i < allInputFields.length; i++) {
+            if (allInputFields[i].id == input_field_id) {
                 allInputFields[i].values.splice(0, 0, makeCopy({'value': new_element}));
                 selected_input.val("")
             }
@@ -270,8 +270,8 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
 
     $scope.removeStaticProviderInfoElement = function (index, input_field_id) {
         var allInputFields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
-        for (var i = 0; i < allInputFields.length; i++){
-            if (allInputFields[i].id == input_field_id){
+        for (var i = 0; i < allInputFields.length; i++) {
+            if (allInputFields[i].id == input_field_id) {
                 allInputFields[i].values.splice(index, 1);
             }
         }
@@ -311,7 +311,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * Sends the configuration file to the server
      */
     $scope.saveConfigurations = function () {
-        if (containsRequiredProviderInfo() && containsRequiredClientInfo()) {
+        if ($scope.contains_required_provider_info() && containsRequiredClientInfo()) {
             bootbox.dialog({
                 message: "All your info will now to stored att the server. Do you want to continue?",
                 title: "Configuration successfully stored",
@@ -348,7 +348,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     function postOpConfigurationsSuccessCallback(data, status, headers, config) {
         bootbox.dialog({
             message: "Your configuration was successfully stored on the server. Do you want to start testing your OP?" +
-                " <br><br> Note: If a test server successfully starts you will be redirected to the test server. Do you want to continue?",
+            " <br><br> Note: If a test server successfully starts you will be redirected to the test server. Do you want to continue?",
             title: "Configuration successfully stored",
             buttons: {
                 danger: {
@@ -395,7 +395,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         }
     };
 
-    function resetGui(){
+    function resetGui() {
         $scope.contains_redirect_url = false;
     }
 
@@ -433,52 +433,48 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     function showMissingRequiredInfoError(infoType, emptyRequiredInfoFields) {
         var errorText = "<p>In order to go to continue you need to enter all the required " + infoType + " information.</p>";
 
-        if (typeof emptyRequiredInfoFields !== "undefined" && emptyRequiredInfoFields.length > 0){
+        if (typeof emptyRequiredInfoFields !== "undefined" && emptyRequiredInfoFields.length > 0) {
             errorText += "<p> Missing required fields: </p>";
 
-            for (var i = 0; i < emptyRequiredInfoFields.length; i++){
+            for (var i = 0; i < emptyRequiredInfoFields.length; i++) {
                 errorText += "<li>" + emptyRequiredInfoFields[i] + "</li>"
             }
         }
         bootbox.alert(errorText);
     }
 
-    function containsRequiredProviderInfo() {
-        var fetchingProviderConfig = $scope.opConfig.fetchInfoFromServerDropDown.value;
-        var input_field_data = "";
+    $scope.is_invalid = function () {
+        return true;
+    };
 
-        if (fetchingProviderConfig == "dynamic") {
+    $scope.contains_required_provider_info = function() {
+        var provider_discovery = $scope.opConfig.fetchInfoFromServerDropDown.value;
+
+        if (!$scope.opConfig || !provider_discovery){
+            return false
+        }
+
+        if (provider_discovery == "dynamic") {
             var issuerUrlInputField = $scope.opConfig.fetchDynamicInfoFromServer.input_field;
-            input_field_data = issuerUrlInputField.value;
 
-            if (input_field_data == "") {
-                showMissingRequiredInfoError("provider", [issuerUrlInputField.label]);
+            if (issuerUrlInputField.value == "") {
                 return false
             }
         }
-        else if (fetchingProviderConfig == "static") {
+        else if (provider_discovery == "static") {
             var input_fields = $scope.opConfig.fetchStaticProviderInfo.input_fields;
-            var emptyRequiredInfoFields = []
             for (var i = 0; i < input_fields.length; i++) {
-                input_field_data = input_fields[i].values;
+                var input_field_data = input_fields[i].values;
                 if ((input_field_data == [] || input_field_data == "") && input_fields[i].required) {
-                    emptyRequiredInfoFields.push(input_fields[i].label)
+                    return false;
                 }
             }
-            if (emptyRequiredInfoFields.length > 0){
-                showMissingRequiredInfoError("provider", emptyRequiredInfoFields);
-                return false
-            }
-        }
-        else {
-            showMissingRequiredInfoError("provider");
-            return false
         }
 
         return true
     }
 
-    function get_issuer(){
+    function get_issuer() {
         var fetchingProviderConfig = $scope.opConfig.fetchInfoFromServerDropDown.value;
         var issuer = "";
 
@@ -499,9 +495,26 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     }
 
     $scope.getRedirectUrl = function () {
-        if (containsRequiredProviderInfo()) {
-            opConfigurationFactory.getRedirectUrl(get_issuer()).success(getRedirectUrlSuccessCallback).error(errorCallback);
-        }
+        opConfigurationFactory.getRedirectUrl(get_issuer()).success(getRedirectUrlSuccessCallback).error(errorCallback);
     }
 
+});
+
+var ISSUER_REGEXP = /^((?!.well-known).)*$/;
+
+app.directive('issuer', function () {
+    return {
+        require: 'ngModel',
+        link: function (scope, elm, attrs, ctrl) {
+            ctrl.$parsers.unshift(function (viewValue) {
+                if (ISSUER_REGEXP.test(viewValue)) {
+                    ctrl.$setValidity('issuer', true);
+                    return viewValue;
+                } else {
+                    ctrl.$setValidity('issuer', false);
+                    return undefined;
+                }
+            });
+        }
+    };
 });
