@@ -644,10 +644,9 @@ FLOWS = {
                 "OpenID provider.",
         "mti": {"all": "MUST"},
         "profile": "..",
-        "tests": {"verify-error": {"error": ["login_required",
-                                             "interaction_required",
-                                             "session_selection_required",
-                                             "consent_required"]}},
+        "tests": {"verify-error-response": {
+            "error": ["login_required", "interaction_required",
+                      "session_selection_required", "consent_required"]}},
     },
     'OP-prompt-none-LoggedIn': {
         "desc": 'Request with prompt=none when logged in',

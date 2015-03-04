@@ -490,6 +490,31 @@ class CheckErrorResponse(ExpectedError):
         return res
 
 
+class VerifyErrorResponse(ExpectedError):
+    """
+    Checks that the last response was a JSON encoded error message
+    """
+    cid = "verify-error-response"
+    msg = "OP error"
+
+    def _func(self, conv):
+        last = conv.protocol_response[-1]
+
+        try:
+            assert isinstance(last, ErrorResponse)
+        except AssertionError:
+            self._message = "Expected error message"
+            self._status = ERROR
+        else:
+            try:
+                assert last["error"] in self._kwargs["error"]
+            except AssertionError:
+                self._message = "Not an error type I expected"
+                self._status = WARNING
+
+        return {}
+
+
 def factory(cid, classes):
     if len(classes) == 0:
         for name, obj in inspect.getmembers(sys.modules[__name__]):
