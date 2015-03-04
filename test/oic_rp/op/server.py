@@ -665,7 +665,7 @@ if __name__ == '__main__':
     else:
         extra = ""
 
-    txt = "RP server starting listening on port:%s%s" % (config.PORT, extra)
+    txt = "RP server starting listening on port:%s%s" % (args.port, extra)
     LOGGER.info(txt)
     print txt
     try:

@@ -108,10 +108,10 @@
     <span class="requiredText">** Required in order to generate static client credentials</span>
     <br>
 
-    <button class="btn btn-default btn-sm"
-            ng-click="go_to_test_page()">
+    <a class="btn btn-default btn-sm"
+       href="/test_list">
         Continue to test page
-    </button>
+    </a>
 
 </%block>
 
