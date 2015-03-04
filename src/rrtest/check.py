@@ -1,7 +1,7 @@
 import inspect
 import json
 #from oic.oauth2 import SUCCESSFUL
-from oic.oauth2.message import ErrorResponse
+from oic.oauth2.message import ErrorResponse, AuthorizationResponse
 from oic.oauth2.message import MissingRequiredAttribute
 
 __author__ = 'rolandh'
@@ -526,16 +526,10 @@ class VerifyAuthnResponse(ExpectedError):
         last = conv.protocol_response[-1]
 
         try:
-            assert isinstance(last, ErrorResponse)
+            assert isinstance(last, AuthorizationResponse)
         except AssertionError:
-            self._message = "Expected error message"
+            self._message = "Expected an authorization response"
             self._status = ERROR
-        else:
-            try:
-                assert last["error"] in self._kwargs["error"]
-            except AssertionError:
-                self._message = "Not an error type I expected"
-                self._status = WARNING
 
         return {}
 
