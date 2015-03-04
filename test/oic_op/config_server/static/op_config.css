@@ -11,6 +11,10 @@ hr {
     margin-top: 0px;
 }
 
+li {
+    cursor: pointer;
+}
+
 .singleLine{
     padding-top: 25px;
 }
