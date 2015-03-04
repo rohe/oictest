@@ -59,7 +59,7 @@ FLOWS = {
         "desc": 'Request with response_type=code',
         "sequence": ['_discover_', "_register_", "_login_"],
         "profile": "C..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"}
     },
     'OP-Response-Missing': {
@@ -92,7 +92,7 @@ FLOWS = {
             }),
         ],
         "profile": "I..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"dynamic": "MUST"},
         # "tests": {"check-authorization-response": {}},
     },
@@ -105,13 +105,13 @@ FLOWS = {
              {"request_args": {"response_type": ["id_token", "token"]}})
         ],
         "profile": "IT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"dynamic": "MUST"}
     },
     'OP-Response-code+id_token': {
         "desc": 'Request with response_type=code id_token',
         "sequence": ['_discover_', '_register_', '_login_'],
-        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
+        "tests": {"verify-authn-response": {}, 'check-idtoken-nonce': {}},
         "profile": "CI..",
     },
     'OP-Response-code+token': {
@@ -123,7 +123,7 @@ FLOWS = {
              {"request_args": {"response_type": ["code", "token"]}})
         ],
         "profile": "CT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
     },
     'OP-Response-code+id_token+token': {
         "desc": 'Request with response_type=code id_token token',
@@ -134,7 +134,7 @@ FLOWS = {
              {"request_args": {"response_type": ["code", "id_token", "token"]}})
         ],
         "profile": "CIT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
     },
     'OP-Response-form_post': {
         "desc": 'Request with response_mode=form_post',
@@ -145,7 +145,7 @@ FLOWS = {
              {"request_args": {"response_mode": ["form_post"]}})
         ],
         "profile": "....+",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
     },
     'OP-IDToken-RS256': {
         "desc": 'Asymmetric ID Token signature with rs256',
@@ -157,7 +157,7 @@ FLOWS = {
         "profile": "..T.s",
         "mti": {"all": "MUST"},
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"},
-                  "check-http-response": {}}
+                  "verify-authn-response": {}}
     },
     'OP-IDToken-Signature': {
         # RS256 is MTI
@@ -253,14 +253,14 @@ FLOWS = {
                 'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": {"all": "MUST"},
-        "test": {"check-http-response": {}},
+        "test": {"verify-authn-response": {}},
         "profile": "IT,CIT..",
     },
     'OP-IDToken-c_hash': {
         "desc": 'ID Token has c_hash when ID Token and Authorization Code '
                 'returned from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-authn-response": {}},
         "profile": "CI,CIT..",
         "mti": {"all": "MUST"}
     },
@@ -277,7 +277,8 @@ FLOWS = {
             '_discover_',
             ("oic-registration",
              {"request_args": {"id_token_signed_response_alg": "HS256"}}),
-            "_login_", "_accesstoken_"],
+            "_login_",
+            "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
                   "check-http-response": {}}
@@ -288,7 +289,8 @@ FLOWS = {
             '_discover_',
             ("oic-registration",
              {"request_args": {"id_token_signed_response_alg": "ES256"}}),
-            "_login_", "_accesstoken_"],
+            "_login_",
+            "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
                   "check-http-response": {}}
@@ -318,7 +320,7 @@ FLOWS = {
         "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
                                                "enc_alg": "RSA1_5",
                                                "enc_enc": "A128CBC-HS256"},
-                  "check-http-response": {}}
+                  "verify-authn-response": {}}
     },
     'OP-UserInfo-Endpoint': {
         "desc": 'UserInfo Endpoint Access with GET and bearer_header',
@@ -457,7 +459,7 @@ FLOWS = {
             ('_login_', {"request_args": {"nonce": ""}})
         ],
         "profile": "C,CT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"}
     },
     'OP-nonce-NoReq-noncode': {
@@ -590,7 +592,7 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get the normal User Agent page view.",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"}
     },
     'OP-display-popup': {
@@ -609,7 +611,7 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get a popup User Agent window now",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"}
     },
     'OP-prompt-login': {
@@ -671,7 +673,7 @@ FLOWS = {
             ('_login_', {"request_args": {"extra": "foobar"}})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"},
     },
     'OP-Req-id_token_hint': {
@@ -711,7 +713,7 @@ FLOWS = {
                 "provider. We are simulating that you want to log in as "
                 "a specific user. So a fresh log-in page is needed.",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"},
         "result": "You should be requested to log in as a predefined user"
     },
@@ -730,7 +732,7 @@ FLOWS = {
                 "The use of this parameter in the request must not cause an "
                 "error at the OP",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"}
     },
     'OP-Req-claims_locales': {
@@ -827,7 +829,7 @@ FLOWS = {
         "profile": "..",
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Missing': {
@@ -839,7 +841,7 @@ FLOWS = {
             ("_login_", {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "..T",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "note": "The next request should result in the OpenID Connect Provider "
                 "returning an error message to your web browser.",
         "mti": {"all": "MUST"},
@@ -855,7 +857,7 @@ FLOWS = {
         "profile": "..T",
         "mti": {"all": "MUST"},
         'tests': {"verify-redirect_uri-query_component": {"foo": "bar"},
-                  "check-http-response": {}}
+                  "verify-authn-response": {}}
     },
     'OP-redirect_uri-RegQuery': {
         "desc": 'Registration where a redirect_uri has a query component',
@@ -888,7 +890,7 @@ FLOWS = {
         "profile": "..T",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-RegFrag': {
@@ -913,7 +915,7 @@ FLOWS = {
             ('_login_', {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "....+",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-authn-response": {}},
     },
     'OP-ClientAuth-Basic-Dynamic': {
         "desc": 'Access token request with client_secret_basic authentication',
@@ -1126,7 +1128,7 @@ FLOWS = {
         "profile": "..T",
         'note': "When you get the login page this time you should have the "
                 "clients logo on the page",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-tos_uri': {
         "desc": 'Registration with tos_uri',
@@ -1140,7 +1142,7 @@ FLOWS = {
         "profile": "..T",
         'note': "When you get the login page this time you should have a "
                 "link to the clients Terms of Service",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-jwks': {
         "desc": 'Uses Keys Registered with jwks Value',
@@ -1384,7 +1386,7 @@ FLOWS = {
                          "kwarg_func": request_in_file})
         ],
         "profile": "...n",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-request_uri-Sig': {
         "desc": 'Support request_uri Request Parameter with Signed Request',
@@ -1405,7 +1407,7 @@ FLOWS = {
                          "kwarg_func": request_in_file})
         ],
         "profile": "..T.s",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-request_uri-Enc': {
         "desc": 'Support request_uri Request Parameter with Encrypted Request',
@@ -1434,7 +1436,7 @@ FLOWS = {
                          "kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-request_uri-SigEnc': {
         "desc": 'Support request_uri Request Parameter with Signed and '
@@ -1462,7 +1464,7 @@ FLOWS = {
             ("_login_", {"kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-request-Support': {
         "desc": 'Support request Request Parameter',
@@ -1493,7 +1495,7 @@ FLOWS = {
                                         "algorithm": "none"}})
         ],
         "profile": "...n",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-request-Sig': {
         "desc": 'Support request Request Parameter with Signed Request',
@@ -1519,7 +1521,7 @@ FLOWS = {
             })
         ],
         "profile": "...s.+",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-claims-essential': {
         "desc": 'Claims Request with Essential name Claim',
@@ -1548,7 +1550,7 @@ FLOWS = {
             ("_login_", {"function": sub_claims}),
         ],
         "profile": "....+",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-authn-response": {}},
     },
     'OP-claims-sub-none': {
         "desc": 'Using prompt=none with user hint through sub in request',
@@ -1564,7 +1566,7 @@ FLOWS = {
             }),
         ],
         "profile": "....+",
-        "tests": {"check-http-response": {}}
+        "tests": {"verify-authn-response": {}}
     },
     'OP-claims-IDToken': {
         "desc": 'Requesting ID Token with Email claims',
