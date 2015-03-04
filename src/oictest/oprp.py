@@ -133,8 +133,13 @@ class OPRP(object):
         resp = Response(mako_template="flowlist.mako",
                         template_lookup=self.lookup,
                         headers=[])
-    
-        self.dump_log(session, session["testid"])
+
+        try:
+            _tid = session["testid"]
+        except KeyError:
+            _tid = None
+
+        self.dump_log(session, _tid)
     
         argv = {
             "flows": session["tests"],
