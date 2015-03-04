@@ -578,6 +578,8 @@ class OPRP(object):
                             except KeyError:
                                 _ctype = resp_c.ctype
 
+                            self.dump_log(session, session["testid"])
+
                             response = request_and_return(
                                 conv, url, trace, message_factory(
                                     resp_c.response), _method, body, _ctype,
