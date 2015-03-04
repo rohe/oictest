@@ -45,14 +45,6 @@ app.controller('IndexCtrl', function ($scope, $sce, static_client_factory) {
         return redirect_uris;
 
     };
-    function redirect_to_test_list() {
-        window.open("https://dirg.org.umu.se/static/oictest/index.html");
-        window.location.replace("/test_list");
-    }
-
-    $scope.go_to_test_page = function(){
-        bootbox.confirm("Before you start testing your RP make sure to read the documentation on how to use RPtest", redirect_to_test_list)
-    }
 
     $scope.generate_client_credentials = function () {
         var redirect_uris = convert_to_simple_list($scope.redirect_uris);

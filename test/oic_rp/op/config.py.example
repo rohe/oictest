@@ -34,8 +34,8 @@ SYM_KEY = "SoLittleTime,Got"
 
 SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
-#CERT_CHAIN="certs/chain.pem"
-CERT_CHAIN = None
+#CA_BUNDLE="certs/chain.pem"
+CA_BUNDLE = None
 
 KEY_EXPORT_URL = "%sstatic/jwk.json" % issuer
 
