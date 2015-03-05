@@ -34,11 +34,10 @@
         </a>
     </div>
 
-    <!-- The code which generates the rows of the test table -->
-    <div ng-repeat="(category, tests) in guidlines" class="row category_row">
-        <span class="category_text">{{category}}</span>
-        <div ng-repeat="(test_name, test_data) in tests" class="row test_row">
-            <div class="col-sm-11" ng-click="toggle_more_info_visibility(category, test_name);">
+    <div ng-repeat="category_list in guidlines track by $index" class="row category_row">
+        <span class="category_text">{{category_list[category_const]}}</span>
+        <div ng-repeat="(test_name, test_data) in category_list[test_const]" class="row test_row">
+            <div class="col-sm-11" ng-click="toggle_more_info_visibility($parent.$index, test_name);">
                 <img src="static/pictures/arrowRight.png" ng-show="!test_data.visible">
                 <img src="static/pictures/arrowDown.png" ng-show="test_data.visible">
                 {{test_data.short_description}}

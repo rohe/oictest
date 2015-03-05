@@ -14,8 +14,8 @@ app.controller('IndexCtrl', function ($scope, $sce) {
     var BEARER_HEADER = convert_to_link("http://tools.ietf.org/html/rfc6750#section-2.1", "http://tools.ietf.org");
     var FORM_ENCODED_BODY = convert_to_link("http://tools.ietf.org/html/rfc6750#section-2.2", "http://tools.ietf.org");
 
-    $scope.guidlines = {
-        "Discovery": {
+    $scope.guidlines = [
+        ["Discovery", {
             "rp-ids-url": {
                 "short_description": "Can Discover Identifiers using URL Syntax",
                 "detailed_description": $sce.trustAsHtml("Tests if an entity can use WebFinger as described by " +
@@ -37,8 +37,16 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "Configuration Information as described in the " + PROVIDER_CONF_DOC,
                 "expected_result": "A JSON file with the OpenID Provider Configuration Information"
             }
-        },
-        "Response type and response mode":{
+        }],
+        ["Dynamic Client Registration", {
+            "rp-registration": {
+                "short_description": "Uses Dynamic Registration",
+                "detailed_description": "Tests if an entity can dynamically register as a OpenID Relaying " +
+                "Party as described in " + REGISTRATION,
+                "expected_result": "A JSON file with the Clients registration information"
+            }
+        }],
+        ["Response type and response mode", {
             "rp-rtyp-code": {
                 "short_description": "Can Make Request with 'code' Response Type",
                 "detailed_description": "Tests if an entity can make a authentication request by using code " +
@@ -53,20 +61,12 @@ app.controller('IndexCtrl', function ($scope, $sce) {
             },
             "rp-rtyp-idttoken": {
                 "short_description": "Can Make Request with 'id_token token' Response Type",
-                "detailed_detailed_description": "Tests if an entity can make a authentication request by using implicit " +
-                "flow (id_token token) as described in " + IMPLICIT_FLOW,
+                "detailed_description": "Tests if an entity can make a authentication request by using implicit " +
+                "flow (id_token token) as descripbed in " + IMPLICIT_FLOW,
                 "expected_result": "A authorization response containing an id_token and an access token"
             }
-        },
-        "Dynamic Client Registration":{
-            "rp-registration": {
-                "short_description": "Uses Dynamic Registration",
-                "detailed_description": "Tests if an entity can dynamically register as a OpenID Relaying " +
-                "Party as described in " + REGISTRATION,
-                "expected_result": "A JSON file with the Clients registration information"
-            }
-        },
-        "Client Authentication":{
+        }],
+        ["Client Authentication", {
             "rp-tok-csbasic": {
                 "short_description": "Can Make Access Token Request with 'client_secret_basic' Authentication",
                 "detailed_description": "Tests if a client can authenticate to the Authentication server " +
@@ -99,8 +99,8 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "in " + CLIENT_AUTHENTICATION,
                 "expected_result": "A token response should be returned containing an ID token"
             }
-        },
-        "ID Token":{
+        }],
+        ["ID Token", {
             "RP-IdToken-Asym-Sig": {
                 "short_description": "Accept valid asymmetric ID token signature",
                 "detailed_description": "Tests if the client accepts an ID Token with an " +
@@ -166,15 +166,8 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "expected_result": "Retrieve an ID Token and verify signature"
             }
 
-        },
-        "Claims Request Parameter":{
-            "rp-clm-idt": {
-                "short_description": "Can Request and use claims in id_token using the 'claims' request parameter",
-                "detailed_description": "Tests if the client can ask for a specific claim to be returned in the id_token",
-                "expected_result": "The claim 'name' should appear in the returned id_token"
-            }
-        },
-        "UserInfo Endpoint": {
+        }],
+        ["UserInfo Endpoint", {
             "rp-ui-hdr": {
                 "short_description": "Accesses UserInfo Endpoint with Header Method",
                 "detailed_description": "Using the 'Bearer' authentication scheme to transmit the access token from UserInfo Endpoint. Read more at " + BEARER_HEADER,
@@ -190,11 +183,21 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "detailed_description": "Can Request and Use UserInfo Response which is neither signed nor encrypted",
                 "expected_result": "Receiving user info response"
             }
-        }
-    };
+        }],
+        ["Claims Request Parameter", {
+            "rp-clm-idt": {
+                "short_description": "Can Request and use claims in id_token using the 'claims' request parameter",
+                "detailed_description": "Tests if the client can ask for a specific claim to be returned in the id_token",
+                "expected_result": "The claim 'name' should appear in the returned id_token"
+            }
+        }]
+    ];
 
-    $scope.toggle_more_info_visibility = function (category, test_name) {
-        var test = $scope.guidlines[category][test_name];
+    $scope.category_const = 0
+    $scope.test_const = 1
+
+    $scope.toggle_more_info_visibility = function (category_index, test_name) {
+        var test = $scope.guidlines[category_index][$scope.test_const][test_name];
 
         if (test.visible == false) {
             test.visible = true;
@@ -205,12 +208,11 @@ app.controller('IndexCtrl', function ($scope, $sce) {
     };
 
     function set_default_test_visibility() {
-        var categories = Object.keys($scope.guidlines);
-
-        for (var j = 0; j < categories.length; j++) {
-            var tests = Object.keys($scope.guidlines[categories[j]]);
+        for (var j = 0; j < $scope.guidlines.length; j++) {
+            var category = $scope.guidlines[j][$scope.test_const]
+            var tests = Object.keys(category);
             for (var i = 0; i < tests.length; i++) {
-                $scope.guidlines[categories[j]][tests[i]]['visible'] = false;
+                category[tests[i]]['visible'] = false;
             }
         }
     }
