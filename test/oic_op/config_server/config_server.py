@@ -153,6 +153,8 @@ def create_new_configuration_dict():
         "uiLocales": "",
         "claimsLocales": "",
         "acrValues": "",
+        "webfinger_url": "",
+        "webfinger_email": "",
     }
     return op_configurations
 
@@ -405,6 +407,12 @@ def convert_config_file(config_file_dict):
     if "acr_values" in config_file_dict:
         config_structure_dict['acrValues'] = config_file_dict['acr_values']
 
+    if "webfinger_url" in config_file_dict:
+        config_structure_dict['webfinger_url'] = config_file_dict['webfinger_url']
+
+    if "webfinger_email" in config_file_dict:
+        config_structure_dict['webfinger_email'] = config_file_dict['webfinger_email']
+
     return config_structure_dict
 
 
@@ -648,6 +656,12 @@ def convert_config_gui_structure(config_gui_structure):
 
     if config_gui_structure['acrValues'] != "":
         config_dict['acr_values'] = config_gui_structure['acrValues']
+
+    if config_gui_structure['webfinger_url'] != "":
+        config_dict['webfinger_url'] = config_gui_structure['webfinger_url']
+
+    if config_gui_structure['webfinger_email'] != "":
+        config_dict['webfinger_email'] = config_gui_structure['webfinger_email']
 
     return config_dict
 
