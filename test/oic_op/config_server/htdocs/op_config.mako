@@ -347,11 +347,12 @@
 
                 <div class="row">
                     <div class="col-sm-3">
-            <span class="glyphicon glyphicon-info-sign infoIcon"
-                  title="Requested Authentication Context Class Reference values. Space-separated string that specifies the acr values that the Authorization Server is being requested to use for processing this authentication request, with the values appearing in order of preference. The Authentication Context Class satisfied by the authentication performed is returned as the acr Claim Value, as specified in Section 2.1.2.1. The acr Claim is requested as a Voluntary Claim by this parameter."
-                  data-toggle="tooltip"
-                  data-placement="right"
-                  directive-callback=""></span>
+                        <span class="glyphicon glyphicon-info-sign infoIcon"
+                              title="Requested Authentication Context Class Reference values. Space-separated string that specifies the acr values that the Authorization Server is being requested to use for processing this authentication request, with the values appearing in order of preference. The Authentication Context Class satisfied by the authentication performed is returned as the acr Claim Value, as specified in Section 2.1.2.1. The acr Claim is requested as a Voluntary Claim by this parameter."
+                              data-toggle="tooltip"
+                              data-placement="right"
+                              directive-callback="">
+                        </span>
 
                         Acr values
 
@@ -359,6 +360,48 @@
 
                     <div class="col-sm-3">
                         <input type="text" ng-model="opConfig.acrValues" class="form-control">
+                    </div>
+
+                    <div class="col-sm-6">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span class="glyphicon glyphicon-info-sign infoIcon"
+                              title="The RP would make the following WebFinger request to discover the Issuer location using the URL syntax. For example https://example.com/joe"
+                              data-toggle="tooltip"
+                              data-placement="right"
+                              directive-callback="">
+                        </span>
+
+                        Webfinger url
+
+                    </div>
+
+                    <div class="col-sm-3">
+                        <input type="text" ng-model="opConfig.webfinger_url" class="form-control">
+                    </div>
+
+                    <div class="col-sm-6">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-sm-3">
+                        <span class="glyphicon glyphicon-info-sign infoIcon"
+                              title="The RP would make the following WebFinger request to discover the Issuer location using the e-mail address syntax. For example joe@example.com"
+                              data-toggle="tooltip"
+                              data-placement="right"
+                              directive-callback="">
+                        </span>
+
+                       Webfinger email
+
+                    </div>
+
+                    <div class="col-sm-3">
+                        <input type="text" ng-model="opConfig.webfinger_email" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
