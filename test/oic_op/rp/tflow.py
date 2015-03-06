@@ -1071,11 +1071,10 @@ FLOWS = {
     'OP-Discovery-WebFinger-Email': {
         "desc": 'Can Discover Identifiers using E-Mail Syntax',
         "profile": ".T...+",
-        #"profile": ".T.",
         "sequence": [
             ("webfinger",
              {"kwarg_func": (get_principal, {"param": "webfinger_email"})})],
-        "tests": {"check-http-response": {}},
+        "tests": {},
     },
     'OP-Discovery-WebFinger': {
         "desc": 'Can Discover Identifiers using URL Syntax',
@@ -1083,7 +1082,7 @@ FLOWS = {
         "sequence": [
             ("webfinger",
              {"kwarg_func": (get_principal, {"param": "webfinger_url"})})],
-        "tests": {"check-http-response": {}},
+        "tests": {},
     },
     'OP-Registration-Endpoint': {
         "desc": 'Verify that registration_endpoint is published',
