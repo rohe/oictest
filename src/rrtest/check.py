@@ -491,7 +491,7 @@ class CheckErrorResponse(ExpectedError):
         return res
 
 
-class VerifyErrorResponse(ExpectedError):
+class VerifyErrorMessage(ExpectedError):
     """
     Checks that the last response was a JSON encoded error message
     """
