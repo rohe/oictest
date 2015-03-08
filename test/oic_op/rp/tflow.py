@@ -1407,7 +1407,8 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_parameter_supported": True}}})
+                "support": {"error": {"request_uri_parameter_supported": True}}
+            })
         ],
         "profile": "..T.s",
         "tests": {"verify-authn-response": {}}
@@ -1523,10 +1524,7 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "request"},
                 "support": {
-                    "error": {
-                        "request_parameter_supported": True,
-                        "request_object_signing_alg_values_supported": "RS256"
-                    }}
+                    "error": {"request_parameter_supported": True}}
             })
         ],
         "profile": "...s.+",
