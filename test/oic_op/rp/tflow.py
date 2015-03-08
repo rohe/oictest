@@ -776,7 +776,7 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-bad-request-response": {"status": WARNING}},
+        "tests": {"verify-error-response": {"status": WARNING}},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
@@ -788,12 +788,13 @@ FLOWS = {
             '_discover_',
             '_register_',
             '_login_',
-            "_accesstoken_",
-            "_accesstoken_",
+            '_accesstoken_',
+            ('_accesstoken_', {
+                "expect_error": {"error": ["invalid_grant"], "stop": True}}),
             USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-bad-request-response": {"status": WARNING}},
+        "tests": {"verify-error-response": {"status": WARNING}},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
@@ -1379,10 +1380,12 @@ FLOWS = {
                          "request_uri_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "file",
-                                        "local_dir": "export",
-                                        "algorithm": "none"},
-                         "kwarg_func": request_in_file})
+            ("_login_", {
+                "kwargs_mod": {"request_method": "file", "local_dir": "export",
+                               "algorithm": "none"},
+                "kwarg_func": request_in_file,
+                "support": {"error": {"request_uri_parameter_supported": True}}
+            })
         ],
         "profile": "...n",
         "tests": {"verify-authn-response": {}}
@@ -1401,9 +1404,10 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "file",
-                                        "local_dir": "export"},
-                         "kwarg_func": request_in_file})
+            ("_login_", {
+                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwarg_func": request_in_file,
+                "support": {"error": {"request_parameter_supported": True}}})
         ],
         "profile": "..T.s",
         "tests": {"verify-authn-response": {}}
@@ -1430,9 +1434,11 @@ FLOWS = {
                  }
              }
             ),
-            ("_login_", {"kwargs_mod": {"request_method": "file",
-                                        "local_dir": "export"},
-                         "kwarg_func": request_in_file})
+            ("_login_", {
+                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwarg_func": request_in_file,
+                "support": {"error": {"request_uri_parameter_supported": True}}
+            })
         ],
         "profile": "..T.se.+",
         "tests": {"verify-authn-response": {}}
@@ -1460,7 +1466,10 @@ FLOWS = {
                  }
              }
             ),
-            ("_login_", {"kwarg_func": request_in_file})
+            ("_login_", {
+                "kwarg_func": request_in_file,
+                "support": {"error": {"request_uri_parameter_supported": True}}
+            })
         ],
         "profile": "..T.se.+",
         "tests": {"verify-authn-response": {}}
@@ -1490,8 +1499,9 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "request",
-                                        "algorithm": "none"}})
+            ("_login_", {
+                "kwargs_mod": {"request_method": "request"},
+                "support": {"error": {"request_parameter_supported": True}}})
         ],
         "profile": "...n",
         "tests": {"verify-authn-response": {}}
@@ -1513,7 +1523,7 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "request"},
                 "support": {
-                    "warning": {
+                    "error": {
                         "request_parameter_supported": True,
                         "request_object_signing_alg_values_supported": "RS256"
                     }}
