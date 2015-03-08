@@ -11,7 +11,7 @@
 
     def profile_form(prof):
         p = prof.split(".")
-        el = ["<h3>Chose response_type</h3>",
+        el = ["<h3>Choose response_type</h3>",
               '<form action="profile" method="POST">']
         for key in PMAPL:
             txt = PMAP[key]
