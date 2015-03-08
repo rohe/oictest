@@ -453,6 +453,13 @@ class OPRP(object):
                 except Exception as err:
                     return self.err_response(session, "function()", err)
 
+                try:
+                    expect_error = _kwa["expect_error"]
+                except KeyError:
+                    expect_error = None
+                else:
+                    del _kwa["expect_error"]
+
                 req = req_c(conv)
                 try:
                     if req.tests["pre"]:
@@ -594,6 +601,12 @@ class OPRP(object):
                         if response is None:  # bail out
                             return self.err_response(session,
                                                      "request_and_return", None)
+
+                        if expect_error:
+                            if isinstance(response, ErrorResponse):
+                                if expect_error["stop"]:
+                                    index = len(sequence_info["sequence"])
+                                    continue
 
                         trace.response(response)
                         LOGGER.info(response.to_dict())
