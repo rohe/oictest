@@ -213,12 +213,14 @@ def specific_acr_claims(request_args, conv, kwargs):
 
 
 def login_hint(request_args, conv, kwargs):
+    _iss = conv.client.provider_info["issuer"]
+    p = urlparse(_iss)
     try:
         hint = conv.client_config["login_hint"]
     except KeyError:
-        _iss = conv.client.provider_info["issuer"]
-        p = urlparse(_iss)
         hint = "buffy@%s" % p.netloc
+    else:
+        hint = "%s@%s" % (hint, p.netloc)
 
     request_args["login_hint"] = hint
     return request_args
