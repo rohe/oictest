@@ -30,6 +30,8 @@ from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 
 LOGGER = logging.getLogger("")
+urllib3_logger = logging.getLogger('requests.packages.urllib3')
+urllib3_logger.setLevel(logging.WARNING)
 
 LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         module_directory='modules',
@@ -674,6 +676,7 @@ def handle_post_op_config(response_encoder, parameters, session):
     config_gui_structure = parameters['opConfigurations']
     session["profile"] = generate_profile(config_gui_structure)
     session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure)
+    LOGGER.debug("Stored RP configuration in session: %s" % convert_from_unicode(session[OP_CONFIG]))
     return response_encoder.return_json({})
 
 
@@ -810,6 +813,7 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
             response = requests.get(oprp_url, verify=False)
 
             if response.status_code == 200:
+                LOGGER.debug("The RP is running on port: %s and returning status code 200 OK" % port)
                 return
 
             time.sleep(1)
@@ -820,7 +824,7 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
 
 
 def start_rp_process(port, command, working_directory=None):
-    LOGGER.info("Starting RP on {} with command {}".format(port, command))
+    LOGGER.debug("Try to start RP on {} with command {}".format(port, command))
     try:
         p = subprocess.Popen(command,
                              stdout=subprocess.PIPE,
@@ -845,29 +849,34 @@ def start_rp_process(port, command, working_directory=None):
 
 config_tread_lock = threading.Lock()
 
+def get_oprp_pid(port):
+    pid = None
+    p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+    out, err = p.communicate()
+    for line in out.splitlines():
+        if "rp_conf_" + str(port) in line:
+            pid = int(line.split(None, 1)[0])
+            break
 
-def kill_existing_process_on_port(port, session):
-    # Check if process is running on specified port
-    try:
-        response = requests.get(get_base_url(port), verify=False)
+    return pid
 
+
+def kill_existing_process_on_port(port):
+
+    pid = get_oprp_pid(port)
+
+    if pid:
         try:
-            _ = session[OP_CONFIG]
-        except KeyError:
-            pass
-        else:
-            if response.status_code == 200:
-                p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
-                out, err = p.communicate()
+            os.kill(pid, signal.SIGKILL)
+            LOGGER.debug("Killed RP running on port %s" % port)
+        except OSError as ex:
+            LOGGER.error("Failed to kill process (%s) connected to the server %s" % pid, get_base_url(port))
+            raise
 
-                for line in out.splitlines():
-                    if "rp_conf_" + str(port) in line:
-                        pid = int(line.split(None, 1)[0])
-                        os.kill(pid, signal.SIGKILL)
-                        break
 
-    except ConnectionError:
-        pass
+def write_config_file(config_file_name, config_module):
+    with open(config_file_name, "w") as _file:
+        _file.write(config_module)
 
 
 def handle_start_op_tester(session, response_encoder):
@@ -880,20 +889,25 @@ def handle_start_op_tester(session, response_encoder):
         try:
             config_file, port = allocate_dynamic_port(session)
         except NoPortAvailable:
-            return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
+            pass
     else:
         config_file, port = create_config_file(session['port'],
                                                CONF.OPRP_DIR_PATH)
 
     if not port:
+        LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
     config_module = create_module_string(session[OP_CONFIG], port)
 
-    with open(config_file.name, "w") as _file:
-        _file.write(config_module)
+    try:
+        write_config_file(config_file.name, config_module)
+        LOGGER.debug("Written configuration to file: %s" % config_file.name)
+    except IOError as ioe:
+        LOGGER.exception(str(ioe))
+        response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file.name)
 
-    kill_existing_process_on_port(port, session)
+    kill_existing_process_on_port(port)
 
     config_file_name = os.path.basename(config_file.name)
     config_module = config_file_name.split(".")[0]
@@ -901,7 +915,7 @@ def handle_start_op_tester(session, response_encoder):
     if "profile" in session:
         profile = session["profile"]
     else:
-        LOGGER.debug("The session contains no profile. Using default profile")
+        LOGGER.warning("The session contains no profile. Using default profile")
         return response_encoder.service_error("Failed to start server because of internal error: Failed to generate profile information")
 
     try:
@@ -910,6 +924,7 @@ def handle_start_op_tester(session, response_encoder):
         return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(port))}))
     except Exception as ex:
+        LOGGER.error(ex.message)
         return response_encoder.service_error(ex.message)
 
 
@@ -973,7 +988,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
-    LOGGER.info("path: %s" % path)
+    LOGGER.info("Path: %s" % path)
 
     session = environ['beaker.session']
 
