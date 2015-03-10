@@ -157,7 +157,7 @@ FLOWS = {
         "profile": "..T.s",
         "mti": {"all": "MUST"},
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"},
-                  "verify-authn-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-IDToken-Signature': {
         # RS256 is MTI
@@ -169,7 +169,7 @@ FLOWS = {
             '_accesstoken_'],
         "profile": "..F",
         "tests": {"is-idtoken-signed": {"alg": "RS256"},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-IDToken-kid': {
         "desc": 'IDToken has kid',
@@ -177,7 +177,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
         "profile": "...s",
         "tests": {"verify-signed-idtoken-has-kid": {},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-IDToken-nonce-code': {
         "desc": 'ID Token has nonce when requested for code flow',
@@ -188,7 +188,7 @@ FLOWS = {
             '_accesstoken_'],
         "mti": {"all": "MUST"},
         "profile": "C..",
-        "tests": {"verify-nonce": {}, "check-http-response": {}}
+        "tests": {"verify-nonce": {}, "authn-or-access-response": {}}
     },
     'OP-IDToken-max_age=1': {
         "desc": 'Requesting ID Token with max_age=1 seconds Restriction',
@@ -206,7 +206,7 @@ FLOWS = {
                 "The result should be that you have to re-authenticate",
         "profile": "..",
         "tests": {"multiple-sign-on": {},
-                  "check-http-response": {},
+                  "authn-or-access-response": {},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"},
@@ -225,7 +225,7 @@ FLOWS = {
         ],
         "profile": "..",
         "tests": {"same-authn": {},
-                  "check-http-response": {},
+                  "authn-or-access-response": {},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"}
@@ -245,7 +245,7 @@ FLOWS = {
             "_login_",
             "_accesstoken_"
         ],
-        "tests": {"unsigned-idtoken": {}, "check-http-response": {}},
+        "tests": {"unsigned-idtoken": {}, "authn-or-access-response": {}},
         "profile": "C.T.T.n",
     },
     'OP-IDToken-at_hash': {
@@ -267,7 +267,7 @@ FLOWS = {
     'OP-IDToken-nonce-noncode': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
-        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
+        "tests": {"authn-or-access-response": {}, 'check-idtoken-nonce': {}},
         "profile": "I,IT,CI,CT,CIT..",
         "mti": {"all": "MUST"}
     },
@@ -281,7 +281,7 @@ FLOWS = {
             "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-IDToken-ES256': {
         "desc": 'Asymmetric ID Token signature with ES256',
@@ -293,7 +293,7 @@ FLOWS = {
             "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-IDToken-SigEnc': {
         "desc": 'Signed and encrypted ID Token',
@@ -627,7 +627,7 @@ FLOWS = {
         ],
         "note": "You should get a request for re-authentication",
         "profile": "..",
-        'tests': {"multiple-sign-on": {}, "check-http-response": {}},
+        'tests': {"multiple-sign-on": {}, "authn-or-access-response": {}},
         "mti": {"all": "MUST"},
         # "result": "The test passed if you were prompted to log in"
     },
@@ -661,7 +661,7 @@ FLOWS = {
             '_accesstoken_'
         ],
         "mti": {"all": "MUST"},
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {}, "authn-or-access-response": {}},
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
     },
@@ -698,7 +698,7 @@ FLOWS = {
                 "Please remove any cookies you may have received from the "
                 "OpenID provider.",
         "profile": "..",
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {}, "authn-or-access-response": {}},
         "mti": {"all": "SHOULD"},
     },
     'OP-Req-login_hint': {
@@ -764,7 +764,7 @@ FLOWS = {
         ],
         "mti": {"all": "No err"},
         "profile": "..",
-        'tests': {"used-acr-value": {}, "check-http-response": {}}
+        'tests': {"used-acr-value": {}, "authn-or-access-response": {}}
     },
     'OP-OAuth-2nd': {
         "desc": 'Trying to use access code twice should result in an error',
@@ -939,7 +939,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..T",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-ClientAuth-Basic-Static': {
         "desc": 'Access token request with client_secret_basic authentication',
@@ -957,7 +957,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..F",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-ClientAuth-SecretPost-Dynamic': {
         "desc": 'Access token request with client_secret_post authentication',
@@ -980,7 +980,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..T",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-ClientAuth-SecretPost-Static': {
         "desc": 'Access token request with client_secret_post authentication',
@@ -998,7 +998,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..F",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-ClientAuth-PublicJWT': {
         "desc": 'Access token request with private_key_jwt authentication',
@@ -1020,7 +1020,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT...s.+",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-ClientAuth-SecretJWT': {
         "desc": 'Access token request with client_secret_jwt authentication',
@@ -1042,7 +1042,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT...s.+",
-        'tests': {"check-http-response": {}},
+        'tests': {"authn-or-access-response": {}},
     },
     'OP-Discovery-Config': {
         "desc": 'Publish openid-configuration discovery information',
@@ -1114,7 +1114,7 @@ FLOWS = {
         "profile": "..T",
         'note': "When you get the login page this time you should have a "
                 "link to the client policy",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-logo_uri': {
         "desc": 'Registration with logo_uri',
@@ -1165,7 +1165,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT..T",
-        "tests": {"check-http-response": {}},
+        "tests": {"authn-or-access-response": {}},
     },
     'OP-Registration-jwks_uri': {
         "desc": 'Uses Keys Registered with jwks_uri Value',
@@ -1185,7 +1185,7 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT..T",
-        'tests': {"check-http-response": {}}
+        'tests': {"authn-or-access-response": {}}
     },
     'OP-Registration-Sector-Bad': {
         "desc": 'Incorrect registration of sector_identifier_uri',
@@ -1227,7 +1227,7 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        "tests": {"check-http-response": {}},
+        "tests": {"authn-or-access-response": {}},
     },
     'OP-Registration-Sub-Pairwise': {
         "desc": 'Registration of wish for pairwise sub',
@@ -1242,7 +1242,7 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        "tests": {"check-http-response": {}},
+        "tests": {"authn-or-access-response": {}},
     },
     'OP-Registration-Sub-Differ': {
         "desc": 'Public and pairwise sub values differ',
@@ -1264,7 +1264,7 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        'tests': {"different_sub": {}, "check-http-response": {}}
+        'tests': {"different_sub": {}, "authn-or-access-response": {}}
     },
     'OP-Rollover-OP-Sig': {
         "desc": "Can Rollover OP Signing Key",
@@ -1584,7 +1584,7 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"email": None}},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-claims-Split': {
         "desc": 'Supports Returning Different Claims in ID Token and UserInfo '
@@ -1683,7 +1683,7 @@ FLOWS = {
         "profile": "....+",
         "mti": {"all": "MUST"},
         'tests': {"verify-claims": {"id_token": {"auth_time": None}},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-claims-acr-essential': {
         "desc": 'Requesting ID Token with Essential acr Claim',
@@ -1698,7 +1698,7 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-claims-acr-voluntary': {
         "desc": 'Requesting ID Token with Voluntary acr Claim',
@@ -1713,7 +1713,7 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
     'OP-claims-acr=1': {
         "desc": 'Requesting ID Token with Essential specific acr Claim',
@@ -1725,6 +1725,6 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "authn-or-access-response": {}}
     },
 }
