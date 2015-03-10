@@ -3,8 +3,6 @@ var app = angular.module('main', ['ngSanitize']);
 app.controller('IndexCtrl', function ($scope, $sce) {
 
     var OPENID_DOCS = "OpenId connect documentation";
-    var HOSTPORT = "oictest.umdc.umu.se:7000";
-    var ISSUER = convert_to_link("https://" + HOSTPORT);
     var DISCOVERY_DOC = convert_to_link("http://openid.net/specs/openid-connect-discovery-1_0.html#IssuerDiscovery", OPENID_DOCS);
     var PROVIDER_CONF_DOC = convert_to_link("http://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig", OPENID_DOCS);
     var REGISTRATION = convert_to_link("http://openid.net/specs/openid-connect-registration-1_0-27.html", OPENID_DOCS);
@@ -21,7 +19,7 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "detailed_description": $sce.trustAsHtml("Tests if an entity can use WebFinger as described by " +
                 "RFC 7033 and the " + DISCOVERY_DOC + " to determine the location of the OpenID Provider " +
                 "using a URL as user identifier"),
-                "expected_result": "The issuer URL recovered MUST be: " + ISSUER
+                "expected_result": "An issuer should be returned"
 
             },
             "rp-ids-email": {
@@ -29,7 +27,7 @@ app.controller('IndexCtrl', function ($scope, $sce) {
                 "detailed_description": ("Tests if an entity can use WebFinger as described by " +
                 "RFC 7033 and the " + DISCOVERY_DOC + " to determine the location of the OpenID Provider " +
                 "using an email address as user identifier"),
-                "expected_result": "The issuer URL recovered MUST be: " + ISSUER
+                "expected_result": "An issuer should be returned"
             },
             "rp-config": {
                 "short_description": "Can use openid-configuration Discovery Information",

@@ -121,10 +121,208 @@ _____________
 
 Before you start testing
 -----------------------
-* If the RP doesn't support dynamic discovery all the endpoints end other necessary OP configurations could be found here: https://oictest.umdc.umu.se:7000/.well-known/openid-configuration
+* If the RP doesn't support dynamic discovery all the endpoints end other necessary OP configurations could be found below
 * If the application doesn't support dynamic client registrations the path needs to be modified in order to request different signing and encryption algorithms, see `signalg`_ and `encalg`_
 * Some tests assumes that incorrect data is returned by the OP, see `errtype`_
 
 
+OP configurations:
+__________________
+
+The configuration for the RP certification service.
+
+====================================================    ========================================================================================================
+acr_values_supported                                    PASSWORD
+
+subject_types_supported                                 * public
+                                                        * pairwise
+
+request_parameter_supported                             true
+
+userinfo_signing_alg_values_supported                   * ES512
+                                                        * PS521
+                                                        * ES512
+                                                        * PS521
+                                                        * RS512
+                                                        * HS512
+                                                        * PS384
+                                                        * RS256
+                                                        * ES384
+                                                        * HS256
+                                                        * HS384
+                                                        * PS256
+                                                        * none
+                                                        * ES256
+                                                        * RS384
+
+claims_supported                                        * profile
+                                                        * family_name
+                                                        * phone_number
+                                                        * email_verified
+                                                        * middle_name
+                                                        * name
+                                                        * phone_number_verified
+                                                        * picture
+                                                        * locale
+                                                        * gender
+                                                        * zoneinfo
+                                                        * preferred_username
+                                                        * updated_at
+                                                        * birthdate
+                                                        * website
+                                                        * given_name
+                                                        * address
+                                                        * nickname
+                                                        * email
+                                                        * sub
+
+issuer                                                  https://rp.certification.openid.net:8080/id/_/_/_/normal/
+
+endsession_endpoint                                     https://rp.certification.openid.net:8080/id/_/_/_/normal/endsession
+
+id_token_encryption_enc_values_supported                * A128CBC-HS256
+                                                        * A192CBC-HS384
+                                                        * A256CBC-HS512
+                                                        * A128GCM
+                                                        * A192GCM
+                                                        * A256GCM
+
+require_request_uri_registration                        true
 
 
+grant_types_supported                                   * authorization_code
+                                                        * implicit
+                                                        * urn:ietf:params:oauth:grant-type:jwt-bearer
+
+token_endpoint                                          https://rp.certification.openid.net:8080/id/_/_/_/normal/token
+
+request_uri_parameter_supported                         true
+
+version                                                 3.0
+
+registration_endpoint                                   https://rp.certification.openid.net:8080/id/_/_/_/normal/registration
+
+response_modes_supported                                * query
+                                                        * fragment
+                                                        * form_post
+
+jwks_uri                                                https://rp.certification.openid.net:8080/static/jwk.json
+
+userinfo_encryption_alg_values_supported                * RSA1_5
+                                                        * RSA-OAEP
+                                                        * A128KW
+                                                        * A192KW
+                                                        * A256KW
+                                                        * ECDH-ES
+                                                        * ECDH-ES+A128KW
+                                                        * ECDH-ES+A192KW
+                                                        * ECDH-ES+A256KW
+
+scopes_supported                                        * profile
+                                                        * openid
+                                                        * offline_access
+                                                        * phone
+                                                        * address
+                                                        * email
+                                                        * openid
+
+token_endpoint_auth_methods_supported                   * client_secret_post
+                                                        * client_secret_basic
+                                                        * client_secret_jwt
+                                                        * private_key_jwt
+
+userinfo_encryption_enc_values_supported                * A128CBC-HS256
+                                                        * A192CBC-HS384
+                                                        * A256CBC-HS512
+                                                        * A128GCM
+                                                        * A192GCM
+                                                        * A256GCM
+
+id_token_signing_alg_values_supported                   * ES512
+                                                        * PS521
+                                                        * RS512
+                                                        * HS512
+                                                        * PS384
+                                                        * RS256
+                                                        * ES384
+                                                        * HS256
+                                                        * HS384
+                                                        * PS256
+                                                        * none
+                                                        * ES256
+                                                        * RS384
+
+
+request_object_encryption_enc_values_supported          * A128CBC-HS256
+                                                        * A192CBC-HS384
+                                                        * A256CBC-HS512
+                                                        * A128GCM
+                                                        * A192GCM
+                                                        * A256GCM
+
+claims_parameter_supported                              true
+
+token_endpoint_auth_signing_alg_values_supported
+                                                        * ES512
+                                                        * PS521
+                                                        * RS512
+                                                        * HS512
+                                                        * PS384
+                                                        * RS256
+                                                        * ES384
+                                                        * HS256
+                                                        * HS384
+                                                        * PS256
+                                                        * ES256
+                                                        * RS384
+
+userinfo_endpoint                                       https://rp.certification.openid.net:8080/id/_/_/_/normal/userinfo
+
+request_object_signing_alg_values_supported             * ES512
+                                                        * PS521
+                                                        * RS512
+                                                        * HS512
+                                                        * PS384
+                                                        * RS256
+                                                        * ES384
+                                                        * HS256
+                                                        * HS384
+                                                        * PS256
+                                                        * none
+                                                        * ES256
+                                                        * RS384
+
+request_object_encryption_alg_values_supported          * RSA1_5
+                                                        * RSA-OAEP
+                                                        * A128KW
+                                                        * A192KW
+                                                        * A256KW
+                                                        * ECDH-ES
+                                                        * ECDH-ES+A128KW
+                                                        * ECDH-ES+A192KW
+                                                        * ECDH-ES+A256KW
+
+response_types_supported                                * code
+                                                        * token
+                                                        * id_token
+                                                        * code token
+                                                        * code id_token
+                                                        * id_token token
+                                                        * code token id_token
+
+id_token_encryption_alg_values_supported                * RSA1_5
+                                                        * RSA-OAEP
+                                                        * A128KW
+                                                        * A192KW
+                                                        * A256KW
+                                                        * ECDH-ES
+                                                        * ECDH-ES+A128KW
+                                                        * ECDH-ES+A192KW
+                                                        * ECDH-ES+A256KW
+
+authorization_endpoint                                  https://rp.certification.openid.net:8080/id/_/_/_/normal/authorization
+
+claim_types_supported                                   * normal
+                                                        * aggregated
+                                                        * distributed
+====================================================    ========================================================================================================
