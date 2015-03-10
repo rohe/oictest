@@ -535,6 +535,36 @@ class VerifyAuthnResponse(ExpectedError):
         return {}
 
 
+class VerifyAuthnOrErrorResponse(ExpectedError):
+    """
+    Checks that the last response was a JSON encoded authentication or
+    error message
+    """
+    cid = "authn-response-or-error"
+    msg = "Expected Authn Response or Error Message"
+
+    def _func(self, conv):
+        inst, txt = conv.protocol_response[-1]
+
+        try:
+            assert isinstance(inst, AuthorizationResponse)
+        except AssertionError:
+            try:
+                assert isinstance(inst, ErrorResponse)
+            except AssertionError:
+                self._message = "Expected an authorization or error response"
+                self._status = ERROR
+            else:
+                try:
+                    assert inst["error"] in self._kwargs["error"]
+                except AssertionError:
+                    self._message = "An error response I didn't expect"
+                    self._status = WARNING
+
+        return {}
+
+
+
 def factory(cid, classes):
     if len(classes) == 0:
         for name, obj in inspect.getmembers(sys.modules[__name__]):

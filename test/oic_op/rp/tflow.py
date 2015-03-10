@@ -1384,11 +1384,11 @@ FLOWS = {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export",
                                "algorithm": "none"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
             })
         ],
         "profile": "...n",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-Sig': {
         "desc": 'Support request_uri Request Parameter with Signed Request',
@@ -1407,11 +1407,11 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
             })
         ],
         "profile": "..T.s",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-Enc': {
         "desc": 'Support request_uri Request Parameter with Encrypted Request',
@@ -1438,11 +1438,11 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
             })
         ],
         "profile": "..T.se.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-SigEnc': {
         "desc": 'Support request_uri Request Parameter with Signed and '
@@ -1467,13 +1467,11 @@ FLOWS = {
                  }
              }
             ),
-            ("_login_", {
-                "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
-            })
+            ("_login_", {"kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request-Support': {
         "desc": 'Support request Request Parameter',
@@ -1500,12 +1498,11 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {
-                "kwargs_mod": {"request_method": "request"},
-                "support": {"error": {"request_parameter_supported": True}}})
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "...n",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_not_supported"]}}
     },
     'OP-request-Sig': {
         "desc": 'Support request Request Parameter with Signed Request',
@@ -1521,14 +1518,11 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {
-                "kwargs_mod": {"request_method": "request"},
-                "support": {
-                    "error": {"request_parameter_supported": True}}
-            })
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "...s.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_not_supported"]}}
     },
     'OP-claims-essential': {
         "desc": 'Claims Request with Essential name Claim',

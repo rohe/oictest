@@ -666,7 +666,7 @@ class OPRP(object):
             except TypeError:
                 iss = ""
 
-            profile = from_code(session["profile"])
+            profile = to_profile(session, "dict")
 
             if test_id is None:
                 try:
@@ -762,6 +762,41 @@ def trace_output(trace):
     return element
 
 
+RT = {"C": "code", "I": "id_token", "T": "token"}
+OC = {"T": "config", "F": "no-config"}
+REG = {"T": "dynamic", "F": "static"}
+CR = {"n": "none", "s": "sign", "e": "encrypt"}
+EX = {"+": "extras"}
+ATTR = ["response_type", "openid-configuration", "registration", "crypto",
+        "extras"]
+
+
+def to_profile(session, representation="list"):
+    p = session["profile"].split(".")
+    prof = [
+        "+".join([RT[x] for x in p[0]]),
+        "%s" % OC[p[1]],
+        "%s" % REG[p[2]]]
+
+    try:
+        prof.append("%s" % "+".join([CR[x] for x in p[3]]))
+    except KeyError:
+        pass
+    else:
+        try:
+            prof.append("%s" % EX[p[4]])
+        except KeyError:
+            pass
+
+    if representation == "list":
+        return prof
+    elif representation == "dict":
+        ret = dict([(ATTR[r], prof[r]) for r in range(0, 5)])
+        if "extras" in ret:
+            ret["extras"] = True
+        return ret
+
+
 def log_path(session, test_id=None):
     _conv = session["conv"]
 
@@ -772,15 +807,15 @@ def log_path(session, test_id=None):
     else:
         qiss = quote_plus(iss)
 
-    profile = session["profile"]
+    prof = ".".join(to_profile(session))
 
-    if not os.path.isdir("log/%s/%s" % (qiss, profile)):
-        os.makedirs("log/%s/%s" % (qiss, profile))
+    if not os.path.isdir("log/%s/%s" % (qiss, prof)):
+        os.makedirs("log/%s/%s" % (qiss, prof))
 
     if test_id is None:
         test_id = session["testid"]
 
-    return "log/%s/%s/%s" % (qiss, profile, test_id)
+    return "log/%s/%s/%s" % (qiss, prof, test_id)
 
 
 def represent_result(session):
