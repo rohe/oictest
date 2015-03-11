@@ -6,10 +6,6 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/get_op_config");
         },
 
-        postOpConfig: function (opConfigurations) {
-            return $http.post("/post_op_config", {"opConfigurations": opConfigurations});
-        },
-
         requestDownloadConfigFile: function () {
             return $http.get("/download_config_file");
         },
@@ -26,8 +22,8 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/does_op_config_exist");
         },
 
-        startOpTester: function () {
-            return $http.get("/start_op_tester");
+        startOpTester: function (op_configurations) {
+            return $http.post("/start_op_tester", {"op_configurations": op_configurations});
         },
 
         getRedirectUrl: function (issuer) {
@@ -313,8 +309,9 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     $scope.saveConfigurations = function () {
         if ($scope.contains_required_provider_info() && containsRequiredClientInfo()) {
             bootbox.dialog({
-                message: "All your info will now to stored att the server. Do you want to continue?",
-                title: "Configuration successfully stored",
+                message: "Do you want to start testing your OP?" +
+                " <br><br> Note: If a test server successfully starts you will be redirected to the test server. Do you want to continue?",
+                title: "Start test server",
                 buttons: {
                     danger: {
                         label: "No",
@@ -324,49 +321,17 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
-                            opConfigurationFactory.postOpConfig($scope.opConfig).success(postOpConfigurationsSuccessCallback).error(errorCallback);
+                            opConfigurationFactory.startOpTester($scope.opConfig).success(startOpTesterSuccessCallback).error(errorCallback);
                             $scope.$apply();
                         }
                     }
                 }
             });
         }
-
     };
 
     function startOpTesterSuccessCallback(data, status, headers, config) {
         window.location.href = data['oprp_url'];
-    }
-
-    /**
-     * Confirms that the configuration successfully has been stored on the server
-     * @param data - The result returned from the server
-     * @param status - The status on the response from the server
-     * @param headers - The header on the response from the server
-     * @param config - The configuration on the response from the server
-     */
-    function postOpConfigurationsSuccessCallback(data, status, headers, config) {
-        bootbox.dialog({
-            message: "Your configuration was successfully stored on the server. Do you want to start testing your OP?" +
-            " <br><br> Note: If a test server successfully starts you will be redirected to the test server. Do you want to continue?",
-            title: "Configuration successfully stored",
-            buttons: {
-                danger: {
-                    label: "No",
-                    className: "btn-default"
-                },
-                success: {
-                    label: "Yes",
-                    className: "btn-primary",
-                    callback: function () {
-                        opConfigurationFactory.startOpTester().success(startOpTesterSuccessCallback).error(errorCallback);
-                        $scope.$apply();
-                    }
-                }
-            }
-        });
-
-        requestLatestConfigFileFromServer();
     }
 
     /**

@@ -42,7 +42,7 @@ SERVER_ENV = {}
 OP_CONFIG = "op_config"
 NO_PORT_ERROR_MESSAGE = "It appears that no ports are available at the " \
                         "moment. Please try again later."
-
+CONF = None
 
 def setup_logging(logfile):
     hdlr = logging.FileHandler(logfile)
@@ -544,9 +544,17 @@ def convert_to_list(value_dict):
     return _list
 
 
-def clear_optional_keys(config_dict):
-    optional_fields = ['webfinger_subject', 'login_hint', 'sub_claim',
-                       'ui_locales', 'claims_locales', 'acr_values']
+def clear_config_keys(config_dict):
+    optional_fields = ['webfinger_subject',
+                       'login_hint',
+                       'sub_claim',
+                       'ui_locales',
+                       'claims_locales',
+                       'acr_values',
+                       'provider_info',
+                       'srv_discovery_url',
+                       'webfinger_url',
+                       'webfinger_email']
 
     for field in optional_fields:
         if field in config_dict:
@@ -611,8 +619,30 @@ def generate_profile(config_gui_structure):
 
     return profile
 
+class NoMatchException(Exception):
+    pass
 
-def convert_config_gui_structure(config_gui_structure):
+import ast
+
+def parse_config_string(config_string):
+    client = config_string.split('\n')[3]
+    dict = client.split("CLIENT = ")[1]
+    return ast.literal_eval(dict)
+
+def identify_existing_config_file(port):
+    for filename in os.listdir(CONF.OPRP_DIR_PATH):
+        if filename.startswith("rp_conf"):
+            file_port = int(filename.split("_")[2].split(".")[0])
+            if file_port == port:
+                with open(CONF.OPRP_DIR_PATH + filename,"r") as config_file:
+                    config_string = config_file.read()
+                    if config_string == "":
+                        break
+                    return parse_config_string(config_string)
+
+    raise NoMatchException("No match found for port: %s" % port)
+
+def convert_config_gui_structure(config_gui_structure, port):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
@@ -621,12 +651,17 @@ def convert_config_gui_structure(config_gui_structure):
     :return A dictionary which follows the "Configuration file structure",
     see setup.rst
     """
-    config_dict = get_default_client()
+    try:
+        config_dict = identify_existing_config_file(port)
+    except NoMatchException:
+        config_dict = get_default_client()
+
+    config_dict = clear_config_keys(config_dict)
 
     if contains_dynamic_discovery_info(config_gui_structure):
-        dynamic_input_field_value = \
-            config_gui_structure['fetchDynamicInfoFromServer']['input_field'][
-                'value']
+        dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer']\
+                                                        ['input_field']\
+                                                        ['value']
         config_dict['srv_discovery_url'] = dynamic_input_field_value
 
     elif config_gui_structure['fetchStaticProviderInfo']['showInputFields']:
@@ -641,11 +676,8 @@ def convert_config_gui_structure(config_gui_structure):
 
     config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
 
-    config_dict = clear_optional_keys(config_dict)
-
     if config_gui_structure['webfingerSubject'] != "":
-        config_dict['webfinger_subject'] = config_gui_structure[
-            'webfingerSubject']
+        config_dict['webfinger_subject'] = config_gui_structure['webfingerSubject']
 
     if config_gui_structure['loginHint'] != "":
         config_dict['login_hint'] = config_gui_structure['loginHint']
@@ -878,14 +910,15 @@ def write_config_file(config_file_name, config_module):
     with open(config_file_name, "w") as _file:
         _file.write(config_module)
 
+def is_using_dynamic_client_registration(config_gui_structure):
+    return config_gui_structure['dynamicClientRegistrationDropDown']['value'] == "yes"
 
-def handle_start_op_tester(session, response_encoder):
-    try:
-        _config = session[OP_CONFIG]
-    except KeyError:
-        _config = {}
+def handle_start_op_tester(session, response_encoder, parameters):
 
-    if "client_registration" not in _config:
+    config_gui_structure = parameters['op_configurations']
+    _profile = generate_profile(config_gui_structure)
+
+    if is_using_dynamic_client_registration(config_gui_structure):
         try:
             config_file, port = allocate_dynamic_port(session)
         except NoPortAvailable:
@@ -898,6 +931,7 @@ def handle_start_op_tester(session, response_encoder):
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
+    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port)
     config_module = create_module_string(session[OP_CONFIG], port)
 
     try:
@@ -912,14 +946,8 @@ def handle_start_op_tester(session, response_encoder):
     config_file_name = os.path.basename(config_file.name)
     config_module = config_file_name.split(".")[0]
 
-    if "profile" in session:
-        profile = session["profile"]
-    else:
-        LOGGER.warning("The session contains no profile. Using default profile")
-        return response_encoder.service_error("Failed to start server because of internal error: Failed to generate profile information")
-
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, "-p", profile, "-t",
+        start_rp_process(port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(port))}))
@@ -1032,7 +1060,7 @@ def application(environ, start_response):
         return handle_upload_config_file(parameters, session, response_encoder)
 
     if path == "start_op_tester":
-        return handle_start_op_tester(session, response_encoder)
+        return handle_start_op_tester(session, response_encoder, parameters)
 
     if path == "get_redirect_url":
         return handle_get_redirect_url(session, response_encoder, parameters)
