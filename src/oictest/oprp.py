@@ -674,7 +674,9 @@ class OPRP(object):
                 except KeyError:
                     return {}
 
-            return {"Issuer": iss, "Profile": profile, "Test ID": test_id}
+            return {"Issuer": iss, "Profile": profile,
+                    "Test ID": test_id,
+                    "Test description": session["node"].desc}
 
         return {}
 
