@@ -1,6 +1,7 @@
 import json
 import time
 import traceback
+from oic.oauth2 import HTTP_ERROR
 import requests
 from subprocess import Popen, PIPE
 import sys
@@ -28,6 +29,15 @@ class Unknown(RRTestError):
     pass
 
 
+def jwt_to_dict(resp):
+    _d = {"claims": resp.to_dict()}
+    if resp.jws_header:
+        _d["jws header parameters"] = resp.jws_header
+    if resp.jwe_header:
+        _d["jwe header parameters"] = resp.jwe_header
+    return _d
+
+
 class Trace(object):
     def __init__(self):
         self.trace = []
@@ -49,24 +59,26 @@ class Trace(object):
             cl_name = ""
 
         if cl_name == "IdToken":
-            _d = {
-                "id_token": {
-                    "header parameters": resp.jwt_header,
-                    "claims": resp.to_dict()
-                }}
-            txt = json.dumps(_d, sort_keys=True, indent=2,
-                             separators=(',', ': '))
+            txt = json.dumps({"id_token": jwt_to_dict(resp)},
+                             sort_keys=True, indent=2, separators=(',', ': '))
             self.trace.append("%f %s: %s" % (delta, cl_name, txt))
         else:
             try:
-                txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
-                                 separators=(',', ': '))
+                dat = resp.to_dict()
             except AttributeError:
                 txt = resp
                 self.trace.append("%f %s" % (delta, txt))
             else:
                 if cl_name == "OpenIDSchema":
                     cl_name = "UserInfo"
+                    if resp.jws_header or resp.jwe_header:
+                        dat = jwt_to_dict(resp)
+                elif "id_token" in dat:
+                    dat["id_token"] = jwt_to_dict(resp["id_token"])
+
+                txt = json.dumps(dat, sort_keys=True, indent=2,
+                                 separators=(',', ': '))
+
                 self.trace.append("%f %s: %s" % (delta, cl_name, txt))
 
     def info(self, msg):
