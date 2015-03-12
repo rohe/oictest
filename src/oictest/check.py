@@ -1247,7 +1247,7 @@ class CheckSymSignedIdToken(Error):
         idt, _ = res[-1]
 
         try:
-            assert idt.jwt_header["alg"].startswith("HS")
+            assert idt.jws_header["alg"].startswith("HS")
         except AssertionError:
             self._status = self.status
 
@@ -1270,7 +1270,7 @@ class CheckESSignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"].startswith("ES")
+            assert idt.jws_header["alg"].startswith("ES")
         except AssertionError:
             self._status = self.status
 
@@ -1312,7 +1312,7 @@ class CheckEncryptedIDToken(Error):
         idt, _ = res[-1]
 
         try:
-            assert idt.jwt_header["alg"].startswith("RSA")
+            assert idt.jwe_header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
@@ -1336,16 +1336,15 @@ class CheckSignedEncryptedIDToken(Error):
         idt, jwt = res[-1]
 
         # encryption header
-        enc_header = unpack(jwt)[0]
         try:
-            assert enc_header["alg"] == self._kwargs["enc_alg"]
-            assert enc_header["enc"] == self._kwargs["enc_enc"]
+            assert idt.jwe_header["alg"] == self._kwargs["enc_alg"]
+            assert idt.jwe_header["enc"] == self._kwargs["enc_enc"]
         except AssertionError:
             self._status = self.status
 
         # signature header
         try:
-            assert idt.jwt_header["alg"] == self._kwargs["sign_alg"]
+            assert idt.jws_header["alg"] == self._kwargs["sign_alg"]
         except AssertionError:
             self._status = self.status
 
@@ -1699,12 +1698,12 @@ class VerifySignedIdTokenHasKID(Error):
 
         idt, _ = res[-1]
         # doesn't verify signing kid if JWT is signed and then encrypted
-        if "enc" not in idt.jwt_header:
-            if idt.jwt_header["alg"].startswith("RS"):
+        if "enc" not in idt.jws_header:
+            if idt.jws_header["alg"].startswith("RS"):
                 try:
-                    assert "kid" in idt.jwt_header
+                    assert "kid" in idt.jws_header
                 except AssertionError:
-                    self._message = "%s: header=%s" % (self.msg, idt.jwt_header)
+                    self._message = "%s: header=%s" % (self.msg, idt.jws_header)
                     self._status = self.status
 
         return {}
@@ -1726,16 +1725,16 @@ class VerifySignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"] == self._kwargs["alg"]
+            assert idt.jws_header["alg"] == self._kwargs["alg"]
         except KeyError:
             try:
-                assert idt.jwt_header["alg"] != "none"
+                assert idt.jws_header["alg"] != "none"
             except AssertionError:
                 self._status = self.status
         except AssertionError:
             self._status = self.status
         else:
-            self._message = "Signature algorithm='%s'" % idt.jwt_header["alg"]
+            self._message = "Signature algorithm='%s'" % idt.jws_header["alg"]
 
         return {}
 
@@ -1791,7 +1790,7 @@ class VerifyUnSignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"] == "none"
+            assert idt.jws_header["alg"] == "none"
         except AssertionError:
             self._status = self.status
 
@@ -2049,7 +2048,7 @@ class IsIDTokenSigned(Information):
 
         (idt, _) = res[-1]
         try:
-            self._message = "IdToken signed using alg=%s" % idt.jwt_header[
+            self._message = "IdToken signed using alg=%s" % idt.jws_header[
                 "alg"]
         except KeyError:
             self._message = "IdToken not signed"
