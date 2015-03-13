@@ -800,7 +800,7 @@ def to_profile(session, representation="list"):
     else:
         try:
             prof.append("%s" % EX[p[4]])
-        except KeyError:
+        except (KeyError, IndexError):
             pass
 
     if representation == "list":
