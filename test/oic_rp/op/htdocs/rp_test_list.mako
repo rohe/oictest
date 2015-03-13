@@ -65,13 +65,7 @@
                         </td>
                     </tr>
                 </table>
-
-                <span class="marging_text">
-                    <b>NOTE:</b> If the RP doesn't support dynamic client registration please modify the URL, read more <a href="#">here</a>
-                </span>
-
             </div>
-
         </div>
     </div>
 
