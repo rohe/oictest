@@ -339,12 +339,14 @@ FLOWS = {
                  }
              }
             ),
-            "_login_", "_accesstoken_"],
+            "_login_",
+            "_accesstoken_"],
         "profile": "..T.se.+",
         "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
                                                "enc_alg": "RSA1_5",
                                                "enc_enc": "A128CBC-HS256"},
-                  "verify-response": {"response_cls": [AuthorizationResponse]}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'OP-UserInfo-Endpoint': {
         "desc": 'UserInfo Endpoint access with GET and bearer header [Basic, Implicit, Hybrid]',
@@ -641,9 +643,9 @@ FLOWS = {
     'OP-display-popup': {
         "desc": 'Request with display=popup [Basic, Implicit, Hybrid]',
         "sequence": [
+            'note',
             '_discover_',
             '_register_',
-            'note',
             ('_login_',
              {
                  "request_args": {"display": "popup"},
@@ -731,24 +733,17 @@ FLOWS = {
             '_register_',
             "_login_",
             "_accesstoken_",
-            "cache-id_token",
-            'note',
+            #"cache-id_token",
             ('_login_', {
                 "request_args": {"prompt": "none"},
                 "function": id_token_hint}),
             "_accesstoken_",
         ],
-        "note": "This test tests what happens if the authentication request "
-                "specifies that the user should not be allowed to login and "
-                "the RP has received an ID Token at a previous login by the "
-                "user. The RP should send the ID Token to the OpenID provider "
-                "as a hint to who the user is. "
-                "Please remove any cookies you may have received from the "
-                "OpenID provider.",
         "profile": "..",
         'tests': {"same-authn": {},
-                  "verify-response": {"response_cls": [AuthorizationResponse,
-                                                 AccessTokenResponse]}},
+                  "verify-response": {
+                      "response_cls": [AuthorizationResponse,
+                                       AccessTokenResponse]}},
         "mti": {"all": "SHOULD"},
     },
     'OP-Req-login_hint': {
@@ -1431,7 +1426,8 @@ FLOWS = {
                   "check-request_uri-parameter-supported-support": {}}
     },
     'OP-request_uri-Unsigned': {
-        "desc": 'Support request_uri request parameter with unsigned request [Basic, Implicit, Hybrid, Dynamic]',
+        "desc": 'Support request_uri request parameter with unsigned request '
+                '[Basic, Implicit, Hybrid, Dynamic]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1450,6 +1446,7 @@ FLOWS = {
             })
         ],
         "profile": "...",
+        # if dynamic OP this is a MTA, test for that !?
         "tests": {"authn-response-or-error": {
             "error": ["request_uri_not_supported"]}}
     },
@@ -1609,14 +1606,20 @@ FLOWS = {
             '_register_',
             '_login_',
             "_accesstoken_",
+            "cache-id_token",
             'note',
+            '_discover_',
+            '_register_',
             ("_login_", {"function": sub_claims}),
+            "_accesstoken_",
         ],
         'note': "Have done one login to get the sub claim value, now we "
                 "want to do a fresh login using that sub value in a sub claim. "
                 "So please remove the cookie you received at the last login.",
         "profile": "....+",
-        "tests": {"verify-response": {"response_cls": [AuthorizationResponse]}}
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
+                  "verify-sub-value": {}}
     },
     # 'OP-claims-sub-none': {
     #     "desc": 'Using prompt=none with user hint through sub in request [Extra]',
@@ -1793,13 +1796,17 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
-            ("_login_", {"function": specific_acr_claims}),
+            ("_login_", {
+                "function": specific_acr_claims,
+                "support": {"error": {"acr_values_supported": ["1"]}}}),
             "_accesstoken_",
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
                   "verify-response": {
                       "response_cls": [AccessTokenResponse,
-                                       AuthorizationResponse]}}
+                                       AuthorizationResponse,
+                                       ErrorResponse],
+                      "error": ["access_denied"]}}
     },
 }
