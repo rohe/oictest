@@ -806,7 +806,13 @@ def to_profile(session, representation="list"):
     if representation == "list":
         return prof
     elif representation == "dict":
-        ret = dict([(ATTR[r], prof[r]) for r in range(0, 5)])
+        ret = {}
+        for r in range(0, 5):
+            try:
+                ret[ATTR[r]] = prof[r]
+            except IndexError:
+                break
+
         if "extras" in ret:
             ret["extras"] = True
         return ret
