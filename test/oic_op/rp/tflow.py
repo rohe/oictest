@@ -1685,7 +1685,7 @@ FLOWS = {
             '_register_',
             ("_login_", {
                 "request_args": {
-                    "scopes": ["openid", "phone"],
+                    "scope": ["openid", "phone"],
                     "claims": {
                         "id_token": {"email": {"essential": True}},
                     }},
