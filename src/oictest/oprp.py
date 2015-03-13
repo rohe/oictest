@@ -26,7 +26,6 @@ from oictest.oidcrp import test_summation
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 from oictest.prof_util import flows
-from oictest.prof_util import from_code
 
 from rrtest import Trace
 from rrtest import exception_trace
@@ -94,10 +93,11 @@ def pprint_json(json_txt):
 #         return resp(environ, start_response)
 
 
-def evaluate(session, conv):
+def evaluate(session):
     try:
         if session["node"].complete:
-            _sum = test_summation(conv, session["testid"])
+            _info = session["test_info"][session["testid"]]
+            _sum = test_summation(_info["test_output"], session["testid"])
             session["node"].state = _sum["status"]
         else:
             session["node"].state = INCOMPLETE
@@ -129,6 +129,22 @@ class OPRP(object):
     #     }
     #     return resp(self.environ, self.start_response, **argv)
         
+    @staticmethod
+    def store_test_info(session):
+        _info = {
+            "trace": session["conv"].trace,
+            "test_output": session["conv"].test_output,
+            "index": session["index"],
+            "seqlen": len(session["seq_info"]["sequence"])
+        }
+
+        try:
+            _info["node"] = session["seq_info"]["node"]
+        except KeyError:
+            pass
+
+        session["test_info"][session["testid"]] = _info
+
     def flow_list(self, session):
         resp = Response(mako_template="flowlist.mako",
                         template_lookup=self.lookup,
@@ -152,7 +168,7 @@ class OPRP(object):
         return resp(self.environ, self.start_response, **argv)
 
     def opresult(self, conv, session):
-        evaluate(session, conv)
+        evaluate(session)
         return self.flow_list(session)
 
     def opresult_fragment(self):
@@ -174,15 +190,13 @@ class OPRP(object):
                         template_lookup=self.lookup,
                         headers=[])
     
-        # self.dump_log(session, test_id=testid)
-    
         info = session["test_info"][testid]
         _pinfo = self.profile_info(session, testid)
         argv = {
             "profile": _pinfo,
             "trace": info["trace"],
             "output": info["test_output"],
-            "result": represent_result(session)
+            "result": represent_result(info, testid)
         }
     
         return resp(self.environ, self.start_response, **argv)
@@ -326,9 +340,7 @@ class OPRP(object):
         try:
             _tid = session["testid"]
             self.dump_log(session, _tid)
-            session["test_info"][_tid] = {
-                "trace": session["conv"].trace,
-                "test_output": session["conv"].test_output}
+            self.store_test_info(session, _tid)
         except KeyError:
             pass
 
@@ -447,8 +459,7 @@ class OPRP(object):
                 try:
                     kwargs = setup(_kwa, conv)
                 except NotSupported:
-                    session["test_info"][session["testid"]] = {
-                        "trace": conv.trace, "test_output": conv.test_output}
+                    self.store_test_info(session, session["testid"])
                     return self.opresult(conv, session)
                 except Exception as err:
                     return self.err_response(session, "function()", err)
@@ -606,6 +617,7 @@ class OPRP(object):
                             if isinstance(response, ErrorResponse):
                                 if expect_error["stop"]:
                                     index = len(sequence_info["sequence"])
+                                    session["index"] = index
                                     continue
 
                         trace.response(response)
@@ -629,8 +641,7 @@ class OPRP(object):
             index += 1
             _tid = session["testid"]
             self.dump_log(session, _tid)
-            session["test_info"][_tid] = {"trace": conv.trace,
-                                          "test_output": conv.test_output}
+            self.store_test_info(session)
 
         # wrap it up
         # Any after the fact tests ?
@@ -645,8 +656,7 @@ class OPRP(object):
 
         _tid = session["testid"]
         self.dump_log(session, _tid)
-        session["test_info"][_tid] = {"trace": conv.trace,
-                                      "test_output": conv.test_output}
+        self.store_test_info(session)
         session["node"].complete = True
 
         _grp = _tid.split("-")[1]
@@ -688,7 +698,8 @@ class OPRP(object):
         else:
             _pi = self.profile_info(session, test_id)
             if _pi:
-                path = log_path(session, _pi["Test ID"])
+                _tid = _pi["Test ID"]
+                path = log_path(session, _tid)
                 if not path:
                     return
 
@@ -702,7 +713,9 @@ class OPRP(object):
                 output.extend(test_output(_conv.test_output))
                 output.extend(["", sline, ""])
                 # and lastly the result
-                output.append("RESULT: %s" % represent_result(session))
+                self.store_test_info(session)
+                _info = session["test_info"][_tid]
+                output.append("RESULT: %s" % represent_result(_info, _tid))
                 output.append("")
 
                 f = open(path, "w")
@@ -820,11 +833,11 @@ def log_path(session, test_id=None):
     return "log/%s/%s/%s" % (qiss, prof, test_id)
 
 
-def represent_result(session):
-    if session["index"] + 1 < len(session["seq_info"]["sequence"]):
+def represent_result(info, tid):
+    if info["index"] + 1 < info["seqlen"]:
         return "PARTIAL RESULT"
 
-    _stat = test_summation(session["conv"], session["testid"])["status"]
+    _stat = test_summation(info["test_output"], tid)["status"]
 
     if _stat < WARNING or _stat > CRITICAL:
         text = "PASSED"
@@ -834,7 +847,7 @@ def represent_result(session):
         text = "FAILED"
 
     warnings = []
-    for item in session["conv"].test_output:
+    for item in info["test_output"]:
         if isinstance(item, tuple):
             continue
         elif item["status"] == WARNING:
@@ -842,7 +855,7 @@ def represent_result(session):
 
     if text == "PASSED":
         try:
-            text = "UNKNOWN - %s" % session["seq_info"]["node"].kwargs["result"]
+            text = "UNKNOWN - %s" % info["node"].kwargs["result"]
         except KeyError:
             pass
 
