@@ -44,22 +44,15 @@ def op_choice(base, nodes, test_info, headlines):
 <%!
 
 ICONS = [
-    ('<img src="static/beware.png">',
-    "The tests should fail with an error message from the OP."),
-    ('<img src="static/delete-icon.png">', "Somewhere in that flow you will be "
-    "asked to remove all the cookies you have received from the OP because the "
-    "test might for instance want to see the difference between two login sessions."),
-    ('<img src="static/info32.png">',
-    "Signals the fact that there are trace information available for the test"),
     ('<img src="static/black.png" alt="Black">',"The test has not be run"),
     ('<img src="static/green.png" alt="Green">',"Success"),
     ('<img src="static/yellow.png" alt="Yellow">',
     "Warning, something was not as expected"),
     ('<img src="static/red.png" alt="Red">',"Failed"),
-    ('<img src="static/greybutton" alt="Grey">', "Based on the provider info this test will probably fail"),
     ('<img src="static/qmark.jpg" alt="QuestionMark">',
     "The test flow wasn't completed. This may have been expected or not"),
-    ('<img src="static/must.jpeg">', "Mandatory to implement")
+    ('<img src="static/info32.png">',
+    "Signals the fact that there are trace information available for the test"),
     ]
 
 def legends():
