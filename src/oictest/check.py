@@ -1089,13 +1089,28 @@ class VerifyRedirectUriQueryComponent(Error):
 
     def _func(self, conv):
         item, msg = conv.protocol_response[-1]
+
         try:
-            for key, vals in self._kwargs.items():
-                assert item[key] == vals
-        except AssertionError:
-            self._message = "Query component that was part of the " \
-                            "redirect_uri is missing"
-            self._status = self.status
+            qc = conv.query_component
+        except AttributeError:
+            # If code flow
+            try:
+                for key, vals in self._kwargs.items():
+                    assert item[key] == vals
+            except (AssertionError, KeyError):
+                self._message = "Query component that was part of the " \
+                                "redirect_uri is missing"
+                self._status = self.status
+        else:
+            # If implicit or hybrid
+            qd = urlparse.parse_qs(qc)
+            try:
+                for key, val in self._kwargs.items():
+                    assert qd[key] == [val]
+            except (AssertionError, KeyError):
+                self._message = "Query component that was part of the " \
+                                "redirect_uri is missing"
+                self._status = self.status
 
         return {}
 
@@ -1819,7 +1834,7 @@ class VerifySubValue(Error):
     msg = "Unexpected sub value"
 
     def _func(self, conv):
-        _pattern = conv.client_config["sub"]
+        sub = conv.AuthorizationRequest["claims"]["id_token"]["sub"]["value"]
         res = get_id_tokens(conv)
         if not res:
             self._message = "No response to get the IdToken from"
@@ -1827,22 +1842,11 @@ class VerifySubValue(Error):
             return ()
 
         (idt, _) = res[-1]
-        atr_sub = idt["sub"]
-        for key, val in _pattern.items():
-            if key == "essential":  # doesn't really make any sense
-                pass
-            elif key == "value":
-                try:
-                    assert atr_sub == val
-                except AssertionError:
-                    self._status = self.status
-                    break
-            elif key == "values":
-                try:
-                    assert atr_sub in val
-                except AssertionError:
-                    self._status = self.status
-                    break
+        idt_sub = idt["sub"]
+        try:
+            assert idt_sub == sub
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
