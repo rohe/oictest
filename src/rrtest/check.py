@@ -499,19 +499,24 @@ class VerifyErrorMessage(ExpectedError):
     msg = "OP error"
 
     def _func(self, conv):
-        last = conv.protocol_response[-1]
+        inst, txt = conv.protocol_response[-1]
 
         try:
-            assert isinstance(last, ErrorResponse)
+            assert isinstance(inst, ErrorResponse)
         except AssertionError:
             self._message = "Expected error message"
-            self._status = ERROR
+            try:
+                self._status = self._kwargs["status"]
+            except KeyError:
+                self._status = ERROR
         else:
             try:
-                assert last["error"] in self._kwargs["error"]
+                assert inst["error"] in self._kwargs["error"]
             except AssertionError:
                 self._message = "Not an error type I expected"
                 self._status = WARNING
+            except KeyError:
+                pass
 
         return {}
 
@@ -560,14 +565,16 @@ class VerifyAuthnOrErrorResponse(ExpectedError):
                 except AssertionError:
                     self._message = "An error response I didn't expect"
                     self._status = WARNING
+                except KeyError:
+                    pass
 
         return {}
 
 
 class VerifyResponse(ExpectedError):
     """
-    Checks that the last response was a JSON encoded authentication or
-    error message
+    Checks that the last response was one of a possible set of OpenID Connect
+    Responses
     """
     cid = "verify-response"
     msg = "Expected OpenID Connect Response"
