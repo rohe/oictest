@@ -1526,7 +1526,9 @@ FLOWS = {
                  }
              }
             ),
-            ("_login_", {"kwarg_func": request_in_file})
+            ("_login_", {
+                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
         "tests": {"authn-response-or-error": {
