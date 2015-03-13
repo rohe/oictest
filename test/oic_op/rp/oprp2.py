@@ -193,11 +193,10 @@ def application(environ, start_response):
                 try:
                     qs = environ["QUERY_STRING"]
                 except KeyError:
-                    qs = ""
-                if qs:
+                    pass
+                else:
                     session["conv"].trace.response("QUERY_STRING:%s" % qs)
-                    session["conv"].info(
-                        "Didn't expect response as query parameters")
+                    session["conv"].query_component = qs
 
                 return oprp.opresult_fragment()
 
