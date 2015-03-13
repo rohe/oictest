@@ -15,7 +15,7 @@ from oictest.regalg import REGISTERED_JWE_enc_ALGORITHMS
 from rrtest import check
 from rrtest import Unknown
 
-from rrtest.check import Check, OK
+from rrtest.check import Check, OK, Warnings
 from rrtest.check import Information
 from rrtest.check import WARNING
 from rrtest.check import CONT_JSON
@@ -589,7 +589,7 @@ class CheckHasJwksURI(Error):
         return {}
 
 
-class CheckHasClaimsSupported(Error):
+class CheckHasClaimsSupported(Warnings):
     """
     Check that the claims_supported claim is in the provider_info
     """
