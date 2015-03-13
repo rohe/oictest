@@ -340,7 +340,7 @@ class OPRP(object):
         try:
             _tid = session["testid"]
             self.dump_log(session, _tid)
-            self.store_test_info(session, _tid)
+            self.store_test_info(session)
         except KeyError:
             pass
 
@@ -459,7 +459,7 @@ class OPRP(object):
                 try:
                     kwargs = setup(_kwa, conv)
                 except NotSupported:
-                    self.store_test_info(session, session["testid"])
+                    self.store_test_info(session)
                     return self.opresult(conv, session)
                 except Exception as err:
                     return self.err_response(session, "function()", err)
