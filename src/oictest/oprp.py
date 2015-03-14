@@ -477,11 +477,12 @@ class OPRP(object):
                 except KeyError:
                     pass
                 else:
-                    try:
-                        conv.test_output.append((req.request, "pre"))
-                        conv.test_sequence(_pt)
-                    except Exception as err:
-                        return self.err_response(session, "pre-test", err)
+                    if _pt:
+                        try:
+                            conv.test_output.append((req.request, "pre"))
+                            conv.test_sequence(_pt)
+                        except Exception as err:
+                            return self.err_response(session, "pre-test", err)
 
                 conv.request_spec = req
 
