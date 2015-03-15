@@ -239,7 +239,7 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         if _resp.text:
             try:
                 _response = ErrorResponse().from_json(_resp.text)
-            except MessageException:
+            except (MessageException, ValueError):
                 trace.reply("Non OIDC error message: %s" % _resp.content)
     elif _resp.status_code == 204:  # No response
         _response = Message()
