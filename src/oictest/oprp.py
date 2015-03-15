@@ -590,17 +590,17 @@ class OPRP(object):
                                 "state"]
 
                         try:
-                            try:
-                                _method = kwargs["method"]
-                            except KeyError:
-                                _method = req.method
-                            try:
-                                _ctype = kwargs["ctype"]
-                            except KeyError:
-                                _ctype = resp_c.ctype
+                            _method = kwargs["method"]
+                        except KeyError:
+                            _method = req.method
+                        try:
+                            _ctype = kwargs["ctype"]
+                        except KeyError:
+                            _ctype = resp_c.ctype
 
-                            self.dump_log(session, session["testid"])
+                        self.dump_log(session, session["testid"])
 
+                        try:
                             response = request_and_return(
                                 conv, url, trace, message_factory(
                                     resp_c.response), _method, body, _ctype,
