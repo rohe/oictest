@@ -17,7 +17,6 @@ import signal
 from dirg_util.http_util import HttpHandler
 from mako.lookup import TemplateLookup
 
-from issuer_port_database import MySqllite3Dict
 from requests.exceptions import ConnectionError
 from response_encoder import ResponseEncoder
 
@@ -28,6 +27,7 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oic.message import ProviderConfigurationResponse
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
+from port_issuer_instance_id_database import PortDatabase, NoPortAvailable
 
 LOGGER = logging.getLogger("")
 urllib3_logger = logging.getLogger('requests.packages.urllib3')
@@ -86,12 +86,12 @@ def op_config(environ, start_response):
     return resp(environ, start_response)
 
 
-def create_new_configuration_dict():
+def create_new_configuration_dict(default_static_provider_info_values=[]):
     """
     :return Returns a new configuration which follows the internal data
     structure
     """
-    static_input_fields_list = generate_static_input_fields()
+    static_input_fields_list = generate_static_input_fields(default_static_provider_info_values)
     op_configurations = {
         "fetchInfoFromServerDropDown": {
             "name": "How should the application fetch provider configurations "
@@ -156,7 +156,7 @@ def create_new_configuration_dict():
         "claimsLocales": "",
         "acrValues": "",
         "webfinger_url": "",
-        "webfinger_email": "",
+        "webfinger_email": ""
     }
     return op_configurations
 
@@ -173,7 +173,7 @@ def is_pyoidc_message_list(field_type):
     return False
 
 
-def generate_static_input_fields():
+def generate_static_input_fields(default_input_value=[]):
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
@@ -195,8 +195,11 @@ def generate_static_input_fields():
 
     for _field_label in _config_key_list:
         _field_type = _config_fields_dict[_field_label]
-        config_field = {'id': _field_label, 'label': _field_label,
-                        'values': [], 'show': False, 'required': False,
+        config_field = {'id': _field_label,
+                        'label': _field_label,
+                        'values': default_input_value,
+                        'show': False,
+                        'required': False,
                         'isList': is_pyoidc_message_list(_field_type)}
         if _field_label in required_fields:
             config_field['required'] = True
@@ -357,6 +360,13 @@ def parse_profile(profile):
 
     return response_type, crypto_feature_support
 
+
+def convert_to_gui_list(config_file_dict):
+    gui_list = []
+    for element in config_file_dict:
+        gui_list.append({"type": element, "name": element})
+
+    return gui_list
 
 def convert_config_file(config_file_dict):
     """
@@ -622,6 +632,15 @@ def generate_profile(config_gui_structure):
 class NoMatchException(Exception):
     pass
 
+def convert_to_simple_list(config_gui_structure):
+    simple_list = []
+
+    for element in config_gui_structure:
+        simple_list.append(element['name'])
+
+    return simple_list
+
+def convert_config_gui_structure(config_gui_structure):
 import ast
 
 def parse_config_string(config_string):
@@ -711,6 +730,20 @@ def handle_post_op_config(response_encoder, parameters, session):
     LOGGER.debug("Stored RP configuration in session: %s" % convert_from_unicode(session[OP_CONFIG]))
     return response_encoder.return_json({})
 
+def handle_request_instance_ids(response_encoder, parameters):
+    config_gui_structure = parameters['opConfigurations']
+    issuer = get_issuer_from_gui_config(config_gui_structure)
+    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
+    instance_ids = port_db.get_instance_ids(issuer)
+
+    existing_instance_ids = {}
+    if len(instance_ids) > 0:
+        existing_instance_ids['value'] = instance_ids[0]
+
+    existing_instance_ids['values'] = convert_to_gui_list(instance_ids)
+
+    return response_encoder.return_json(json.dumps(existing_instance_ids))
+
 
 def handle_does_op_config_exist(session, response_encoder):
     """
@@ -751,7 +784,7 @@ def get_default_client():
 
 
 def get_base_url(port):
-    return 'https://%s:%d/' % (CONF.HOST, port)
+    return 'https://%s:%d/' % (CONF.HOST, int(port))
 
 #TODO throws an unhandled exception if swedish chars is used.
 def convert_from_unicode(data):
@@ -790,44 +823,8 @@ def create_module_string(client_config, port):
         port) + "\nBASE =\'" + str(base) + "\'\nCLIENT = " + str(_client)
 
 
-class NoPortAvailable(Exception):
-    pass
-
-
-def get_next_free_port(existing_ports, max_port, min_port):
-    port = min_port
-    while port in existing_ports:
-        port += 1
-    if port > max_port:
-        raise NoPortAvailable(
-            "No port is available at the moment, please try again later")
-    return port
-
-
-def create_config_file(port, rp_config_folder):
-    with open(rp_config_folder + "rp_conf_" + str(port) + ".py",
-              "w") as config_file:
-        config_file.write("")
-        config_file.close()
-        return config_file, port
-
-
-def save_empty_config_file(min_port, max_port):
-    rp_config_folder = CONF.OPRP_DIR_PATH
-
-    if not os.path.exists(rp_config_folder):
-        os.makedirs(rp_config_folder)
-
-    existing_ports = []
-
-    for filename in os.listdir(rp_config_folder):
-        if filename.startswith("rp_conf"):
-            port_as_string = filename.split("_")[2].split(".")[0]
-            existing_ports.append(int(port_as_string))
-
-    port = get_next_free_port(existing_ports, max_port, min_port)
-
-    return create_config_file(port, rp_config_folder)
+def get_config_file_path(port, rp_config_folder):
+    return rp_config_folder + "rp_conf_" + str(port) + ".py"
 
 
 class NoResponseException(Exception):
@@ -878,9 +875,6 @@ def start_rp_process(port, command, working_directory=None):
         raise NoResponseException(
             "RP (%s) failed to start" % get_base_url(port))
 
-
-config_tread_lock = threading.Lock()
-
 def get_oprp_pid(port):
     pid = None
     p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
@@ -902,7 +896,7 @@ def kill_existing_process_on_port(port):
             os.kill(pid, signal.SIGKILL)
             LOGGER.debug("Killed RP running on port %s" % port)
         except OSError as ex:
-            LOGGER.error("Failed to kill process (%s) connected to the server %s" % pid, get_base_url(port))
+            LOGGER.error("Failed to kill process (%s) connected to the server %s" % (pid, get_base_url(port)))
             raise
 
 
@@ -913,6 +907,28 @@ def write_config_file(config_file_name, config_module):
 def is_using_dynamic_client_registration(config_gui_structure):
     return config_gui_structure['dynamicClientRegistrationDropDown']['value'] == "yes"
 
+def get_issuer_from_config_file(config_file):
+    try:
+        return config_file['srv_discovery_url']
+    except KeyError:
+        return config_file['provider_info']['issuer']
+
+def find_static_provider_info_field(input_fields, fields_id):
+    for input_field in input_fields:
+        if input_field['id'] == fields_id:
+            return input_field
+
+
+def get_issuer_from_gui_config(gui_config):
+    dynamic_disco_issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
+
+    if dynamic_disco_issuer != '':
+        return dynamic_disco_issuer
+    else:
+        input_fields = gui_config['fetchStaticProviderInfo']['input_fields']
+        issuer_field = find_static_provider_info_field(input_fields, "issuer")
+        return issuer_field['values']
+
 def handle_start_op_tester(session, response_encoder, parameters):
 
     config_gui_structure = parameters['op_configurations']
@@ -920,30 +936,33 @@ def handle_start_op_tester(session, response_encoder, parameters):
 
     if is_using_dynamic_client_registration(config_gui_structure):
         try:
-            config_file, port = allocate_dynamic_port(session)
+            issuer = get_issuer_from_config_file(_config)
+            port = allocate_dynamic_port(issuer, parameters['oprp_instance_id'])
         except NoPortAvailable:
             pass
     else:
-        config_file, port = create_config_file(session['port'],
-                                               CONF.OPRP_DIR_PATH)
+        port = session['port']
 
     if not port:
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
+    config_file_path = get_config_file_path(port,
+                                     CONF.OPRP_DIR_PATH)
+
     session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port)
     config_module = create_module_string(session[OP_CONFIG], port)
 
     try:
-        write_config_file(config_file.name, config_module)
-        LOGGER.debug("Written configuration to file: %s" % config_file.name)
+        write_config_file(config_file_path, config_module)
+        LOGGER.debug("Written configuration to file: %s" % config_file_path)
     except IOError as ioe:
         LOGGER.exception(str(ioe))
-        response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file.name)
+        response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
 
     kill_existing_process_on_port(port)
 
-    config_file_name = os.path.basename(config_file.name)
+    config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
     try:
@@ -956,30 +975,24 @@ def handle_start_op_tester(session, response_encoder, parameters):
         return response_encoder.service_error(ex.message)
 
 
-def allocate_dynamic_port(session):
-    try:
-        return session["config_file"], session["dynamic_port"]
-    except KeyError:
-        pass
-
-    with config_tread_lock:
-        config_file, port = save_empty_config_file(CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
-                                                   CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MAX)
-        session["dynamic_port"] = port
-        session["config_file"] = config_file
-        return config_file, port
+def get_port_from_database(issuer, instance_id, min_port, max_port, port_type):
+    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
+    return port_db.enter_row(issuer, instance_id, port_type, min_port, max_port)
 
 
-def allocate_static_port(issuer):
-    with config_tread_lock:
-        static_ports_db = MySqllite3Dict(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
+def allocate_dynamic_port(issuer, oprp_instance_id):
+    return get_port_from_database(issuer,
+                                  oprp_instance_id,
+                                  CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
+                                  CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MAX,
+                                  PortDatabase.DYNAMIC_PORT_TYPE)
 
-        stored_ports = static_ports_db.keys()
-        port = get_next_free_port(stored_ports, CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MAX,
-                                  CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MIN)
-
-        static_ports_db[port] = issuer
-        return port
+def allocate_static_port(issuer, oprp_instance_id):
+    return get_port_from_database(issuer,
+                                  oprp_instance_id,
+                                  CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
+                                  CONF.STATIC_CLIENT_REGISTRATION_PORT_RANGE_MAX,
+                                  PortDatabase.STATIC_PORT_TYPE)
 
 
 def handle_create_new_config_file(response_encoder, session):
@@ -987,23 +1000,19 @@ def handle_create_new_config_file(response_encoder, session):
     return response_encoder.return_json("{}")
 
 
+def get_existing_port(issuer, static_ports_db):
+    for port in static_ports_db.keys():
+        if static_ports_db[port] == issuer:
+            return port
+    return None
+
+
 def handle_get_redirect_url(session, response_encoder, parameters):
-    issuer = parameters['issuer']
-    static_ports_db = MySqllite3Dict(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
-
-    port = None
-
-    if issuer not in static_ports_db.values():
-        try:
-            port = allocate_static_port(issuer)
-        except NoPortAvailable as ex:
-            LOGGER.fatal(ex.message)
-            return response_encoder.service_error(ex.message)
-
-    if not port:
-        for port in static_ports_db.keys():
-            if static_ports_db[port] == issuer:
-                break
+    try:
+        port = allocate_static_port(parameters['issuer'], parameters["oprp_instance_id"])
+    except NoPortAvailable as ex:
+        LOGGER.fatal(ex.message)
+        return response_encoder.service_error(ex.message)
 
     session['port'] = port
 
@@ -1064,6 +1073,9 @@ def application(environ, start_response):
 
     if path == "get_redirect_url":
         return handle_get_redirect_url(session, response_encoder, parameters)
+
+    if path == "request_instance_ids":
+        return handle_request_instance_ids(response_encoder, parameters)
 
     return http_helper.http404()
 

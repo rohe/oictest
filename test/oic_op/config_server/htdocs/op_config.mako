@@ -58,18 +58,28 @@
 
         <ul class="nav nav-tabs" ng-show="opConfig">
             <li role="presentation"
-                ng-class="{'active': !contains_redirect_url}">
+                ng-class="{'active': provider_tab_visible,
+                           'disabled': true}">
 
-                <a ng-click="goToPrevious()">
+                <a>
                     Provider configuration
                 </a>
             </li>
 
             <li role="presentation"
-                ng-class="{'active': contains_redirect_url,
-                           'disabled': dynamic_disco_form.$invalid || !contains_required_provider_info()}">
+                ng-class="{'active': test_instance_tab_visible,
+                           'disabled': true}">
 
-                <a ng-click="getRedirectUrl()">
+                <a>
+                    Test instance configuration
+                </a>
+            </li>
+
+            <li role="presentation"
+                ng-class="{'active': client_tab_visible,
+                           'disabled': true}">
+
+                <a>
                     Client configuration
                 </a>
             </li>
@@ -78,7 +88,7 @@
         <!-- HIDE EVERY THING UNDER THIS LINE UNTIL DATA IS STORED IN THE SESSION -->
         <!-- ################################################################################################# -->
         <div ng-show="opConfig" class="infoBlock">
-            <div ng-show="!contains_redirect_url">
+            <div ng-show="provider_tab_visible">
                 <h3>
                     Provider configuration:
                 </h3>
@@ -86,6 +96,7 @@
                 <span>
                     {{opConfig.fetchInfoFromServerDropDown.name}}
                 </span>
+
 
                 <select ng-model="opConfig.fetchInfoFromServerDropDown.value"
                         ng-options="v.type as v.name for v in opConfig.fetchInfoFromServerDropDown.values"
@@ -185,23 +196,74 @@
                 </button>
 
                 <button class="btn btn-primary btn-sm"
-                        ng-click="getRedirectUrl()"
+                        ng-click="request_instance_ids()"
                         ng-disabled="dynamic_disco_form.$invalid || !contains_required_provider_info()">
                     Next
                 </button>
             </div>
-
             <!-- ################################################################################################# -->
-            <div ng-show="contains_redirect_url">
+            <div ng-show="test_instance_tab_visible">
+
+                The application supports up to five test tool instances connected to the same issuer. The test tool
+                instances are separated by an id chosen by the user.
+                <br>
+                <br>
+                <form>
+                    <div class="row">
+                        <div class="col-sm-3">
+                            <input type="radio" ng-model="instance_type.value" value="{{NEW_INSTANCE_ID}}">
+                            Create new test tool instance id:
+                        </div>
+
+                        <div class="input-group col-sm-4">
+                            <input type="text"
+                                   class="form-control"
+                                   ng-model="new_instance_id"
+                                   ng-disabled="instance_type.value == EXISTING_INSTANCE_ID||
+                                                existing_instance_ids.values.length >= 5">
+                        </div>
+                        <span class="requiredText"
+                              ng-show="existing_instance_ids.values.length >= 5">
+                            Maximum number of test instances reached
+                        </span>
+
+                    </div>
+
+                    <input type="radio" ng-model="instance_type.value" value="{{EXISTING_INSTANCE_ID}}">
+                    Select test instance you want to overwrite
+
+                    <select ng-model="existing_instance_ids.value"
+                            ng-options="v.type as v.name for v in existing_instance_ids.values"
+                            ng-disabled="instance_type.value == NEW_INSTANCE_ID">
+                    </select>
+                </form>
+
+                <br>
+                <button class="btn btn-primary btn-sm"
+                        ng-click="show_provider_config()">
+                    Previous
+                </button>
+
+                <button class="btn btn-primary btn-sm"
+                        ng-click="show_client_config()"
+                        ng-disabled="(instance_type.value == EXISTING_INSTANCE_ID &&
+                                      existing_instance_ids.values.length == 0)||
+                                     (instance_type.value == NEW_INSTANCE_ID &&
+                                      new_instance_id == '')">
+                    Next
+                </button>
+            </div>
+            <!-- ################################################################################################# -->
+            <div ng-show="client_tab_visible">
                 <h3>
                     Client configuration:
                 </h3>
 
                 <div class="row">
                     <div class="col-sm-12">
-                    <span>
-                        {{opConfig.dynamicClientRegistrationDropDown.label}}
-                    </span>
+                        <span>
+                            {{opConfig.dynamicClientRegistrationDropDown.label}}
+                        </span>
                         <select ng-model="opConfig.dynamicClientRegistrationDropDown.value"
                                 ng-options="v.type as v.name for v in opConfig.dynamicClientRegistrationDropDown.values">
                         </select>
@@ -408,11 +470,13 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-sm" ng-click="goToPrevious()">
+                <button class="btn btn-primary btn-sm" ng-click="show_test_instance_config()">
                     Previous
                 </button>
 
-                <button class="btn btn-primary btn-sm" ng-click="saveConfigurations()">
+                <button class="btn btn-primary btn-sm"
+                        ng-click="saveConfigurations()"
+                        ng-disabled="!containsRequiredClientInfo()">
                     Submit
                 </button>
 

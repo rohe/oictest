@@ -195,6 +195,10 @@ def request_in_file(args, conv, kwargs):
 
 def sub_claims(request_args, conv, kwargs):
     res = get_id_tokens(conv)
+    try:
+        res.extend(conv.cache["id_token"])
+    except (KeyError, ValueError):
+        pass
     idt, _ = res[-1]
     _sub = idt["sub"]
     request_args["claims"] = {"id_token": {"sub": {"value": _sub}}}

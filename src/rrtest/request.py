@@ -4,7 +4,7 @@ import urllib
 
 from oic.oauth2 import URL_ENCODED
 from oic.oauth2 import Message
-from oic.oic import AuthorizationRequest
+from oic.oauth2 import AuthorizationRequest
 from oictest.check import CheckEndpoint
 
 __author__ = 'rolandh'
@@ -105,7 +105,8 @@ class Request(object):
             #     if val is None:
             #         del cis[key]
 
-            if request == AuthorizationRequest:
+            if isinstance(request,
+                          AuthorizationRequest) and "acr_values" not in cis:
                 try:
                     cis['acr_values'] = client.behaviour['default_acr_values']
                 except KeyError:

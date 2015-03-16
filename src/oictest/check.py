@@ -15,7 +15,7 @@ from oictest.regalg import REGISTERED_JWE_enc_ALGORITHMS
 from rrtest import check
 from rrtest import Unknown
 
-from rrtest.check import Check, OK
+from rrtest.check import Check, OK, Warnings
 from rrtest.check import Information
 from rrtest.check import WARNING
 from rrtest.check import CONT_JSON
@@ -589,7 +589,7 @@ class CheckHasJwksURI(Error):
         return {}
 
 
-class CheckHasClaimsSupported(Error):
+class CheckHasClaimsSupported(Warnings):
     """
     Check that the claims_supported claim is in the provider_info
     """
@@ -1089,13 +1089,28 @@ class VerifyRedirectUriQueryComponent(Error):
 
     def _func(self, conv):
         item, msg = conv.protocol_response[-1]
+
         try:
-            for key, vals in self._kwargs.items():
-                assert item[key] == vals
-        except AssertionError:
-            self._message = "Query component that was part of the " \
-                            "redirect_uri is missing"
-            self._status = self.status
+            qc = conv.query_component
+        except AttributeError:
+            # If code flow
+            try:
+                for key, vals in self._kwargs.items():
+                    assert item[key] == vals
+            except (AssertionError, KeyError):
+                self._message = "Query component that was part of the " \
+                                "redirect_uri is missing"
+                self._status = self.status
+        else:
+            # If implicit or hybrid
+            qd = urlparse.parse_qs(qc)
+            try:
+                for key, val in self._kwargs.items():
+                    assert qd[key] == [val]
+            except (AssertionError, KeyError):
+                self._message = "Query component that was part of the " \
+                                "redirect_uri is missing"
+                self._status = self.status
 
         return {}
 
@@ -1247,7 +1262,7 @@ class CheckSymSignedIdToken(Error):
         idt, _ = res[-1]
 
         try:
-            assert idt.jwt_header["alg"].startswith("HS")
+            assert idt.jws_header["alg"].startswith("HS")
         except AssertionError:
             self._status = self.status
 
@@ -1270,7 +1285,7 @@ class CheckESSignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"].startswith("ES")
+            assert idt.jws_header["alg"].startswith("ES")
         except AssertionError:
             self._status = self.status
 
@@ -1312,7 +1327,7 @@ class CheckEncryptedIDToken(Error):
         idt, _ = res[-1]
 
         try:
-            assert idt.jwt_header["alg"].startswith("RSA")
+            assert idt.jwe_header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
@@ -1336,16 +1351,15 @@ class CheckSignedEncryptedIDToken(Error):
         idt, jwt = res[-1]
 
         # encryption header
-        enc_header = unpack(jwt)[0]
         try:
-            assert enc_header["alg"] == self._kwargs["enc_alg"]
-            assert enc_header["enc"] == self._kwargs["enc_enc"]
+            assert idt.jwe_header["alg"] == self._kwargs["enc_alg"]
+            assert idt.jwe_header["enc"] == self._kwargs["enc_enc"]
         except AssertionError:
             self._status = self.status
 
         # signature header
         try:
-            assert idt.jwt_header["alg"] == self._kwargs["sign_alg"]
+            assert idt.jws_header["alg"] == self._kwargs["sign_alg"]
         except AssertionError:
             self._status = self.status
 
@@ -1699,12 +1713,12 @@ class VerifySignedIdTokenHasKID(Error):
 
         idt, _ = res[-1]
         # doesn't verify signing kid if JWT is signed and then encrypted
-        if "enc" not in idt.jwt_header:
-            if idt.jwt_header["alg"].startswith("RS"):
+        if "enc" not in idt.jws_header:
+            if idt.jws_header["alg"].startswith("RS"):
                 try:
-                    assert "kid" in idt.jwt_header
+                    assert "kid" in idt.jws_header
                 except AssertionError:
-                    self._message = "%s: header=%s" % (self.msg, idt.jwt_header)
+                    self._message = "%s: header=%s" % (self.msg, idt.jws_header)
                     self._status = self.status
 
         return {}
@@ -1726,16 +1740,16 @@ class VerifySignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"] == self._kwargs["alg"]
+            assert idt.jws_header["alg"] == self._kwargs["alg"]
         except KeyError:
             try:
-                assert idt.jwt_header["alg"] != "none"
+                assert idt.jws_header["alg"] != "none"
             except AssertionError:
                 self._status = self.status
         except AssertionError:
             self._status = self.status
         else:
-            self._message = "Signature algorithm='%s'" % idt.jwt_header["alg"]
+            self._message = "Signature algorithm='%s'" % idt.jws_header["alg"]
 
         return {}
 
@@ -1791,7 +1805,7 @@ class VerifyUnSignedIdToken(Error):
 
         idt, _ = res[-1]
         try:
-            assert idt.jwt_header["alg"] == "none"
+            assert idt.jws_header["alg"] == "none"
         except AssertionError:
             self._status = self.status
 
@@ -1820,7 +1834,7 @@ class VerifySubValue(Error):
     msg = "Unexpected sub value"
 
     def _func(self, conv):
-        _pattern = conv.client_config["sub"]
+        sub = conv.AuthorizationRequest["claims"]["id_token"]["sub"]["value"]
         res = get_id_tokens(conv)
         if not res:
             self._message = "No response to get the IdToken from"
@@ -1828,22 +1842,11 @@ class VerifySubValue(Error):
             return ()
 
         (idt, _) = res[-1]
-        atr_sub = idt["sub"]
-        for key, val in _pattern.items():
-            if key == "essential":  # doesn't really make any sense
-                pass
-            elif key == "value":
-                try:
-                    assert atr_sub == val
-                except AssertionError:
-                    self._status = self.status
-                    break
-            elif key == "values":
-                try:
-                    assert atr_sub in val
-                except AssertionError:
-                    self._status = self.status
-                    break
+        idt_sub = idt["sub"]
+        try:
+            assert idt_sub == sub
+        except AssertionError:
+            self._status = self.status
 
         return {}
 
@@ -2049,7 +2052,7 @@ class IsIDTokenSigned(Information):
 
         (idt, _) = res[-1]
         try:
-            self._message = "IdToken signed using alg=%s" % idt.jwt_header[
+            self._message = "IdToken signed using alg=%s" % idt.jws_header[
                 "alg"]
         except KeyError:
             self._message = "IdToken not signed"
