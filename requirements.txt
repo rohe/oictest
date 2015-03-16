@@ -4,3 +4,5 @@ mechanize>=0.2.6.dev-20121117
 oic==0.7.1
 pyjwkest==0.6.1
 pycparser==2.10
+dataset
+prettytable
