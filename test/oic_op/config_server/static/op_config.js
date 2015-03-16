@@ -26,12 +26,16 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/does_op_config_exist");
         },
 
-        startOpTester: function () {
-            return $http.get("/start_op_tester");
+        startOpTester: function (oprp_instance_id) {
+            return $http.post("/start_op_tester", {"oprp_instance_id": oprp_instance_id});
         },
 
-        getRedirectUrl: function (issuer) {
-            return $http.post("/get_redirect_url", {"issuer": issuer});
+        getRedirectUrl: function (issuer, oprp_instance_id) {
+            return $http.post("/get_redirect_url", {"issuer": issuer, "oprp_instance_id": oprp_instance_id});
+        },
+
+        request_instance_ids: function (opConfigurations) {
+            return $http.post("/request_instance_ids", {"opConfigurations": opConfigurations});
         }
     };
 });
@@ -48,6 +52,13 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         'CRITICAL': {value: 4, string: 'CRITICAL'},
         'INTERACTION': {value: 5, string: 'INTERACTION'},
         'EMPTY_STATUS': {value: 6, string: 'EMPTY_STATUS'}
+    };
+
+    $scope.NEW_INSTANCE_ID="new";
+    $scope.EXISTING_INSTANCE_ID="existing";
+
+    $scope.instance_type = {
+        value: $scope.NEW_INSTANCE_ID
     };
 
     /**
@@ -149,8 +160,51 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         }
     }
 
-    $scope.goToPrevious = function () {
-        $scope.contains_redirect_url = false;
+    function clear_tabs(){
+        $scope.provider_tab_visible = false;
+        $scope.test_instance_tab_visible = false;
+        $scope.client_tab_visible = false;
+    }
+
+    $scope.provider_tab_visible = true;
+    $scope.test_instance_tab_visible = false;
+    $scope.client_tab_visible = false;
+
+    $scope.show_provider_config = function () {
+        clear_tabs();
+        $scope.provider_tab_visible = true;
+    };
+
+    $scope.show_test_instance_config = function () {
+        clear_tabs();
+        $scope.test_instance_tab_visible = true;
+    };
+
+    function get_instance_id(){
+        if ($scope.instance_type.value == $scope.NEW_INSTANCE_ID){
+            return $scope.new_instance_id
+        }
+        else{
+            return $scope.existing_instance_ids.value
+        }
+    }
+
+    $scope.show_client_config = function () {
+        var instance_id = get_instance_id();
+        get_redirect_url(instance_id);
+        clear_tabs();
+        $scope.client_tab_visible = true;
+    };
+
+    $scope.existing_instance_ids = {};
+
+    function request_instance_ids_success_callback(data, status, headers, config) {
+        $scope.existing_instance_ids = data;
+        $scope.show_test_instance_config()
+    }
+
+    $scope.request_instance_ids = function(){
+        opConfigurationFactory.request_instance_ids($scope.opConfig).success(request_instance_ids_success_callback).error(errorCallback);
     };
 
     function setRedirectUrl(redirectUrl) {
@@ -252,7 +306,8 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         $scope.opConfig.subClaim.splice(index, 1);
     };
 
-    $scope.staticProviderInfoElement = {'value': ''};
+
+    $scope.new_instance_id = "";
 
     $scope.addStaticProviderInfoElement = function (input_field_id) {
         selected_input = $('#input_' + input_field_id);
@@ -297,10 +352,9 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * Checks if the user has entered all the required information.
      * @returns {boolean} - Returns true if required input fields are not empty else false
      */
-    function containsRequiredClientInfo() {
+    $scope.containsRequiredClientInfo = function() {
         if ($scope.opConfig['dynamicClientRegistrationDropDown']['value'] == "no") {
             if (!hasEnteredClientIdAndClientSecret()) {
-                showMissingRequiredInfoError("client")
                 return false
             }
         }
@@ -311,7 +365,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * Sends the configuration file to the server
      */
     $scope.saveConfigurations = function () {
-        if ($scope.contains_required_provider_info() && containsRequiredClientInfo()) {
+        if ($scope.contains_required_provider_info() && $scope.containsRequiredClientInfo()) {
             bootbox.dialog({
                 message: "The configuration information will now be stored on the server. Do you want to continue?",
                 title: "Configuration successfully stored",
@@ -359,7 +413,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                     label: "Yes",
                     className: "btn-primary",
                     callback: function () {
-                        opConfigurationFactory.startOpTester().success(startOpTesterSuccessCallback).error(errorCallback);
+                        opConfigurationFactory.startOpTester(get_instance_id()).success(startOpTesterSuccessCallback).error(errorCallback);
                         $scope.$apply();
                     }
                 }
@@ -430,23 +484,6 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         opConfigurationFactory.doesConfigFileExist().success(doesConfigFileExistSuccessCallback).error(errorCallback);
     };
 
-    function showMissingRequiredInfoError(infoType, emptyRequiredInfoFields) {
-        var errorText = "<p>In order to go to continue you need to enter all the required " + infoType + " information.</p>";
-
-        if (typeof emptyRequiredInfoFields !== "undefined" && emptyRequiredInfoFields.length > 0) {
-            errorText += "<p> Missing required fields: </p>";
-
-            for (var i = 0; i < emptyRequiredInfoFields.length; i++) {
-                errorText += "<li>" + emptyRequiredInfoFields[i] + "</li>"
-            }
-        }
-        bootbox.alert(errorText);
-    }
-
-    $scope.is_invalid = function () {
-        return true;
-    };
-
     $scope.contains_required_provider_info = function() {
         var provider_discovery = $scope.opConfig.fetchInfoFromServerDropDown.value;
 
@@ -494,8 +531,8 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         return issuer
     }
 
-    $scope.getRedirectUrl = function () {
-        opConfigurationFactory.getRedirectUrl(get_issuer()).success(getRedirectUrlSuccessCallback).error(errorCallback);
+    function get_redirect_url(instance_id) {
+        opConfigurationFactory.getRedirectUrl(get_issuer(), instance_id).success(getRedirectUrlSuccessCallback).error(errorCallback);
     }
 
 });
