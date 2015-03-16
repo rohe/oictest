@@ -30,7 +30,11 @@ DESC = {
 FLOWS = {
     'GSMA-Response-code': {
         "desc": 'Request with response_type=code',
-        "sequence": ['_discover_', "_register_", "_login_"],
+        "sequence": [
+            '_discover_',
+            "_register_",
+            "_login_"
+        ],
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"}
@@ -42,7 +46,7 @@ FLOWS = {
             '_register_',
             'note',
             ('_login_', {
-                "request_args": {"response_type": []},
+                "request_args": {"acr_values": ["2"], "response_type": []},
             })
         ],
         "tests": {
@@ -93,8 +97,11 @@ FLOWS = {
         "desc": 'End-to-end test case to include all the mandatory parameter '
                 'in the authorization request and receive authorization code '
                 'as well as ID Token and Access Token',
-        "sequence": ['_discover_', "_register_",
-                     "_login_", '_accesstoken_'],
+        "sequence": [
+            '_discover_',
+            "_register_",
+            ("_login_", {"request_args": {"acr_values": ["3"]}}),
+            '_accesstoken_'],
         "profile": "..",
         'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
                                                        AccessTokenResponse]}},

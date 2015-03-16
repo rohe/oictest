@@ -22,7 +22,9 @@ from oic.oic.message import RegistrationResponse
 from message import factory
 
 from oictest.oidcrp import request_and_return
-from oictest.oprp import OPRP, CRYPTSUPPORT, run_func
+from oictest.oprp import OPRP
+from oictest.oprp import CRYPTSUPPORT
+from oictest.oprp import run_func
 from oictest.oprp import endpoint_support
 from oictest.oprp import post_tests
 from oictest.oprp import NotSupported
@@ -40,7 +42,6 @@ LOGGER = logging.getLogger("")
 
 
 class GSMAoprp(OPRP):
-
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
             session["index"] = index
@@ -54,7 +55,7 @@ class GSMAoprp(OPRP):
                     return ret
             else:
                 try:
-                    kwargs = setup(_kwa, conv, session)
+                    kwargs = setup(_kwa, conv)
                 except NotSupported:
                     return self.opresult(conv, session)
                 except Exception as err:
@@ -73,7 +74,7 @@ class GSMAoprp(OPRP):
                 conv.request_spec = req
 
                 conv.trace.info("------------ %s ------------" % req_c.request)
-                if req_c in Discover:
+                if req_c == Discover:
                     # Special since it's just a GET on a URL
                     _r = req.discover(
                         ots.client,
@@ -125,7 +126,10 @@ class GSMAoprp(OPRP):
                         # New state for each request
                         kwargs["request_args"].update({"state": rndstr(),
                                                        "nonce": rndstr()})
-
+                        if "acr_values" not in kwargs["request_args"]:
+                            kwargs["request_args"][
+                                "acr_values"] = ots.config.CLIENT[
+                                "behaviour"]["default_acr_values"]
                         try:
                             kwargs["request_args"] = run_func(
                                 kwargs["filter"], conv, kwargs["request_args"])
@@ -268,7 +272,7 @@ def application(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
     LOGGER.info("path: %s" % path)
 
-    oprp = OPRP(**RP_ARGS)
+    oprp = GSMAoprp(**RP_ARGS)
 
     oprp.environ = environ
     oprp.start_response = start_response
