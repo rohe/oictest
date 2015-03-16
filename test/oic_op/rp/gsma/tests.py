@@ -103,7 +103,7 @@ FLOWS = {
         # RS256 is MTI
         "desc": "Verify that 2 RPs don't get the same sub",
         "sequence": ['_discover_', "_register_", "_login_", '_accesstoken_',
-                     "_register_", "_login", "_accesstoken_"],
+                     "_register_", "_login_", "_accesstoken_"],
         "profile": "..",
         "tests": {"check-http-response": {},
                   "verify-response": {"response_cls": [AuthorizationResponse,
