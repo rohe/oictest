@@ -59,17 +59,6 @@ FLOWS = {
         "profile": "..",
         "mti": {"all": "MUST"}
     },
-    "GSMA-acr_values-1": {
-        "desc": 'Request with acr_values=["1"]',
-        "sequence": [
-            '_discover_',
-            "_register_",
-            ("_login_", {"request_args": {"acr_values": ["1"]}})
-        ],
-        "profile": "..",
-        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
-        "mti": {"all": "MUST"}
-    },
     "GSMA-acr_values-2": {
         "desc": 'Request with acr_values=["2"]',
         "sequence": [
