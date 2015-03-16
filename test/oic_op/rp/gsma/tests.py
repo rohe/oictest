@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from oic.oauth2 import ErrorResponse
+from oic.oic import AccessTokenResponse
+from oic.oic import AuthorizationResponse
+from oic.oic import OpenIDSchema
 from rrtest.status import ERROR
 from rrtest.status import WARNING
 from oictest.testfunc import id_token_hint
@@ -26,7 +30,11 @@ DESC = {
 FLOWS = {
     'GSMA-Response-code': {
         "desc": 'Request with response_type=code',
-        "sequence": ['_discover_', "_register_", "_login_"],
+        "sequence": [
+            '_discover_',
+            "_register_",
+            "_login_"
+        ],
         "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "MUST"}
@@ -38,7 +46,7 @@ FLOWS = {
             '_register_',
             'note',
             ('_login_', {
-                "request_args": {"response_type": []},
+                "request_args": {"acr_values": ["2"], "response_type": []},
             })
         ],
         "tests": {
@@ -51,17 +59,6 @@ FLOWS = {
         "profile": "..",
         "mti": {"all": "MUST"}
     },
-    "GSMA-acr_values-1": {
-        "desc": 'Request with acr_values=["1"]',
-        "sequence": [
-            '_discover_',
-            "_register_",
-            ("_login_", {"request_args": {"acr_values": ["1"]}})
-        ],
-        "profile": "..",
-        'tests': {"check-http-response": {}},
-        "mti": {"all": "MUST"}
-    },
     "GSMA-acr_values-2": {
         "desc": 'Request with acr_values=["2"]',
         "sequence": [
@@ -70,7 +67,7 @@ FLOWS = {
             ("_login_", {"request_args": {"acr_values": ["2"]}})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "MUST"}
     },
     "GSMA-acr_values-3": {
@@ -81,7 +78,7 @@ FLOWS = {
             ("_login_", {"request_args": {"acr_values": ["3"]}})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "MUST"}
     },
     'GSMA-IDToken-basic': {
@@ -89,18 +86,24 @@ FLOWS = {
         "desc": 'End-to-end test case to include all the mandatory parameter '
                 'in the authorization request and receive authorization code '
                 'as well as ID Token and Access Token',
-        "sequence": ['_discover_', "_register_",
-                     "_login_", '_accesstoken_'],
+        "sequence": [
+            '_discover_',
+            "_register_",
+            ("_login_", {"request_args": {"acr_values": ["3"]}}),
+            '_accesstoken_'],
         "profile": "..",
-        "tests": {"check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}},
     },
     'GSMA-IDToken-different-sub': {
         # RS256 is MTI
         "desc": "Verify that 2 RPs don't get the same sub",
         "sequence": ['_discover_', "_register_", "_login_", '_accesstoken_',
-                     "_register_", "_login", "_accesstoken_"],
+                     "_register_", "_login_", "_accesstoken_"],
         "profile": "..",
         "tests": {"check-http-response": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
                   "verify-different-sub": {}}
     },
     'GSMA-IDToken-Signature': {
@@ -113,7 +116,8 @@ FLOWS = {
             '_accesstoken_'],
         "profile": "..",
         "tests": {"is-idtoken-signed": {"alg": "RS256"},
-                  "check-http-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-IDToken-kid': {
         "desc": 'IDToken has kid',
@@ -121,7 +125,8 @@ FLOWS = {
         "mti": {"all": "MUST"},
         "profile": "..",
         "tests": {"verify-signed-idtoken-has-kid": {},
-                  "check-http-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-IDToken-max_age=1': {
         "desc": 'Requesting ID Token with max_age=1 seconds Restriction',
@@ -139,7 +144,8 @@ FLOWS = {
                 "The result should be that you have to re-authenticate",
         "profile": "..",
         "tests": {"multiple-sign-on": {},
-                  "check-http-response": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"},
@@ -158,7 +164,8 @@ FLOWS = {
         ],
         "profile": "..",
         "tests": {"same-authn": {},
-                  "check-http-response": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"}
@@ -168,13 +175,18 @@ FLOWS = {
                 'from Authorization Endpoint',
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": {"all": "MUST"},
-        "test": {'verify-athash': {}, "check-http-response": {}},
+        "test": {'verify-athash': {},
+                 "verify-response": {"response_cls": [AuthorizationResponse,
+                                                      AccessTokenResponse]}},
         "profile": "IT,CIT..",
     },
     'GSMA-IDToken-nonce': {
         "desc": 'Request with nonce, verifies it was returned in id_token',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
-        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
+        "tests": {
+            "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
+            'check-idtoken-nonce': {}},
         "profile": "..",
         "mti": {"all": "MUST"}
     },
@@ -187,7 +199,8 @@ FLOWS = {
             "_login_", "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
-                  "check-http-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-IDToken-ES256': {
         "desc": 'Asymmetric ID Token signature with ES256',
@@ -198,7 +211,8 @@ FLOWS = {
             "_login_", "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
-                  "check-http-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-IDToken-SigEnc': {
         "desc": 'Signed and encrypted ID Token',
@@ -225,7 +239,8 @@ FLOWS = {
         "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
                                                "enc_alg": "RSA1_5",
                                                "enc_enc": "A128CBC-HS256"},
-                  "check-http-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-scope-profile': {
         "desc": 'Scope Requesting profile Claims',
@@ -245,7 +260,8 @@ FLOWS = {
         ],
         "profile": "..",
         "mti": {"all": "No err"},
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-claims": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}}
     },
     'GSMA-scope-email': {
         "desc": 'Scope Requesting email Claims',
@@ -265,7 +281,8 @@ FLOWS = {
         ],
         "profile": "..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-claims": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}}
     },
     'GSMA-scope-address': {
         "desc": 'Scope Requesting address Claims',
@@ -285,7 +302,8 @@ FLOWS = {
         ],
         "profile": "..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-claims": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}}
     },
     'GSMA-scope-phone': {
         "desc": 'Scope Requesting phone Claims',
@@ -305,7 +323,8 @@ FLOWS = {
         ],
         "profile": "..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-claims": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}}
     },
     'GSMA-scope-All': {
         "desc": 'Scope Requesting all Claims',
@@ -328,7 +347,9 @@ FLOWS = {
         ],
         "profile": "..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-claims": {},
+                  "check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}}
     },
     'GSMA-display-page': {
         "desc": 'Request with display=page',
@@ -346,7 +367,7 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get the normal User Agent page view.",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
     },
     'GSMA-display-popup': {
@@ -366,7 +387,8 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get a popup User Agent window",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}},
         "mti": {"all": "No err"}
     },
     'GSMA-prompt-login': {
@@ -382,7 +404,9 @@ FLOWS = {
         ],
         "note": "You should get a request for re-authentication",
         "profile": "..",
-        'tests': {"multiple-sign-on": {}, "check-http-response": {}},
+        'tests': {"multiple-sign-on": {},
+                  "verify-response": {"response_cls": [AccessTokenResponse,
+                                                       AuthorizationResponse]}},
         "mti": {"all": "MUST"},
         # "result": "The test passed if you were prompted to log in"
     },
@@ -417,7 +441,9 @@ FLOWS = {
             '_accesstoken_'
         ],
         "mti": {"all": "MUST"},
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {},
+                  "verify-response": {"response_cls": [AccessTokenResponse,
+                                                       AuthorizationResponse]}},
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
     },
@@ -429,7 +455,7 @@ FLOWS = {
             ('_login_', {"function": (rm, {"args": ["state"]})})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "mti": {"all": "MUST"},
     },
     'GSMA-Req-No-nonce': {
@@ -440,7 +466,7 @@ FLOWS = {
             ('_login_', {"function": (rm, {"args": ["nonce"]})})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "mti": {"all": "MUST"},
     },
     'GSMA-Req-No-acr_values': {
@@ -451,7 +477,7 @@ FLOWS = {
             ('_login_', {"function": (rm, {"args": ["acr_values"]})})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "mti": {"all": "MUST"},
     },
     'GSMA-Req-No-redirect_uri': {
@@ -462,7 +488,7 @@ FLOWS = {
             ('_login_', {"function": (rm, {"args": ["redirect_uri"]})})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "mti": {"all": "MUST"},
     },
     'GSMA-Req-extra-parameter': {
@@ -473,7 +499,7 @@ FLOWS = {
             ('_login_', {"request_args": {"extra": "foobar"}})
         ],
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "MUST"},
     },
     'GSMA-Req-id_token_hint': {
@@ -500,7 +526,9 @@ FLOWS = {
                 "Please remove any cookies you may have received from the "
                 "OpenID provider.",
         "profile": "..",
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}},
         "mti": {"all": "SHOULD"},
     },
     'GSMA-Req-login_hint': {
@@ -515,7 +543,7 @@ FLOWS = {
                 "provider. We are simulating that you want to log in as "
                 "a specific user. So a fresh log-in page is needed.",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"},
         "result": "You should be requested to log in as a predefined user"
     },
@@ -534,7 +562,7 @@ FLOWS = {
                 "The use of this parameter in the request must not cause an "
                 "error at the OP",
         "profile": "..",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
     },
     'GSMA-Req-acr_values': {
@@ -548,7 +576,9 @@ FLOWS = {
         ],
         "mti": {"all": "No err"},
         "profile": "..",
-        'tests': {"used-acr-value": {}, "check-http-response": {}}
+        'tests': {"used-acr-value": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'GSMA-OAuth-2nd': {
         "desc": 'Trying to use access code twice should result in an error',

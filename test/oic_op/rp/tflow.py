@@ -1,4 +1,8 @@
 #!/usr/bin/env python
+from oic.oauth2 import ErrorResponse
+from oic.oic import AccessTokenResponse
+from oic.oic import AuthorizationResponse
+from oic.oic import OpenIDSchema
 from rrtest.status import ERROR
 from rrtest.status import WARNING
 from oictest.testfunc import store_sector_redirect_uris
@@ -56,14 +60,68 @@ DESC = {
 
 FLOWS = {
     'OP-Response-code': {
-        "desc": 'Request with response_type=code',
+        "desc": 'Request with response_type=code [Basic]',
         "sequence": ['_discover_', "_register_", "_login_"],
         "profile": "C..",
         'tests': {"verify-authn-response": {}},
         "mti": {"all": "MUST"}
     },
+    'OP-Response-id_token': {
+        "desc": 'Request with response_type=id_token [Implicit]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ("_login_", {
+                "request_args": {"response_type": ["id_token"]}
+            }),
+        ],
+        "profile": "I..",
+        'tests': {"verify-authn-response": {}},
+        "mti": {"dynamic": "MUST"},
+        # "tests": {"check-authorization-response": {}},
+    },
+    'OP-Response-id_token+token': {
+        "desc": 'Request with response_type=id_token token [Implicit]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_',
+             {"request_args": {"response_type": ["id_token", "token"]}})
+        ],
+        "profile": "IT..",
+        'tests': {"verify-authn-response": {}},
+        "mti": {"dynamic": "MUST"}
+    },
+    'OP-Response-code+id_token': {
+        "desc": 'Request with response_type=code id_token [Hybrid]',
+        "sequence": ['_discover_', '_register_', '_login_'],
+        "tests": {"verify-authn-response": {}, 'check-idtoken-nonce': {}},
+        "profile": "CI..",
+    },
+    'OP-Response-code+token': {
+        "desc": 'Request with response_type=code token [Hybrid]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_',
+             {"request_args": {"response_type": ["code", "token"]}})
+        ],
+        "profile": "CT..",
+        'tests': {"verify-authn-response": {}},
+    },
+    'OP-Response-code+id_token+token': {
+        "desc": 'Request with response_type=code id_token token [Hybrid]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_',
+             {"request_args": {"response_type": ["code", "id_token", "token"]}})
+        ],
+        "profile": "CIT..",
+        'tests': {"verify-authn-response": {}},
+    },
     'OP-Response-Missing': {
-        "desc": 'Authorization request missing the response_type parameter',
+        "desc": 'Authorization request missing the response_type parameter [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -82,62 +140,8 @@ FLOWS = {
         "profile": "..",
         "mti": {"all": "MUST"}
     },
-    'OP-Response-id_token': {
-        "desc": 'Request with response_type=id_token',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ("_login_", {
-                "request_args": {"response_type": ["id_token"]}
-            }),
-        ],
-        "profile": "I..",
-        'tests': {"verify-authn-response": {}},
-        "mti": {"dynamic": "MUST"},
-        # "tests": {"check-authorization-response": {}},
-    },
-    'OP-Response-id_token+token': {
-        "desc": 'Request with response_type=id_token token',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_',
-             {"request_args": {"response_type": ["id_token", "token"]}})
-        ],
-        "profile": "IT..",
-        'tests': {"verify-authn-response": {}},
-        "mti": {"dynamic": "MUST"}
-    },
-    'OP-Response-code+id_token': {
-        "desc": 'Request with response_type=code id_token',
-        "sequence": ['_discover_', '_register_', '_login_'],
-        "tests": {"verify-authn-response": {}, 'check-idtoken-nonce': {}},
-        "profile": "CI..",
-    },
-    'OP-Response-code+token': {
-        "desc": 'Request with response_type=code token',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_',
-             {"request_args": {"response_type": ["code", "token"]}})
-        ],
-        "profile": "CT..",
-        'tests': {"verify-authn-response": {}},
-    },
-    'OP-Response-code+id_token+token': {
-        "desc": 'Request with response_type=code id_token token',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_',
-             {"request_args": {"response_type": ["code", "id_token", "token"]}})
-        ],
-        "profile": "CIT..",
-        'tests': {"verify-authn-response": {}},
-    },
     'OP-Response-form_post': {
-        "desc": 'Request with response_mode=form_post',
+        "desc": 'Request with response_mode=form_post [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -148,7 +152,7 @@ FLOWS = {
         'tests': {"verify-authn-response": {}},
     },
     'OP-IDToken-RS256': {
-        "desc": 'Asymmetric ID Token signature with rs256',
+        "desc": 'Asymmetric ID Token signature with RS256 [Dynamic]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -157,30 +161,35 @@ FLOWS = {
         "profile": "..T.s",
         "mti": {"all": "MUST"},
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"},
-                  "verify-authn-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-Signature': {
         # RS256 is MTI
-        "desc": 'If left to itself is the OP signing the ID Token and with '
-                'what',
+        "desc": 'Does the OP sign the ID Token and with what [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             "_login_",
             '_accesstoken_'],
         "profile": "..F",
         "tests": {"is-idtoken-signed": {"alg": "RS256"},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-kid': {
-        "desc": 'IDToken has kid',
+        "desc": 'IDToken has kid [Basic, Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', "_login_", "_accesstoken_"],
         "mti": {"all": "MUST"},
         "profile": "...s",
         "tests": {"verify-signed-idtoken-has-kid": {},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-nonce-code': {
-        "desc": 'ID Token has nonce when requested for code flow',
+        "desc": 'ID Token has nonce when requested for code flow [Basic]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -188,10 +197,13 @@ FLOWS = {
             '_accesstoken_'],
         "mti": {"all": "MUST"},
         "profile": "C..",
-        "tests": {"verify-nonce": {}, "check-http-response": {}}
+        "tests": {"verify-nonce": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-max_age=1': {
-        "desc": 'Requesting ID Token with max_age=1 seconds Restriction',
+        "desc": 'Requesting ID Token with max_age=1 seconds restriction [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -206,14 +218,16 @@ FLOWS = {
                 "The result should be that you have to re-authenticate",
         "profile": "..",
         "tests": {"multiple-sign-on": {},
-                  "check-http-response": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"},
         "result": "The test passed if you were prompted to log in"
     },
     'OP-IDToken-max_age=1000': {
-        "desc": 'Requesting ID Token with max_age=1000 seconds Restriction',
+        "desc": 'Requesting ID Token with max_age=1000 seconds restriction [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -225,13 +239,15 @@ FLOWS = {
         ],
         "profile": "..",
         "tests": {"same-authn": {},
-                  "check-http-response": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]},
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"}
     },
     'OP-IDToken-none': {
-        "desc": 'Unsecured ID Token signature with none',
+        "desc": 'Unsecured ID Token signature with none [Basic]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -245,34 +261,38 @@ FLOWS = {
             "_login_",
             "_accesstoken_"
         ],
-        "tests": {"unsigned-idtoken": {}, "check-http-response": {}},
+        "tests": {"unsigned-idtoken": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}},
         "profile": "C.T.T.n",
     },
     'OP-IDToken-at_hash': {
-        "desc": 'ID Token has at_hash when ID Token and Access Token returned '
-                'from Authorization Endpoint',
+        "desc": 'ID Token has at_hash when ID Token and Access Token returned from Authorization Endpoint [Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_'],
         "mti": {"all": "MUST"},
         "test": {"verify-authn-response": {}},
         "profile": "IT,CIT..",
     },
     'OP-IDToken-c_hash': {
-        "desc": 'ID Token has c_hash when ID Token and Authorization Code '
-                'returned from Authorization Endpoint',
+        "desc": 'ID Token has c_hash when ID Token and Authorization Code returned from Authorization Endpoint [Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_'],
         "tests": {"verify-authn-response": {}},
         "profile": "CI,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-IDToken-nonce-noncode': {
-        "desc": 'Request with nonce, verifies it was returned in id_token',
+        "desc": 'Request with nonce, verifies it was returned in ID Token [Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
-        "tests": {"check-http-response": {}, 'check-idtoken-nonce': {}},
+        "tests": {'check-idtoken-nonce': {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}},
         "profile": "I,IT,CI,CT,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-IDToken-HS256': {
-        "desc": 'Symmetric ID Token signature with HS256',
+        "desc": 'Symmetric ID Token signature with HS256 [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -281,10 +301,12 @@ FLOWS = {
             "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-ES256': {
-        "desc": 'Asymmetric ID Token signature with ES256',
+        "desc": 'Asymmetric ID Token signature with ES256 [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -293,10 +315,12 @@ FLOWS = {
             "_accesstoken_"],
         "profile": "..T.s",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-IDToken-SigEnc': {
-        "desc": 'Signed and encrypted ID Token',
+        "desc": 'Signed and encrypted ID Token [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -315,15 +339,17 @@ FLOWS = {
                  }
              }
             ),
-            "_login_", "_accesstoken_"],
+            "_login_",
+            "_accesstoken_"],
         "profile": "..T.se.+",
         "tests": {"signed-encrypted-idtoken": {"sign_alg": "RS256",
                                                "enc_alg": "RSA1_5",
                                                "enc_enc": "A128CBC-HS256"},
-                  "verify-authn-response": {}}
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]}}
     },
     'OP-UserInfo-Endpoint': {
-        "desc": 'UserInfo Endpoint Access with GET and bearer_header',
+        "desc": 'UserInfo Endpoint access with GET and bearer header [Basic, Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_',
                      "_accesstoken_",
                      ("userinfo",
@@ -332,11 +358,12 @@ FLOWS = {
                           "method": "GET"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}},
         "mti": {"all": "SHOULD"}
     },
     'OP-UserInfo-Header': {
-        "desc": 'UserInfo Endpoint Access with POST and bearer_header',
+        "desc": 'UserInfo Endpoint access with POST and bearer header [Basic, Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_',
                      "_accesstoken_",
                      ("userinfo",
@@ -345,10 +372,11 @@ FLOWS = {
                           "method": "POST"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-UserInfo-Body': {
-        "desc": 'UserInfo Endpoint Access with POST and bearer_body',
+        "desc": 'UserInfo Endpoint access with POST and bearer body [Basic, Implicit, Hybrid]',
         "sequence": ['_discover_', '_register_', '_login_',
                      "_accesstoken_",
                      ("userinfo",
@@ -357,11 +385,11 @@ FLOWS = {
                           "method": "POST"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {}},
+        'tests': {"check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-UserInfo-RS256': {
-        "desc": 'RP registers userinfo_signed_response_alg to signal that it '
-                'wants signed UserInfo returned',
+        "desc": 'RP registers userinfo_signed_response_alg to signal that it wants signed UserInfo returned [Dynamic]',
         "sequence": ['_discover_',
                      ("oic-registration",
                       {
@@ -382,12 +410,13 @@ FLOWS = {
                           "ctype": "jwt"
                       })],
         "tests": {"asym-signed-userinfo": {"alg": "RS256"},
-                  "check-http-response": {}},
+                  "check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}},
         "profile": "C,IT,CI,CT,CIT..T.s",
         "mti": {"all": "MUST"}
     },
     'OP-UserInfo-Enc': {
-        "desc": 'Can Provide Encrypted UserInfo Response',
+        "desc": 'Can provide encrypted UserInfo response [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -415,10 +444,12 @@ FLOWS = {
              })
         ],
         "profile": "C,IT,CI,CT,CIT...e.+",
-        "tests": {"encrypted-userinfo": {}, "check-http-response": {}},
+        "tests": {"encrypted-userinfo": {},
+                  "check-http-response": {},
+                  "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-UserInfo-SigEnc': {
-        "desc": 'Can Provide Signed and Encrypted UserInfo Response',
+        "desc": 'Can provide signed and encrypted UserInfo response [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -449,32 +480,36 @@ FLOWS = {
         "tests": {
             "encrypted-userinfo": {},
             "asym-signed-userinfo": {"alg": "RS256"},
-            "check-http-response": {}},
+            "check-http-response": {},
+            "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-nonce-NoReq-code': {
-        "desc": 'Login no nonce, code flow',
+        "desc": 'Login no nonce, code flow [Basic]',
         "sequence": [
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
         "profile": "C,CT..",
-        'tests': {"verify-authn-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "MUST"}
     },
     'OP-nonce-NoReq-noncode': {
-        "desc": 'Reject requests without nonce unless using the code flow',
+        "desc": 'Reject requests without nonce unless using the code flow [Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
-        "tests": {"verify-error": {"error": ["invalid_request"]}},
+        "tests": {
+            "verify-response": {
+                "error": ["invalid_request"],
+                "response_cls": [ErrorResponse]}},
         "profile": "I,IT..",
         "mti": {"all": "MUST"}
     },
     'OP-scope-profile': {
-        "desc": 'Scope Requesting profile Claims',
+        "desc": 'Scope requesting profile claims [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -491,10 +526,12 @@ FLOWS = {
         ],
         "profile": "C,IT,CT,CI,CIT..",
         "mti": {"all": "No err"},
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
+                  "verify-claims": {},
+                  "check-http-response": {}}
     },
     'OP-scope-email': {
-        "desc": 'Scope Requesting email Claims',
+        "desc": 'Scope requesting email claims [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -511,10 +548,12 @@ FLOWS = {
         ],
         "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
+                  "verify-claims": {},
+                  "check-http-response": {}}
     },
     'OP-scope-address': {
-        "desc": 'Scope Requesting address Claims',
+        "desc": 'Scope requesting address claims [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -531,10 +570,12 @@ FLOWS = {
         ],
         "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
+                  "verify-claims": {},
+                  "check-http-response": {}}
     },
     'OP-scope-phone': {
-        "desc": 'Scope Requesting phone Claims',
+        "desc": 'Scope requesting phone claims [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -551,10 +592,12 @@ FLOWS = {
         ],
         "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
+                  "verify-claims": {},
+                  "check-http-response": {}}
     },
     'OP-scope-All': {
-        "desc": 'Scope Requesting all Claims',
+        "desc": 'Scope requesting all Claims [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -574,10 +617,12 @@ FLOWS = {
         ],
         "profile": "C,IT,CT,CI,CIT..",
         "mti": "No err",
-        'tests': {"verify-claims": {}, "check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
+                  "verify-claims": {},
+                  "check-http-response": {}}
     },
     'OP-display-page': {
-        "desc": 'Request with display=page',
+        "desc": 'Request with display=page [Basic, Implicit, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -592,15 +637,15 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get the normal User Agent page view.",
         "profile": "..",
-        'tests': {"verify-authn-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
     },
     'OP-display-popup': {
-        "desc": 'Request with display=popup',
+        "desc": 'Request with display=popup [Basic, Implicit, Hybrid]',
         "sequence": [
+            'note',
             '_discover_',
             '_register_',
-            'note',
             ('_login_',
              {
                  "request_args": {"display": "popup"},
@@ -611,11 +656,11 @@ FLOWS = {
                 "you have received from the OpenID Provider. "
                 "You should get a popup User Agent window now",
         "profile": "..",
-        'tests': {"verify-authn-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
     },
     'OP-prompt-login': {
-        "desc": 'Request with prompt=login',
+        "desc": 'Request with prompt=login [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -627,12 +672,15 @@ FLOWS = {
         ],
         "note": "You should get a request for re-authentication",
         "profile": "..",
-        'tests': {"multiple-sign-on": {}, "check-http-response": {}},
+        'tests': {
+            "multiple-sign-on": {},
+            "verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
         "mti": {"all": "MUST"},
         # "result": "The test passed if you were prompted to log in"
     },
     'OP-prompt-none-NotLoggedIn': {
-        "desc": 'Request with prompt=none when not logged in',
+        "desc": 'Request with prompt=none when not logged in [Basic, Implicit, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -651,7 +699,7 @@ FLOWS = {
                       "session_selection_required", "consent_required"]}},
     },
     'OP-prompt-none-LoggedIn': {
-        "desc": 'Request with prompt=none when logged in',
+        "desc": 'Request with prompt=none when logged in [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -661,12 +709,14 @@ FLOWS = {
             '_accesstoken_'
         ],
         "mti": {"all": "MUST"},
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
         "profile": "..",
         "result": "The test passed if you were not prompted to log in"
     },
     'OP-Req-NotUnderstood': {
-        "desc": 'Request with extra query component',
+        "desc": 'Request with extra query component [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -677,32 +727,27 @@ FLOWS = {
         "mti": {"all": "MUST"},
     },
     'OP-Req-id_token_hint': {
-        "desc": 'Using prompt=none with user hint through id_token_hint',
+        "desc": 'Using prompt=none with user hint through id_token_hint [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
             "_login_",
             "_accesstoken_",
-            "cache-id_token",
-            'note',
+            #"cache-id_token",
             ('_login_', {
                 "request_args": {"prompt": "none"},
                 "function": id_token_hint}),
             "_accesstoken_",
         ],
-        "note": "This test tests what happens if the authentication request "
-                "specifies that the user should not be allowed to login and "
-                "the RP has received an ID Token at a previous login by the "
-                "user. The RP should send the ID Token to the OpenID provider "
-                "as a hint to who the user is. "
-                "Please remove any cookies you may have received from the "
-                "OpenID provider.",
         "profile": "..",
-        'tests': {"same-authn": {}, "check-http-response": {}},
+        'tests': {"same-authn": {},
+                  "verify-response": {
+                      "response_cls": [AuthorizationResponse,
+                                       AccessTokenResponse]}},
         "mti": {"all": "SHOULD"},
     },
     'OP-Req-login_hint': {
-        "desc": 'Providing login_hint',
+        "desc": 'Providing login_hint [Basic, Implicit, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -718,7 +763,7 @@ FLOWS = {
         "result": "You should be requested to log in as a predefined user"
     },
     'OP-Req-ui_locales': {
-        "desc": 'Providing ui_locales',
+        "desc": 'Providing ui_locales [Basic, Implicit, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -736,7 +781,7 @@ FLOWS = {
         "mti": {"all": "No err"}
     },
     'OP-Req-claims_locales': {
-        "desc": 'Providing claims_locales',
+        "desc": 'Providing claims_locales [Basic, Implicit, Hybrid]',
         "sequence": [
             "note",
             '_discover_',
@@ -754,7 +799,7 @@ FLOWS = {
         "mti": {"all": "No err"}
     },
     'OP-Req-acr_values': {
-        "desc": 'Providing acr_values',
+        "desc": 'Providing acr_values [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -764,10 +809,12 @@ FLOWS = {
         ],
         "mti": {"all": "No err"},
         "profile": "..",
-        'tests': {"used-acr-value": {}, "check-http-response": {}}
+        'tests': {"used-acr-value": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}}
     },
     'OP-OAuth-2nd': {
-        "desc": 'Trying to use access code twice should result in an error',
+        "desc": 'Trying to use access code twice should result in an error [Basic, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -782,8 +829,7 @@ FLOWS = {
                      "#section-4.1",
     },
     'OP-OAuth-2nd-Revokes': {
-        "desc": 'Trying to use access code twice should result in '
-                'revoking previous issued tokens',
+        "desc": 'Trying to use access code twice should result in revoking previous issued tokens [Basic, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -800,8 +846,7 @@ FLOWS = {
                      "#section-4.1",
     },
     'OP-OAuth-2nd-30s': {
-        "desc": 'Trying to use access code twice with 30 seconds in between '
-                'must result in an error',
+        "desc": 'Trying to use access code twice with 30 seconds in between must result in an error [Basic, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -820,7 +865,7 @@ FLOWS = {
                      "#section-4.1",
     },
     'OP-redirect_uri-NotReg': {
-        "desc": 'The sent redirect_uri does not match the registered',
+        "desc": 'Sent redirect_uri does not match a registered redirect_uri [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -834,7 +879,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Missing': {
-        "desc": 'Reject request without redirect_uri when multiple registered',
+        "desc": 'Reject request without redirect_uri when multiple registered [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_', {"function": multiple_return_uris}),
@@ -848,7 +893,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Query': {
-        "desc": 'Request with redirect_uri with query component',
+        "desc": 'Request with redirect_uri with query component [Dynamic]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -861,7 +906,7 @@ FLOWS = {
                   "verify-authn-response": {}}
     },
     'OP-redirect_uri-RegQuery': {
-        "desc": 'Registration where a redirect_uri has a query component',
+        "desc": 'Registration where a redirect_uri has a query component [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -875,7 +920,7 @@ FLOWS = {
         'tests': {"check-http-response": {}},
     },
     'OP-redirect_uri-BadQuery': {
-        "desc": 'Rejects redirect_uri when Query Parameter Does Not Match',
+        "desc": 'Rejects redirect_uri when query parameter does not match [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -895,7 +940,7 @@ FLOWS = {
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-RegFrag': {
-        "desc": 'Reject registration where a redirect_uri has a fragment',
+        "desc": 'Reject registration where a redirect_uri has a fragment [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_', {
@@ -908,7 +953,7 @@ FLOWS = {
                      "#section-3.1.2",
     },
     'OP-redirect_uri-MissingOK': {
-        "desc": 'No redirect_uri in request with one registered',
+        "desc": 'No redirect_uri in request with one registered [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -919,7 +964,7 @@ FLOWS = {
         'tests': {"verify-authn-response": {}},
     },
     'OP-ClientAuth-Basic-Dynamic': {
-        "desc": 'Access token request with client_secret_basic authentication',
+        "desc": 'Access token request with client_secret_basic authentication [Basic, Hybrid]',
         # Register token_endpoint_auth_method=client_secret_basic
         "sequence": [
             '_discover_',
@@ -939,10 +984,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..T",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-ClientAuth-Basic-Static': {
-        "desc": 'Access token request with client_secret_basic authentication',
+        "desc": 'Access token request with client_secret_basic authentication [Basic, Hybrid]',
         # client_secret_basic is the default
         "sequence": [
             '_discover_',
@@ -957,10 +1003,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..F",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-ClientAuth-SecretPost-Dynamic': {
-        "desc": 'Access token request with client_secret_post authentication',
+        "desc": 'Access token request with client_secret_post authentication [Basic, Hybrid]',
         # Should register token_endpoint_auth_method=client_secret_post
         "sequence": [
             '_discover_',
@@ -980,10 +1027,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..T",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-ClientAuth-SecretPost-Static': {
-        "desc": 'Access token request with client_secret_post authentication',
+        "desc": 'Access token request with client_secret_post authentication [Basic, Hybrid]',
         # Should register token_endpoint_auth_method=client_secret_post
         "sequence": [
             '_discover_',
@@ -998,10 +1046,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CIT,CT..F",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-ClientAuth-PublicJWT': {
-        "desc": 'Access token request with private_key_jwt authentication',
+        "desc": 'Access token request with private_key_jwt authentication [Extra]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1020,10 +1069,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT...s.+",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-ClientAuth-SecretJWT': {
-        "desc": 'Access token request with client_secret_jwt authentication',
+        "desc": 'Access token request with client_secret_jwt authentication [Extra]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1042,17 +1092,18 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT...s.+",
-        'tests': {"check-http-response": {}},
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-Discovery-Config': {
-        "desc": 'Publish openid-configuration discovery information',
+        "desc": 'Publish openid-configuration discovery information [Config, Dynamic]',
         "sequence": ['_discover_'],
         "profile": ".T.",
         'tests': {"check-http-response": {}},
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-Values': {
-        "desc": 'Verify that jwks_uri and claims_supported are published',
+        "desc": 'Verify that jwks_uri and claims_supported are published [Config, Dynamic]',
         "sequence": ['_discover_'],
         "tests": {"providerinfo-has-jwks_uri": {},
                   "providerinfo-has-claims_supported": {},
@@ -1062,7 +1113,7 @@ FLOWS = {
         "mti": {"Dynamic": "SHOULD"}
     },
     'OP-Discovery-JWKs': {
-        "desc": 'Keys in OP JWKs well formed',
+        "desc": 'Keys in OP JWKs well formed [Config, Dynamic]',
         "sequence": ['_discover_'],
         "profile": ".T.",
         "tests": {"verify-base64url": {"err_status": ERROR},
@@ -1070,7 +1121,7 @@ FLOWS = {
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-WebFinger-Email': {
-        "desc": 'Can Discover Identifiers using E-Mail Syntax',
+        "desc": 'Can Discover Identifiers using E-Mail Syntax [Dynamic]',
         "profile": ".T...+",
         "sequence": [
             ("webfinger",
@@ -1078,7 +1129,7 @@ FLOWS = {
         "tests": {},
     },
     'OP-Discovery-WebFinger': {
-        "desc": 'Can Discover Identifiers using URL Syntax',
+        "desc": 'Can Discover Identifiers using URL Syntax [Dynamic]',
         "profile": ".T...+",
         "sequence": [
             ("webfinger",
@@ -1086,14 +1137,14 @@ FLOWS = {
         "tests": {},
     },
     'OP-Registration-Endpoint': {
-        "desc": 'Verify that registration_endpoint is published',
+        "desc": 'Verify that registration_endpoint is published [Dynamic]',
         "sequence": ['_discover_'],
         "profile": ".T.T",
         "tests": {"verify-op-has-registration-endpoint": {}},
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Registration-Dynamic': {
-        "desc": 'Client registration Request',
+        "desc": 'Client registration request [Dynamic]',
         "sequence": [
             '_discover_',
             "_register_"
@@ -1103,49 +1154,52 @@ FLOWS = {
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Registration-policy_uri': {
-        "desc": 'Registration with policy_uri',
+        "desc": 'Registration with policy_uri [Dynamic]',
         "sequence": [
             'note',
-            "rm_cookie",
             '_discover_',
             ('oic-registration', {"function": policy_uri}),
             "_login_"
         ],
         "profile": "..T",
-        'note': "When you get the login page this time you should have a "
-                "link to the client policy",
-        "tests": {"check-http-response": {}},
+        'note': "This test wants to verify that an OP can display a link "
+                "to the clients policy document. To make sure you get a fresh "
+                "login page you need to remove cookies you have received "
+                "from the OP",
+        "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-logo_uri': {
-        "desc": 'Registration with logo_uri',
+        "desc": 'Registration with logo_uri [Dynamic]',
         "sequence": [
             'note',
-            "rm_cookie",
             '_discover_',
             ('oic-registration', {"function": logo_uri}),
             "_login_"
         ],
         "profile": "..T",
-        'note': "When you get the login page this time you should have the "
-                "clients logo on the page",
+        'note': "This test wants to verify that an OP can display the client "
+                "logo. To make sure you get a fresh "
+                "login page you need to remove cookies you have received "
+                "from the OP",
         "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-tos_uri': {
-        "desc": 'Registration with tos_uri',
+        "desc": 'Registration with tos_uri [Dynamic]',
         "sequence": [
             'note',
-            'rm_cookie',
             '_discover_',
             ('oic-registration', {"function": tos_uri}),
             '_login_'
         ],
         "profile": "..T",
-        'note': "When you get the login page this time you should have a "
-                "link to the clients Terms of Service",
+        'note': "This test wants to verify that an OP can display a link "
+                "to the clients Terms of Service. To make sure you get a fresh "
+                "login page you need to remove cookies you have received "
+                "from the OP",
         "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-jwks': {
-        "desc": 'Uses Keys Registered with jwks Value',
+        "desc": 'Uses keys registered with jwks value [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1165,10 +1219,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT..T",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-Registration-jwks_uri': {
-        "desc": 'Uses Keys Registered with jwks_uri Value',
+        "desc": 'Uses keys registered with jwks_uri value [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1185,10 +1240,11 @@ FLOWS = {
              }),
         ],
         "profile": "C,CI,CT,CIT..T",
-        'tests': {"check-http-response": {}}
+        'tests': {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}}
     },
     'OP-Registration-Sector-Bad': {
-        "desc": 'Incorrect registration of sector_identifier_uri',
+        "desc": 'Incorrect registration of sector_identifier_uri [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1205,7 +1261,7 @@ FLOWS = {
                   "verify-bad-request-response": {}},
     },
     'OP-Registration-Read': {
-        "desc": 'Registering and then read the client info',
+        "desc": 'Registering and then reading the registered client metadata [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1215,7 +1271,7 @@ FLOWS = {
         "tests": {"check-http-response": {}},
     },
     'OP-Registration-Sub-Public': {
-        "desc": 'Registration of wish for public sub',
+        "desc": 'Registration of wish for public sub [Extra]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1227,10 +1283,11 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-Registration-Sub-Pairwise': {
-        "desc": 'Registration of wish for pairwise sub',
+        "desc": 'Registration of wish for pairwise sub [Extra]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1242,10 +1299,11 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        "tests": {"check-http-response": {}},
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}},
     },
     'OP-Registration-Sub-Differ': {
-        "desc": 'Public and pairwise sub values differ',
+        "desc": 'Public and pairwise sub values differ [Extra]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1264,10 +1322,12 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "..T..+",
-        'tests': {"different_sub": {}, "check-http-response": {}}
+        'tests': {"different_sub": {},
+                  "verify-response": {"response_cls": [AuthorizationResponse,
+                                                 AccessTokenResponse]}}
     },
     'OP-Rollover-OP-Sig': {
-        "desc": "Can Rollover OP Signing Key",
+        "desc": 'Can rollover OP signing key [Config, Dynamic]',
         "sequence": [
             '_discover_',
             'fetch_keys',
@@ -1284,8 +1344,7 @@ FLOWS = {
         "tests": {"new-signing-keys": {}, "check-http-response": {}}
     },
     'OP-Rollover-RP-Sig': {
-        "desc": 'Request access token, change RSA signing key and request another '
-                'access token',
+        "desc": 'Request access token, change RSA signing key and request another access token [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -1311,7 +1370,7 @@ FLOWS = {
         "tests": {"check-http-response": {}}
     },
     'OP-Rollover-OP-Enc': {
-        "desc": "Can Rollover OP Encryption Key",
+        "desc": 'Can rollover OP encryption key [Extra]',
         "sequence": [
             '_discover_',
             'fetch_keys',
@@ -1329,8 +1388,7 @@ FLOWS = {
     },
     'OP-Rollover-RP-Enc': {
         # where is the RPs encryption keys used => userinfo encryption
-        "desc": 'Request encrypted user info, change RSA enc key and request '
-                'UserInfo again',
+        "desc": 'Request encrypted UserInfo, change RSA enc key and request UserInfo again [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -1359,7 +1417,7 @@ FLOWS = {
         "tests": {"check-http-response": {}}
     },
     'OP-request_uri-Support': {
-        "desc": 'Support request_uri Request Parameter',
+        "desc": 'Support request_uri request parameter [Dynamic]',
         "sequence": [
             '_discover_',
         ],
@@ -1368,7 +1426,8 @@ FLOWS = {
                   "check-request_uri-parameter-supported-support": {}}
     },
     'OP-request_uri-Unsigned': {
-        "desc": 'Support request_uri Request Parameter with unSigned Request',
+        "desc": 'Support request_uri request parameter with unsigned request '
+                '[Basic, Implicit, Hybrid, Dynamic]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1384,14 +1443,15 @@ FLOWS = {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export",
                                "algorithm": "none"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
             })
         ],
-        "profile": "...n",
-        "tests": {"verify-authn-response": {}}
+        "profile": "...",
+        # if dynamic OP this is a MTA, test for that !?
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-Sig': {
-        "desc": 'Support request_uri Request Parameter with Signed Request',
+        "desc": 'Support request_uri request parameter with signed request [Dynamic]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1407,13 +1467,14 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_parameter_supported": True}}})
+            })
         ],
         "profile": "..T.s",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-Enc': {
-        "desc": 'Support request_uri Request Parameter with Encrypted Request',
+        "desc": 'Support request_uri request parameter with encrypted request [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -1437,15 +1498,14 @@ FLOWS = {
             ("_login_", {
                 "kwargs_mod": {"request_method": "file", "local_dir": "export"},
                 "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
             })
         ],
         "profile": "..T.se.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request_uri-SigEnc': {
-        "desc": 'Support request_uri Request Parameter with Signed and '
-                'Encrypted Request',
+        "desc": 'Support request_uri request parameter with signed and encrypted request [Extra]',
         "sequence": [
             '_discover_',
             ("oic-registration",
@@ -1467,15 +1527,15 @@ FLOWS = {
              }
             ),
             ("_login_", {
-                "kwarg_func": request_in_file,
-                "support": {"error": {"request_uri_parameter_supported": True}}
-            })
+                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_uri_not_supported"]}}
     },
     'OP-request-Support': {
-        "desc": 'Support request Request Parameter',
+        "desc": 'Support request request parameter [Extra]',
         "sequence": [
             '_discover_',
             # ("_register_",
@@ -1487,7 +1547,7 @@ FLOWS = {
                   "check-request-parameter-supported-support": {}}
     },
     'OP-request-Unsigned': {
-        "desc": 'Support request Request Parameter with unSigned Request',
+        "desc": 'Support request request parameter with unsigned request [Basic, Implicit, Hybrid, Dynamic]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1499,15 +1559,14 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {
-                "kwargs_mod": {"request_method": "request"},
-                "support": {"error": {"request_parameter_supported": True}}})
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
-        "profile": "...n",
-        "tests": {"verify-authn-response": {}}
+        "profile": "...",
+        "tests": {"authn-response-or-error": {
+            "error": ["request_not_supported"]}}
     },
     'OP-request-Sig': {
-        "desc": 'Support request Request Parameter with Signed Request',
+        "desc": 'Support request request parameter with signed request [Extra]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1520,20 +1579,14 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {
-                "kwargs_mod": {"request_method": "request"},
-                "support": {
-                    "error": {
-                        "request_parameter_supported": True,
-                        "request_object_signing_alg_values_supported": "RS256"
-                    }}
-            })
+            ("_login_", {"kwargs_mod": {"request_method": "request"}})
         ],
         "profile": "...s.+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"authn-response-or-error": {
+            "error": ["request_not_supported"]}}
     },
     'OP-claims-essential': {
-        "desc": 'Claims Request with Essential name Claim',
+        "desc": 'Claims request with essential name claim [Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1544,41 +1597,53 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD
         ],
-        "profile": "C,CI,CT,CIT..",
+        "profile": "C,IT,CI,CT,CIT..",
         'tests': {"verify-claims": {"userinfo": {"name": None}},
                   "check-http-response": {}}
     },
     'OP-claims-sub': {
-        "desc": 'Support claims request specifying sub value',
+        "desc": 'Support claims request specifying sub value [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
             '_login_',
             "_accesstoken_",
-            'rm_cookie',
+            "cache-id_token",
+            'note',
+            '_discover_',
+            '_register_',
             ("_login_", {"function": sub_claims}),
-        ],
-        "profile": "....+",
-        "tests": {"verify-authn-response": {}},
-    },
-    'OP-claims-sub-none': {
-        "desc": 'Using prompt=none with user hint through sub in request',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            '_login_',
             "_accesstoken_",
-            'rm_cookie',
-            ("_login_", {
-                "request_args": {"prompt": "none"},
-                "function": sub_claims
-            }),
         ],
+        'note': "Have done one login to get the sub claim value, now we "
+                "want to do a fresh login using that sub value in a sub claim. "
+                "So please remove the cookie you received at the last login.",
         "profile": "....+",
-        "tests": {"verify-authn-response": {}}
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
+                                                       AccessTokenResponse]},
+                  "verify-sub-value": {}}
     },
+    # 'OP-claims-sub-none': {
+    #     "desc": 'Using prompt=none with user hint through sub in request [Extra]',
+    #     "sequence": [
+    #         '_discover_',
+    #         '_register_',
+    #         '_login_',
+    #         "_accesstoken_",
+    #         'note',
+    #         ("_login_", {
+    #             "request_args": {"prompt": "none"},
+    #             "function": sub_claims
+    #         }),
+    #     ],
+    #     'note': "Have done one login to get the sub claim value, now we "
+    #             "want to do a fresh login using that sub value as a hint. "
+    #             "So please remove the cookie you received at the last login.",
+    #     "profile": "....+",
+    #     "tests": {"verify-response": {"response_cls": [AuthorizationResponse]}}
+    # },
     'OP-claims-IDToken': {
-        "desc": 'Requesting ID Token with Email claims',
+        "desc": 'Requesting ID Token with email claim [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1592,11 +1657,12 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"email": None}},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-claims-Split': {
-        "desc": 'Supports Returning Different Claims in ID Token and UserInfo '
-                'Endpoint',
+        "desc": 'Supports returning different claims in ID Token and UserInfo Endpoint [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1615,14 +1681,13 @@ FLOWS = {
                   "check-http-response": {}}
     },
     'OP-claims-Combined': {
-        "desc": 'Supports Combining Claims Requested with scope and claims '
-                'Request Parameter',
+        "desc": 'Supports combining claims requested with scope and claims request parameter [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
             ("_login_", {
                 "request_args": {
-                    "scopes": ["openid", "phone"],
+                    "scope": ["openid", "phone"],
                     "claims": {
                         "id_token": {"email": {"essential": True}},
                     }},
@@ -1639,7 +1704,7 @@ FLOWS = {
                   "check-http-response": {}}
     },
     'OP-claims-voluntary': {
-        "desc": 'Claims Request with Voluntary email and picture Claims',
+        "desc": 'Claims request with voluntary email and picture claims [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1656,8 +1721,7 @@ FLOWS = {
     },
     'OP-claims-essential+voluntary': {
         "desc": (
-            'Claims Request with Essential name and Voluntary email and '
-            'picture Claims'),
+            'Claims request with essential name and voluntary email and picture claims [Extra]'),
         "sequence": [
             '_discover_',
             '_register_',
@@ -1678,7 +1742,7 @@ FLOWS = {
                   "check-http-response": {}}
     },
     'OP-claims-auth_time-essential': {
-        "desc": 'Requesting ID Token with Essential auth_time Claim',
+        "desc": 'Requesting ID Token with essential auth_time claim [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1691,10 +1755,12 @@ FLOWS = {
         "profile": "....+",
         "mti": {"all": "MUST"},
         'tests': {"verify-claims": {"id_token": {"auth_time": None}},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-claims-acr-essential': {
-        "desc": 'Requesting ID Token with Essential acr Claim',
+        "desc": 'Requesting ID Token with essential acr claim [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1706,10 +1772,12 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-claims-acr-voluntary': {
-        "desc": 'Requesting ID Token with Voluntary acr Claim',
+        "desc": 'Requesting ID Token with voluntary acr claim [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -1721,18 +1789,26 @@ FLOWS = {
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
     },
     'OP-claims-acr=1': {
-        "desc": 'Requesting ID Token with Essential specific acr Claim',
+        "desc": 'Requesting ID Token with essential specific acr claim [Extra]',
         "sequence": [
             '_discover_',
             '_register_',
-            ("_login_", {"function": specific_acr_claims}),
+            ("_login_", {
+                "function": specific_acr_claims,
+                "support": {"error": {"acr_values_supported": ["1"]}}}),
             "_accesstoken_",
         ],
         "profile": "....+",
         'tests': {"verify-claims": {"id_token": {"acr": None}},
-                  "check-http-response": {}}
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse,
+                                       ErrorResponse],
+                      "error": ["access_denied"]}}
     },
 }

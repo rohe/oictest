@@ -367,7 +367,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     $scope.saveConfigurations = function () {
         if ($scope.contains_required_provider_info() && $scope.containsRequiredClientInfo()) {
             bootbox.dialog({
-                message: "All your info will now to stored att the server. Do you want to continue?",
+                message: "The configuration information will now be stored on the server. Do you want to continue?",
                 title: "Configuration successfully stored",
                 buttons: {
                     danger: {

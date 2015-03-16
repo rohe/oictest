@@ -239,7 +239,7 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
         if _resp.text:
             try:
                 _response = ErrorResponse().from_json(_resp.text)
-            except MessageException:
+            except (MessageException, ValueError):
                 trace.reply("Non OIDC error message: %s" % _resp.content)
     elif _resp.status_code == 204:  # No response
         _response = Message()
@@ -291,9 +291,9 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
     return _response
 
 
-def test_summation(conv, sid):
+def test_summation(test_output, sid):
     status = 1
-    for item in conv.test_output:
+    for item in test_output:
         if isinstance(item, tuple):
             continue
         if item["status"] > status:
@@ -302,7 +302,7 @@ def test_summation(conv, sid):
     info = {
         "id": sid,
         "status": status,
-        "tests": conv.test_output
+        "tests": test_output
     }
 
     return info

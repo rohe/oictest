@@ -499,19 +499,24 @@ class VerifyErrorMessage(ExpectedError):
     msg = "OP error"
 
     def _func(self, conv):
-        last = conv.protocol_response[-1]
+        inst, txt = conv.protocol_response[-1]
 
         try:
-            assert isinstance(last, ErrorResponse)
+            assert isinstance(inst, ErrorResponse)
         except AssertionError:
             self._message = "Expected error message"
-            self._status = ERROR
+            try:
+                self._status = self._kwargs["status"]
+            except KeyError:
+                self._status = ERROR
         else:
             try:
-                assert last["error"] in self._kwargs["error"]
+                assert inst["error"] in self._kwargs["error"]
             except AssertionError:
                 self._message = "Not an error type I expected"
                 self._status = WARNING
+            except KeyError:
+                pass
 
         return {}
 
@@ -530,6 +535,75 @@ class VerifyAuthnResponse(ExpectedError):
             assert isinstance(inst, AuthorizationResponse)
         except AssertionError:
             self._message = "Expected an authorization response"
+            self._status = ERROR
+
+        return {}
+
+
+class VerifyAuthnOrErrorResponse(ExpectedError):
+    """
+    Checks that the last response was a JSON encoded authentication or
+    error message
+    """
+    cid = "authn-response-or-error"
+    msg = "Expected Authn Response or Error Message"
+
+    def _func(self, conv):
+        inst, txt = conv.protocol_response[-1]
+
+        try:
+            assert isinstance(inst, AuthorizationResponse)
+        except AssertionError:
+            try:
+                assert isinstance(inst, ErrorResponse)
+            except AssertionError:
+                self._message = "Expected an authorization or error response"
+                self._status = ERROR
+            else:
+                try:
+                    assert inst["error"] in self._kwargs["error"]
+                except AssertionError:
+                    self._message = "An error response I didn't expect"
+                    self._status = WARNING
+                except KeyError:
+                    pass
+
+        return {}
+
+
+class VerifyResponse(ExpectedError):
+    """
+    Checks that the last response was one of a possible set of OpenID Connect
+    Responses
+    """
+    cid = "verify-response"
+    msg = "Expected OpenID Connect Response"
+
+    def _func(self, conv):
+        inst, txt = conv.protocol_response[-1]
+
+        ok = False
+        for cls in self._kwargs["response_cls"]:
+            try:
+                assert isinstance(inst, cls)
+            except AssertionError:
+                pass
+            else:
+                ok = True
+                if isinstance(inst, ErrorResponse):
+                    try:
+                        assert inst["error"] in self._kwargs["error"]
+                    except AssertionError:
+                        self._message = "An error response I didn't expect"
+                        self._status = WARNING
+                        return {}
+                    except KeyError:
+                        pass
+
+                break
+
+        if not ok:
+            self._message = "Got a %s response" % inst.__class__.__name__
             self._status = ERROR
 
         return {}

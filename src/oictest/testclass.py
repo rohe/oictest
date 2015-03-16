@@ -344,14 +344,14 @@ class Discover(Operation):
             except KeyError:
                 raise
 
-        #self.trace.info("Client behavior: %s" % client.behaviour)
+        # try:
+        #     client.match_preferences(pcr)
+        # except ConfigurationError as err:
+        #     return "", DResponse(400, "text/html", str(err)), pcr
+        # else:
+        #     return "", DResponse(200, "application/json"), pcr
 
-        try:
-            client.match_preferences(pcr)
-        except ConfigurationError as err:
-            return "", DResponse(400, "text/html", str(err)), pcr
-        else:
-            return "", DResponse(200, "application/json"), pcr
+        return "", DResponse(200, "application/json"), pcr
 
     def post_op(self, result, conv, args):
         # Update the conv with the provider information
