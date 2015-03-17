@@ -4,7 +4,7 @@ import copy
 import importlib
 import json
 import os
-import threading
+import ast
 import time
 import argparse
 import datetime
@@ -16,10 +16,8 @@ import signal
 
 from dirg_util.http_util import HttpHandler
 from mako.lookup import TemplateLookup
-
 from requests.exceptions import ConnectionError
 from response_encoder import ResponseEncoder
-
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
@@ -28,6 +26,7 @@ from oic.oic.message import ProviderConfigurationResponse
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 from port_issuer_instance_id_database import PortDatabase, NoPortAvailable
+
 
 LOGGER = logging.getLogger("")
 urllib3_logger = logging.getLogger('requests.packages.urllib3')
@@ -42,7 +41,7 @@ SERVER_ENV = {}
 OP_CONFIG = "op_config"
 NO_PORT_ERROR_MESSAGE = "It appears that no ports are available at the " \
                         "moment. Please try again later."
-
+CONF = None
 
 def setup_logging(logfile):
     hdlr = logging.FileHandler(logfile)
@@ -86,12 +85,12 @@ def op_config(environ, start_response):
     return resp(environ, start_response)
 
 
-def create_new_configuration_dict(default_static_provider_info_values=[]):
+def create_new_configuration_dict():
     """
     :return Returns a new configuration which follows the internal data
     structure
     """
-    static_input_fields_list = generate_static_input_fields(default_static_provider_info_values)
+    static_input_fields_list = _generate_static_input_fields()
     op_configurations = {
         "fetchInfoFromServerDropDown": {
             "name": "How should the application fetch provider configurations "
@@ -173,7 +172,18 @@ def is_pyoidc_message_list(field_type):
     return False
 
 
-def generate_static_input_fields(default_input_value=[]):
+def convert_instance(_is_list, default_input_value):
+    if _is_list:
+        if isinstance(default_input_value, list):
+            field_value = convert_to_value_list(default_input_value)
+        else:
+            field_value = convert_to_value_list([default_input_value])
+    else:
+        field_value = default_input_value
+    return field_value
+
+
+def _generate_static_input_fields(default_input_value=[]):
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
@@ -195,12 +205,16 @@ def generate_static_input_fields(default_input_value=[]):
 
     for _field_label in _config_key_list:
         _field_type = _config_fields_dict[_field_label]
+        _is_list = is_pyoidc_message_list(_field_type)
+
+        field_value = convert_instance(_is_list, default_input_value)
+
         config_field = {'id': _field_label,
                         'label': _field_label,
-                        'values': default_input_value,
+                        'values': field_value,
                         'show': False,
                         'required': False,
-                        'isList': is_pyoidc_message_list(_field_type)}
+                        'isList': _is_list}
         if _field_label in required_fields:
             config_field['required'] = True
             config_field['show'] = True
@@ -361,11 +375,10 @@ def parse_profile(profile):
     return response_type, crypto_feature_support
 
 
-def convert_to_gui_list(config_file_dict):
+def convert_to_gui_drop_down(config_file_dict):
     gui_list = []
     for element in config_file_dict:
         gui_list.append({"type": element, "name": element})
-
     return gui_list
 
 def convert_config_file(config_file_dict):
@@ -453,7 +466,7 @@ def handle_get_op_config(session, response_encoder):
         "No file saved in this current session")
 
 
-def convert_static_provider_info_to_file(config_gui_structure,
+def static_provider_info_to_config_file_dict(config_gui_structure,
                                          config_file_dict):
     """
     Converts static information in the internal data structure and updates
@@ -487,7 +500,7 @@ def convert_static_provider_info_to_file(config_gui_structure,
     return config_file_dict
 
 
-def client_registration_to_gui_structure(config_gui_structure,
+def client_registration_to_config_file_dict(config_gui_structure,
                                          config_file_dict):
     """
     Converts required information in the web interface to the
@@ -554,9 +567,17 @@ def convert_to_list(value_dict):
     return _list
 
 
-def clear_optional_keys(config_dict):
-    optional_fields = ['webfinger_subject', 'login_hint', 'sub_claim',
-                       'ui_locales', 'claims_locales', 'acr_values']
+def clear_config_keys(config_dict):
+    optional_fields = ['webfinger_subject',
+                       'login_hint',
+                       'sub_claim',
+                       'ui_locales',
+                       'claims_locales',
+                       'acr_values',
+                       'provider_info',
+                       'srv_discovery_url',
+                       'webfinger_url',
+                       'webfinger_email']
 
     for field in optional_fields:
         if field in config_dict:
@@ -597,11 +618,13 @@ def convert_dynamic_discovery_to_abbreviation(config_gui_structure):
         return "T"
     return "F"
 
+def set_dynamic_discovery_issuer_config_gui_structure(issuer, config_gui_structure, show_field=True):
+    config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] = show_field
+    config_gui_structure['fetchDynamicInfoFromServer']['input_field']['value'] = issuer
+    return config_gui_structure
 
 def contains_dynamic_discovery_info(config_gui_structure):
-    return config_gui_structure['fetchDynamicInfoFromServer'][
-        'showInputField'] is True
-
+    return config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] is True
 
 def generate_profile(config_gui_structure):
     response_type_abbr = convert_response_type_to_abbreviation(
@@ -621,6 +644,9 @@ def generate_profile(config_gui_structure):
 
     return profile
 
+class NoMatchException(Exception):
+    pass
+
 def convert_to_simple_list(config_gui_structure):
     simple_list = []
 
@@ -629,7 +655,43 @@ def convert_to_simple_list(config_gui_structure):
 
     return simple_list
 
-def convert_config_gui_structure(config_gui_structure):
+def parse_config_string(config_string):
+    client = config_string.split('\n')[3]
+    dict = client.split("CLIENT = ")[1]
+    return ast.literal_eval(dict)
+
+def identify_existing_config_file(port):
+    for filename in os.listdir(CONF.OPRP_DIR_PATH):
+        if filename.startswith("rp_conf"):
+            file_port = int(filename.split("_")[2].split(".")[0])
+            if file_port == port:
+                with open(CONF.OPRP_DIR_PATH + filename,"r") as config_file:
+                    config_string = config_file.read()
+                    if config_string == "":
+                        break
+                    return parse_config_string(config_string)
+
+    raise NoMatchException("No match found for port: %s" % port)
+
+def create_key_dict_pair_if_non_exist(key, dict):
+    if key not in dict:
+        dict[key] = {}
+    return dict
+
+def subject_type_to_config_file_dict(config_dict, config_gui_structure):
+    config_dict = create_key_dict_pair_if_non_exist('preferences', config_dict)
+    config_dict['preferences']['subject_type'] = \
+        config_gui_structure["clientSubjectType"]["value"]
+    return config_dict
+
+
+def profile_to_config_file_dict(config_dict, config_gui_structure):
+    config_dict = create_key_dict_pair_if_non_exist('behaviour', config_dict)
+    config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
+    return config_dict
+
+
+def convert_config_gui_structure(config_gui_structure, port):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
@@ -638,31 +700,29 @@ def convert_config_gui_structure(config_gui_structure):
     :return A dictionary which follows the "Configuration file structure",
     see setup.rst
     """
-    config_dict = get_default_client()
+    try:
+        config_dict = identify_existing_config_file(port)
+    except NoMatchException:
+        config_dict = get_default_client()
+
+    config_dict = clear_config_keys(config_dict)
 
     if contains_dynamic_discovery_info(config_gui_structure):
-        dynamic_input_field_value = \
-            config_gui_structure['fetchDynamicInfoFromServer']['input_field'][
-                'value']
+        dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer']\
+                                                        ['input_field']\
+                                                        ['value']
         config_dict['srv_discovery_url'] = dynamic_input_field_value
 
     elif config_gui_structure['fetchStaticProviderInfo']['showInputFields']:
-        config_dict = convert_static_provider_info_to_file(config_gui_structure,
+        config_dict = static_provider_info_to_config_file_dict(config_gui_structure,
                                                            config_dict)
 
-    config_dict = client_registration_to_gui_structure(config_gui_structure,
-                                                       config_dict)
-
-    config_dict['preferences']['subject_type'] = \
-        config_gui_structure["clientSubjectType"]["value"]
-
-    config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
-
-    config_dict = clear_optional_keys(config_dict)
+    config_dict = client_registration_to_config_file_dict(config_gui_structure,config_dict)
+    config_dict = subject_type_to_config_file_dict(config_dict, config_gui_structure)
+    config_dict = profile_to_config_file_dict(config_dict, config_gui_structure)
 
     if config_gui_structure['webfingerSubject'] != "":
-        config_dict['webfinger_subject'] = config_gui_structure[
-            'webfingerSubject']
+        config_dict['webfinger_subject'] = config_gui_structure['webfingerSubject']
 
     if config_gui_structure['loginHint'] != "":
         config_dict['login_hint'] = config_gui_structure['loginHint']
@@ -684,18 +744,6 @@ def convert_config_gui_structure(config_gui_structure):
 
     return config_dict
 
-
-def handle_post_op_config(response_encoder, parameters, session):
-    """
-    Saves the data added in the web interface to the session
-    :return A default Json structure, which should be ignored
-    """
-    config_gui_structure = parameters['opConfigurations']
-    session["profile"] = generate_profile(config_gui_structure)
-    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure)
-    LOGGER.debug("Stored RP configuration in session: %s" % convert_from_unicode(session[OP_CONFIG]))
-    return response_encoder.return_json({})
-
 def handle_request_instance_ids(response_encoder, parameters):
     config_gui_structure = parameters['opConfigurations']
     issuer = get_issuer_from_gui_config(config_gui_structure)
@@ -706,7 +754,7 @@ def handle_request_instance_ids(response_encoder, parameters):
     if len(instance_ids) > 0:
         existing_instance_ids['value'] = instance_ids[0]
 
-    existing_instance_ids['values'] = convert_to_gui_list(instance_ids)
+    existing_instance_ids['values'] = convert_to_gui_drop_down(instance_ids)
 
     return response_encoder.return_json(json.dumps(existing_instance_ids))
 
@@ -870,8 +918,8 @@ def write_config_file(config_file_name, config_module):
     with open(config_file_name, "w") as _file:
         _file.write(config_module)
 
-def is_using_dynamic_client_registration(config):
-    return "client_registration" not in config
+def is_using_dynamic_client_registration(config_gui_structure):
+    return config_gui_structure['dynamicClientRegistrationDropDown']['value'] == "yes"
 
 def get_issuer_from_config_file(config_file):
     try:
@@ -886,9 +934,8 @@ def find_static_provider_info_field(input_fields, fields_id):
 
 
 def get_issuer_from_gui_config(gui_config):
-    dynamic_disco_issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
-
-    if dynamic_disco_issuer != '':
+    if contains_dynamic_discovery_info(gui_config):
+        dynamic_disco_issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
         return dynamic_disco_issuer
     else:
         input_fields = gui_config['fetchStaticProviderInfo']['input_fields']
@@ -896,16 +943,13 @@ def get_issuer_from_gui_config(gui_config):
         return issuer_field['values']
 
 def handle_start_op_tester(session, response_encoder, parameters):
-    try:
-        _config = session[OP_CONFIG]
-    except KeyError:
-        _config = {}
 
-    port = None
+    config_gui_structure = parameters['op_configurations']
+    _profile = generate_profile(config_gui_structure)
 
-    if is_using_dynamic_client_registration(_config):
+    if is_using_dynamic_client_registration(config_gui_structure):
         try:
-            issuer = get_issuer_from_config_file(_config)
+            issuer = get_issuer_from_gui_config(config_gui_structure)
             port = allocate_dynamic_port(issuer, parameters['oprp_instance_id'])
         except NoPortAvailable:
             pass
@@ -917,8 +961,9 @@ def handle_start_op_tester(session, response_encoder, parameters):
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
     config_file_path = get_config_file_path(port,
-                                     CONF.OPRP_DIR_PATH)
+                                            CONF.OPRP_DIR_PATH)
 
+    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port)
     config_module = create_module_string(session[OP_CONFIG], port)
 
     try:
@@ -933,14 +978,8 @@ def handle_start_op_tester(session, response_encoder, parameters):
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
-    if "profile" in session:
-        profile = session["profile"]
-    else:
-        LOGGER.warning("The session contains no profile. Using default profile")
-        return response_encoder.service_error("Failed to start server because of internal error: Failed to generate profile information")
-
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, "-p", profile, "-t",
+        start_rp_process(port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(port))}))
@@ -1029,9 +1068,6 @@ def application(environ, start_response):
 
     if path == "get_op_config":
         return handle_get_op_config(session, response_encoder)
-
-    if path == "post_op_config":
-        return handle_post_op_config(response_encoder, parameters, session)
 
     if path == "does_op_config_exist":
         return handle_does_op_config_exist(session, response_encoder)

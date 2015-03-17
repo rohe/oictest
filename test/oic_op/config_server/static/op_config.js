@@ -6,10 +6,6 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/get_op_config");
         },
 
-        postOpConfig: function (opConfigurations) {
-            return $http.post("/post_op_config", {"opConfigurations": opConfigurations});
-        },
-
         requestDownloadConfigFile: function () {
             return $http.get("/download_config_file");
         },
@@ -26,8 +22,8 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/does_op_config_exist");
         },
 
-        startOpTester: function (oprp_instance_id) {
-            return $http.post("/start_op_tester", {"oprp_instance_id": oprp_instance_id});
+        startOpTester: function (op_configurations, oprp_instance_id) {
+            return $http.post("/start_op_tester", {"op_configurations": op_configurations, "oprp_instance_id": oprp_instance_id});
         },
 
         getRedirectUrl: function (issuer, oprp_instance_id) {
@@ -367,8 +363,9 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     $scope.saveConfigurations = function () {
         if ($scope.contains_required_provider_info() && $scope.containsRequiredClientInfo()) {
             bootbox.dialog({
-                message: "The configuration information will now be stored on the server. Do you want to continue?",
-                title: "Configuration successfully stored",
+                message: "The configuration information will now be stored on the server. Do you want to continue?"+
+                "<br><br> Note: If the configurations are stored and the test server starts correctly you wiil be redirected to the test server.",
+                title: "Save configurations",
                 buttons: {
                     danger: {
                         label: "No",
@@ -378,14 +375,13 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
-                            opConfigurationFactory.postOpConfig($scope.opConfig).success(postOpConfigurationsSuccessCallback).error(errorCallback);
+                            opConfigurationFactory.startOpTester($scope.opConfig, get_instance_id()).success(startOpTesterSuccessCallback).error(errorCallback);
                             $scope.$apply();
                         }
                     }
                 }
             });
         }
-
     };
 
     function startOpTesterSuccessCallback(data, status, headers, config) {
@@ -413,7 +409,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                     label: "Yes",
                     className: "btn-primary",
                     callback: function () {
-                        opConfigurationFactory.startOpTester(get_instance_id()).success(startOpTesterSuccessCallback).error(errorCallback);
+                        opConfigurationFactory.startOpTester().success(startOpTesterSuccessCallback).error(errorCallback);
                         $scope.$apply();
                     }
                 }
