@@ -1036,7 +1036,7 @@ def get_node(tests, nid):
     l = [x for x in tests if x.name == nid]
     try:
         return l[0]
-    except ValueError:
+    except (ValueError, IndexError):
         return None
 
 # -----------------------------------------------------------------------------
