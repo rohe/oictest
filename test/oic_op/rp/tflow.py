@@ -1427,7 +1427,7 @@ FLOWS = {
     },
     'OP-request_uri-Unsigned': {
         "desc": 'Support request_uri request parameter with unsigned request '
-                '[Basic, Implicit, Hybrid, Dynamic]',
+                '[Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             ("_register_",
@@ -1445,10 +1445,32 @@ FLOWS = {
                 "kwarg_func": request_in_file,
             })
         ],
-        "profile": "...",
-        # if dynamic OP this is a MTA, test for that !?
+        "profile": "..F",
         "tests": {"authn-response-or-error": {
             "error": ["request_uri_not_supported"]}}
+    },
+    'OP-request_uri-Unsigned-Dynamic': {
+        "desc": 'Support request_uri request parameter with unsigned request '
+                '[Basic, Implicit, Hybrid, Dynamic]',
+        "sequence": [
+            '_discover_',
+            ("_register_",
+             {
+                 "request_args": {
+                     "request_object_signing_alg": "none"},
+                 "support": {
+                     "error": {
+                         "request_uri_parameter_supported": True,
+                         "request_object_signing_alg_values_supported": "none"}}
+             }),
+            ("_login_", {
+                "kwargs_mod": {"request_method": "file", "local_dir": "export",
+                               "algorithm": "none"},
+                "kwarg_func": request_in_file,
+            })
+        ],
+        "profile": "..T",
+        "tests": {"verify-response": {"response_cls": [AuthorizationResponse]}}
     },
     'OP-request_uri-Sig': {
         "desc": 'Support request_uri request parameter with signed request [Dynamic]',
