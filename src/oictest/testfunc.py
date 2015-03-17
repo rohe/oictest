@@ -224,7 +224,8 @@ def login_hint(request_args, conv, kwargs):
     except KeyError:
         hint = "buffy@%s" % p.netloc
     else:
-        hint = "%s@%s" % (hint, p.netloc)
+        if "@" not in hint:
+            hint = "%s@%s" % (hint, p.netloc)
 
     request_args["login_hint"] = hint
     return request_args
