@@ -22,7 +22,7 @@ app.factory('opConfigurationFactory', function ($http) {
             return $http.get("/does_op_config_exist");
         },
 
-        startOpTester: function (op_configurations) {
+        startOpTester: function (op_configurations, oprp_instance_id) {
             return $http.post("/start_op_tester", {"op_configurations": op_configurations, "oprp_instance_id": oprp_instance_id});
         },
 
@@ -375,7 +375,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
-                            opConfigurationFactory.startOpTester($scope.opConfig).success(startOpTesterSuccessCallback).error(errorCallback);
+                            opConfigurationFactory.startOpTester($scope.opConfig, get_instance_id()).success(startOpTesterSuccessCallback).error(errorCallback);
                             $scope.$apply();
                         }
                     }

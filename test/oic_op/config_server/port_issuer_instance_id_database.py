@@ -50,12 +50,12 @@ class PortDatabase():
     def get_table_as_list(self):
         list = []
         for row in self.table:
-            list.append([row[PORT_COLUMN], row[PORT_TYPE_COLUMN], row[INSTANCE_ID_COLUMN], row['issuer']])
+            list.append([row[PORT_COLUMN], row['issuer'], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
         return list
 
     def print_table(self):
         list =self.get_table_as_list()
-        table = PrettyTable(["Port", "Port Type", "Instance ID", "Issuer"])
+        table = PrettyTable(["Port", "Issuer", "Instance ID", "Port Type"])
         table.padding_width = 1
 
         for row in list:
