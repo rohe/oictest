@@ -2,7 +2,7 @@
 
 <html>
 <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification RP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="static/opresultqr.css" rel="stylesheet" media="screen">
 

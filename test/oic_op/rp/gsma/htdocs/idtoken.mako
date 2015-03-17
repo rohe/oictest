@@ -7,7 +7,7 @@
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">

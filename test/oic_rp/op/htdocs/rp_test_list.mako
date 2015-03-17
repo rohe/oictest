@@ -10,7 +10,7 @@
 </%block>
 
 <%block name="title">
-    oictest application
+    OpenID Certification OP Test Tool Configuration
 </%block>
 
 <%block name="header">

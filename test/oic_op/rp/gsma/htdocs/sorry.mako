@@ -7,7 +7,7 @@
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>GSMA OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -23,7 +23,7 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OICTEST</h1>
+        <h1>GSMA OP Test</h1>
         <h2>Sorry ! An unforseen error occured</h2>S
         <br>
         To go back to the list of tests click this link.<br>
