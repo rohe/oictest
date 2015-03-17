@@ -12,8 +12,8 @@ CLIENT = {
     "webfinger_email": "diana@localhost:8092",
     "webfinger_url": "https://localhost:8092/diana",
     "login_hint": "diana",
-    "ui_locales": "se",
-    "claims_locales": "se",
+    "ui_locales": ["se", "jp"],
+    "claims_locales": ["se", "en"],
     "acr_values": ["Pa"],
     "client_info": {
         "application_type": "web",

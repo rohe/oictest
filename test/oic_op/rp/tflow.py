@@ -19,7 +19,7 @@ from oictest.testfunc import static_jwk
 from oictest.testfunc import redirect_uris_with_query_component
 from oictest.testfunc import redirect_uris_with_fragment
 from oictest.testfunc import ui_locales
-from oictest.testfunc import claims_locales
+from oictest.testfunc import claims_locale
 from oictest.testfunc import acr_value
 from oictest.testfunc import mismatch_return_uri
 from oictest.testfunc import multiple_return_uris
@@ -787,7 +787,7 @@ FLOWS = {
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {},
-                         "function": claims_locales}),
+                         "function": claims_locale}),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD,
             'display_userinfo'],
