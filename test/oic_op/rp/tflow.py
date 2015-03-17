@@ -1440,8 +1440,9 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {
-                "kwargs_mod": {"request_method": "file", "local_dir": "export",
-                               "algorithm": "none"},
+                "kwargs_mod": {"request_method": "file",
+                               "local_dir": "export",
+                               "request_object_signing_alg": "none"},
                 "kwarg_func": request_in_file,
             })
         ],
@@ -1464,8 +1465,9 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "none"}}
              }),
             ("_login_", {
-                "kwargs_mod": {"request_method": "file", "local_dir": "export",
-                               "algorithm": "none"},
+                "kwargs_mod": {"request_method": "file",
+                               "local_dir": "export",
+                               "request_object_signing_alg": "none"},
                 "kwarg_func": request_in_file,
             })
         ],
@@ -1487,7 +1489,11 @@ FLOWS = {
                      }}
              }),
             ("_login_", {
-                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "request_arg"
+                "kwargs_mod": {
+                    "request_method": "file",
+                    "local_dir": "export",
+                    "request_object_signing_alg": "RS256"},
                 "kwarg_func": request_in_file,
             })
         ],
@@ -1518,7 +1524,12 @@ FLOWS = {
              }
             ),
             ("_login_", {
-                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwargs_mod": {
+                    "request_method": "file",
+                    "local_dir": "export",
+                    "request_object_signing_alg": "none",
+                    "request_object_encryption_alg": "RSA1_5",
+                    "request_object_encryption_enc": "A128CBC-HS256"},
                 "kwarg_func": request_in_file,
             })
         ],
@@ -1549,7 +1560,12 @@ FLOWS = {
              }
             ),
             ("_login_", {
-                "kwargs_mod": {"request_method": "file", "local_dir": "export"},
+                "kwargs_mod": {
+                    "request_method": "file",
+                    "local_dir": "export",
+                    "request_object_signing_alg": "RS256",
+                    "request_object_encryption_alg": "RSA1_5",
+                    "request_object_encryption_enc": "A128CBC-HS256"},
                 "kwarg_func": request_in_file})
         ],
         "profile": "..T.se.+",
@@ -1581,7 +1597,10 @@ FLOWS = {
                          "request_parameter_supported": True,
                          "request_object_signing_alg_values_supported": "none"}}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "request"}})
+            ("_login_", {
+                "kwargs_mod": {
+                    "request_method": "request",
+                    "request_object_signing_alg": "none"}})
         ],
         "profile": "...",
         "tests": {"authn-response-or-error": {
@@ -1601,7 +1620,10 @@ FLOWS = {
                          "request_object_signing_alg_values_supported": "RS256"
                      }}
              }),
-            ("_login_", {"kwargs_mod": {"request_method": "request"}})
+            ("_login_", {
+                "kwargs_mod": {
+                    "request_method": "request",
+                    "request_object_signing_alg": "RS256"}})
         ],
         "profile": "...s.+",
         "tests": {"authn-response-or-error": {

@@ -98,6 +98,8 @@ class Request(object):
                     if _ruri == "":
                         kwargs["request_args"]["redirect_uri"] = DUMMY_URL
 
+            kwargs["target"] = client.provider_info["issuer"]
+
             cis = getattr(client, "construct_%s" % request.__name__)(request,
                                                                      **kwargs)
             # Remove parameters with None value
