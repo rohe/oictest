@@ -7,7 +7,7 @@
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>GSMA OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -23,7 +23,7 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OICTEST</h1>
+        <h1>GSMA OP Test</h1>
         At this point you have to remove all cookies you have received from
         your OpenID Connect Provider. This since this test is simulating you
         login in from a second device while still being logged in at the first.

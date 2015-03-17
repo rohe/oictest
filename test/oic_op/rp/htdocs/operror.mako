@@ -2,7 +2,7 @@
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -24,7 +24,7 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </button>
-          <a class="navbar-brand" href="#">pyoidc RP</a>
+          <a class="navbar-brand" href="#">OpenID Certification OP Test</a>
         </div>
         <div class="navbar-collapse collapse">
           <ul class="nav navbar-nav">

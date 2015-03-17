@@ -10,7 +10,7 @@ def display_log(logs):
 <!DOCTYPE html>
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -26,7 +26,7 @@ def display_log(logs):
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OICTEST logs</h1>
+        <h1>OpenID Certification OP Test logs</h1>
           <h3>A list of test results that are saved on disc:</h3>
             ${display_log(logs)}
       </div>

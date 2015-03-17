@@ -7,7 +7,7 @@
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -23,7 +23,7 @@
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>OICTEST</h1>
+        <h1>OpenID Certification OP Test</h1>
         The next request should result in the OpenID Connect Provider
         returning an error message to your web browser. To continue click this
         ${link(url)}.

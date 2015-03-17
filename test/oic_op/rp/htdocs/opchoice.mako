@@ -14,7 +14,7 @@ def op_choice(op_list):
 
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>OpenID Certification OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -31,7 +31,7 @@ def op_choice(op_list):
     <!-- Static navbar -->
     <div class="navbar navbar-default navbar-fixed-top">
         <div class="navbar-header">
-          <a class="navbar-brand" href="#">pyoidc RP</a>
+          <a class="navbar-brand" href="#">OpenID Certification OP Test</a>
         </div>
     </div>
 

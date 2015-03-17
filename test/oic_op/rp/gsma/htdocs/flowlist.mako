@@ -104,7 +104,7 @@ def legends():
 <!DOCTYPE html>
 <html>
   <head>
-    <title>pyoidc RP</title>
+    <title>GSMA OP Test</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Bootstrap -->
     <link href="static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
@@ -120,7 +120,7 @@ def legends():
     <div class="container">
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
-        <h1>GSMA OICTEST</h1>
+        <h1>GSMA OP Test</h1>
           <em>Explanations of legends at <a href="#legends">end of page</a></em>
           <h3>Chose the next test flow you want to run from this list: </h3>
           ${op_choice(base, flows, test_info, headlines)}
