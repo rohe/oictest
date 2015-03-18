@@ -1,5 +1,4 @@
 import threading
-import argparse
 import dataset
 from prettytable import PrettyTable
 
@@ -23,7 +22,7 @@ class PortDatabase():
         self.database = dataset.connect('sqlite:///' + dict_path)
         self.table = self.database[self.TABLE_NAME]
 
-    def _upsert(self, port, issuer, instance_id, port_type):
+    def upsert(self, port, issuer, instance_id, port_type):
         row = dict(port=port, port_type=port_type, instance_id=instance_id, issuer=issuer)
         self.table.upsert(row, [PORT_COLUMN])
 
@@ -104,22 +103,5 @@ class PortDatabase():
                 self._remove_row(port)
 
             port = self._get_next_free_port(min_port, max_port)
-            self._upsert(port, issuer, instance_id, port_type)
+            self.upsert(port, issuer, instance_id, port_type)
             return int(port)
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-p', dest='print_database', action='store_true',
-                        help="Print database")
-    parser.add_argument('-r', dest='port_to_remove',
-                        help="Remove port")
-    parser.add_argument(dest="database")
-    args = parser.parse_args()
-
-    database = PortDatabase(args.database)
-
-    if args.print_database:
-        database.print_table()
-
-    if args.port_to_remove:
-        database._remove_row(args.port_to_remove)
