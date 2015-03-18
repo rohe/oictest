@@ -233,7 +233,6 @@ FLOWS = {
             '_register_',
             "_login_",
             "_accesstoken_",
-            "_register_",
             ("_login_", {"request_args": {"max_age": 1000}}),
             "_accesstoken_"
         ],
