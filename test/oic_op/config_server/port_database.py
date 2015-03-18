@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import threading
 import dataset
 from prettytable import PrettyTable
@@ -58,7 +59,7 @@ class PortDatabase():
         table.padding_width = 1
 
         for row in list:
-            table.add_row([str(x) for x in row])
+            table.add_row([x.encode('utf8') for x in row])
         print table
 
     def _remove_row(self, port):

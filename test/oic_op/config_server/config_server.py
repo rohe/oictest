@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import collections
 import copy
 import importlib
@@ -764,10 +766,10 @@ def handle_request_instance_ids(response_encoder, parameters):
 def handle_does_op_config_exist(session, response_encoder):
     """
     Handles the request checking if the configuration file exists
-    :return Returns a dictionary {"doesConfigFileExist" : true} if the
-    session contains a config file else {"doesConfigFileExist" : false}
+    :return Returns a dictionary {"does_config_file_exist" : true} if the
+    session contains a config file else {"does_config_file_exist" : false}
     """
-    result = json.dumps({"doesConfigFileExist": (OP_CONFIG in session)})
+    result = json.dumps({"does_config_file_exist": (OP_CONFIG in session)})
     return response_encoder.return_json(result)
 
 
@@ -805,7 +807,10 @@ def get_base_url(port):
 #TODO throws an unhandled exception if swedish chars is used.
 def convert_from_unicode(data):
     if isinstance(data, basestring):
-        return str(data)
+        try:
+            return str(data)
+        except UnicodeEncodeError as ex:
+            return data.encode('utf8')
     elif isinstance(data, collections.Mapping):
         return dict(map(convert_from_unicode, data.iteritems()))
     elif isinstance(data, collections.Iterable):
@@ -945,7 +950,6 @@ def get_issuer_from_gui_config(gui_config):
         return issuer_field['values']
 
 def handle_start_op_tester(session, response_encoder, parameters):
-
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
     _instance_id = parameters['oprp_instance_id']
@@ -963,6 +967,7 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
+    LOGGER.debug("The RP will try to start on port: %s" % port)
     config_file_path = get_config_file_path(port,
                                             CONF.OPRP_DIR_PATH)
 
