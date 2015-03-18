@@ -690,8 +690,7 @@ def profile_to_config_file_dict(config_dict, config_gui_structure):
     config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
     return config_dict
 
-
-def convert_config_gui_structure(config_gui_structure, port):
+def convert_config_gui_structure(config_gui_structure, port, instance_id):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
@@ -706,6 +705,7 @@ def convert_config_gui_structure(config_gui_structure, port):
         config_dict = get_default_client()
 
     config_dict = clear_config_keys(config_dict)
+    config_dict['instance_id'] = instance_id
 
     if contains_dynamic_discovery_info(config_gui_structure):
         dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer']\
@@ -946,11 +946,12 @@ def handle_start_op_tester(session, response_encoder, parameters):
 
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
+    _instance_id = parameters['oprp_instance_id']
 
     if is_using_dynamic_client_registration(config_gui_structure):
         try:
             issuer = get_issuer_from_gui_config(config_gui_structure)
-            port = allocate_dynamic_port(issuer, parameters['oprp_instance_id'])
+            port = allocate_dynamic_port(issuer, _instance_id)
         except NoPortAvailable:
             pass
     else:
@@ -963,7 +964,7 @@ def handle_start_op_tester(session, response_encoder, parameters):
     config_file_path = get_config_file_path(port,
                                             CONF.OPRP_DIR_PATH)
 
-    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port)
+    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port, _instance_id)
     config_module = create_module_string(session[OP_CONFIG], port)
 
     try:
