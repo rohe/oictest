@@ -63,7 +63,7 @@ def claims_locales(request_args, conv, kwargs):
         except KeyError:
             loc = ["se"]
 
-    request_args["claims_locale"] = loc
+    request_args["claims_locales"] = loc
     return request_args
 
 

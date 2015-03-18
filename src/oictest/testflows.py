@@ -631,13 +631,13 @@ class AuthorizationRequestClaimsLocale(AuthorizationRequestCode):
     def __init__(self, conv):
         AuthorizationRequestCode.__init__(self, conv)
         try:
-            loc = conv.client_config["claims_locale"]
+            loc = conv.client_config["claims_locales"]
         except KeyError:
             try:
                 loc = conv.client_config["locales"]
             except KeyError:
                 loc = ["se"]
-        self.set_request_args({"claims_locale": loc})
+        self.set_request_args({"claims_locales": loc})
 
 
 class AuthorizationRequestLoginHint(AuthorizationRequestCode):
