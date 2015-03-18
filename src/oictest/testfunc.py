@@ -54,9 +54,9 @@ def ui_locales(request_args, conv, kwargs):
     return request_args
 
 
-def claims_locale(request_args, conv, kwargs):
+def claims_locales(request_args, conv, kwargs):
     try:
-        loc = conv.client_config["claims_locale"]
+        loc = conv.client_config["claims_locales"]
     except KeyError:
         try:
             loc = conv.client_config["locales"]
