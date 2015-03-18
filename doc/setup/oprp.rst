@@ -198,8 +198,8 @@ ui_locales
 
     'ui_locales': ['se', 'en', 'fr'],
 
-claims_locale
-^^^^^^^^^^^^^
+claims_locales
+^^^^^^^^^^^^^^
 ::
 
     'ui_locales': ['se', 'en', 'fr'],
