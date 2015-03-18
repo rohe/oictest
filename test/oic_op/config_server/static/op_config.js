@@ -1,32 +1,32 @@
 var app = angular.module('main', ['toaster'])
 
-app.factory('opConfigurationFactory', function ($http) {
+app.factory('op_configuration_factory', function ($http) {
     return {
-        getOpConfig: function () {
+        get_op_config: function () {
             return $http.get("/get_op_config");
         },
 
-        requestDownloadConfigFile: function () {
+        request_download_config_file: function () {
             return $http.get("/download_config_file");
         },
 
-        requestUploadConfigFile: function (configFileContent) {
+        request_upload_config_file: function (configFileContent) {
             return $http.post("/upload_config_file", {"configFileContent": configFileContent});
         },
 
-        createNewConfigFile: function () {
+        create_new_config_file: function () {
             return $http.get("/create_new_config_file");
         },
 
-        doesConfigFileExist: function () {
+        does_config_file_exist: function () {
             return $http.get("/does_op_config_exist");
         },
 
-        startOpTester: function (op_configurations, oprp_instance_id) {
+        start_op_tester: function (op_configurations, oprp_instance_id) {
             return $http.post("/start_op_tester", {"op_configurations": op_configurations, "oprp_instance_id": oprp_instance_id});
         },
 
-        getRedirectUrl: function (issuer, oprp_instance_id) {
+        get_redirect_url: function (issuer, oprp_instance_id) {
             return $http.post("/get_redirect_url", {"issuer": issuer, "oprp_instance_id": oprp_instance_id});
         },
 
@@ -36,7 +36,7 @@ app.factory('opConfigurationFactory', function ($http) {
     };
 });
 
-app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
+app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory) {
     $scope.opConfig;
     $scope.contains_redirect_url = false;
 
@@ -80,7 +80,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function getOpConfigurationSuccessCallback(data, status, headers, config) {
+    function get_op_configuration_success_callback(data, status, headers, config) {
         $scope.opConfig = data;
     }
 
@@ -109,7 +109,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * Requests latest config from the server.
      */
     function requestLatestConfigFileFromServer() {
-        opConfigurationFactory.getOpConfig().success(getOpConfigurationSuccessCallback).error(errorCallback);
+        op_configuration_factory.get_op_config().success(get_op_configuration_success_callback).error(error_callback);
     }
 
     /**
@@ -119,7 +119,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function uploadConfigFileSuccessCallback(data, status, headers, config) {
+    function upload_config_file_success_callback(data, status, headers, config) {
         $("#modalWindowUploadConfigurationFile").modal('toggle');
         resetGui()
         requestLatestConfigFileFromServer();
@@ -132,7 +132,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function createNewConfigFileSuccessCallback(data, status, headers, config) {
+    function create_new_config_file_success_callback(data, status, headers, config) {
         requestLatestConfigFileFromServer();
     }
 
@@ -150,8 +150,8 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function doesConfigFileExistSuccessCallback(data, status, headers, config) {
-        if (data['doesConfigFileExist']) {
+    function does_config_file_exist_success_callback(data, status, headers, config) {
+        if (data['does_config_file_exist']) {
             requestLatestConfigFileFromServer();
         }
     }
@@ -200,7 +200,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     }
 
     $scope.request_instance_ids = function(){
-        opConfigurationFactory.request_instance_ids($scope.opConfig).success(request_instance_ids_success_callback).error(errorCallback);
+        op_configuration_factory.request_instance_ids($scope.opConfig).success(request_instance_ids_success_callback).error(error_callback);
     };
 
     function setRedirectUrl(redirectUrl) {
@@ -215,7 +215,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         }
     }
 
-    function getRedirectUrlSuccessCallback(data, status, headers, config) {
+    function get_redirect_url_success_callback(data, status, headers, config) {
         setRedirectUrl(data['redirect_url'])
     }
 
@@ -226,9 +226,9 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function configFileExistForDownloadSuccessCallback(data, status, headers, config) {
-        if (data['doesConfigFileExist']) {
-            opConfigurationFactory.requestDownloadConfigFile().success(downloadConfigFileSuccessCallback).error(errorCallback);
+    function config_file_exist_for_download_success_callback(data, status, headers, config) {
+        if (data['does_config_file_exist']) {
+            op_configuration_factory.request_download_config_file().success(downloadConfigFileSuccessCallback).error(error_callback);
         } else {
             showNoConfigAvailable();
         }
@@ -241,7 +241,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
      * @param headers - The header on the response from the server
      * @param config - The configuration on the response from the server
      */
-    function errorCallback(data, status, headers, config) {
+    function error_callback(data, status, headers, config) {
         bootbox.alert(data.ExceptionMessage);
     }
 
@@ -375,7 +375,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
-                            opConfigurationFactory.startOpTester($scope.opConfig, get_instance_id()).success(startOpTesterSuccessCallback).error(errorCallback);
+                            op_configuration_factory.start_op_tester($scope.opConfig, get_instance_id()).success(start_op_tester_success_callback).error(error_callback);
                             $scope.$apply();
                         }
                     }
@@ -384,7 +384,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
         }
     };
 
-    function startOpTesterSuccessCallback(data, status, headers, config) {
+    function start_op_tester_success_callback(data, status, headers, config) {
         window.location.href = data['oprp_url'];
     }
 
@@ -409,7 +409,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                     label: "Yes",
                     className: "btn-primary",
                     callback: function () {
-                        opConfigurationFactory.startOpTester().success(startOpTesterSuccessCallback).error(errorCallback);
+                        op_configuration_factory.start_op_tester().success(start_op_tester_success_callback).error(error_callback);
                         $scope.$apply();
                     }
                 }
@@ -422,21 +422,21 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     /**
      * Tries to download the configuration file from the server
      */
-    $scope.requestDownloadConfigFile = function () {
-        opConfigurationFactory.doesConfigFileExist().success(configFileExistForDownloadSuccessCallback).error(errorCallback);
+    $scope.request_download_config_file = function () {
+        op_configuration_factory.does_config_file_exist().success(config_file_exist_for_download_success_callback).error(error_callback);
     };
 
     /**
      * Tries to upload the configuration file to the server.
      */
-    $scope.requestUploadConfigFile = function () {
+    $scope.request_upload_config_file = function () {
         var file = document.getElementById("targetFile").files[0];
 
         if (file) {
             var reader = new FileReader();
             reader.readAsText(file, "UTF-8");
             reader.onload = function (evt) {
-                opConfigurationFactory.requestUploadConfigFile(evt.target.result).success(uploadConfigFileSuccessCallback).error(errorCallback);
+                op_configuration_factory.request_upload_config_file(evt.target.result).success(upload_config_file_success_callback).error(error_callback);
                 $scope.$apply();
             };
             reader.onerror = function (evt) {
@@ -452,7 +452,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     /**
      * Show a "confirm that you want to create a new configuration file" dialog
      */
-    $scope.createNewConfigFile = function () {
+    $scope.create_new_config_file = function () {
         bootbox.dialog({
             message: "All your existing configurations which is not downloaded will be overwritten. Are you sure you want to create a new configuration?",
             title: "Create new file",
@@ -466,7 +466,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
                     className: "btn-primary",
                     callback: function () {
                         resetGui();
-                        opConfigurationFactory.createNewConfigFile().success(createNewConfigFileSuccessCallback).error(errorCallback);
+                        op_configuration_factory.create_new_config_file().success(create_new_config_file_success_callback).error(error_callback);
                         $scope.$apply();
                     }
                 }
@@ -477,7 +477,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     $("[data-toggle='tooltip']").tooltip();
 
     $scope.loadExistingConfig = function () {
-        opConfigurationFactory.doesConfigFileExist().success(doesConfigFileExistSuccessCallback).error(errorCallback);
+        op_configuration_factory.does_config_file_exist().success(does_config_file_exist_success_callback).error(error_callback);
     };
 
     $scope.contains_required_provider_info = function() {
@@ -528,7 +528,7 @@ app.controller('IndexCtrl', function ($scope, toaster, opConfigurationFactory) {
     }
 
     function get_redirect_url(instance_id) {
-        opConfigurationFactory.getRedirectUrl(get_issuer(), instance_id).success(getRedirectUrlSuccessCallback).error(errorCallback);
+        op_configuration_factory.get_redirect_url(get_issuer(), instance_id).success(get_redirect_url_success_callback).error(error_callback);
     }
 
 });

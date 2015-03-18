@@ -34,7 +34,7 @@
 
         <div class="row">
             <div class="col-sm-4">
-                <button class="btn btn-primary btn-sm" ng-click="createNewConfigFile();">
+                <button class="btn btn-primary btn-sm" ng-click="create_new_config_file();">
                     <span class="glyphicon glyphicon-file"></span>
                     Create new configurations
                 </button>
@@ -48,7 +48,7 @@
             </div>
 
             <div class="col-sm-4">
-                <button class="btn btn-primary btn-sm" ng-click="requestDownloadConfigFile();">
+                <button class="btn btn-primary btn-sm" ng-click="request_download_config_file();">
                     <span class="glyphicon glyphicon-download-alt"></span>
                     Download configurations
                 </button>
@@ -519,7 +519,7 @@
                 </div>
                 <div class="modal-body">
                     <input type="file" name="file" id="targetFile">
-                    <button class="btn btn-primary btn-sm" ng-click="requestUploadConfigFile();">Upload configurations
+                    <button class="btn btn-primary btn-sm" ng-click="request_upload_config_file();">Upload configurations
                     </button>
                 </div>
             </div>
