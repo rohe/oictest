@@ -22,7 +22,7 @@ __author__ = 'rohe0002'
 
 import time
 
-from oic.oauth2 import JSON_ENCODED, PBase
+from oic.oauth2 import JSON_ENCODED, PBase, rndstr
 
 # Used upstream, not in this module so don't remove
 from oictest.check import *
@@ -162,6 +162,21 @@ class CacheIdToken(Process):
             conv.cache["id_token"] = res
         except KeyError:
             conv.cache = {"id_token": res}
+
+
+class Cache(Process):
+    def __call__(self, conv, **kwargs):
+        _id = rndstr(16)
+        try:
+            conv.cache[_id] = conv
+        except KeyError:
+            conv.cache = {_id: conv}
+        return _id
+
+
+class Restore(Process):
+    def __call__(self, conv, **kwargs):
+        conv.client = conv.cache["client"]
 
 
 class RotateKeys(Process):
@@ -470,5 +485,7 @@ PHASES = {
     "display_userinfo": DisplayUserInfo,
     "display_idtoken": DisplayIDToken,
     "fetch_keys": FetchKeys,
-    "cache-id_token": CacheIdToken
+    "cache-id_token": CacheIdToken,
+    "cache": Cache,
+    "restore": Restore
 }

@@ -132,10 +132,13 @@ def application(environ, start_response):
             index = int(query["index"][0])
             conv, sequence_info, ots, trace, index = oprp.session_setup(
                 session, path, index)
+
             try:
-                conv.cache_key = query["key"][0]
+                conv = RP_ARGS["cache"][query["ckey"][0]]
             except KeyError:
                 pass
+            else:
+                ots.client = conv.client
         except Exception as err:
             return oprp.err_response(session, "session_setup", err)
         else:

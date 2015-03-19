@@ -363,6 +363,10 @@ class OPRP(object):
                     self.conf.BASE, session["testid"], session["index"]),
                 "back": self.conf.BASE}
             try:
+                kwargs["url"] += "&ckey=%s" % session["ckey"]
+            except KeyError:
+                pass
+            try:
                 kwargs["note"] = session["node"].kwargs["note"]
             except KeyError:
                 pass
@@ -391,8 +395,7 @@ class OPRP(object):
             return req(self.lookup, self.environ, self.start_response, **kwargs)
         else:
             try:
-                req(conv)
-                return None
+                return req(conv)
             except RequirementsNotMet as err:
                 return self.err_response(session, "run_sequence", err)
 
@@ -448,7 +451,9 @@ class OPRP(object):
                 ret = self.none_request_response(sequence_info, index, session,
                                                  conv)
                 self.dump_log(session)
-                if ret:
+                if isinstance(ret, basestring):
+                    session["ckey"] = ret
+                elif ret:
                     return ret
             else:
                 if conv.protocol_response:
