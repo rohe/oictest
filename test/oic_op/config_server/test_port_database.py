@@ -1,11 +1,10 @@
+# -*- coding: utf-8 -*-
 import os
+import unittest
 from port_database import PortDatabase
 from port_database import NoPortAvailable
 
 __author__ = 'danielevertsson'
-
-import unittest
-import dataset
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -162,6 +161,11 @@ class TestSequenceFunctions(unittest.TestCase):
         self.database.upsert(port=8005, issuer="apberget", instance_id='test2', port_type="static")
         instance_ids = self.database.get_instance_ids(self.ISSUER_GOOGLE)
         self.assertEqual(instance_ids, ["ID_1", "ID_2", "ID_3"])
+
+    def test_enter_issuer_non_ascii_charaters(self):
+        issuer = unicode('https://example/öäå', encoding='utf-8')
+        self.database.upsert(issuer=issuer, port=8000, instance_id="test", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
+        self.assertEqual(self.database.get_all_ports(), [8000])
 
 if __name__ == '__main__':
     unittest.main()

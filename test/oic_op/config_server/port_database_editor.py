@@ -23,9 +23,9 @@ class ConfigFileEditor(object):
 
     def get_instance_id(self, config_file_dict, port):
         try:
-            return config_file_dict[CONFIG_DICT_INSTANCE_ID_KEY].encode("UTF-8")
+            return config_file_dict[CONFIG_DICT_INSTANCE_ID_KEY]
         except KeyError:
-            return port
+            return str(port)
 
     def get_port_type(self, config_file_dict):
         try:
