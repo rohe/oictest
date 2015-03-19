@@ -834,7 +834,7 @@ FLOWS = {
             '_login_',
             '_accesstoken_',
             ('_accesstoken_', {
-                "expect_error": {"error": ["invalid_grant"], "stop": True}}),
+                "expect_error": {"error": ["invalid_grant"], "stop": False}}),
             USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "C,CI,CT,CIT..",
@@ -1649,10 +1649,8 @@ FLOWS = {
             '_register_',
             '_login_',
             "_accesstoken_",
-            "cache-id_token",
+            "cache",
             'note',
-            '_discover_',
-            '_register_',
             ("_login_", {"function": sub_claims}),
             "_accesstoken_",
         ],
