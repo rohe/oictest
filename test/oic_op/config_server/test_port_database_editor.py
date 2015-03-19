@@ -17,6 +17,9 @@ class TestPortDatabaseEditor(unittest.TestCase):
         self.test_db = "./test.db"
         self.database = PortDatabase(self.test_db)
 
+    def tearDown(self):
+        os.remove(self.test_db)
+
     def test_get_instance_id_from_config_with_instance_id(self):
         _instance_id = "ID_1"
         config_file_dict = {CONFIG_DICT_INSTANCE_ID_KEY: _instance_id}
@@ -28,11 +31,11 @@ class TestPortDatabaseEditor(unittest.TestCase):
             config_file_name = get_config_file_path(port, folder)
             os.remove(config_file_name)
 
-    def create_config_files(self, folder, ports):
+    def create_config_files(self, folder, ports, file_content=""):
         for port in ports:
             config_file_name = get_config_file_path(port, folder)
             with open(config_file_name, "w") as _file:
-                _file.write("")
+                _file.write(file_content)
 
     @patch('port_database_editor.ConfigFileEditor.get_config_file_dict')
     @patch('port_database_editor.ConfigFileEditor.get_port_type')
@@ -56,7 +59,7 @@ class TestPortDatabaseEditor(unittest.TestCase):
                                           PortDatabase.DYNAMIC_PORT_TYPE,
                                           PortDatabase.STATIC_PORT_TYPE]
         mock_get_config_file_dict.return_value = None
-        self.config_editor.extract_database_info_from_config_file(".", self.database)
+        self.config_editor.extract_database_info_from_config_file(self.database)
         self.assertItemsEqual(self.database.get_all_ports(), ports)
         self.remove_config_files(folder, ports)
 
@@ -65,6 +68,29 @@ class TestPortDatabaseEditor(unittest.TestCase):
         config_file_dict = {}
         returned_instance_id = self.config_editor.get_instance_id(config_file_dict, port)
         self.assertEqual(port, int(returned_instance_id))
+
+    def test_get_port_from_module(self):
+        port = self.config_editor.get_port("rp_conf_8001")
+        self.assertEqual(port, 8001)
+
+    def test_get_config_file_dict_from_module(self):
+        folder = ""
+        ports = [0]
+        file_content = "CLIENT = {'first_key': 'public',\n 'second_key': 'public'}"
+        self.create_config_files(folder, ports, file_content=file_content)
+        client = self.config_editor.get_config_file_dict("rp_conf_%s" % ports[0])
+        self.assertTrue(client)
+        self.remove_config_files(folder, ports)
+
+    def test_get_config_file_dict_from_module_without_client_attibute(self):
+        folder = ""
+        ports = [2]
+        file_content = "NON_CLIENT = {'first_key': 'public'}"
+        self.create_config_files(folder, ports, file_content=file_content)
+        with self.assertRaises(AttributeError):
+            self.config_editor.get_config_file_dict("rp_conf_%s" % ports[0])
+        self.remove_config_files(folder, ports)
+
 
 if __name__ == '__main__':
     unittest.main()
