@@ -95,16 +95,15 @@ def create_new_configuration_dict():
     static_input_fields_list = _generate_static_input_fields()
     op_configurations = {
         "fetchInfoFromServerDropDown": {
-            "name": "How should the application fetch provider configurations "
-                    "from the server?",
+            "name": "Does the OP have a .well-known/openid-configuration endpoint?",
             "value": "",
-            "values": [{"type": "dynamic", "name": "Dynamically"},
-                       {"type": "static", "name": "Statically"}]
+            "values": [{"type": "dynamic", "name": "yes"},
+                       {"type": "static", "name": "no"}]
         },
         "fetchStaticProviderInfo": {"showInputFields": False,
                                     "input_fields": static_input_fields_list},
         "fetchDynamicInfoFromServer": {"showInputField": False,
-                                       "input_field": {"label": "Issuer url *",
+                                       "input_field": {"label": "What is the issuer path for this configuration information? *",
                                                        "value": "",
                                                        "show": False,
                                                        "isList": False}},

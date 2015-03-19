@@ -110,16 +110,16 @@
                       novalidate
                       name="dynamic_disco_form">
 
-                    <span class="col-sm-2">
+                    <span class="col-sm-5">
                         {{opConfig.fetchDynamicInfoFromServer.input_field.label}}
                     </span>
 
-                    <div class="col-sm-5">
+                    <div class="col-sm-4">
                         <input type="text" class="form-control" ng-model="opConfig.fetchDynamicInfoFromServer.input_field.value" name="issuer" issuer />
                     </div>
 
                     <span ng-show="dynamic_disco_form.issuer.$error.issuer"
-                          class="col-sm-5 requiredText">
+                          class="col-sm-3 requiredText">
                         Issuer URL should not contain <i>.well-known/openid-configuration</i>
                     </span>
                 </form>
