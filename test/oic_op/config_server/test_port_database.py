@@ -1,11 +1,10 @@
+# -*- coding: utf-8 -*-
 import os
-from port_issuer_instance_id_database import PortDatabase
-from port_issuer_instance_id_database import NoPortAvailable
+import unittest
+from port_database import PortDatabase
+from port_database import NoPortAvailable
 
 __author__ = 'danielevertsson'
-
-import unittest
-import dataset
 
 class TestSequenceFunctions(unittest.TestCase):
 
@@ -19,9 +18,9 @@ class TestSequenceFunctions(unittest.TestCase):
         os.remove(self.test_db)
 
     def create_three_unique_entries(self):
-        self.database._upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
-        self.database._upsert(port=8002, issuer="facebook", instance_id='test2', port_type="static")
-        self.database._upsert(port=8003, issuer="apberget", instance_id='test3', port_type="static")
+        self.database.upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
+        self.database.upsert(port=8002, issuer="facebook", instance_id='test2', port_type="static")
+        self.database.upsert(port=8003, issuer="apberget", instance_id='test3', port_type="static")
 
     def test_list_all_ports(self):
         self.create_three_unique_entries()
@@ -57,9 +56,9 @@ class TestSequenceFunctions(unittest.TestCase):
         self.database.print_table()
 
     def create_three_entries_with_same_port(self):
-        self.database._upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
-        self.database._upsert(port=8001, issuer="facebook", instance_id='test2', port_type="static")
-        self.database._upsert(port=8001, issuer="apberget", instance_id='test3', port_type="static")
+        self.database.upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
+        self.database.upsert(port=8001, issuer="facebook", instance_id='test2', port_type="static")
+        self.database.upsert(port=8001, issuer="apberget", instance_id='test3', port_type="static")
 
     def test_if_entries_with_same_port_is_only_updated(self):
         self.create_three_entries_with_same_port()
@@ -72,9 +71,9 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertEqual(self.database.get_all_ports(), [8002, 8003])
 
     def create_three_entries_with_same_issuer_google_but_different_instance_ids(self):
-        self.database._upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
-        self.database._upsert(port=8002, issuer="google", instance_id='test2', port_type="static")
-        self.database._upsert(port=8003, issuer="google", instance_id='test3', port_type="static")
+        self.database.upsert(port=8001, issuer="google", instance_id='test1', port_type="dynamic")
+        self.database.upsert(port=8002, issuer="google", instance_id='test2', port_type="static")
+        self.database.upsert(port=8003, issuer="google", instance_id='test3', port_type="static")
 
     def test_get_port_based_on_issuer_and_id(self):
         self.create_three_entries_with_same_issuer_google_but_different_instance_ids()
@@ -129,21 +128,21 @@ class TestSequenceFunctions(unittest.TestCase):
         self.assertEqual(port, None)
 
     def test_get_port_type(self):
-        self.database._upsert(port=8001, issuer="google", instance_id='test1', port_type=PortDatabase.DYNAMIC_PORT_TYPE)
+        self.database.upsert(port=8001, issuer="google", instance_id='test1', port_type=PortDatabase.DYNAMIC_PORT_TYPE)
         port_type = self.database._get_port_type(8001)
         self.assertEqual(port_type, PortDatabase.DYNAMIC_PORT_TYPE)
 
     def test_allocate_dynamic_port_do_not_use_existing_static_port(self):
         issuer = "google"
         instance_id='test1'
-        self.database._upsert(port=8501, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
+        self.database.upsert(port=8501, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
         port = self.database.enter_row(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
         self.assertEqual(port, 8001)
 
     def test_use_existing_dynamic_port(self):
         issuer = "google"
         instance_id='test1'
-        self.database._upsert(port=8001, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
+        self.database.upsert(port=8001, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
         port = self.database.enter_row(issuer, instance_id, PortDatabase.STATIC_PORT_TYPE, 8001, 8003)
         self.assertEqual(port, 8001)
 
@@ -151,17 +150,22 @@ class TestSequenceFunctions(unittest.TestCase):
         issuer = "google"
         instance_id='test1'
         static_port = 8501
-        self.database._upsert(port=static_port, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
+        self.database.upsert(port=static_port, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
         self.database.enter_row(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
         ports = self.database.get_all_ports()
         self.assertNotIn(static_port, ports)
 
     def test_list_instance_ids_for_one_issuer(self):
         self.allocate_ports(3, PortDatabase.DYNAMIC_PORT_TYPE, issuer=self.ISSUER_GOOGLE)
-        self.database._upsert(port=8004, issuer="apberget", instance_id='test1', port_type="static")
-        self.database._upsert(port=8005, issuer="apberget", instance_id='test2', port_type="static")
+        self.database.upsert(port=8004, issuer="apberget", instance_id='test1', port_type="static")
+        self.database.upsert(port=8005, issuer="apberget", instance_id='test2', port_type="static")
         instance_ids = self.database.get_instance_ids(self.ISSUER_GOOGLE)
         self.assertEqual(instance_ids, ["ID_1", "ID_2", "ID_3"])
+
+    def test_enter_issuer_non_ascii_charaters(self):
+        issuer = unicode('https://example/öäå', encoding='utf-8')
+        self.database.upsert(issuer=issuer, port=8000, instance_id="test", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
+        self.assertEqual(self.database.get_all_ports(), [8000])
 
 if __name__ == '__main__':
     unittest.main()
