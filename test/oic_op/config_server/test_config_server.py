@@ -135,7 +135,7 @@ class TestConfigServer(unittest.TestCase):
         dynamic_discovery_issuer = "example2.com"
         new_gui_config = create_new_configuration_dict()
         new_gui_config = set_dynamic_discovery_issuer_config_gui_structure(dynamic_discovery_issuer, new_gui_config)
-        config_file_dict = convert_config_gui_structure(new_gui_config, 0)
+        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id")
 
         self.assertDictContainsSubset({"srv_discovery_url": dynamic_discovery_issuer}, config_file_dict)
         with self.assertRaises(KeyError):
@@ -152,7 +152,7 @@ class TestConfigServer(unittest.TestCase):
         mock_generate_static_input_fields.return_value = _generate_static_input_fields(default_static_discovery_value)
         new_gui_config = create_new_configuration_dict()
         new_gui_config['fetchStaticProviderInfo']['showInputFields'] = True
-        config_file_dict = convert_config_gui_structure(new_gui_config, 0)
+        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id")
 
         self.assertTrue(config_file_dict['provider_info'])
         with self.assertRaises(KeyError):
@@ -163,7 +163,7 @@ class TestConfigServer(unittest.TestCase):
         custom_info = {"custom_key": "custom_value"}
         mock_identify_existing_config_file.return_value = copy.deepcopy(custom_info)
         new_gui_config = create_new_configuration_dict()
-        config_dict = convert_config_gui_structure(new_gui_config, 0)
+        config_dict = convert_config_gui_structure(new_gui_config, 0, "id")
         self.assertDictContainsSubset(custom_info, config_dict)
 
     def test_convert_list_instance_to_list_should_be_untouched(self):
@@ -183,6 +183,14 @@ class TestConfigServer(unittest.TestCase):
         value = "test"
         field_value = convert_instance(to_list, value)
         self.assertEqual(field_value, convert_to_value_list([value]))
+
+    @patch('config_server.identify_existing_config_file')
+    def test_if_instance_id_is_save_to_config_file(self, mock_identify_existing_config_file):
+        new_gui_config = create_new_configuration_dict()
+        instance_id = "my_instance_id"
+        mock_identify_existing_config_file.side_effect = NoMatchException()
+        config_dict = convert_config_gui_structure(new_gui_config, 0, instance_id)
+        self.assertDictContainsSubset({"instance_id": instance_id}, config_dict)
 
 if __name__ == '__main__':
     unittest.main()
