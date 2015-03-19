@@ -1,18 +1,32 @@
+import importlib
 import os
+import imp
 import argparse
+import re
+import sys
+
 from port_database import PortDatabase
 from config_server import get_issuer_from_config_file
-from config_server import parse_config_string
 from config_server import CONFIG_DICT_INSTANCE_ID_KEY
 
 
 class ConfigFileEditor(object):
 
-    def get_config_file_dict(self, config_file_path):
-        with open(config_file_path, "r") as config_file:
-            config_module = config_file.read()
-            config_file_dict = parse_config_string(config_module)
-        return config_file_dict
+    def __init__(self, config_file_path='../rp'):
+        self.config_file_path = config_file_path
+        sys.path.append(config_file_path)
+
+    def get_config_file_dict(self, module):
+        try:
+            test_conf = importlib.import_module(module)
+        except ImportError as ex:
+            raise ImportError(ex.message + " in path %s" % self.config_file_path)
+
+        try:
+            return test_conf.CLIENT
+        except AttributeError:
+            print("Failed to load CLIENT attribute in module: %s" % module)
+            raise
 
     def get_issuer(self, config_file_dict):
         return get_issuer_from_config_file(config_file_dict)
@@ -34,12 +48,17 @@ class ConfigFileEditor(object):
         except KeyError:
             return PortDatabase.STATIC_PORT_TYPE
 
-    def extract_database_info_from_config_file(self, folder, database):
-        for filename in os.listdir(folder):
-            if filename.startswith("rp_conf") and filename.endswith(".py"):
-                config_file_dict = self.get_config_file_dict(folder + filename)
+    def extract_database_info_from_config_file(self, database):
+        files = [f for f in os.listdir('.') if os.path.isfile(f)]
+        config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
 
-                port = self.get_port(filename)
+        for module in files:
+            if config_file_pattern.match(module):
+                module = module[:-3]
+                print "Saving module (%s) information in databse" % module
+                config_file_dict = self.get_config_file_dict(module)
+
+                port = self.get_port(module)
                 issuer = self.get_issuer(config_file_dict)
                 instance_id = self.get_instance_id(config_file_dict, port)
                 port_type = self.get_port_type(config_file_dict)
@@ -48,26 +67,34 @@ class ConfigFileEditor(object):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p', dest='print_database', action='store_true',
+    parser.add_argument('-s', dest='show_database_content', action='store_true',
                         help="Print database")
 
     parser.add_argument('-r', dest='port_to_remove',
                         help="Remove port")
 
-    parser.add_argument('-g', dest='folder_path',
-                        help="Generate database from configuration files in folder")
+    parser.add_argument('-g', dest='generate_database', action='store_true',
+                        help="Generate database from configuration files in current folder")
+
+    parser.add_argument('-p', dest='oprp_config_file_path',
+                        help="Generate database from configuration files in current folder")
 
     parser.add_argument(dest="database")
     args = parser.parse_args()
 
     database = PortDatabase(args.database)
 
-    if args.print_database:
+    if args.show_database_content:
         database.print_table()
 
     if args.port_to_remove:
         database._remove_row(args.port_to_remove)
 
-    if args.folder_path:
+    if args.oprp_config_file_path:
+        config_editor = ConfigFileEditor(args.oprp_config_file_path)
+    else:
         config_editor = ConfigFileEditor()
-        config_editor.extract_database_info_from_config_file(args.folder_path, database)
+
+    if args.generate_database:
+        config_editor.extract_database_info_from_config_file(database)
+        database.print_table()

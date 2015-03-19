@@ -24,9 +24,15 @@ class PortDatabase():
         self.table = self.database[self.TABLE_NAME]
 
     def upsert(self, port, issuer, instance_id, port_type):
-        issuer = unicode(issuer, encoding='utf-8')
-        instance_id = unicode(instance_id, encoding='utf-8')
-        port_type = unicode(port_type, encoding='utf-8')
+        if isinstance(issuer, str):
+            issuer = unicode(issuer, encoding='utf-8')
+
+        if isinstance(instance_id, str):
+            instance_id = unicode(instance_id, encoding='utf-8')
+
+        if isinstance(port_type, str):
+            port_type = unicode(port_type, encoding='utf-8')
+
         row = dict(port=port, port_type=port_type, instance_id=instance_id, issuer=issuer)
         self.table.upsert(row, [PORT_COLUMN])
 
