@@ -139,6 +139,7 @@ def application(environ, start_response):
                 pass
             else:
                 ots.client = conv.client
+                session["conv"] = conv
         except Exception as err:
             return oprp.err_response(session, "session_setup", err)
         else:

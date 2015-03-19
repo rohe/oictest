@@ -2126,6 +2126,28 @@ class BareKeys(Information):
         return {}
 
 
+class CheckQueryPart(Error):
+    """
+    Check that a query part send in the Authorization Request is returned in the
+    Authorization response.
+    """
+    cid = "check-query-part"
+    msg = ""
+
+    def _func(self, conv):
+        (inst, msg) = get_protocol_response(conv, AuthorizationResponse)[0]
+
+        for key, val in self._kwargs.items():
+            try:
+                assert inst[key] == val
+            except AssertionError:
+                self._status = ERROR
+                self._message = \
+                    "The query component {}={} not part of the response".format(
+                        key, val)
+        return {}
+
+
 CLASS_CACHE = {}
 
 
