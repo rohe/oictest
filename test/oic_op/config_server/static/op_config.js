@@ -447,6 +447,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
 
     function resetGui() {
         $scope.contains_redirect_url = false;
+        $scope.show_provider_config();
     }
 
     /**
