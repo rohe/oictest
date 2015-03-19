@@ -202,49 +202,6 @@ FLOWS = {
                       "response_cls": [AccessTokenResponse,
                                        AuthorizationResponse]}}
     },
-    'OP-IDToken-max_age=1': {
-        "desc": 'Requesting ID Token with max_age=1 seconds restriction [Basic, Implicit, Hybrid]',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            "_login_",
-            "_accesstoken_",
-            "note",
-            '_register_',
-            ("_login_", {"request_args": {"max_age": 1}}),
-            "_accesstoken_"
-        ],
-        "note": "This is to allow some time to pass. At least 1 second. "
-                "The result should be that you have to re-authenticate",
-        "profile": "..",
-        "tests": {"multiple-sign-on": {},
-                  "verify-response": {
-                      "response_cls": [AccessTokenResponse,
-                                       AuthorizationResponse]},
-                  "claims-check": {"id_token": ["auth_time"],
-                                   "required": True}},
-        "mti": {"all": "MUST"},
-        "result": "The test passed if you were prompted to log in"
-    },
-    'OP-IDToken-max_age=1000': {
-        "desc": 'Requesting ID Token with max_age=1000 seconds restriction [Basic, Implicit, Hybrid]',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            "_login_",
-            "_accesstoken_",
-            ("_login_", {"request_args": {"max_age": 1000}}),
-            "_accesstoken_"
-        ],
-        "profile": "..",
-        "tests": {"same-authn": {},
-                  "verify-response": {
-                      "response_cls": [AccessTokenResponse,
-                                       AuthorizationResponse]},
-                  "claims-check": {"id_token": ["auth_time"],
-                                   "required": True}},
-        "mti": {"all": "MUST"}
-    },
     'OP-IDToken-none': {
         "desc": 'Unsecured ID Token signature with none [Basic]',
         "sequence": [
@@ -812,7 +769,49 @@ FLOWS = {
                   "verify-response": {"response_cls": [AuthorizationResponse,
                                                  AccessTokenResponse]}}
     },
-    'OP-OAuth-2nd': {
+    'OP-Req-max_age=1': {
+        "desc": 'Requesting ID Token with max_age=1 seconds restriction [Basic, Implicit, Hybrid]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            "_login_",
+            "_accesstoken_",
+            "note",
+            '_register_',
+            ("_login_", {"request_args": {"max_age": 1}}),
+            "_accesstoken_"
+        ],
+        "note": "This is to allow some time to pass. At least 1 second. "
+                "The result should be that you have to re-authenticate",
+        "profile": "..",
+        "tests": {"multiple-sign-on": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]},
+                  "claims-check": {"id_token": ["auth_time"],
+                                   "required": True}},
+        "mti": {"all": "MUST"},
+        "result": "The test passed if you were prompted to log in"
+    },
+    'OP-Req-max_age=1000': {
+        "desc": 'Requesting ID Token with max_age=1000 seconds restriction [Basic, Implicit, Hybrid]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            "_login_",
+            "_accesstoken_",
+            ("_login_", {"request_args": {"max_age": 1000}}),
+            "_accesstoken_"
+        ],
+        "profile": "..",
+        "tests": {"same-authn": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]},
+                  "claims-check": {"id_token": ["auth_time"],
+                                   "required": True}},
+        "mti": {"all": "MUST"}
+    },    'OP-OAuth-2nd': {
         "desc": 'Trying to use access code twice should result in an error [Basic, Hybrid]',
         "sequence": [
             '_discover_',
@@ -1488,7 +1487,6 @@ FLOWS = {
                      }}
              }),
             ("_login_", {
-                "request_arg"
                 "kwargs_mod": {
                     "request_method": "file",
                     "local_dir": "export",
