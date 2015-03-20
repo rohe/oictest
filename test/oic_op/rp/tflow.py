@@ -190,20 +190,6 @@ FLOWS = {
                       "response_cls": [AccessTokenResponse,
                                        AuthorizationResponse]}}
     },
-    'OP-IDToken-nonce-code': {
-        "desc": 'ID Token has nonce when requested for code flow [Basic]',
-        "sequence": [
-            '_discover_',
-            '_register_',
-            ('_login_', {"request_args": {"nonce": "godmorgon"}}),
-            '_accesstoken_'],
-        "mti": {"all": "MUST"},
-        "profile": "C..",
-        "tests": {"verify-nonce": {},
-                  "verify-response": {
-                      "response_cls": [AccessTokenResponse,
-                                       AuthorizationResponse]}}
-    },
     'OP-IDToken-none': {
         "desc": 'Unsecured ID Token signature with none [Basic]',
         "sequence": [
@@ -239,17 +225,6 @@ FLOWS = {
         "sequence": ['_discover_', '_register_', '_login_'],
         "tests": {"verify-authn-response": {}},
         "profile": "CI,CIT..",
-        "mti": {"all": "MUST"}
-    },
-    'OP-IDToken-nonce-noncode': {
-        "desc": 'Request with nonce, verifies it was returned in ID Token ['
-                'Implicit, Hybrid]',
-        "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
-        "tests": {'check-idtoken-nonce': {},
-                  "verify-response": {
-                      "response_cls": [AccessTokenResponse,
-                                       AuthorizationResponse]}},
-        "profile": "I,IT,CI,CT,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-IDToken-HS256': {
@@ -472,6 +447,31 @@ FLOWS = {
                 "error": ["invalid_request"],
                 "response_cls": [ErrorResponse]}},
         "profile": "I,IT..",
+        "mti": {"all": "MUST"}
+    },
+    'OP-nonce-code': {
+        "desc": 'ID Token has nonce when requested for code flow [Basic]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            ('_login_', {"request_args": {"nonce": "godmorgon"}}),
+            '_accesstoken_'],
+        "mti": {"all": "MUST"},
+        "profile": "C..",
+        "tests": {"verify-nonce": {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}}
+    },
+    'OP-nonce-noncode': {
+        "desc": 'Request with nonce, verifies it was returned in ID Token ['
+                'Implicit, Hybrid]',
+        "sequence": ['_discover_', '_register_', '_login_', '_accesstoken_'],
+        "tests": {'check-idtoken-nonce': {},
+                  "verify-response": {
+                      "response_cls": [AccessTokenResponse,
+                                       AuthorizationResponse]}},
+        "profile": "I,IT,CI,CT,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-scope-profile': {
