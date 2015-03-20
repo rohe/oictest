@@ -837,20 +837,23 @@ FLOWS = {
         "mti": {"all": "MUST"}
     },
     'OP-OAuth-2nd': {
-    "desc": 'Trying to use authorization code twice should result in an error ['
-            'Basic, Hybrid]',
-    "sequence": [
-        '_discover_',
-        '_register_',
-        '_login_',
-        "_accesstoken_",
-        "_accesstoken_"
-    ],
-    "profile": "C,CI,CT,CIT..",
-    "tests": {"verify-error-response": {"status": WARNING}},
-    "mti": {"all": "SHOULD"},
-    "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
-                 "#section-4.1",
+        "desc": 'Trying to use authorization code twice should result in an error ['
+                'Basic, Hybrid]',
+        "sequence": [
+            '_discover_',
+            '_register_',
+            '_login_',
+            "_accesstoken_",
+            "_accesstoken_"
+        ],
+        "profile": "C,CI,CT,CIT..",
+        "tests": {
+            "verify-response": {
+                "response_cls": [ErrorResponse],
+                "error": ["invalid_grant"]}},
+        "mti": {"all": "SHOULD"},
+        "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
+                     "#section-4.1",
     },
     'OP-OAuth-2nd-Revokes': {
         "desc": 'Trying to use authorization code twice should result in revoking '
