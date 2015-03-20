@@ -1135,13 +1135,21 @@ FLOWS = {
         'tests': {"check-http-response": {}},
         "mti": {"Dynamic": "MUST"}
     },
-    'OP-Discovery-Values': {
-        "desc": 'Verify that jwks_uri and claims_supported are published ['
+    'OP-Discovery-jwks_uri': {
+        "desc": 'Verify that jwks_uri are published ['
                 'Config, Dynamic]',
         "sequence": ['_discover_'],
         "tests": {"providerinfo-has-jwks_uri": {},
-                  "providerinfo-has-claims_supported": {},
                   "bare-keys": {},
+                  "check-http-response": {}},
+        "profile": ".T..s",
+        "mti": {"Dynamic": "SHOULD"}
+    },
+    'OP-Discovery-claims_supported': {
+        "desc": 'Verify that claims_supported are published ['
+                'Config, Dynamic]',
+        "sequence": ['_discover_'],
+        "tests": {"providerinfo-has-claims_supported": {},
                   "check-http-response": {}},
         "profile": ".T.",
         "mti": {"Dynamic": "SHOULD"}
