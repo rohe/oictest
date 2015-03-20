@@ -583,6 +583,11 @@ class VerifyResponse(ExpectedError):
         inst, txt = conv.protocol_response[-1]
 
         ok = False
+        try:
+            _status = self._kwargs["status"]
+        except KeyError:
+            _status = ERROR
+
         for cls in self._kwargs["response_cls"]:
             try:
                 assert isinstance(inst, cls)
@@ -604,7 +609,7 @@ class VerifyResponse(ExpectedError):
 
         if not ok:
             self._message = "Got a %s response" % inst.__class__.__name__
-            self._status = ERROR
+            self._status = _status
 
         return {}
 

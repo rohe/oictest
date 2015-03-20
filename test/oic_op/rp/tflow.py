@@ -850,7 +850,9 @@ FLOWS = {
         "tests": {
             "verify-response": {
                 "response_cls": [ErrorResponse],
-                "error": ["invalid_grant"]}},
+                "error": ["invalid_grant"],
+                "status": WARNING,
+                }},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
