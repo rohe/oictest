@@ -988,7 +988,10 @@ FLOWS = {
         "profile": "..T",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
-        'tests': {"verify-authn-response": {}},
+        'tests': {
+            "verify-response": {
+                "response_cls": [ErrorResponse],
+                "error": ["access_denied"]}},
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-RegFrag': {
@@ -1000,7 +1003,11 @@ FLOWS = {
                 "function": (redirect_uris_with_fragment, {"foo": "bar"})})
         ],
         "profile": "..T",
-        "tests": {"verify-bad-request-response": {}},
+        'tests': {
+            "verify-response": {
+                "response_cls": [ErrorResponse],
+                "error": ["invalid_request",
+                          "invalid_configuration_parameter"]}},
         "mti": {"all": "MUST"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
@@ -1014,7 +1021,8 @@ FLOWS = {
             ('_login_', {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "....+",
-        'tests': {"verify-authn-response": {}},
+        'tests': {
+            "verify-response": {"response_cls": [AuthorizationResponse]}},
     },
     'OP-ClientAuth-Basic-Dynamic': {
         "desc": 'Access token request with client_secret_basic authentication '
