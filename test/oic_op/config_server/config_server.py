@@ -144,8 +144,7 @@ def create_new_configuration_dict():
              "textFieldContent": ""}],
 
         "clientSubjectType": {
-            "label": "Select which subject identifier type the client should "
-                     "use: ",
+            "label": "Which response type do you want to use by default?CHanged : ",
             "value": "public",
             "values": [{"type": "public", "name": "public"},
                        {"type": "pairwise", "name": "pairwise"}]
