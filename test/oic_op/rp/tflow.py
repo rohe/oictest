@@ -28,7 +28,7 @@ from oictest.testfunc import redirect_uri_with_query_component
 __author__ = 'roland'
 
 USERINFO_REQUEST_AUTH_METHOD = (
-    "userinfo", {
+    "_userinfo_", {
         "kwargs_mod": {"authn_method": "bearer_header"},
         "method": "GET"
     })
@@ -485,15 +485,16 @@ FLOWS = {
                  "support": {"warning": {"scopes_supported": ["profile"]}}
              }),
             "_accesstoken_",
-            ("userinfo", {
+            ("_userinfo_", {
                 "kwargs_mod": {"authn_method": "bearer_header"},
                 "method": "GET"
             })
         ],
-        "profile": "C,IT,CT,CI,CIT..",
+        "profile": "..",
         "mti": {"all": "No err"},
-        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
-                  "verify-claims": {},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema,
+                                                       AuthorizationResponse]},
+                  "verify-scopes": {},
                   "check-http-response": {}}
     },
     'OP-scope-email': {
@@ -507,15 +508,16 @@ FLOWS = {
                  "support": {"warning": {"scopes_supported": ["email"]}}
              }),
             "_accesstoken_",
-            ("userinfo", {
+            ("_userinfo_", {
                 "kwargs_mod": {"authn_method": "bearer_header"},
                 "method": "GET"
             })
         ],
-        "profile": "C,IT,CT,CI,CIT..",
+        "profile": "..",
         "mti": "No err",
-        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
-                  "verify-claims": {},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema,
+                                                       AuthorizationResponse]},
+                  "verify-scopes": {},
                   "check-http-response": {}}
     },
     'OP-scope-address': {
@@ -529,15 +531,16 @@ FLOWS = {
                  "support": {"warning": {"scopes_supported": ["address"]}}
              }),
             "_accesstoken_",
-            ("userinfo", {
+            ("_userinfo_", {
                 "kwargs_mod": {"authn_method": "bearer_header"},
                 "method": "GET"
             })
         ],
-        "profile": "C,IT,CT,CI,CIT..",
+        "profile": "..",
         "mti": "No err",
-        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
-                  "verify-claims": {},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema,
+                                                       AuthorizationResponse]},
+                  "verify-scopes": {},
                   "check-http-response": {}}
     },
     'OP-scope-phone': {
@@ -551,15 +554,16 @@ FLOWS = {
                  "support": {"warning": {"scopes_supported": ["phone"]}}
              }),
             "_accesstoken_",
-            ("userinfo", {
+            ("_userinfo_", {
                 "kwargs_mod": {"authn_method": "bearer_header"},
                 "method": "GET"
             })
         ],
-        "profile": "C,IT,CT,CI,CIT..",
+        "profile": "..",
         "mti": "No err",
-        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
-                  "verify-claims": {},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema,
+                                                       AuthorizationResponse]},
+                  "verify-scopes": {},
                   "check-http-response": {}}
     },
     'OP-scope-All': {
@@ -576,15 +580,16 @@ FLOWS = {
                                                       "address", "phone"]}}
              }),
             "_accesstoken_",
-            ("userinfo", {
+            ("_userinfo_", {
                 "kwargs_mod": {"authn_method": "bearer_header"},
                 "method": "GET"
             })
         ],
-        "profile": "C,IT,CT,CI,CIT..",
+        "profile": "..",
         "mti": "No err",
-        'tests': {"verify-response": {"response_cls": [OpenIDSchema]},
-                  "verify-claims": {},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema,
+                                                       AuthorizationResponse]},
+                  "verify-scopes": {},
                   "check-http-response": {}}
     },
     'OP-display-page': {
@@ -761,11 +766,11 @@ FLOWS = {
                          "function": claims_locales}),
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD,
-            'display_userinfo'],
+            '_display_userinfo_'],
         "note": "This test requests that claims be returned using the specified locale(s). "
                 "The use of this parameter in the request must not cause an "
                 "error at the OP.",
-        "profile": "C,IT,CI,CT,CIT..",
+        "profile": "..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
     },

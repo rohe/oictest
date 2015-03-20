@@ -4,8 +4,8 @@ from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwk import base64url_to_long
 from oic.exception import MessageException
-from oic.oauth2.message import ErrorResponse
-from oic.oic import AuthorizationResponse
+from oic.oauth2.message import ErrorResponse, AuthorizationRequest
+from oic.oic import AuthorizationResponse, OpenIDSchema
 from oic.oic import claims_match
 from oic.oic import message
 from oictest.regalg import MTI
@@ -2145,6 +2145,45 @@ class CheckQueryPart(Error):
                 self._message = \
                     "The query component {}={} not part of the response".format(
                         key, val)
+        return {}
+
+
+class VerifyScopes(Warnings):
+    """
+    Verifies that the claims corresponding to the requested scopes are returned
+    """
+    cid = "verify-scopes"
+    msg = ""
+
+    def _func(self, conv):
+        areq = conv.AuthorizationRequest
+
+        # turn scopes into claims
+        claims = []
+        for scope in areq["scope"]:
+            try:
+                claims.extend([name for name in SCOPE2CLAIMS[scope]])
+            except KeyError:
+                pass
+
+        if areq["response_type"] == ["id_token"]:
+            # Then everything should be in the ID Token
+            (aresp, _) = get_protocol_response(conv, AuthorizationResponse)[-1]
+            container = aresp["id_token"]
+        else:  # In Userinfo
+            (container, _) = get_protocol_response(conv, OpenIDSchema)[-1]
+
+        missing = []
+        for claim in claims:
+            try:
+                assert claim in container
+            except AssertionError:
+                missing.append(claim)
+        if missing:
+            self._status = self.status
+            self._message = "The following claims where missing: {}".format(
+                missing)
+
         return {}
 
 

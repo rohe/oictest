@@ -15,33 +15,44 @@ PROFILEMAP = {
     "C": {
         "_login_": ("oic-login", {"request_args": {"response_type": ["code"]}}),
         "_accesstoken_": "access-token-request",
+        '_userinfo_': "userinfo",
+        "_display_userinfo_": "display_userinfo"
     },
     "I": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["id_token"]}}),
         "_accesstoken_": None,
+        '_userinfo_': None,
+        "_display_userinfo_": None
     },
     "IT": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["id_token", "token"]}}),
         "_accesstoken_": None,
+        '_userinfo_': "userinfo",
+        "_display_userinfo_": "display_userinfo"
     },
     "CI": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["code", "id_token"]}}),
         "_accesstoken_": "access-token-request",
+        '_userinfo_': "userinfo",
+        "_display_userinfo_": "display_userinfo"
     },
     "CT": {
         "_login_": ("oic-login",
                     {"request_args": {"response_type": ["code", "token"]}}),
         "_accesstoken_": "access-token-request",
-
+        '_userinfo_': "userinfo",
+        "_display_userinfo_": "display_userinfo"
     },
     "CIT": {
         "_login_": ("oic-login",
                     {"request_args": {
                         "response_type": ["code", "id_token", "token"]}}),
         "_accesstoken_": "access-token-request",
+        '_userinfo_': "userinfo",
+        "_display_userinfo_": "display_userinfo"
     },
     "Discover": {
         "*": ("provider-discovery", {})
