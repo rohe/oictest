@@ -589,7 +589,7 @@ class CheckHasJwksURI(Error):
         return {}
 
 
-class CheckHasClaimsSupported(Warnings):
+class CheckHasClaimsSupported(Error):
     """
     Check that the claims_supported claim is in the provider_info
     """
