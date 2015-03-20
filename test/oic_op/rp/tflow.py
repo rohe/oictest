@@ -134,10 +134,10 @@ FLOWS = {
         "tests": {
             "verify-error": {"error": ["invalid_request",
                                        "unsupported_response_type"]}},
-        "note": "There are two correct responses: 1) returning error response "
-                "to the RP 2) returning error message to the User and that in "
-                "case (2) occurs the tester must submit a screen shot as proof "
-                "when sending in a certification application",
+        "note": "There are two acceptable outcomes: (1) returning an error response "
+                "to the RP or (2) returning an error message to the End-User. "
+                "In case (2), you must submit a screen shot of the error shown "
+                "as part of your certification application.",
         "profile": "..",
         "mti": {"all": "MUST"}
     },
@@ -599,9 +599,9 @@ FLOWS = {
                  "support": {"warning": {"display_values_supported": "page"}}
              })
         ],
-        "note": "To make sure you get a login page please remove any cookies "
-                "you have received from the OpenID Provider. "
-                "You should get the normal User Agent page view.",
+        "note": "To make sure you get a login page, please remove any cookies "
+                "you may have received from the OpenID Provider. "
+                "You should get a normal user agent login page view.",
         "profile": "..",
         'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
@@ -618,9 +618,9 @@ FLOWS = {
                  "support": {"warning": {"display_values_supported": "popup"}}
              })
         ],
-        "note": "To make sure you get a login page please remove any cookies "
-                "you have received from the OpenID Provider. "
-                "You should get a popup User Agent window now",
+        "note": "To make sure you get a login page, please remove any cookies "
+                "you may have received from the OpenID Provider. "
+                "You should get a popup user agent login window.",
         "profile": "..",
         'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "No err"}
@@ -636,7 +636,9 @@ FLOWS = {
             ('_login_', {"request_args": {"prompt": "login"}}),
             '_accesstoken_',
         ],
-        "note": "You should get a request for re-authentication",
+        "note": "You should be prompted for authentication or re-authentication. "
+                "You must submit a screen shot of the authentication user interaction "
+                "as part of your certification application.",
         "profile": "..",
         'tests': {
             "multiple-sign-on": {},
@@ -654,11 +656,11 @@ FLOWS = {
             '_register_',
             ('_login_', {"request_args": {"prompt": "none"}})
         ],
-        "note": "This test tests what happens if the authentication requests "
-                "specifies that the user should not be allowed to login and no "
-                "recent enough authentication is present. "
+        "note": "This tests what happens if the authentication request "
+                "specifies that no interaction may occur with the End-User "
+                "and no recent enough authentication is present to enable a silent login. "
                 "Please remove any cookies you may have received from the "
-                "OpenID provider.",
+                "OpenID Provider.",
         "mti": {"all": "MUST"},
         "profile": "..",
         "tests": {"verify-error-response": {
@@ -723,9 +725,9 @@ FLOWS = {
             '_register_',
             ("_login_", {"function": login_hint})
         ],
-        "note": "Please remove the cookies you have received from the "
-                "provider. We are simulating that you want to log in as "
-                "a specific user. So a fresh log-in page is needed.",
+        "note": "Please remove any cookies you may have received from the "
+                "OpenID Provider. This test requests that you log in as "
+                "a specific user, so a fresh login page is needed.",
         "profile": "..",
         'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"},
@@ -740,11 +742,11 @@ FLOWS = {
             ('_login_', {"request_args": {},
                          "function": ui_locales}),
         ],
-        "note": "Please remove the cookies you have received from the "
-                "provider. You need to do this so you can check that the "
-                "log-in page is in the right locale. "
+        "note": "Please remove any cookies you may have received from the "
+                "OpenID Provider. You need to do this so you can check that the "
+                "login page is displayed using one of the requested locales. "
                 "The use of this parameter in the request must not cause an "
-                "error at the OP",
+                "error at the OP.",
         "profile": "..",
         'tests': {"verify-authn-response": {}},
         "mti": {"all": "No err"}
@@ -760,9 +762,9 @@ FLOWS = {
             "_accesstoken_",
             USERINFO_REQUEST_AUTH_METHOD,
             'display_userinfo'],
-        "note": "Claims may now be returned in the locale of choice "
+        "note": "This test requests that claims be returned using the specified locale(s). "
                 "The use of this parameter in the request must not cause an "
-                "error at the OP",
+                "error at the OP.",
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {}},
         "mti": {"all": "No err"}
@@ -795,8 +797,10 @@ FLOWS = {
             ("_login_", {"request_args": {"max_age": 1}}),
             "_accesstoken_"
         ],
-        "note": "This is to allow some time to pass. At least 1 second. "
-                "The result should be that you have to re-authenticate",
+        "note": "Wait at least one second before proceeding so that the max_age=1 period expires. "
+                "The result should be that you are prompted to authenticate or re-authenticate. "
+                "You must submit a screen shot of the authentication user interaction "
+                "as part of your certification application.",
         "profile": "..",
         "tests": {"multiple-sign-on": {},
                   "verify-response": {
@@ -807,15 +811,15 @@ FLOWS = {
         "mti": {"all": "MUST"},
         "result": "The test passed if you were prompted to log in"
     },
-    'OP-Req-max_age=1000': {
-        "desc": 'Requesting ID Token with max_age=1000 seconds restriction ['
+    'OP-Req-max_age=10000': {
+        "desc": 'Requesting ID Token with max_age=10000 seconds restriction ['
                 'Basic, Implicit, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
             "_login_",
             "_accesstoken_",
-            ("_login_", {"request_args": {"max_age": 1000}}),
+            ("_login_", {"request_args": {"max_age": 10000}}),
             "_accesstoken_"
         ],
         "profile": "..",
@@ -826,8 +830,9 @@ FLOWS = {
                   "claims-check": {"id_token": ["auth_time"],
                                    "required": True}},
         "mti": {"all": "MUST"}
-    }, 'OP-OAuth-2nd': {
-    "desc": 'Trying to use access code twice should result in an error ['
+    },
+    'OP-OAuth-2nd': {
+    "desc": 'Trying to use authorization code twice should result in an error ['
             'Basic, Hybrid]',
     "sequence": [
         '_discover_',
@@ -841,10 +846,10 @@ FLOWS = {
     "mti": {"all": "SHOULD"},
     "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                  "#section-4.1",
-},
+    },
     'OP-OAuth-2nd-Revokes': {
-        "desc": 'Trying to use access code twice should result in revoking '
-                'previous issued tokens [Basic, Hybrid]',
+        "desc": 'Trying to use authorization code twice should result in revoking '
+                'previous issued access tokens [Basic, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
@@ -861,7 +866,7 @@ FLOWS = {
                      "#section-4.1",
     },
     'OP-OAuth-2nd-30s': {
-        "desc": 'Trying to use access code twice with 30 seconds in between '
+        "desc": 'Trying to use authorization code twice with 30 seconds in between uses '
                 'must result in an error [Basic, Hybrid]',
         "sequence": [
             'note',
@@ -875,8 +880,8 @@ FLOWS = {
         "profile": "C,CI,CT,CIT..",
         "tests": {"verify-bad-request-response": {"status": ERROR}},
         "mti": {"all": "SHOULD"},
-        "note": "An 30 second delay is added between the first and the second "
-                "access token request.",
+        "note": "A 30 second delay is added between the first and the second "
+                "use of the authorization code.",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
     },
@@ -890,8 +895,10 @@ FLOWS = {
             ("_login_", {"function": mismatch_return_uri})
         ],
         "profile": "..",
-        "note": "The next request should result in the OpenID Connect Provider "
-                "returning an error message to your web browser.",
+        "note": "This test should result in the OpenID Provider "
+                "displaying an error message in your user agent. "
+                "You must submit a screen shot of the error shown "
+                "as part of your certification application.",
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Missing': {
@@ -905,8 +912,10 @@ FLOWS = {
         ],
         "profile": "..T",
         'tests': {"verify-authn-response": {}},
-        "note": "The next request should result in the OpenID Connect Provider "
-                "returning an error message to your web browser.",
+        "note": "This test should result in the OpenID Provider "
+                "displaying an error message in your user agent. "
+                "You must submit a screen shot of the error shown "
+                "as part of your certification application.",
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Query': {
@@ -1136,7 +1145,7 @@ FLOWS = {
         "mti": {"Dynamic": "MUST"}
     },
     'OP-Discovery-jwks_uri': {
-        "desc": 'Verify that jwks_uri are published ['
+        "desc": 'Verify that jwks_uri is published ['
                 'Config, Dynamic]',
         "sequence": ['_discover_'],
         "tests": {"providerinfo-has-jwks_uri": {},
@@ -1146,7 +1155,7 @@ FLOWS = {
         "mti": {"Dynamic": "SHOULD"}
     },
     'OP-Discovery-claims_supported': {
-        "desc": 'Verify that claims_supported are published ['
+        "desc": 'Verify that claims_supported is published ['
                 'Config, Dynamic]',
         "sequence": ['_discover_'],
         "tests": {"providerinfo-has-claims_supported": {},
@@ -1204,10 +1213,10 @@ FLOWS = {
             "_login_"
         ],
         "profile": "..T",
-        'note': "This test wants to verify that an OP can display a link "
-                "to the clients policy document. To make sure you get a fresh "
-                "login page you need to remove cookies you have received "
-                "from the OP",
+        "note": "This test verifies that an OP displays a link "
+                "to the RP's policy document. "
+                "To make sure you get a fresh login page, "
+                "you need to remove any cookies you may have received from the OP.",
         "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-logo_uri': {
@@ -1219,10 +1228,9 @@ FLOWS = {
             "_login_"
         ],
         "profile": "..T",
-        'note': "This test wants to verify that an OP can display the client "
-                "logo. To make sure you get a fresh "
-                "login page you need to remove cookies you have received "
-                "from the OP",
+        "note": "This test verifies that an OP displays the RP's logo. "
+                "To make sure you get a fresh login page, "
+                "you need to remove any cookies you may have received from the OP.",
         "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-tos_uri': {
@@ -1234,10 +1242,10 @@ FLOWS = {
             '_login_'
         ],
         "profile": "..T",
-        'note': "This test wants to verify that an OP can display a link "
-                "to the clients Terms of Service. To make sure you get a fresh "
-                "login page you need to remove cookies you have received "
-                "from the OP",
+        "note": "This test verifies that an OP displays a link "
+                "to the RP's terms of service. "
+                "To make sure you get a fresh login page, "
+                "you need to remove any cookies you may have received from the OP.",
         "tests": {"verify-authn-response": {}},
     },
     'OP-Registration-jwks': {
@@ -1378,10 +1386,11 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over signing keys. "
-                'If you are not able to cause the server to roll over the key '
-                'while running the test, then you will have to self-assert '
-                'that your deployment can do OP signing key rollover.',
+        "note": "Please make your OP roll over its signing keys now. "
+                "If you are not able to cause the server to roll over the keys "
+                "while running the test, then you will have to self-assert "
+                "that your deployment can do OP signing key rollover "
+                "as part of your certification application.",
         "profile": ".T.T.s",
         # "profile": ".T.T.s.+",
         "tests": {"new-signing-keys": {}, "check-http-response": {}}
@@ -1422,10 +1431,11 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over encryption keys."
-                'If you are not able to cause the server to roll over the keys '
-                'while running the test, then you will have to self-assert '
-                'that your deployment can do OP encryption key rollover.',
+        "note": "Please make your OP roll over its encryption keys now."
+                "If you are not able to cause the server to roll over the keys "
+                "while running the test, then you will have to self-assert "
+                "that your deployment can do OP encryption key rollover "
+                "as part of your certification application.",
         # "profile": ".T..e.+",
         "profile": ".T..e",
         "tests": {"new-encryption-keys": {}, "check-http-response": {}}
@@ -1706,9 +1716,9 @@ FLOWS = {
             ("_login_", {"function": sub_claims}),
             "_accesstoken_",
         ],
-        'note': "Have done one login to get the sub claim value, now we "
-                "want to do a fresh login using that sub value in a sub claim. "
-                "So please remove the cookie you received at the last login.",
+        "note": "This test does one login to get a sub claim value.  Then it "
+                "does a fresh login using that sub value in a claims request. "
+                "Please remove any cookies you received from the OpenID Provider.",
         "profile": "....+",
         "tests": {"verify-response": {"response_cls": [AuthorizationResponse,
                                                        AccessTokenResponse]},
@@ -1727,9 +1737,9 @@ FLOWS = {
     #             "function": sub_claims
     #         }),
     #     ],
-    #     'note': "Have done one login to get the sub claim value, now we "
-    #             "want to do a fresh login using that sub value as a hint. "
-    #             "So please remove the cookie you received at the last login.",
+    #     "note": "This test does one login to get a sub claim value.  Then it "
+    #             "does a fresh login using that sub value in a claims request. "
+    #             "Please remove any cookies you received from the OpenID Provider.",
     #     "profile": "....+",
     #     "tests": {"verify-response": {"response_cls": [
     # AuthorizationResponse]}}
