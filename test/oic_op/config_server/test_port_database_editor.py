@@ -37,32 +37,6 @@ class TestPortDatabaseEditor(unittest.TestCase):
             with open(config_file_name, "w") as _file:
                 _file.write(file_content)
 
-    @patch('port_database_editor.ConfigFileEditor.get_config_file_dict')
-    @patch('port_database_editor.ConfigFileEditor.get_port_type')
-    @patch('port_database_editor.ConfigFileEditor.get_instance_id')
-    @patch('port_database_editor.ConfigFileEditor.get_issuer')
-    def test_extract_database_info_from_config_file(self,
-                                                    mock_get_issuer,
-                                                    mock_get_instance_id,
-                                                    mock_get_port_type,
-                                                    mock_get_config_file_dict):
-        folder = ""
-        ports = [1,3,10]
-        self.create_config_files(folder, ports)
-        mock_get_issuer.side_effect = ["issuer_1",
-                                       "issuer_2",
-                                       "issuer_3"]
-        mock_get_instance_id.side_effect = ["instance_id_1",
-                                            "instance_id_2",
-                                            "instance_id_3"]
-        mock_get_port_type.side_effect = [PortDatabase.DYNAMIC_PORT_TYPE,
-                                          PortDatabase.DYNAMIC_PORT_TYPE,
-                                          PortDatabase.STATIC_PORT_TYPE]
-        mock_get_config_file_dict.return_value = None
-        self.config_editor.extract_database_info_from_config_file(self.database)
-        self.assertItemsEqual(self.database.get_all_ports(), ports)
-        self.remove_config_files(folder, ports)
-
     def test_port_is_returned_when_no_instance_id_exists(self):
         port = 8000
         config_file_dict = {}

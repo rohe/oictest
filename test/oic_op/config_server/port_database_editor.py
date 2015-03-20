@@ -8,6 +8,7 @@ import sys
 from port_database import PortDatabase
 from config_server import get_issuer_from_config_file
 from config_server import CONFIG_DICT_INSTANCE_ID_KEY
+from config_server import load_config_module
 
 
 class ConfigFileEditor(object):
@@ -18,15 +19,9 @@ class ConfigFileEditor(object):
 
     def get_config_file_dict(self, module):
         try:
-            test_conf = importlib.import_module(module)
+            return load_config_module(module)
         except ImportError as ex:
             raise ImportError(ex.message + " in path %s" % self.config_file_path)
-
-        try:
-            return test_conf.CLIENT
-        except AttributeError:
-            print("Failed to load CLIENT attribute in module: %s" % module)
-            raise
 
     def get_issuer(self, config_file_dict):
         return get_issuer_from_config_file(config_file_dict)
@@ -49,21 +44,24 @@ class ConfigFileEditor(object):
             return PortDatabase.STATIC_PORT_TYPE
 
     def extract_database_info_from_config_file(self, database):
-        files = [f for f in os.listdir('.') if os.path.isfile(f)]
-        config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
+        files = [f for f in os.listdir('.')]
 
+        config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
         for module in files:
             if config_file_pattern.match(module):
                 module = module[:-3]
-                print "Saving module (%s) information in databse" % module
-                config_file_dict = self.get_config_file_dict(module)
 
-                port = self.get_port(module)
-                issuer = self.get_issuer(config_file_dict)
-                instance_id = self.get_instance_id(config_file_dict, port)
-                port_type = self.get_port_type(config_file_dict)
+                try:
+                    config_file_dict = self.get_config_file_dict(module)
+                except Exception as ex:
+                    print(ex.message)
+                else:
+                    port = self.get_port(module)
+                    issuer = self.get_issuer(config_file_dict)
+                    instance_id = self.get_instance_id(config_file_dict, port)
+                    port_type = self.get_port_type(config_file_dict)
 
-                database.upsert(port=port,issuer=issuer, instance_id=instance_id, port_type=port_type)
+                    database.upsert(port=port,issuer=issuer, instance_id=instance_id, port_type=port_type)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
