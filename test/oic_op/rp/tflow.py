@@ -873,7 +873,8 @@ FLOWS = {
         "tests": {
             "verify-response": {
                 "response_cls": [ErrorResponse],
-                "error": ["access_denied"]}},
+                "error": ["access_denied"],
+                "status": WARNING}},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
@@ -912,6 +913,7 @@ FLOWS = {
                 "displaying an error message in your user agent. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "mti": {"all": "MUST"},
     },
     'OP-redirect_uri-Missing': {
@@ -924,7 +926,7 @@ FLOWS = {
             ("_login_", {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "..T",
-        'tests': {"verify-authn-response": {}},
+        'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
                 "You must submit a screen shot of the error shown "

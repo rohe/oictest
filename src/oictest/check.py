@@ -1166,6 +1166,16 @@ class VerifyLogoURLs(Error):
         return {}
 
 
+def unequal(idt, idts):
+    res = []
+    for _idt in idts:
+        if _idt["aud"] == idt["aud"]:
+            continue
+        else:
+            res.append(_idt)
+    return res
+
+
 class CheckUserID(Error):
     """
     Verifies that the sub value differs between public and pairwise
@@ -1181,11 +1191,31 @@ class CheckUserID(Error):
             self._status = self.status
             return ()
 
-        sub = [i["sub"] for i, j in res]
+        if len(res) < 2:
+            self._status = self.status
+            self._message = "To few ID Tokens"
+
+        # may be anywhere between 2 and 4 ID Tokens
+        # weed out duplicates (ID Tokens received from authorization and the
+        # token endpoint
+        idt0 = res[0]
+        rem = unequal(idt0, res[1:])
+        if not rem:
+            self._message = "Seems I only got the same ID token"
+            self._status = self.status
+            return ()
+
+        idt1 = rem[0]
+        if len(rem) >= 1:
+            # should verify that the remaining are duplicates
+            rem = unequal(idt1, rem)
+            if rem:
+                self._message = "To many unique ID tokens"
+                self._status = self.status
+                return ()
 
         try:
-            assert len(sub) == 2
-            assert sub[0] != sub[1]
+            assert idt0["sub"] != idt1["sub"]
         except AssertionError:
             self._status = self.status
 
