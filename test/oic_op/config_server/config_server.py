@@ -6,7 +6,6 @@ import copy
 import importlib
 import json
 import os
-import ast
 import time
 import argparse
 import datetime
@@ -15,6 +14,7 @@ import sys
 import requests
 import subprocess
 import signal
+import re
 
 from dirg_util.http_util import HttpHandler
 from mako.lookup import TemplateLookup
@@ -183,13 +183,16 @@ def convert_instance(_is_list, default_input_value):
     return field_value
 
 
-def _generate_static_input_fields(default_input_value=[]):
+def _generate_static_input_fields(default_input_value=None):
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
     
     :return:The static input fields presented as the internal data structure
     """
+    if default_input_value is None:
+        default_input_value = []
+
     _config_key_list = ProviderConfigurationResponse.c_param.keys()
     _config_key_list.sort()
     _config_fields_dict = ProviderConfigurationResponse.c_param
@@ -655,21 +658,23 @@ def convert_to_simple_list(config_gui_structure):
 
     return simple_list
 
-def parse_config_string(config_string):
-    client = config_string.split('\n')[3]
-    dict = client.split("CLIENT = ")[1]
-    return ast.literal_eval(dict)
+def load_config_module(module):
+    test_conf = importlib.import_module(module)
+    try:
+        return test_conf.CLIENT
+    except AttributeError as ex:
+        raise AttributeError("Module (%s) has no attribute 'CLIENT'" % module)
 
 def identify_existing_config_file(port):
-    for filename in os.listdir(CONF.OPRP_DIR_PATH):
-        if filename.startswith("rp_conf"):
-            file_port = int(filename.split("_")[2].split(".")[0])
+    files = [f for f in os.listdir(CONF.OPRP_DIR_PATH)]
+    config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
+
+    for filename in files:
+        if config_file_pattern.match(filename):
+            module = filename[:-3]
+            file_port = int(module.split("_")[2])
             if file_port == port:
-                with open(CONF.OPRP_DIR_PATH + filename,"r") as config_file:
-                    config_string = config_file.read()
-                    if config_string == "":
-                        break
-                    return parse_config_string(config_string)
+                return load_config_module(module)
 
     raise NoMatchException("No match found for port: %s" % port)
 
@@ -703,7 +708,8 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id):
     """
     try:
         config_dict = identify_existing_config_file(port)
-    except NoMatchException:
+    except Exception as ex:
+        LOGGER.error(ex.message)
         config_dict = get_default_client()
 
     config_dict = clear_config_keys(config_dict)
@@ -845,7 +851,6 @@ def create_module_string(client_config, port):
 def get_config_file_path(port, rp_config_folder):
     return rp_config_folder + "rp_conf_" + str(port) + ".py"
 
-
 class NoResponseException(Exception):
     pass
 
@@ -951,26 +956,27 @@ def handle_start_op_tester(session, response_encoder, parameters):
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
     _instance_id = parameters['oprp_instance_id']
+    _port = None
 
     if is_using_dynamic_client_registration(config_gui_structure):
         try:
             issuer = get_issuer_from_gui_config(config_gui_structure)
-            port = allocate_dynamic_port(issuer, _instance_id)
+            _port = allocate_dynamic_port(issuer, _instance_id)
         except NoPortAvailable:
             pass
     else:
-        port = session['port']
+        _port = session['port']
 
-    if not port:
+    if not _port:
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
-    LOGGER.debug("The RP will try to start on port: %s" % port)
-    config_file_path = get_config_file_path(port,
+    LOGGER.debug("The RP will try to start on port: %s" % _port)
+    config_file_path = get_config_file_path(_port,
                                             CONF.OPRP_DIR_PATH)
 
-    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, port, _instance_id)
-    config_module = create_module_string(session[OP_CONFIG], port)
+    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, _port, _instance_id)
+    config_module = create_module_string(session[OP_CONFIG], _port)
 
     try:
         write_config_file(config_file_path, config_module)
@@ -979,16 +985,16 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.exception(str(ioe))
         response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
 
-    kill_existing_process_on_port(port)
+    kill_existing_process_on_port(_port)
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
     try:
-        start_rp_process(port, [CONF.OPRP_PATH, "-p", _profile, "-t",
+        start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.return_json(
-            json.dumps({"oprp_url": str(get_base_url(port))}))
+            json.dumps({"oprp_url": str(get_base_url(_port))}))
     except Exception as ex:
         LOGGER.error(ex.message)
         return response_encoder.service_error(ex.message)
@@ -1123,6 +1129,8 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
                                                           session_opts))
+    if CONF.OPRP_DIR_PATH not in sys.path:
+        sys.path.append(CONF.OPRP_DIR_PATH)
 
     if CONF.BASE.startswith("https"):
         import cherrypy

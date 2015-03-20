@@ -21,6 +21,7 @@ from config_server import _generate_static_input_fields
 from config_server import convert_instance
 from config_server import convert_to_value_list
 from config_server import set_dynamic_discovery_issuer_config_gui_structure
+from config_server import load_config_module
 
 __author__ = 'danielevertsson'
 
@@ -93,20 +94,20 @@ class TestConfigServer(unittest.TestCase):
 
         _port = 0
         config_file = get_config_file_path(_port, mock_server_config.OPRP_DIR_PATH)
-        confguration = create_module_string({}, _port)
-        write_config_file(config_file, confguration)
+        configuration = create_module_string({}, _port)
+        write_config_file(config_file, configuration)
 
         config_client_dict = identify_existing_config_file(_port)
         self.assertTrue(isinstance(config_client_dict, dict))
         os.remove(config_file)
 
     @patch('config_server.CONF')
-    def test_identify_existing_empty_config_file(self, mock_server_config):
+    def test_identify_existing_missing_client_attribute(self, mock_server_config):
         self.setup_config_server_mock(mock_server_config)
-        _port = 0
+        _port = 1
         config_file = get_config_file_path(_port, mock_server_config.OPRP_DIR_PATH)
         write_config_file(config_file, "")
-        with self.assertRaises(NoMatchException):
+        with self.assertRaises(AttributeError):
             identify_existing_config_file(_port)
         os.remove(config_file)
 
@@ -114,7 +115,7 @@ class TestConfigServer(unittest.TestCase):
     def test_identify_config_file_which_does_not_exist(self, mock_server_config):
         self.setup_config_server_mock(mock_server_config)
         with self.assertRaises(NoMatchException):
-            identify_existing_config_file(0)
+            identify_existing_config_file(-1)
 
     def test_create_key_if_non_exist(self):
         dict = {}
@@ -191,6 +192,10 @@ class TestConfigServer(unittest.TestCase):
         mock_identify_existing_config_file.side_effect = NoMatchException()
         config_dict = convert_config_gui_structure(new_gui_config, 0, instance_id)
         self.assertDictContainsSubset({"instance_id": instance_id}, config_dict)
+
+    def test_import_non_existing_module(self):
+        with self.assertRaises(ImportError):
+            load_config_module("non_existing_module")
 
 if __name__ == '__main__':
     unittest.main()
