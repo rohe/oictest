@@ -315,7 +315,8 @@ class OPRP(object):
         return conv, sequence_info, ots, conv.trace, index
 
     def err_response(self, session, where, err):
-        exception_trace(where, err, LOGGER)
+        if err:
+            exception_trace(where, err, LOGGER)
 
         if "node" in session:
             if err:
@@ -459,8 +460,11 @@ class OPRP(object):
                 if conv.protocol_response:
                     # If last response was an error response, bail out.
                     inst, txt = conv.protocol_response[-1]
-                    if isinstance(inst, ErrorResponse):
-                        return self.err_response(session,"", inst)
+                    try:
+                        session["expect_error"]
+                    except KeyError:
+                        if isinstance(inst, ErrorResponse):
+                            return self.err_response(session,"", inst)
                 try:
                     kwargs = setup(_kwa, conv)
                 except NotSupported:
@@ -621,25 +625,31 @@ class OPRP(object):
                             return self.err_response(session,
                                                      "request_and_return", None)
 
+                        trace.response(response)
+                        LOGGER.info(response.to_dict())
+
                         if expect_error:
+                            session["expect_error"] = True
                             if isinstance(response, ErrorResponse):
                                 if expect_error["stop"]:
                                     index = len(sequence_info["sequence"])
                                     session["index"] = index
                                     continue
-
-                        trace.response(response)
-                        LOGGER.info(response.to_dict())
-                        if resp_c.response == "RegistrationResponse":
-                            if isinstance(response, RegistrationResponse):
-                                ots.client.store_registration_info(response)
-                        elif resp_c.response == "AccessTokenResponse":
-                            if "error" not in response:
-                                areq = conv.AuthorizationRequest.to_dict()
-                                try:
-                                    del areq["acr_values"]
-                                except KeyError:
-                                    pass
+                            else:
+                                trace.error("Expected error, didn't get it")
+                                return self.err_response(session,
+                                                        "expected error")
+                        else:
+                            if resp_c.response == "RegistrationResponse":
+                                if isinstance(response, RegistrationResponse):
+                                    ots.client.store_registration_info(response)
+                            elif resp_c.response == "AccessTokenResponse":
+                                if "error" not in response:
+                                    areq = conv.AuthorizationRequest.to_dict()
+                                    try:
+                                        del areq["acr_values"]
+                                    except KeyError:
+                                        pass
 
                 try:
                     post_tests(conv, req_c, resp_c)

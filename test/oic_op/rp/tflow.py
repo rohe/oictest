@@ -865,7 +865,10 @@ FLOWS = {
             USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-error-response": {"status": WARNING}},
+        "tests": {
+            "verify-response": {
+                "response_cls": [ErrorResponse],
+                "error": ["access_denied"]}},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-4.1",
