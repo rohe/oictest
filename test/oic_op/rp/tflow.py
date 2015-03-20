@@ -918,8 +918,10 @@ FLOWS = {
                 "as part of your certification application.",
         "mti": {"all": "MUST"},
     },
-    'OP-redirect_uri-Query': {
-        "desc": 'Request with redirect_uri with query component [Dynamic]',
+    'OP-redirect_uri-Query-param-not-registered': {
+        "desc": "Request with redirect_uri with query component "
+                "when no redirect_uri with a query component is registered "
+                "[Dynamic]",
         "sequence": [
             '_discover_',
             '_register_',
@@ -934,9 +936,10 @@ FLOWS = {
                 "response_cls": [ErrorResponse],
                 "error": ["access_denied"]}}
     },
-    'OP-redirect_uri-RegQuery': {
-        "desc": 'Registration where a redirect_uri has a query component ['
-                'Dynamic]',
+    'OP-redirect_uri-Query-param-registered': {
+        "desc": 'Request with a redirect_uri with a query component '
+                'when a redirect_uri with the same query component is '
+                'registered [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
@@ -952,9 +955,9 @@ FLOWS = {
         'tests': {"verify-response": {"response_cls": [AuthorizationResponse]},
                   "check-query-part": {"foo": "bar"}},
     },
-    'OP-redirect_uri-BadQuery': {
-        "desc": 'Rejects redirect_uri when query parameter does not match ['
-                'Dynamic]',
+    'OP-redirect_uri-unregistered-Query-param': {
+        "desc": 'Rejects redirect_uri when query parameter does not match '
+                'what is registed [Dynamic]',
         "sequence": [
             '_discover_',
             ('_register_',
