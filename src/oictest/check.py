@@ -1930,7 +1930,7 @@ class VerifyBase64URL(Check):
                 self._message = "Missing bare key info on %s key" % key["kty"]
             else:
                 if s != OK:
-                    self._status = s
+                    self._status = err_status
                     self._message = "\n". join(txt)
         else:
             self._status = err_status
