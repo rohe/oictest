@@ -1195,6 +1195,7 @@ class CheckUserID(Error):
             self._status = self.status
             self._message = "To few ID Tokens"
 
+        res = [i for i,m in res]
         # may be anywhere between 2 and 4 ID Tokens
         # weed out duplicates (ID Tokens received from authorization and the
         # token endpoint
@@ -1206,9 +1207,9 @@ class CheckUserID(Error):
             return ()
 
         idt1 = rem[0]
-        if len(rem) >= 1:
+        if len(rem) > 1:
             # should verify that the remaining are duplicates
-            rem = unequal(idt1, rem)
+            rem = unequal(idt1, rem[1:])
             if rem:
                 self._message = "To many unique ID tokens"
                 self._status = self.status
