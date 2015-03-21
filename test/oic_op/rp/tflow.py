@@ -905,7 +905,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
-            "expect_err",
+            "note",
             ("_login_", {"function": mismatch_return_uri})
         ],
         "profile": "..",
@@ -922,7 +922,7 @@ FLOWS = {
         "sequence": [
             '_discover_',
             ('_register_', {"function": multiple_return_uris}),
-            "expect_err",
+            "note",
             ("_login_", {"request_args": {"redirect_uri": ""}})
         ],
         "profile": "..T",
@@ -940,11 +940,15 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
-            'expect_err',
+            'note',
             ("_login_",
              {"function": (redirect_uri_with_query_component, {"foo": "bar"})})
         ],
         "profile": "..T",
+        "note": "This test should result in the OpenID Provider "
+                "displaying an error message in your user agent. "
+                "You must submit a screen shot of the error shown "
+                "as part of your certification application.",
         "mti": {"all": "MUST"},
         'tests': {
             "verify-response": {
@@ -979,7 +983,7 @@ FLOWS = {
              {
                  "function": (
                      redirect_uris_with_query_component, {"foo": "bar"})}),
-            'expect_err',
+            'note',
             ("_login_", {
                 # different from the one registered
                 "function": (redirect_uri_with_query_component, {"bar": "foo"})
@@ -988,6 +992,10 @@ FLOWS = {
         "profile": "..T",
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",
+        "note": "This test should result in the OpenID Provider "
+                "displaying an error message in your user agent. "
+                "You must submit a screen shot of the error shown "
+                "as part of your certification application.",
         'tests': {
             "verify-response": {
                 "response_cls": [ErrorResponse],
@@ -1017,9 +1025,13 @@ FLOWS = {
         "sequence": [
             '_discover_',
             '_register_',
-            "expect_err",
+            "note",
             ('_login_', {"request_args": {"redirect_uri": ""}})
         ],
+        "note": "This test should result in the OpenID Provider "
+                "displaying an error message in your user agent. "
+                "You must submit a screen shot of the error shown "
+                "as part of your certification application.",
         "profile": "....+",
         'tests': {
             "verify-response": {"response_cls": [AuthorizationResponse]}},
