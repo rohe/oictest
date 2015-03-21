@@ -64,6 +64,10 @@ def setup_logging(logfile, logger):
     logger.setLevel(logging.DEBUG)
 
 
+def get_test_info(session, test_id):
+    return session["test_info"][test_id]
+
+
 def pprint_json(json_txt):
     _jso = json.loads(json_txt)
     return json.dumps(_jso, sort_keys=True, indent=2, separators=(',', ': '))
@@ -129,20 +133,29 @@ class OPRP(object):
     #         "op_list": clients.keys()
     #     }
     #     return resp(self.environ, self.start_response, **argv)
-        
-    @staticmethod
-    def store_test_info(session):
+
+    def store_test_info(self, session, profile_info=None):
         _info = {
             "trace": session["conv"].trace,
             "test_output": session["conv"].test_output,
             "index": session["index"],
-            "seqlen": len(session["seq_info"]["sequence"])
+            "seqlen": len(session["seq_info"]["sequence"]),
+            "descr": session["node"].desc
         }
 
         try:
             _info["node"] = session["seq_info"]["node"]
         except KeyError:
             pass
+
+        if profile_info:
+            _info["profile_info"] = profile_info
+        else:
+            try:
+                _info["profile_info"] = self.profile_info(session,
+                                                          session["testid"])
+            except KeyError:
+                pass
 
         session["test_info"][session["testid"]] = _info
 
@@ -191,10 +204,10 @@ class OPRP(object):
                         template_lookup=self.lookup,
                         headers=[])
     
-        info = session["test_info"][testid]
-        _pinfo = self.profile_info(session, testid)
+        info = get_test_info(session, testid)
+
         argv = {
-            "profile": _pinfo,
+            "profile": info["profile_info"],
             "trace": info["trace"],
             "output": info["test_output"],
             "result": represent_result(info, testid)
@@ -733,7 +746,7 @@ class OPRP(object):
                 output.extend(test_output(_conv.test_output))
                 output.extend(["", sline, ""])
                 # and lastly the result
-                self.store_test_info(session)
+                self.store_test_info(session, _pi)
                 _info = session["test_info"][_tid]
                 output.append("RESULT: %s" % represent_result(_info, _tid))
                 output.append("")
