@@ -18,6 +18,7 @@ from oic.oic.message import AccessTokenResponse
 from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
+from oic.utils.time_util import in_a_while
 from oictest import ConfigurationError
 
 from oictest.base import Conversation
@@ -704,7 +705,8 @@ class OPRP(object):
 
             return {"Issuer": iss, "Profile": profile,
                     "Test ID": test_id,
-                    "Test description": session["node"].desc}
+                    "Test description": session["node"].desc,
+                    "Timestamp": in_a_while()}
 
         return {}
 
@@ -724,7 +726,7 @@ class OPRP(object):
                 sline = 60*"="
                 output = ["%s: %s" % (k, _pi[k]) for k in ["Issuer", "Profile",
                                                            "Test ID"]]
-
+                output.append("Timestamp: %s" % in_a_while())
                 output.extend(["", sline, ""])
                 output.extend(trace_output(_conv.trace))
                 output.extend(["", sline, ""])

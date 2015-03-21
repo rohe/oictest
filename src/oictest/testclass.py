@@ -179,6 +179,11 @@ class Restore(Process):
         conv.client = conv.cache["client"]
 
 
+class Done(Process):
+    def __call__(self, conv, **kwargs):
+        conv.trace.info("== DONE ==")
+
+
 class RotateKeys(Process):
     def __init__(self):
         self.jwk_name = "export/jwk.json"
@@ -487,5 +492,6 @@ PHASES = {
     "fetch_keys": FetchKeys,
     "cache-id_token": CacheIdToken,
     "cache": Cache,
-    "restore": Restore
+    "restore": Restore,
+    "done": Done
 }
