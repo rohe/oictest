@@ -102,8 +102,11 @@ def evaluate(session):
     try:
         if session["node"].complete:
             _info = session["test_info"][session["testid"]]
-            _sum = test_summation(_info["test_output"], session["testid"])
-            session["node"].state = _sum["status"]
+            if end_tags(_info):
+                _sum = test_summation(_info["test_output"], session["testid"])
+                session["node"].state = _sum["status"]
+            else:
+                session["node"].state = INCOMPLETE
         else:
             session["node"].state = INCOMPLETE
     except (AttributeError, KeyError):
@@ -871,17 +874,22 @@ def log_path(session, test_id=None):
     return "log/%s/%s/%s" % (qiss, prof, test_id)
 
 
-def represent_result(info, tid):
+def end_tags(info):
     _ll = info["trace"].lastline()
 
     try:
         if _ll.endswith(END_TAG) and info["test_output"][-1] == ("X", END_TAG):
-            pass
-        else:
-            return "PARTIAL RESULT"
+            return True
     except IndexError:
         pass
-    
+
+    return False
+
+
+def represent_result(info, tid):
+    if not end_tags(info):
+        return "PARTIAL RESULT"
+
     _stat = test_summation(info["test_output"], tid)["status"]
 
     if _stat < WARNING or _stat > CRITICAL:
