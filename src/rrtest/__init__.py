@@ -106,6 +106,9 @@ class Trace(object):
         for line in self.trace:
             yield line
 
+    def lastline(self):
+        return self.trace[-1]
+
 
 def start_script(path, wdir="", *args):
     if not path.startswith("/"):

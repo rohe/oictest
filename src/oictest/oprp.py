@@ -37,7 +37,7 @@ from rrtest.check import CRITICAL
 from rrtest.check import STATUSCODE
 from rrtest.check import WARNING
 
-from testclass import Discover
+from testclass import Discover, Done, END_TAG
 from testclass import RequirementsNotMet
 from testclass import Notice
 from testclass import DisplayUserInfo
@@ -319,6 +319,7 @@ class OPRP(object):
                 self.profiles.PROFILEMAP, self.test_class.PHASES),
             "mti": session["node"].mti,
             "tests": session["node"].tests}
+        sequence_info["sequence"].append((Done, {}))
         session["seq_info"] = sequence_info
         session["index"] = index
         session["response_type"] = ""
@@ -687,8 +688,9 @@ class OPRP(object):
             return self.err_response(session, "post_test", err)
 
         _tid = session["testid"]
-        self.dump_log(session, _tid)
+        conv.test_output.append((("X", END_TAG)))
         self.store_test_info(session)
+        self.dump_log(session, _tid)
         session["node"].complete = True
 
         _grp = _tid.split("-")[1]
@@ -870,9 +872,16 @@ def log_path(session, test_id=None):
 
 
 def represent_result(info, tid):
-    if info["index"] + 1 < info["seqlen"]:
-        return "PARTIAL RESULT"
+    _ll = info["trace"].lastline()
 
+    try:
+        if _ll.endswith(END_TAG) and info["test_output"][-1] == ("X", END_TAG):
+            pass
+        else:
+            return "PARTIAL RESULT"
+    except IndexError:
+        pass
+    
     _stat = test_summation(info["test_output"], tid)["status"]
 
     if _stat < WARNING or _stat > CRITICAL:

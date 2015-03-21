@@ -7,7 +7,6 @@ from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
 
 import copy
-from oic.oauth2.consumer import ConfigurationError
 from oic.oauth2.message import SchemeError
 
 from rrtest.request import BodyResponse
@@ -31,6 +30,7 @@ from rrtest.opfunc import *
 # ========================================================================
 
 LOCAL_PATH = "export/"
+END_TAG = "==== END ===="
 
 
 class MissingResponseClaim(Exception):
@@ -181,7 +181,7 @@ class Restore(Process):
 
 class Done(Process):
     def __call__(self, conv, **kwargs):
-        conv.trace.info("== DONE ==")
+        conv.trace.info(END_TAG)
 
 
 class RotateKeys(Process):
