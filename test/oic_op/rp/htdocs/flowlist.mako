@@ -94,6 +94,23 @@ def legends():
         return "\n".join(el)
 %>
 
+<%
+    def results(nodes, testresults):
+        res = dict([(s, 0) for s in testresults.keys()])
+        res[0] = 0
+        tot = len(nodes)
+
+        for node in nodes:
+            res[node.state] += 1
+
+        el = []
+        for i in range(1, len(res)):
+            el.append("<p>%s: %d</p>" % (testresults[i], res[i]))
+        el.append("<p>Not run: %d</p>" % res[0])
+
+        return "\n".join(el)
+%>
+
 <!DOCTYPE html>
 <html>
   <head>
@@ -119,6 +136,8 @@ def legends():
           If you want to change this you can do it <a href="pedit">here</a>
           <h3>Chose the next test flow you want to run from this list: </h3>
           ${op_choice(base, flows, test_info, headlines)}
+          <h3>Results</h3>
+          ${results(flows, testresults)}
           <h3>Legends</h3>
           ${legends()}
       </div>

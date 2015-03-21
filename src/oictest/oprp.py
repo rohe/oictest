@@ -46,7 +46,10 @@ from testclass import Webfinger
 
 LOGGER = logging.getLogger(__name__)
 
-INCOMPLETE = 5
+INCOMPLETE = 4
+
+TEST_RESULTS = {OK: "OK", ERROR: "ERROR", WARNING: "WARNING",
+                INCOMPLETE: "INCOMPLETE"}
 CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
 
 
@@ -179,7 +182,8 @@ class OPRP(object):
             "profile": session["profile"],
             "test_info": session["test_info"].keys(),
             "base": self.conf.BASE,
-            "headlines": self.test_flows.DESC
+            "headlines": self.test_flows.DESC,
+            "testresults": TEST_RESULTS
         }
     
         return resp(self.environ, self.start_response, **argv)
