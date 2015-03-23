@@ -130,7 +130,7 @@ def create_new_configuration_dict():
             "features": [
                 {"name": 'JWT signed with "None" algorithm (Unsigned)',
                  "selected": False, "abbreviation": "n"},
-                {"name": 'JWT signed with algorithm other then "None"',
+                {"name": 'JWT signed with algorithm other than "None"',
                  "selected": False, "abbreviation": "s"},
                 {"name": 'Encrypted JWT', "selected": False,
                  "abbreviation": "e"}
@@ -144,7 +144,7 @@ def create_new_configuration_dict():
              "textFieldContent": ""}],
 
         "clientSubjectType": {
-            "label": "Which response type do you want to use by default?: ",
+            "label": "Which subject type do you want to use by default?: ",
             "value": "public",
             "values": [{"type": "public", "name": "public"},
                        {"type": "pairwise", "name": "pairwise"}]
