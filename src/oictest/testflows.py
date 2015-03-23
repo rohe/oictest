@@ -5,7 +5,8 @@ from oic.exception import UnSupported
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.oauth2.message import SchemeError
-from oic.utils.webfinger import OIC_ISSUER, WebFinger
+from oic.utils.webfinger import OIC_ISSUER
+from oic.utils.webfinger import WebFinger
 from oic.utils.http_util import Response
 
 import rrtest.request as req
@@ -25,7 +26,7 @@ __author__ = 'rohe0002'
 import time
 
 from urllib import urlencode
-from oic.oauth2 import JSON_ENCODED
+from oic.oauth2.util import JSON_ENCODED
 from oic.oauth2 import PBase
 
 # Used upstream not in this module so don't remove

@@ -1,10 +1,10 @@
 import json
 import time
 import traceback
-from oic.oauth2 import HTTP_ERROR
 import requests
-from subprocess import Popen, PIPE
 import sys
+from subprocess import Popen, PIPE
+from oic.oauth2 import HttpError
 
 __author__ = 'rolandh'
 
@@ -18,10 +18,6 @@ class FatalError(RRTestError):
 
 
 class Break(RRTestError):
-    pass
-
-
-class HttpError(RRTestError):
     pass
 
 
@@ -149,7 +145,7 @@ def get_page(url):
     if resp.status_code == 200:
         return resp.text
     else:
-        raise HTTP_ERROR(resp.status)
+        raise HttpError(resp.status)
 
 
 def exception_trace(tag, exc, log=None):

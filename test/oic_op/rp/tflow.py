@@ -1015,7 +1015,8 @@ FLOWS = {
             "verify-response": {
                 "response_cls": [ErrorResponse],
                 "error": ["invalid_request",
-                          "invalid_configuration_parameter"]}},
+                          "invalid_configuration_parameter",
+                          "invalid_redirect_uri"]}},
         "mti": {"all": "MUST"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
                      "#section-3.1.2",

@@ -2,7 +2,7 @@ import requests
 import copy
 import urllib
 
-from oic.oauth2 import URL_ENCODED
+from oic.oauth2.util import URL_ENCODED
 from oic.oauth2 import Message
 from oic.oauth2 import AuthorizationRequest
 from oictest.check import CheckEndpoint

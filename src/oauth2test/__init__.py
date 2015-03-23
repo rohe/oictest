@@ -1,9 +1,11 @@
 import json
-from tempfile import NamedTemporaryFile
 import argparse
 import sys
+
+from tempfile import NamedTemporaryFile
+
 from oic.exception import PyoidcError
-from oic.oauth2 import UnSupported
+from oic.exception import UnSupported
 from oic.utils import exception_trace
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from rrtest import Trace, FatalError
