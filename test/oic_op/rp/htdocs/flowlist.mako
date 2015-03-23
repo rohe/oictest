@@ -136,8 +136,6 @@ def legends():
           If you want to change this you can do it <a href="pedit">here</a>
           <h3>Chose the next test flow you want to run from this list: </h3>
           ${op_choice(base, flows, test_info, headlines)}
-          <h3>Results</h3>
-          ${results(flows, testresults)}
           <h3>Legends</h3>
           ${legends()}
       </div>
