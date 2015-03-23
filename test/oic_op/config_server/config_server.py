@@ -713,7 +713,9 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id):
         config_dict = get_default_client()
 
     config_dict = clear_config_keys(config_dict)
-    config_dict[CONFIG_DICT_INSTANCE_ID_KEY] = instance_id
+
+    if instance_id:
+        config_dict[CONFIG_DICT_INSTANCE_ID_KEY] = instance_id
 
     if contains_dynamic_discovery_info(config_gui_structure):
         dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer']\
@@ -778,11 +780,15 @@ def handle_does_op_config_exist(session, response_encoder):
     return response_encoder.return_json(result)
 
 
-def handle_download_config_file(session, response_encoder):
+def handle_download_config_file(session, response_encoder, parameters):
     """
     :return Return the configuration file stored in the session
     """
-    filedict = json.dumps({"configDict": session[OP_CONFIG]})
+    config_gui_structure = parameters['op_configurations']
+    instance_id = ""
+    port = -1
+    config_file_dict = convert_config_gui_structure(config_gui_structure, port, instance_id)
+    filedict = json.dumps({"configDict": config_file_dict})
     return response_encoder.return_json(filedict)
 
 
@@ -1092,7 +1098,7 @@ def application(environ, start_response):
         return handle_does_op_config_exist(session, response_encoder)
 
     if path == "download_config_file":
-        return handle_download_config_file(session, response_encoder)
+        return handle_download_config_file(session, response_encoder, parameters)
 
     if path == "upload_config_file":
         return handle_upload_config_file(parameters, session, response_encoder)

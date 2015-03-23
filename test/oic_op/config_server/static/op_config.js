@@ -6,8 +6,8 @@ app.factory('op_configuration_factory', function ($http) {
             return $http.get("/get_op_config");
         },
 
-        request_download_config_file: function () {
-            return $http.get("/download_config_file");
+        request_download_config_file: function (op_configurations) {
+            return $http.post("/download_config_file", {"op_configurations": op_configurations});
         },
 
         request_upload_config_file: function (configFileContent) {
@@ -233,7 +233,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
      */
     function config_file_exist_for_download_success_callback(data, status, headers, config) {
         if (data['does_config_file_exist']) {
-            op_configuration_factory.request_download_config_file().success(downloadConfigFileSuccessCallback).error(error_callback);
+            op_configuration_factory.request_download_config_file($scope.opConfig).success(downloadConfigFileSuccessCallback).error(error_callback);
         } else {
             showNoConfigAvailable();
         }
@@ -394,37 +394,6 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     }
 
     /**
-     * Confirms that the configuration successfully has been stored on the server
-     * @param data - The result returned from the server
-     * @param status - The status on the response from the server
-     * @param headers - The header on the response from the server
-     * @param config - The configuration on the response from the server
-     */
-    function postOpConfigurationsSuccessCallback(data, status, headers, config) {
-        bootbox.dialog({
-            message: "Your configuration was successfully stored on the server. Do you want to start testing your OP?" +
-            " <br><br> Note: If a test server successfully starts you will be redirected to the test server. Do you want to continue?",
-            title: "Configuration successfully stored",
-            buttons: {
-                danger: {
-                    label: "No",
-                    className: "btn-default"
-                },
-                success: {
-                    label: "Yes",
-                    className: "btn-primary",
-                    callback: function () {
-                        op_configuration_factory.start_op_tester().success(start_op_tester_success_callback).error(error_callback);
-                        $scope.$apply();
-                    }
-                }
-            }
-        });
-
-        requestLatestConfigFileFromServer();
-    }
-
-    /**
      * Tries to download the configuration file from the server
      */
     $scope.request_download_config_file = function () {
@@ -451,6 +420,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     function resetGui() {
+        $scope.new_instance_id = "";
         $scope.contains_redirect_url = false;
         $scope.show_provider_config();
     }
