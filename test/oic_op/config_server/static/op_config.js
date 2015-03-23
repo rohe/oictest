@@ -57,6 +57,9 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
         value: $scope.NEW_INSTANCE_ID
     };
 
+    $('input').attr("autocomplete", "off");
+    $('form').attr("autocomplete", "off");
+
     /**
      * Shows the appropriate input fields depending on which value which has been selected in the
      * "fetchInfoFromServerDropDown" drop down menu
