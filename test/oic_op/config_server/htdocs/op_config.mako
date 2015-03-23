@@ -204,6 +204,9 @@
             <!-- ################################################################################################# -->
             <div ng-show="test_instance_tab_visible">
 
+                Instances connected to issuer: <b>{{selected_issuer}}</b>
+                <br>
+
                 The application supports up to five test tool instances connected to the same issuer. The test tool
                 instances are separated by an id chosen by the user.
                 <br>

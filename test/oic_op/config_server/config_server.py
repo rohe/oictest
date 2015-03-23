@@ -764,7 +764,8 @@ def handle_request_instance_ids(response_encoder, parameters):
 
     existing_instance_ids['values'] = convert_to_gui_drop_down(instance_ids)
 
-    return response_encoder.return_json(json.dumps(existing_instance_ids))
+    return_info = {"existing_instance_ids": existing_instance_ids, "issuer": issuer}
+    return response_encoder.return_json(json.dumps(return_info))
 
 
 def handle_does_op_config_exist(session, response_encoder):
@@ -944,13 +945,19 @@ def find_static_provider_info_field(input_fields, fields_id):
 
 
 def get_issuer_from_gui_config(gui_config):
+    issuer = None
+
     if contains_dynamic_discovery_info(gui_config):
-        dynamic_disco_issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
-        return dynamic_disco_issuer
+        issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
     else:
         input_fields = gui_config['fetchStaticProviderInfo']['input_fields']
         issuer_field = find_static_provider_info_field(input_fields, "issuer")
-        return issuer_field['values']
+        issuer = issuer_field['values']
+
+    if issuer.endswith("/"):
+        issuer = issuer[:-1]
+
+    return issuer
 
 def handle_start_op_tester(session, response_encoder, parameters):
     config_gui_structure = parameters['op_configurations']

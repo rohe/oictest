@@ -193,9 +193,11 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     $scope.existing_instance_ids = {};
+    $scope.selected_issuer = ""
 
     function request_instance_ids_success_callback(data, status, headers, config) {
-        $scope.existing_instance_ids = data;
+        $scope.existing_instance_ids = data['existing_instance_ids'];
+        $scope.selected_issuer = data['issuer'];
         $scope.show_test_instance_config()
     }
 
