@@ -114,7 +114,7 @@ def create_new_configuration_dict():
                        {"type": "no", "name": "no"}]
         },
         "responseTypeDropDown": {
-            "label": "Which response type should be used?",
+            "label": "Which response type should be used by default?",
             "value": "code",
             "values": [
                 {"type": "code", "name": "code"},
