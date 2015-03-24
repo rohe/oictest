@@ -15,7 +15,7 @@ def op_choice(base, nodes, test_info, headlines):
              '<img src="static/green.png" alt="Green">',
              '<img src="static/yellow.png" alt="Yellow">',
              '<img src="static/red.png" alt="Red">',
-             '<img src="static/qmark.jpg" alt="QuestionMark">'
+             '<img src="static/qmark.jpg" alt="QuestionMark">',
              '<img src="static/greybutton" alt="Grey">',
              ]
     element = "<ul>"
