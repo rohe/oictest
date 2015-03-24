@@ -51,6 +51,8 @@ ICONS = [
     ('<img src="static/red.png" alt="Red">',"Failed"),
     ('<img src="static/qmark.jpg" alt="QuestionMark">',
     "The test flow wasn't completed. This may have been expected or not"),
+    ('<img src="static/qmark.jpg" alt="QuestionMark">',
+    "The test flow wasn't completed. This may have been expected or not"),
     ('<img src="static/info32.png">',
     "Signals the fact that there are trace information available for the test"),
     ]

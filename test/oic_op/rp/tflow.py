@@ -35,7 +35,7 @@ USERINFO_REQUEST_AUTH_METHOD = (
 
 ORDDESC = ["OP-Response", "OP-IDToken", "OP-UserInfo", "OP-nonce", "OP-scope",
            "OP-display", "OP-prompt", "OP-Req", "OP-OAuth", "OP-redirect_uri",
-           "OP-ClientAuth", "OP-Discovery", "OP-Registration", "OP-Rollover",
+           "OP-ClientAuth", "OP-Discovery", "OP-Registration", "OP-Rotation",
            "OP-request_uri", "OP-request", "OP-claims"]
 
 DESC = {
@@ -52,7 +52,7 @@ DESC = {
     "ClientAuth": "Client Authentication",
     "Discovery": "Discovery",
     "Registration": "Dynamic Client Registration",
-    "Rollover": "Key Rollover",
+    "Rotation": "Key Rotation",
     "request_uri": "request_uri Request Parameter",
     "request": "request Request Parameter",
     "claims": "claims Request Parameter",
@@ -911,6 +911,8 @@ FLOWS = {
         "profile": "..",
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
+                "You should ignore the status of this test "
+                "in the test tool, since it will be incomplete. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
         'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
@@ -929,6 +931,8 @@ FLOWS = {
         'tests': {"verify-response": {"response_cls": [ErrorResponse]}},
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
+                "You should ignore the status of this test "
+                "in the test tool, since it will be incomplete. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
         "mti": {"all": "MUST"},
@@ -947,6 +951,8 @@ FLOWS = {
         "profile": "..T",
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
+                "You should ignore the status of this test "
+                "in the test tool, since it will be incomplete. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
         "mti": {"all": "MUST"},
@@ -994,6 +1000,8 @@ FLOWS = {
                      "#section-3.1.2",
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
+                "You should ignore the status of this test "
+                "in the test tool, since it will be incomplete. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
         'tests': {
@@ -1031,6 +1039,8 @@ FLOWS = {
         ],
         "note": "This test should result in the OpenID Provider "
                 "displaying an error message in your user agent. "
+                "You should ignore the status of this test "
+                "in the test tool, since it will be incomplete. "
                 "You must submit a screen shot of the error shown "
                 "as part of your certification application.",
         "profile": "....+",
@@ -1416,8 +1426,8 @@ FLOWS = {
                   "verify-response": {"response_cls": [AuthorizationResponse,
                                                        AccessTokenResponse]}}
     },
-    'OP-Rollover-OP-Sig': {
-        "desc": 'Can rollover OP signing key [Config, Dynamic]',
+    'OP-Rotation-OP-Sig': {
+        "desc": 'Can rotate OP signing keys [Dynamic]',
         "sequence": [
             '_discover_',
             'fetch_keys',
@@ -1425,17 +1435,17 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over its signing keys now. "
-                "If you are not able to cause the server to roll over the keys "
+        "note": "Please make your OP rotate its signing keys now. "
+                "If you are not able to cause the server to rotate the keys "
                 "while running the test, then you will have to self-assert "
-                "that your deployment can do OP signing key rollover "
+                "that your deployment can do OP signing key rotation "
                 "as part of your certification application.",
         "profile": ".T.T.s",
         # "profile": ".T.T.s.+",
         "tests": {"new-signing-keys": {},
                   "check-http-response": {}}
     },
-    'OP-Rollover-RP-Sig': {
+    'OP-Rotation-RP-Sig': {
         "desc": 'Request access token, change RSA signing key and request '
                 'another access token [Dynamic]',
         "sequence": [
@@ -1462,8 +1472,8 @@ FLOWS = {
         "profile": "C,CI,CT,CIT..T.s",
         "tests": {"check-http-response": {}}
     },
-    'OP-Rollover-OP-Enc': {
-        "desc": 'Can rollover OP encryption key [Extra]',
+    'OP-Rotation-OP-Enc': {
+        "desc": 'Can rotate OP encryption keys [Extra]',
         "sequence": [
             '_discover_',
             'fetch_keys',
@@ -1471,18 +1481,18 @@ FLOWS = {
             '_discover_',
             'fetch_keys',
         ],
-        "note": "Please make your OP roll over its encryption keys now."
-                "If you are not able to cause the server to roll over the keys "
+        "note": "Please make your OP rotate its encryption keys now."
+                "If you are not able to cause the server to rotate the keys "
                 "while running the test, then you will have to self-assert "
-                "that your deployment can do OP encryption key rollover "
+                "that your deployment can do OP encryption key rotation "
                 "as part of your certification application.",
         # "profile": ".T..e.+",
         "profile": ".T..e",
         "tests": {"new-encryption-keys": {}, "check-http-response": {}}
     },
-    'OP-Rollover-RP-Enc': {
+    'OP-Rotation-RP-Enc': {
         # where is the RPs encryption keys used => userinfo encryption
-        "desc": 'Request encrypted UserInfo, change RSA enc key and request '
+        "desc": 'Request encrypted UserInfo, change RSA encryption key and request '
                 'UserInfo again [Extra]',
         "sequence": [
             '_discover_',
