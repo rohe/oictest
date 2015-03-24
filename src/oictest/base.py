@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from oic.exception import PyoidcError
-from oic.oauth2 import UnSupported, rndstr
+from oic.exception import UnSupported
 
 __author__ = 'rohe0002'
 

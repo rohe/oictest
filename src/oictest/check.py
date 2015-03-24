@@ -4,7 +4,7 @@ from jwkest import b64d
 from jwkest import unpack
 from jwkest.jwk import base64url_to_long
 from oic.exception import MessageException
-from oic.oauth2.message import ErrorResponse, AuthorizationRequest
+from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse, OpenIDSchema
 from oic.oic import claims_match
 from oic.oic import message

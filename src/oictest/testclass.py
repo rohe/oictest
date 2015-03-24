@@ -21,7 +21,9 @@ __author__ = 'rohe0002'
 
 import time
 
-from oic.oauth2 import JSON_ENCODED, PBase, rndstr
+from oic.oauth2 import rndstr
+from oic.oauth2.util import JSON_ENCODED
+from oic.oauth2.base import PBase
 
 # Used upstream, not in this module so don't remove
 from oictest.check import *
