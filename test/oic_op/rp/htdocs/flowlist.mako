@@ -15,8 +15,9 @@ def op_choice(base, nodes, test_info, headlines):
              '<img src="static/green.png" alt="Green">',
              '<img src="static/yellow.png" alt="Yellow">',
              '<img src="static/red.png" alt="Red">',
+             '<img src="static/qmark.jpg" alt="QuestionMark">'
              '<img src="static/greybutton" alt="Grey">',
-             '<img src="static/qmark.jpg" alt="QuestionMark">']
+             ]
     element = "<ul>"
 
     for node in nodes:
@@ -49,8 +50,6 @@ ICONS = [
     ('<img src="static/yellow.png" alt="Yellow">',
     "Warning, something was not as expected"),
     ('<img src="static/red.png" alt="Red">',"Failed"),
-    ('<img src="static/qmark.jpg" alt="QuestionMark">',
-    "The test flow wasn't completed. This may have been expected or not"),
     ('<img src="static/qmark.jpg" alt="QuestionMark">',
     "The test flow wasn't completed. This may have been expected or not"),
     ('<img src="static/info32.png">',
