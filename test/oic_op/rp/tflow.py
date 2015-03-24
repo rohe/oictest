@@ -1432,7 +1432,8 @@ FLOWS = {
                 "as part of your certification application.",
         "profile": ".T.T.s",
         # "profile": ".T.T.s.+",
-        "tests": {"new-signing-keys": {}, "check-http-response": {}}
+        "tests": {"new-signing-keys": {},
+                  "check-http-response": {}}
     },
     'OP-Rollover-RP-Sig': {
         "desc": 'Request access token, change RSA signing key and request '

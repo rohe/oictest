@@ -1997,14 +1997,19 @@ class NewSigningKeys(Error):
         kbl1 = conv.keybundle[0].available_keys()  # The old
         kbl2 = conv.keybundle[1].available_keys()  # The new
 
+        sign_key0 = [k for k in kbl1 if k.use == "sig"]
+        sign_key1 = [k for k in kbl2 if k.use == "sig"]
+
         new = 0
-        for key in kbl2:
-            if key.use == "sig":
-                for _key in kbl1:
-                    if _key.use == "sig":
-                        if key.kty == _key.kty:  # Same type of key
-                            if not key == _key:
-                                new += 1
+        for key in sign_key1:
+            _new = True
+            for _key in sign_key0:
+                if key.kty == _key.kty:  # Same type of key
+                    if key == _key:
+                        _new = False
+                        break
+            if _new:
+                new += 1
         if not new:
             self._status = self.status
 
@@ -2021,15 +2026,19 @@ class NewEncryptionKeys(Error):
     def _func(self, conv):
         kbl1 = conv.keybundle[0].available_keys()  # The old
         kbl2 = conv.keybundle[1].available_keys()  # The new
+        sign_key0 = [k for k in kbl1 if k.use == "enc"]
+        sign_key1 = [k for k in kbl2 if k.use == "enc"]
 
         new = 0
-        for key in kbl2:
-            if key.use == "enc":
-                for _key in kbl1:
-                    if _key.use == "enc":
-                        if key.kty == _key.kty:  # Same type of key
-                            if not key == _key:
-                                new += 1
+        for key in sign_key1:
+            _new = True
+            for _key in sign_key0:
+                if key.kty == _key.kty:  # Same type of key
+                    if key == _key:
+                        _new = False
+                        break
+            if _new:
+                new += 1
 
         if not new:
             self._status = self.status
