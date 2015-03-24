@@ -850,7 +850,7 @@ FLOWS = {
         "tests": {
             "verify-response": {
                 "response_cls": [ErrorResponse],
-                "error": ["invalid_grant"],
+                "error": ["invalid_grant", "access_denied"],
                 "status": WARNING,
                 }},
         "mti": {"all": "SHOULD"},
@@ -866,7 +866,8 @@ FLOWS = {
             '_login_',
             '_accesstoken_',
             ('_accesstoken_', {
-                "expect_error": {"error": ["invalid_grant"], "stop": False}}),
+                "expect_error": {"error": ["invalid_grant", "access_denied"],
+                                 "stop": False}}),
             USERINFO_REQUEST_AUTH_METHOD
         ],
         "profile": "C,CI,CT,CIT..",
@@ -880,8 +881,8 @@ FLOWS = {
                      "#section-4.1",
     },
     'OP-OAuth-2nd-30s': {
-        "desc": 'Trying to use authorization code twice with 30 seconds in between uses '
-                'must result in an error [Basic, Hybrid]',
+        "desc": 'Trying to use authorization code twice with 30 seconds in '
+                'between uses must result in an error [Basic, Hybrid]',
         "sequence": [
             'note',
             '_discover_',
@@ -892,7 +893,11 @@ FLOWS = {
             "_accesstoken_"
         ],
         "profile": "C,CI,CT,CIT..",
-        "tests": {"verify-bad-request-response": {"status": ERROR}},
+        "tests": {
+            "verify-response": {
+                "response_cls": [ErrorResponse],
+                "error": ["access_denied", "invalid_grant"],
+                "status": ERROR}},
         "mti": {"all": "SHOULD"},
         "note": "A 30 second delay is added between the first and the second "
                 "use of the authorization code.",
