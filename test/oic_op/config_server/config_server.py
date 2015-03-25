@@ -130,7 +130,7 @@ def create_new_configuration_dict():
             "features": [
                 {"name": 'JWT signed with "None" algorithm (Unsigned)',
                  "selected": False, "abbreviation": "n"},
-                {"name": 'JWT signed with algorithm other than "None"',
+                {"name": 'JWT signed with algorithm other than "none"',
                  "selected": False, "abbreviation": "s"},
                 {"name": 'Encrypted JWT', "selected": False,
                  "abbreviation": "e"}
