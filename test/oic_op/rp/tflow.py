@@ -295,8 +295,7 @@ FLOWS = {
                           "method": "GET"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {},
-                  "verify-response": {"response_cls": [OpenIDSchema]}},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]}},
         "mti": {"all": "SHOULD"}
     },
     'OP-UserInfo-Header': {
@@ -310,8 +309,7 @@ FLOWS = {
                           "method": "POST"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {},
-                  "verify-response": {"response_cls": [OpenIDSchema]}},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-UserInfo-Body': {
         "desc": 'UserInfo Endpoint access with POST and bearer body [Basic, '
@@ -324,10 +322,8 @@ FLOWS = {
                           "method": "POST"
                       })],
         "profile": "C,IT,CI,CT,CIT..",
-        'tests': {"check-http-response": {},
-                  "verify-response": {
-                      "response_cls": [OpenIDSchema],
-                      "status": WARNING}},
+        'tests': {"verify-response": {"response_cls": [OpenIDSchema],
+                                      "status": WARNING}},
     },
     'OP-UserInfo-RS256': {
         "desc": 'RP registers userinfo_signed_response_alg to signal that it '
@@ -352,7 +348,6 @@ FLOWS = {
                           "ctype": "jwt"
                       })],
         "tests": {"asym-signed-userinfo": {"alg": "RS256"},
-                  "check-http-response": {},
                   "verify-response": {"response_cls": [OpenIDSchema]}},
         "profile": "C,IT,CI,CT,CIT..T.s",
         "mti": {"all": "MUST"}
@@ -387,7 +382,6 @@ FLOWS = {
         ],
         "profile": "C,IT,CI,CT,CIT...e.+",
         "tests": {"encrypted-userinfo": {},
-                  "check-http-response": {},
                   "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-UserInfo-SigEnc': {
@@ -422,7 +416,6 @@ FLOWS = {
         "tests": {
             "encrypted-userinfo": {},
             "asym-signed-userinfo": {"alg": "RS256"},
-            "check-http-response": {},
             "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-nonce-NoReq-code': {
