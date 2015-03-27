@@ -336,10 +336,8 @@ class OPRP(object):
 
         return conv, sequence_info, ots, conv.trace, index
 
-    def err_response(self, session, where, err):
-        if err:
-            exception_trace(where, err, LOGGER)
-
+    @staticmethod
+    def log_error(session, err, where):
         if "node" in session:
             if err:
                 if isinstance(err, Break):
@@ -359,6 +357,12 @@ class OPRP(object):
                 session["conv"].test_output.append(
                     {"id": "-", "status": ERROR,
                      "message": "Error in %s" % where})
+
+    def err_response(self, session, where, err):
+        if err:
+            exception_trace(where, err, LOGGER)
+
+        self.log_error(session, err, where)
 
         try:
             _tid = session["testid"]
@@ -462,6 +466,18 @@ class OPRP(object):
             return True
         else:
             return False
+
+    def fini(self, session, conv):
+        _tid = session["testid"]
+        conv.test_output.append(("X", END_TAG))
+        self.store_test_info(session)
+        self.dump_log(session, _tid)
+        session["node"].complete = True
+
+        _grp = _tid.split("-")[1]
+
+        resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
+        return resp(self.environ, self.start_response)
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
@@ -644,8 +660,9 @@ class OPRP(object):
                                                      "request_and_return", err)
 
                         if response is None:  # bail out
-                            return self.err_response(session,
-                                                     "request_and_return", None)
+                            self.log_error(session, "Empty response",
+                                           "request_response")
+                            return self.fini(session, conv)
 
                         trace.response(response)
                         LOGGER.info(response.to_dict())
@@ -694,16 +711,7 @@ class OPRP(object):
         except Exception as err:
             return self.err_response(session, "post_test", err)
 
-        _tid = session["testid"]
-        conv.test_output.append((("X", END_TAG)))
-        self.store_test_info(session)
-        self.dump_log(session, _tid)
-        session["node"].complete = True
-
-        _grp = _tid.split("-")[1]
-
-        resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
-        return resp(self.environ, self.start_response)
+        return self.fini(session, conv)
 
     @staticmethod
     def profile_info(session, test_id=None):
