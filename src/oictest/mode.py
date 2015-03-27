@@ -4,6 +4,7 @@ from oictest.provider import Provider
 __author__ = 'roland'
 
 OIDC_PATTERN = ".well-known/openid-configuration"
+NP = 5
 
 def extract_mode(path):
     # path = >test_id>/<sign_alg>/<encrypt>/<errtype/<claims>/<endpoint>
@@ -17,11 +18,11 @@ def extract_mode(path):
     if path == ".well-known/webfinger":
         return None, path
 
-    part = path.split("/", 5)
+    part = path.split("/", NP)
 
     mod = {"test_id": part[0]}
 
-    if len(part) < 5:  # might be no endpoint
+    if len(part) < NP+1:  # might be no endpoint
         if len(part) == 3 and path.endswith(OIDC_PATTERN):
             return mod, OIDC_PATTERN
 
@@ -29,11 +30,6 @@ def extract_mode(path):
 
     if part[1] != "_":
         mod["sign_alg"] = part[1]
-    if part[4] != "_":
-        try:
-            mod["claims"] = part[4].split(",")
-        except ValueError:
-            pass
 
     if part[2] != "_":
         try:
@@ -45,11 +41,17 @@ def extract_mode(path):
 
     if part[3] != "_":
         try:
-            mod["err"] = part[3].split(",")
+            mod["behavior"] = part[3].split(",")
         except ValueError:
             pass
 
-    if len(part) == 5:
+    if part[4] != "_":
+        try:
+            mod["claims"] = part[4].split(",")
+        except ValueError:
+            pass
+
+    if len(part) == NP:
         return mod, ""
     else:
         return mod, part[-1]
@@ -77,7 +79,7 @@ def mode2path(mode):
         path += noop
 
     try:
-        path += "%s/" % ",".join(mode["err"])
+        path += "%s/" % ",".join(mode["behavior"])
     except KeyError:
         path += noop
 

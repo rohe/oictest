@@ -8,12 +8,12 @@ issuer = "%s:%%d/" % baseurl
 keys = [
     {
         "type": "RSA",
-        "key": "../keys/pyoidc_enc",
+        "key": "./keys/pyoidc_enc",
         "use": ["enc"],
     },
     {
         "type": "RSA",
-        "key": "../keys/pyoidc_sig",
+        "key": "./keys/pyoidc_sig",
         "use": ["sig"],
     },
     {"type": "EC", "crv": "P-256", "use": ["sig"]},
@@ -36,8 +36,11 @@ SERVER_CERT = "certs/server.crt"
 SERVER_KEY = "certs/server.key"
 #CERT_CHAIN="certs/chain.pem"
 CERT_CHAIN = None
+CA_BUNDLE = None
 
 KEY_EXPORT_URL = "%sexport/jwk.json" % issuer
+
+CLIENT_DB = "client_db"
 
 # =======  SIMPLE DATABASE ==============
 
