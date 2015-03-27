@@ -662,6 +662,7 @@ class OPRP(object):
                         if response is None:  # bail out
                             self.log_error(session, "Empty response",
                                            "request_response")
+                            conv.trace.info(END_TAG)
                             return self.fini(session, conv)
 
                         trace.response(response)
