@@ -81,7 +81,7 @@ def get_id_tokens(conv):
 class CmpIdtoken(Other):
     """
     Compares the JSON received as a CheckID response with my own
-    interpretation of the IdToken.
+    interpretation of the ID Token.
     """
     cid = "compare-idoken-received-with-check_id-response"
 
@@ -130,7 +130,7 @@ class VerifyPromptNoneResponse(Check):
                 res["content"] = err.to_json()
                 conv.protocol_response.append((err, _content))
             else:
-                self._message = "Not an error I expected"
+                self._message = "Not an expected error"
                 self._status = CRITICAL
         elif _response.status_code in [301, 302]:
             _loc = _response.headers["location"]
@@ -162,7 +162,7 @@ class VerifyPromptNoneResponse(Check):
                     res["content"] = err.to_json()
                     conv.protocol_response.append((err, _query))
                 else:
-                    self._message = "Not an error I expected '%s'" % err[
+                    self._message = "Not an expected error '%s'" % err[
                         "error"]
                     self._status = CRITICAL
             except MessageException:
@@ -171,7 +171,7 @@ class VerifyPromptNoneResponse(Check):
                 res["content"] = resp.to_json()
                 conv.protocol_response.append((resp, _query))
         else:  # should not get anything else
-            self._message = "Not an response I expected"
+            self._message = "Not an expected response"
             self._status = CRITICAL
 
         return res
@@ -271,7 +271,7 @@ class CheckAcrSupport(CheckOPSupported):
     Checks that the asked for acr are among the supported
     """
     cid = "check-acr-support"
-    msg = "ACR level not supported"
+    msg = "acr value not supported"
 
     def _supported(self, request_args, provider_info):
         try:
@@ -329,7 +329,7 @@ class CheckSignedIdTokenSupport(CheckSupported):
     Checks that the asked for signature algorithms are among the supported
     """
     cid = "check-signed-idtoken-support"
-    msg = "Signed Id Token algorithm not supported"
+    msg = "Signed ID Token algorithm not supported"
     element = "id_token_signing_alg_values_supported"
     parameter = "id_token_signed_response_alg"
     mti = False
@@ -351,7 +351,7 @@ class CheckEncryptedUserInfoSupportALG(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     cid = "check-signed-userinfo-alg-support"
-    msg = "Userinfo encryption alg algorithm not supported"
+    msg = "UserInfo encryption alg algorithm not supported"
     element = "userinfo_encryption_alg_values_supported"
     parameter = "userinfo_encrypted_response_alg"
 
@@ -371,7 +371,7 @@ class CheckEncryptedIDTokenSupportALG(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     cid = "check-encrypt-idtoken-alg-support"
-    msg = "Id Token encryption alg algorithm not supported"
+    msg = "ID Token encryption alg algorithm not supported"
     element = "id_token_encryption_alg_values_supported"
     parameter = "id_token_encrypted_response_alg"
 
@@ -381,7 +381,7 @@ class CheckEncryptedIDTokenSupportENC(CheckSupported):
     Checks that the asked for encryption algorithm are among the supported
     """
     cid = "check-encrypt-idtoken-enc-support"
-    msg = "Id Token encryption enc method not supported"
+    msg = "ID Token encryption enc method not supported"
     element = "id_token_encryption_enc_values_supported"
     parameter = "id_token_encrypted_response_enc"
 
@@ -410,7 +410,7 @@ class CheckClaimsSupport(CheckOPSupported):
     """
     Checks that the asked for scope are among the supported
     """
-    cid = "check-scope-support"
+    cid = "check-claims-support"
     msg = "Claims not supported"
     element = "claims_supported"
     parameter = "claims"
@@ -420,19 +420,19 @@ class CheckClaimsSupport(CheckOPSupported):
         return _req["userinfo"].keys()
 
 
-class CheckRequestClaimsSupport(CheckOPSupported):
-    """
-    Checks that the asked for scope are among the supported
-    """
-    cid = "check-scope-support"
-    msg = "Claims not supported"
-    element = "claims_supported"
-    parameter = "claims"
-
-    def _requested(self, request_args):
-        _req = CheckOPSupported._requested(self, request_args)
-        return _req["userinfo"].keys()
-
+# class CheckRequestClaimsSupport(CheckOPSupported):
+#     """
+#     Checks that the asked for scope are among the supported
+#     """
+#     cid = "check-request-claims-support"
+#     msg = "Claims not supported"
+#     element = "claims_supported"
+#     parameter = "claims"
+#
+#     def _requested(self, request_args):
+#         _req = CheckOPSupported._requested(self, request_args)
+#         return _req["userinfo"].keys()
+#
 
 class CheckSupportedTrue(CriticalError):
     """
@@ -464,7 +464,7 @@ class CheckRequestParameterSupported(CheckSupportedTrue):
     Checks that the request parameter is supported
     """
     cid = "check-request-parameter-supported-support"
-    msg = "Request parameter not supported"
+    msg = "request parameter not supported"
     element = "request_parameter_supported"
     mti = False
 
@@ -474,7 +474,7 @@ class CheckRequestURIParameterSupported(CheckSupportedTrue):
     Checks that the request parameter is supported
     """
     cid = "check-request_uri-parameter-supported-support"
-    msg = "Request parameter not supported"
+    msg = "request_uri parameter not supported"
     element = "request_uri_parameter_supported"
     mti = False
 
@@ -485,17 +485,17 @@ class CheckIdTokenSignedResponseAlgSupport(CheckSupported):
     supported
     """
     cid = "check-id_token_signed_response_alg-support"
-    msg = "Id_token_signed_response_alg not supported"
+    msg = "id_token_signed_response_alg not supported"
     element = "id_token_signed_response_alg_supported"
     parameter = "id_token_signed_response_alg"
 
 
 class CheckTokenEndpointAuthMethod(CriticalError):
     """
-    Checks that the token endpoint supports the used Auth type
+    Checks that the token endpoint supports the used client authentication method
     """
     cid = "check-token-endpoint-auth-method"
-    msg = "Auth type not supported"
+    msg = "Client authentication method not supported"
 
     def _func(self, conv):
         try:
@@ -567,41 +567,41 @@ class CheckEndpoint(CriticalError):
                 assert endpoint in get_provider_info(conv)
             except AssertionError:
                 self._status = self.status
-                self._message = "No '%s' registered" % endpoint
+                self._message = "No '%s' endpoint provided" % endpoint
 
         return {}
 
 
 class CheckHasJwksURI(Error):
     """
-    Check that the jwks_uri claim is in the provider_info
+    Check that the jwks_uri discovery metadata value is in the provider_info
     """
     cid = "providerinfo-has-jwks_uri"
-    msg = "jwks_uri claims missing"
+    msg = "jwks_uri discovery metadata value missing"
 
     def _func(self, conv):
         try:
             _ = get_provider_info(conv)["jwks_uri"]
         except KeyError:
             self._status = self.status
-            self._message = "No 'jwks_uri' registered"
+            self._message = "No 'jwks_uri' location provided"
 
         return {}
 
 
 class CheckHasClaimsSupported(Error):
     """
-    Check that the claims_supported claim is in the provider_info
+    Check that the claims_supported discovery metadata value is in the provider_info
     """
     cid = "providerinfo-has-claims_supported"
-    msg = "claims_supported claims missing"
+    msg = "claims_supported discovery metadata value missing"
 
     def _func(self, conv):
         try:
             _ = get_provider_info(conv)["claims_supported"]
         except KeyError:
             self._status = self.status
-            self._message = "No 'claims_supported' registered"
+            self._message = "No 'claims_supported' discovery metadata value provided"
 
         return {}
 
@@ -656,14 +656,14 @@ class LoginRequired(Error):
             assert resp.type() == "AuthorizationErrorResponse"
         except AssertionError:
             self._status = self.status
-            self._message = "Expected authorization error response got %s" % (
+            self._message = "Expected authorization error response, got %s" % (
                 resp.type())
 
             try:
                 assert resp.type() == "ErrorResponse"
             except AssertionError:
                 self.status = CRITICAL
-                self._message = "Expected an Error Response got %s" % (
+                self._message = "Expected an Error Response, got %s" % (
                     resp.type())
                 return {}
 
@@ -713,11 +713,11 @@ def get_authz_request(conv):
 
 class VerifyClaims(Error):
     """
-    Verifies that the user information returned is consistent with
+    Verifies that the UserInfo returned is consistent with
     what was asked for
     """
     cid = "verify-claims"
-    errmsg = "attributes received not matching claims"
+    msg = "Claims received do not match those requested"
 
     def _userinfo_claims(self, conv):
         userinfo_claims = {}
@@ -884,7 +884,7 @@ class VerifyIDToken(CriticalError):
                     if idtoken["exp"] > (time_util.utc_time_sans_frac() + val):
                         self._status = self.status
                         diff = idtoken["exp"] - time_util.utc_time_sans_frac()
-                        self._message = "exp to far in the future [%d]" % diff
+                        self._message = "exp too far in the future [%d]" % diff
                         break
                     else:
                         continue
@@ -892,19 +892,19 @@ class VerifyIDToken(CriticalError):
                 if val == OPTIONAL:
                     if key not in idtoken:
                         self._status = self.status
-                        self._message = "'%s' was supposed to be there" % key
+                        self._message = "'%s' claim was supposed to be present" % key
                         break
                 elif val == REQUIRED:
                     try:
                         assert key in idtoken
                     except AssertionError:
                         self._status = self.status
-                        self._message = "'%s' was expected to be there" % key
+                        self._message = "'%s' claim was expected to be present" % key
                         break
                 elif "values" in val:
                     if key not in idtoken:
                         self._status = self.status
-                        self._message = "Missing value on '%s'" % key
+                        self._message = "Missing value on '%s' claim" % key
                         break
                     else:
                         _val = idtoken[key]
@@ -949,7 +949,7 @@ class UnpackAggregatedClaims(Error):
         try:
             _client.unpack_aggregated_claims(resp)
         except Exception, err:
-            self._message = "Unable to unpack aggregated Claims: %s" % err
+            self._message = "Unable to unpack aggregated claims: %s" % err
             self._status = self.status
 
         return {}
@@ -964,7 +964,7 @@ class ChangedSecret(Error):
         old_sec = _client.client_secret
 
         if old_sec == resp["client_secret"]:
-            self._message = "Client secret was not changed"
+            self._message = "Client Secret was not changed"
             self._status = self.status
 
         return {}
@@ -997,7 +997,7 @@ class VerifyAccessTokenResponse(Error):
             req = get_authz_request(conv)
             if "openid" in req["scope"]:
                 if "id_token" not in resp:
-                    self._message = "IdToken has to be present"
+                    self._message = "ID Token has to be present"
                     self._status = self.status
 
         return {}
@@ -1029,7 +1029,7 @@ class MultipleSignOn(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1057,7 +1057,7 @@ class SameAuthn(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1129,7 +1129,7 @@ class CheckKeys(CriticalError):
             assert keys
         except AssertionError:
             self._status = self.status
-            self._message = "No rsa key for signing registered"
+            self._message = "No RSA key for signing provided"
 
         return {}
 
@@ -1187,13 +1187,13 @@ class CheckUserID(Error):
     def _func(self, conv=None):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
         if len(res) < 2:
             self._status = self.status
-            self._message = "To few ID Tokens"
+            self._message = "Too few ID Tokens"
 
         res = [i for i,m in res]
         # may be anywhere between 2 and 4 ID Tokens
@@ -1202,7 +1202,7 @@ class CheckUserID(Error):
         idt0 = res[0]
         rem = unequal(idt0, res[1:])
         if not rem:
-            self._message = "Seems I only got the same ID token"
+            self._message = "Seems the same ID token was returned"
             self._status = self.status
             return ()
 
@@ -1211,7 +1211,7 @@ class CheckUserID(Error):
             # should verify that the remaining are duplicates
             rem = unequal(idt1, rem[1:])
             if rem:
-                self._message = "To many unique ID tokens"
+                self._message = "Too many unique ID tokens"
                 self._status = self.status
                 return ()
 
@@ -1230,7 +1230,7 @@ class VerifyUserInfo(Error):
     is there.
     """
     cid = "verify-userinfo"
-    msg = "Essential User info missing"
+    msg = "Essential UserInfo missing"
 
     def _func(self, conv):
         req = get_authz_request(conv)
@@ -1263,7 +1263,7 @@ class CheckAsymSignedUserInfo(Error):
     Verifies that the UserInfo was signed with a RSA key
     """
     cid = "asym-signed-userinfo"
-    msg = "User info was not signed"
+    msg = "UserInfo was not signed"
 
     def _func(self, conv):
         instance, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
@@ -1286,7 +1286,7 @@ class CheckSymSignedIdToken(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1302,7 +1302,7 @@ class CheckSymSignedIdToken(Error):
 
 class CheckESSignedIdToken(Error):
     """
-    Verifies that the IdToken was signed with a EC key
+    Verifies that the ID Token was signed with a EC key
     """
     cid = "es-signed-idtoken"
     msg = "Incorrect signature type"
@@ -1310,7 +1310,7 @@ class CheckESSignedIdToken(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1328,7 +1328,7 @@ class CheckEncryptedUserInfo(Error):
     Verifies that the UserInfo returned was encrypted
     """
     cid = "encrypted-userinfo"
-    msg = "User info was not encrypted"
+    msg = "UserInfo was not encrypted"
 
     def _func(self, conv):
         jwt, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
@@ -1351,7 +1351,7 @@ class CheckEncryptedIDToken(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1375,7 +1375,7 @@ class CheckSignedEncryptedIDToken(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1399,12 +1399,12 @@ class CheckSignedEncryptedIDToken(Error):
 
 class VerifyAud(Error):
     cid = "verify-aud"
-    msg = "Not the same aud in the newly issued token"
+    msg = "Not the same aud in the newly issued ID Token"
 
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1498,7 +1498,7 @@ class VerifyISS(Error):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1535,7 +1535,7 @@ class VerfyMTIEncSigAlgorithms(Information):
                         missing.append(_alg)
 
         if missing:
-            self._message = "The following MTI algorithms was missing :%s" % (
+            self._message = "The following MTI algorithms were missing :%s" % (
                 missing,)
             self._status = self.status
 
@@ -1676,24 +1676,24 @@ class VerifyProviderHasDynamicClientEndpoint(Error):
 
 class VerifyIDTokenUserInfoSubSame(Information):
     """
-    Verify that the sub claim in the IdToken is the same as is provider in
+    Verify that the sub claim in the ID Token is the same as is provider in
     the userinfo
     """
     cid = "verify-id_token-userinfo-same-sub"
-    msg = "Sub identifier differs between the IdToken and the UserInfo"
+    msg = "Sub identifier differs between the ID Token and the UserInfo"
 
     def _func(self, conv):
         ui_sub = ""
 
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
         idt_sub = [i["sub"] for i, j in res]
 
-        # The userinfo sub
+        # The UserInfo sub
         for instance, msg in get_protocol_response(conv, message.OpenIDSchema):
             ui_sub = instance["sub"]
 
@@ -1710,7 +1710,7 @@ class VerifyState(Information):
     Verifies that the State variable is the same returned as was sent
     """
     cid = "verify-state"
-    msg = "The State variable in not the same as sent"
+    msg = "The state value returned not the same as sent"
 
     def _func(self, conv):
         # The send state
@@ -1733,12 +1733,12 @@ class VerifySignedIdTokenHasKID(Error):
     Verifies that the header of a signed IDToken includes a kid claim.
     """
     cid = "verify-signed-idtoken-has-kid"
-    msg = "Signed IdToken has no kid"
+    msg = "Signed ID Token has no kid"
 
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1757,15 +1757,15 @@ class VerifySignedIdTokenHasKID(Error):
 
 class VerifySignedIdToken(Error):
     """
-    Verifies that an IdToken is signed
+    Verifies that an ID Token is signed
     """
     cid = "verify-idtoken-is-signed"
-    msg = "IdToken unsigned or signed with the wrong algorithm"
+    msg = "ID Token unsigned or signed with the wrong algorithm"
 
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1791,7 +1791,7 @@ class VerifyNonce(Error):
     given in the Authorization Request
     """
     cid = "verify-nonce"
-    msg = "Not the same nonce in the id_token as in the authorization request"
+    msg = "Not the same nonce in the ID Token as in the authorization request"
 
     def _func(self, conv):
         try:
@@ -1801,7 +1801,7 @@ class VerifyNonce(Error):
 
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1825,12 +1825,12 @@ class VerifyUnSignedIdToken(Error):
     'none' algorithm.
     """
     cid = "unsigned-idtoken"
-    msg = "Unsigned IdToken"
+    msg = "Unsigned ID Token"
 
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1845,7 +1845,7 @@ class VerifyUnSignedIdToken(Error):
 
 class CheckSubConfig(Error):
     cid = "sub-claim-configured"
-    msg = "Sub claim not configured"
+    msg = "sub claim not configured"
 
     def _func(self, conv):
         try:
@@ -1868,7 +1868,7 @@ class VerifySubValue(Error):
         sub = conv.AuthorizationRequest["claims"]["id_token"]["sub"]["value"]
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
@@ -1898,7 +1898,7 @@ class VerifyDifferentSub(Error):
         except AssertionError:
             self._status = self.status
         except IndexError:
-            self._message = "Not enough subs"
+            self._message = "Not enough sub values"
             self._status = self.status
 
         return {}
@@ -1910,7 +1910,7 @@ class VerifyBase64URL(Check):
     encoded and not just base64 encoded
     """
     cid = "verify-base64url"
-    msg = "JWKS not according to spec"
+    msg = "JWK not according to the spec"
 
     @staticmethod
     def _chk(key, params):
@@ -1965,7 +1965,7 @@ class VerifyBase64URL(Check):
                     self._message = "\n". join(txt)
         else:
             self._status = err_status
-            self._message = "Could not load jwks from {}".format(pi["jwks_uri"])
+            self._message = "Could not load JWK Set from {}".format(pi["jwks_uri"])
 
         return {}
 
@@ -1991,7 +1991,7 @@ class NewSigningKeys(Warnings):
     Verifies that two set of signing keys are not the same
     """
     cid = "new-signing-keys"
-    msg = "Can't detect any change in signing keys"
+    msg = "Did not detect any change in signing keys"
 
     def _func(self, conv):
         kbl1 = conv.keybundle[0].available_keys()  # The old
@@ -2021,7 +2021,7 @@ class NewEncryptionKeys(Warnings):
     Verifies that two set of encryption keys are not the same
     """
     cid = "new-encryption-keys"
-    msg = "Can't detect any change in encryption keys"
+    msg = "Did not detect any change in encryption keys"
 
     def _func(self, conv):
         kbl1 = conv.keybundle[0].available_keys()  # The old
@@ -2048,7 +2048,7 @@ class NewEncryptionKeys(Warnings):
 
 class UsedAcrValue(Check):
     """
-    The Acr value in the IdToken
+    The acr value in the ID Token
     """
     cid = "used-acr-value"
     msg = ""
@@ -2056,7 +2056,7 @@ class UsedAcrValue(Check):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = WARNING
             return {}
 
@@ -2070,7 +2070,7 @@ class UsedAcrValue(Check):
             self._message = "Used acr value: %s, preferred: %s" % (idt["acr"],
                                                                    pref)
         except KeyError:
-            self._message = "Missing acr value"
+            self._message = "No acr value present in the ID Token"
             self._status = WARNING
 
         return {}
@@ -2086,16 +2086,16 @@ class IsIDTokenSigned(Information):
     def _func(self, conv):
         res = get_id_tokens(conv)
         if not res:
-            self._message = "No response to get the IdToken from"
+            self._message = "No response to get the ID Token from"
             self._status = self.status
             return ()
 
         (idt, _) = res[-1]
         try:
-            self._message = "IdToken signed using alg=%s" % idt.jws_header[
+            self._message = "ID Token signed using alg=%s" % idt.jws_header[
                 "alg"]
         except KeyError:
-            self._message = "IdToken not signed"
+            self._message = "ID Token not signed"
 
         return {}
 
@@ -2161,7 +2161,7 @@ class BareKeys(Information):
                     key["kty"])
         else:
             self._status = WARNING
-            self._message = "Could not load jwks from {}".format(pi["jwks_uri"])
+            self._message = "Could not load JWK Set from {}".format(pi["jwks_uri"])
 
         return {}
 
