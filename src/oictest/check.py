@@ -1986,7 +1986,7 @@ class DiscoveryConfig(Error):
         return {}
 
 
-class NewSigningKeys(Error):
+class NewSigningKeys(Warnings):
     """
     Verifies that two set of signing keys are not the same
     """
@@ -2016,7 +2016,7 @@ class NewSigningKeys(Error):
         return {}
 
 
-class NewEncryptionKeys(Error):
+class NewEncryptionKeys(Warnings):
     """
     Verifies that two set of encryption keys are not the same
     """

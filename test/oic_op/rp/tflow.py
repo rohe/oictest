@@ -325,7 +325,9 @@ FLOWS = {
                       })],
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"check-http-response": {},
-                  "verify-response": {"response_cls": [OpenIDSchema]}},
+                  "verify-response": {
+                      "response_cls": [OpenIDSchema],
+                      "status": WARNING}},
     },
     'OP-UserInfo-RS256': {
         "desc": 'RP registers userinfo_signed_response_alg to signal that it '
