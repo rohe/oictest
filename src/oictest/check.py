@@ -2188,7 +2188,7 @@ class CheckQueryPart(Error):
         return {}
 
 
-VS_LINE = "The following claims where missing from the returned information: {}"
+VS_LINE = "The following claims were missing from the returned information: {}"
 
 
 class VerifyScopes(Warnings):
