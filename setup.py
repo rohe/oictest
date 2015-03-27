@@ -34,7 +34,7 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oic==0.7.4",
+        "oic==0.7.5",
         "mechanize",
         "argparse",
         "beautifulsoup4",
