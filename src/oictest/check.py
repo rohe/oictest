@@ -1657,21 +1657,21 @@ class VerifyOPHasRegistrationEndpoint(Error):
         return {}
 
 
-class VerifyProviderHasDynamicClientEndpoint(Error):
-    """
-    Verify that the OP has a registration endpoint
-    """
-    cid = "verify-op-has-dynamic-client-endpoint"
-    msg = "No registration endpoint"
-
-    def _func(self, conv):
-        _pi = get_provider_info(conv)
-        try:
-            assert "dynamic_client_endpoint" in _pi
-        except AssertionError:
-            self._status = self.status
-
-        return {}
+# class VerifyProviderHasDynamicClientEndpoint(Error):
+#     """
+#     Verify that the OP has a registration endpoint
+#     """
+#     cid = "verify-op-has-dynamic-client-endpoint"
+#     msg = "No registration endpoint"
+#
+#     def _func(self, conv):
+#         _pi = get_provider_info(conv)
+#         try:
+#             assert "dynamic_client_endpoint" in _pi
+#         except AssertionError:
+#             self._status = self.status
+#
+#         return {}
 
 
 class VerifyIDTokenUserInfoSubSame(Information):
