@@ -201,12 +201,12 @@ class OIDCTestSetup(object):
         return test_spec
 
 
-def request_and_return(conv, url, trace, response=None, method="GET", body=None,
-                       body_type="json", state="", http_args=None,
+def request_and_return(conv, url, trace, response_type=None, method="GET",
+                       body=None, body_type="json", state="", http_args=None,
                        **kwargs):
     """
     :param url: The URL to which the request should be sent
-    :param response: Response type
+    :param response_type: Response type
     :param method: Which HTTP method to use
     :param body: A message body if any
     :param body_type: The format of the body of the return message
@@ -222,50 +222,73 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
     logger.debug("request.body: %s" % body)
     logger.debug("request.url: %s" % url)
     logger.debug("request.method: %s" % method)
+
     _cli = conv.client
     try:
         _resp = _cli.http_request(url, method, data=body, **http_args)
     except Exception:
         raise
 
-    conv.position = url
-    conv.last_response = _resp
-    conv.last_content = _resp.content
+    return do_response(_resp, conv, url, trace, _cli, body_type, response_type,
+                       state, **kwargs)
 
-    trace.reply("STATUS: %d" % _resp.status_code)
+
+def do_response(response, conv, url, trace, client, body_type, response_type,
+                state, **kwargs):
+    """
+
+    :param response:
+    :param conv:
+    :param url:
+    :param trace:
+    :param client:
+    :param body_type:
+    :param response_type:
+    :param state:
+    :param kwargs:
+    :return:
+    """
+    conv.position = url
+    conv.last_response = response
+    conv.last_content = response.content
+
+    trace.reply("STATUS: %d" % response.status_code)
 
     _response = None
-    if _resp.status_code >= 400:  # an error
-        if _resp.text:
+    if response.status_code >= 400:  # an error
+        if response.text:
             try:
-                _response = ErrorResponse().from_json(_resp.text)
+                _response = ErrorResponse().from_json(response.text)
             except (MessageException, ValueError):
-                trace.reply("Non OIDC error message: %s" % _resp.content)
-    elif _resp.status_code == 204:  # No response
+                trace.reply("Non OIDC error message: %s" % response.content)
+        else:
+            trace.reply("Empty response")
+    elif response.status_code == 204:  # No response
         _response = Message()
     else:
         try:
-            uiendp = _cli.provider_info["userinfo_endpoint"]
+            uiendp = client.provider_info["userinfo_endpoint"]
         except KeyError:
             uiendp = ""
 
         if uiendp == url:
-            _iss = _cli.provider_info["issuer"]
-            _ver_keys = _cli.keyjar.get("ver", issuer=_iss)
+            _iss = client.provider_info["issuer"]
+            _ver_keys = client.keyjar.get("ver", issuer=_iss)
             _info = [(k.kid, k.kty) for k in _ver_keys]
             trace.info("Available verification keys: {}".format(_info))
             kwargs["key"] = _ver_keys
-            _dec_keys = _cli.keyjar.get("enc", issuer="")
+            _dec_keys = client.keyjar.get("enc", issuer="")
             _info = [(k.kid, k.kty) for k in _dec_keys]
             trace.info("Available decryption keys: {}".format(_info))
             kwargs["key"].extend(_dec_keys)
         elif "keyjar" not in kwargs:
             kwargs["keyjar"] = conv.keyjar
 
-        trace.reply("BODY: %s" % _resp.text)
+        trace.reply("BODY: %s" % response.text)
         try:
-            _response = _cli.parse_request_response(_resp, response, body_type,
-                                                    state, **kwargs)
+            _response = client.parse_request_response(response, response_type,
+                                                      body_type, state,
+                                                      **kwargs)
         except DecryptionFailed:
             p = unpack(response)
             trace.log(
@@ -274,19 +297,22 @@ def request_and_return(conv, url, trace, response=None, method="GET", body=None,
 
         # Need special handling of id_token
         if "id_token" in _response:
-            _dict = json.loads(_resp.text)
+            _dict = json.loads(response.text)
             conv.id_token = _dict["id_token"]
             #header = json.loads(b64d(str(conv.id_token.split(".")[0])))
             #trace.info("IdToken JWT header: %s" % header)
         else:
             try:
-                res = unpack(_resp.content)
+                res = unpack(response.content)
             except (BadSyntax, TypeError):
                 pass
             else:
                 trace.info("JWT header: %s" % res[0])
 
-    conv.protocol_response.append((_response, _resp.content))
+    if _response is None:
+        conv.protocol_response.append((_response, ""))
+    else:
+        conv.protocol_response.append((_response, response.content))
 
     return _response
 
