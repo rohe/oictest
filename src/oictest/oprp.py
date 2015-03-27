@@ -217,7 +217,7 @@ class OPRP(object):
             "profile": info["profile_info"],
             "trace": info["trace"],
             "output": info["test_output"],
-            "result": represent_result(info, testid)
+            "result": represent_result(info, testid).replace("\n", "<br>\n")
         }
     
         return resp(self.environ, self.start_response, **argv)
@@ -660,7 +660,7 @@ class OPRP(object):
                             else:
                                 trace.error("Expected error, didn't get it")
                                 return self.err_response(session,
-                                                        "expected error")
+                                                         "expected error", None)
                         else:
                             if resp_c.response == "RegistrationResponse":
                                 if isinstance(response, RegistrationResponse):
@@ -974,6 +974,39 @@ def included(val, given):
     return True
 
 
+def not_supported(val, given):
+    if isinstance(val, basestring):
+        if isinstance(given, basestring):
+            try:
+                assert val == given
+            except AssertionError:
+                return [val]
+        else:
+            try:
+                assert val in given
+            except AssertionError:
+                return [val]
+    elif isinstance(val, list):
+        if isinstance(given, basestring):
+            _missing = [v for v in val if v != given]
+        else:
+            _missing = []
+            for _val in val:
+                try:
+                    assert _val in given
+                except AssertionError:
+                    _missing.append(_val)
+        if _missing:
+            return _missing
+    else:
+        try:
+            assert val == given
+        except AssertionError:
+            return [val]
+
+    return None
+
+
 def support(conv, args):
     pi = conv.client.provider_info
     stat = 0
@@ -985,25 +1018,16 @@ def support(conv, args):
         else:
             err = ERROR
         for key, val in args[ser].items():
-            if key not in pi:
-                try:
-                    included(val, DEFAULTS[key])
-                except AssertionError:  # Explicitly Not supported
-                    add_test_result(conv, ERROR,
-                                    "Not supported: %s=%s" % (key, val))
-                    stat = ERROR
-                except KeyError:  # Not in defaults
-                    conv.trace.info("Not explicit: %s=%s using default" % (key,
-                                                                           val))
+            try:
+                _ns = not_supported(val, pi[key])
+            except KeyError:  # Not defined
+                conv.trace.info("'%s' not defined in provider configuration")
             else:
-                try:
-                    included(val, pi[key])
-                except AssertionError:  # Not supported
-                    add_test_result(conv, err,
-                                    "Not supported: %s=%s" % (key, val))
+                if _ns:
+                    add_test_result(
+                        conv, err,
+                        "OP is not supporting %s according to '%s' in the provider configuration" % (_ns, key))
                     stat = err
-                except KeyError:  # Not defined
-                    conv.trace.info("Not explicit: %s=%s" % (key, val))
 
     return stat
 

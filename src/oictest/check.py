@@ -2188,6 +2188,9 @@ class CheckQueryPart(Error):
         return {}
 
 
+VS_LINE = "The following claims where missing from the returned information: {}"
+
+
 class VerifyScopes(Warnings):
     """
     Verifies that the claims corresponding to the requested scopes are returned
@@ -2221,8 +2224,7 @@ class VerifyScopes(Warnings):
                 missing.append(claim)
         if missing:
             self._status = self.status
-            self._message = "The following claims where missing: {}".format(
-                missing)
+            self._message = VS_LINE.format(missing)
 
         return {}
 
