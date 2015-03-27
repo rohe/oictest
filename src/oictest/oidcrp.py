@@ -24,6 +24,10 @@ class OIDCError(Exception):
     pass
 
 
+class MissingErrorResponse(Exception):
+    pass
+
+
 def flow2sequence(operations, item):
     flow = operations.FLOWS[item]
     return [operations.PHASES[phase] for phase in flow["sequence"]]
@@ -262,7 +266,7 @@ def do_response(response, conv, url, trace, client, body_type, response_type,
             except (MessageException, ValueError):
                 trace.reply("Non OIDC error message: %s" % response.content)
         else:
-            trace.reply("Empty response")
+            raise MissingErrorResponse()
     elif response.status_code == 204:  # No response
         _response = Message()
     else:

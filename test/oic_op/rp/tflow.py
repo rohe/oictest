@@ -324,6 +324,7 @@ FLOWS = {
         "profile": "C,IT,CI,CT,CIT..",
         'tests': {"verify-response": {"response_cls": [OpenIDSchema],
                                       "status": WARNING}},
+        "mti": {"all": "MAY"}
     },
     'OP-UserInfo-RS256': {
         "desc": 'RP registers userinfo_signed_response_alg to signal that it '

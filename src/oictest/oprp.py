@@ -23,7 +23,7 @@ from oictest import ConfigurationError
 
 from oictest.base import Conversation
 from oictest.check import get_protocol_response
-from oictest.oidcrp import test_summation
+from oictest.oidcrp import test_summation, MissingErrorResponse
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 from oictest.prof_util import flows
@@ -336,33 +336,38 @@ class OPRP(object):
 
         return conv, sequence_info, ots, conv.trace, index
 
-    @staticmethod
-    def log_error(session, err, where):
+    def log_fault(self, session, err, where, err_type=0):
+        if err_type == 0:
+            err_type = self.get_err_type(session)
+
         if "node" in session:
             if err:
                 if isinstance(err, Break):
                     session["node"].state = WARNING
                 else:
-                    session["node"].state = ERROR
+                    session["node"].state = err_type
             else:
-                session["node"].state = ERROR
+                session["node"].state = err_type
 
         if "conv" in session:
             if err:
-                session["conv"].trace.error("%s:%s" % (err.__class__.__name__,
-                                                       str(err)))
+                if isinstance(err, basestring):
+                    pass
+                else:
+                    session["conv"].trace.error("%s:%s" % (
+                        err.__class__.__name__, str(err)))
                 session["conv"].test_output.append(
-                    {"id": "-", "status": ERROR, "message": "%s" % err})
+                    {"id": "-", "status": err_type, "message": "%s" % err})
             else:
                 session["conv"].test_output.append(
-                    {"id": "-", "status": ERROR,
+                    {"id": "-", "status": err_type,
                      "message": "Error in %s" % where})
 
     def err_response(self, session, where, err):
         if err:
             exception_trace(where, err, LOGGER)
 
-        self.log_error(session, err, where)
+        self.log_fault(session, err, where)
 
         try:
             _tid = session["testid"]
@@ -478,6 +483,16 @@ class OPRP(object):
 
         resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
         return resp(self.environ, self.start_response)
+
+    @staticmethod
+    def get_err_type(session):
+        errt = WARNING
+        try:
+            if session["node"].mti == {"all": "MUST"}:
+                errt = ERROR
+        except KeyError:
+            pass
+        return errt
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
@@ -652,6 +667,13 @@ class OPRP(object):
                                 conv, url, trace, message_factory(
                                     resp_c.response), _method, body, _ctype,
                                 **_kwargs)
+                        except MissingErrorResponse:
+                            self.log_fault(session, "Missing Error Response",
+                                           "request_response",
+                                           self.get_err_type(session))
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                         except PyoidcError as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
@@ -660,8 +682,9 @@ class OPRP(object):
                                                      "request_and_return", err)
 
                         if response is None:  # bail out
-                            self.log_error(session, "Empty response",
-                                           "request_response")
+                            self.log_fault(session, "Empty response",
+                                           "request_response",
+                                           self.get_err_type(session))
                             conv.trace.info(END_TAG)
                             return self.fini(session, conv)
 
