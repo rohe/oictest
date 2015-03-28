@@ -159,7 +159,7 @@ class Parse(CriticalError):
             if conv.cresp.response != cname:
                 self._status = self.status
                 self._message = (
-                    "Didn't get a response of the type I expected:",
+                    "Didn't get a response of the type expected:",
                     " '%s' instead of '%s', content:'%s'" % (
                         cname, conv.response_type, _rmsg))
                 return {
@@ -270,11 +270,11 @@ class CheckRedirectErrorResponse(ExpectedError):
             elif "#" in _loc:
                 query = _loc.split("#")[1]
             else:  # ???
-                self._message = "Expected redirect"
+                self._message = "Expected a redirect"
                 self._status = CRITICAL
                 return res
         except (KeyError, AttributeError):
-            self._message = "Expected redirect"
+            self._message = "Expected a redirect"
             self._status = CRITICAL
             return res
 
@@ -285,10 +285,10 @@ class CheckRedirectErrorResponse(ExpectedError):
                 res["content"] = err.to_json()
                 conv.protocol_response.append((err, query))
             except MissingRequiredAttribute:
-                self._message = "Expected error message"
+                self._message = "Expected an error message"
                 self._status = CRITICAL
         else:
-            self._message = "Expected error message"
+            self._message = "Expected an error message"
             self._status = CRITICAL
 
         return res
@@ -483,7 +483,7 @@ class CheckErrorResponse(ExpectedError):
                 self.err.verify()
                 res["content"] = self.err.to_json()
             except Exception:
-                self._message = "Expected error message"
+                self._message = "Expected an error message"
                 self._status = CRITICAL
 
             res["url"] = conv.position
@@ -504,7 +504,7 @@ class VerifyErrorMessage(ExpectedError):
         try:
             assert isinstance(inst, ErrorResponse)
         except AssertionError:
-            self._message = "Expected error message"
+            self._message = "Expected an error message"
             try:
                 self._status = self._kwargs["status"]
             except KeyError:
@@ -513,7 +513,7 @@ class VerifyErrorMessage(ExpectedError):
             try:
                 assert inst["error"] in self._kwargs["error"]
             except AssertionError:
-                self._message = "Not an error type I expected"
+                self._message = "Unexpected error type: %s" % inst["error"]
                 self._status = WARNING
             except KeyError:
                 pass
@@ -546,7 +546,7 @@ class VerifyAuthnOrErrorResponse(ExpectedError):
     error message
     """
     cid = "authn-response-or-error"
-    msg = "Expected Authn Response or Error Message"
+    msg = "Expected authentication response or error message"
 
     def _func(self, conv):
         inst, txt = conv.protocol_response[-1]
@@ -563,7 +563,8 @@ class VerifyAuthnOrErrorResponse(ExpectedError):
                 try:
                     assert inst["error"] in self._kwargs["error"]
                 except AssertionError:
-                    self._message = "An error response I didn't expect"
+                    self._message = "Unexpected error response: %s" % inst[
+                        "error"]
                     self._status = WARNING
                 except KeyError:
                     pass
@@ -577,7 +578,7 @@ class VerifyResponse(ExpectedError):
     Responses
     """
     cid = "verify-response"
-    msg = "Expected OpenID Connect Response"
+    msg = "Expected OpenID Connect response"
 
     def _func(self, conv):
         inst, txt = conv.protocol_response[-1]
@@ -599,7 +600,8 @@ class VerifyResponse(ExpectedError):
                     try:
                         assert inst["error"] in self._kwargs["error"]
                     except AssertionError:
-                        self._message = "An error response I didn't expect"
+                        self._message = "Unexpected error response" % inst[
+                            "error"]
                         self._status = WARNING
                         return {}
                     except KeyError:
