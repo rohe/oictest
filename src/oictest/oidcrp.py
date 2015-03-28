@@ -234,7 +234,7 @@ def request_and_return(conv, url, trace, response_type=None, method="GET",
     except Exception:
         raise
 
-    conv.timestamp.append(url, utc_time_sans_frac())
+    conv.timestamp.append((url, utc_time_sans_frac()))
 
     return do_response(_resp, conv, url, trace, _cli, body_type, response_type,
                        state, **kwargs)

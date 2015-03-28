@@ -493,7 +493,8 @@ class CheckIdTokenSignedResponseAlgSupport(CheckSupported):
 
 class CheckTokenEndpointAuthMethod(CriticalError):
     """
-    Checks that the token endpoint supports the used client authentication method
+    Checks that the token endpoint supports the used client authentication
+    method
     """
     cid = "check-token-endpoint-auth-method"
     msg = "Client authentication method not supported"
@@ -592,7 +593,8 @@ class CheckHasJwksURI(Error):
 
 class CheckHasClaimsSupported(Error):
     """
-    Check that the claims_supported discovery metadata value is in the provider_info
+    Check that the claims_supported discovery metadata value is in the
+    provider_info
     """
     cid = "providerinfo-has-claims_supported"
     msg = "claims_supported discovery metadata value missing"
@@ -602,7 +604,8 @@ class CheckHasClaimsSupported(Error):
             _ = get_provider_info(conv)["claims_supported"]
         except KeyError:
             self._status = self.status
-            self._message = "No 'claims_supported' discovery metadata value provided"
+            self._message = \
+                "No 'claims_supported' discovery metadata value provided"
 
         return {}
 
@@ -893,14 +896,16 @@ class VerifyIDToken(CriticalError):
                 if val == OPTIONAL:
                     if key not in idtoken:
                         self._status = self.status
-                        self._message = "'%s' claim was supposed to be present" % key
+                        self._message = \
+                            "'%s' claim was supposed to be present" % key
                         break
                 elif val == REQUIRED:
                     try:
                         assert key in idtoken
                     except AssertionError:
                         self._status = self.status
-                        self._message = "'%s' claim was expected to be present" % key
+                        self._message = \
+                            "'%s' claim was expected to be present" % key
                         break
                 elif "values" in val:
                     if key not in idtoken:
@@ -1199,7 +1204,7 @@ class CheckUserID(Error):
             self._status = self.status
             self._message = "Too few ID Tokens"
 
-        res = [i for i,m in res]
+        res = [i for i, m in res]
         # may be anywhere between 2 and 4 ID Tokens
         # weed out duplicates (ID Tokens received from authorization and the
         # token endpoint
@@ -1969,7 +1974,8 @@ class VerifyBase64URL(Check):
                     self._message = "\n". join(txt)
         else:
             self._status = err_status
-            self._message = "Could not load JWK Set from {}".format(pi["jwks_uri"])
+            self._message = "Could not load JWK Set from {}".format(
+                pi["jwks_uri"])
 
         return {}
 
@@ -2165,7 +2171,8 @@ class BareKeys(Information):
                     key["kty"])
         else:
             self._status = WARNING
-            self._message = "Could not load JWK Set from {}".format(pi["jwks_uri"])
+            self._message = "Could not load JWK Set from {}".format(
+                pi["jwks_uri"])
 
         return {}
 
@@ -2233,6 +2240,21 @@ class VerifyScopes(Warnings):
         return {}
 
 
+def request_times(conv, endpoint):
+    res = []
+
+    where = conv.provider_info[endpoint]
+
+    for url, when in conv.timestamp:
+        if url.startswith(where):
+            res.append(when)
+
+    return res
+
+
+SKEW = 600
+
+
 class AuthTimeCheck(Warnings):
     """ Check that the auth_time returned in the ID Token is in the
     expected range."""
@@ -2242,8 +2264,10 @@ class AuthTimeCheck(Warnings):
         res = get_id_tokens(conv)
 
         # only interested in the last ID Token, and the IDToken instance will do
-
         idt = res[-1][0]
+
+        # last authentication request
+        sent = request_times(conv, "authorization_endpoint")[-1]
 
         now = utc_time_sans_frac()
         max_age = self._kwargs["max_age"]
@@ -2254,7 +2278,8 @@ class AuthTimeCheck(Warnings):
             self._message = "There is no auth_time claim in the ID Token."
         else:
             try:
-                assert now - max_age <= _auth_time <= now
+                # T0 - max_age - S <= auth_time <= T1 + S
+                assert sent - max_age - SKEW <= _auth_time <= now + SKEW
             except AssertionError:
                 self._status = WARNING
                 self._message = "auth_time not in the expected range"
