@@ -1,7 +1,8 @@
 import copy
 import json
 from urlparse import urlparse
-from jwkest import b64d, unpack, BadSyntax
+from jwkest import unpack
+from jwkest import BadSyntax
 from jwkest.jwe import DecryptionFailed
 
 from oic import oic
@@ -11,6 +12,7 @@ from oic.oauth2.message import Message
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
+from oic.utils.time_util import utc_time_sans_frac
 from oictest.testflows import RmCookie
 
 __author__ = 'roland'
@@ -137,7 +139,6 @@ class OIDCTestSetup(object):
         sequence = flow2sequence(self.test_defs, flow)
 
         res = {"sequence": sequence,
-               #"tests": [],
                "flow": [flow],
                "block": [],
                "mode": "",
@@ -181,7 +182,7 @@ class OIDCTestSetup(object):
         :return:
         """
         _seq = test_spec["sequence"]
-        _flow = test_spec["flow"]
+        # _flow = test_spec["flow"]
 
         if "client_info" in self.test_features and \
                 "registration" not in test_spec["block"]:
@@ -232,6 +233,8 @@ def request_and_return(conv, url, trace, response_type=None, method="GET",
         _resp = _cli.http_request(url, method, data=body, **http_args)
     except Exception:
         raise
+
+    conv.timestamp.append(url, utc_time_sans_frac())
 
     return do_response(_resp, conv, url, trace, _cli, body_type, response_type,
                        state, **kwargs)
@@ -303,8 +306,8 @@ def do_response(response, conv, url, trace, client, body_type, response_type,
         if "id_token" in _response:
             _dict = json.loads(response.text)
             conv.id_token = _dict["id_token"]
-            #header = json.loads(b64d(str(conv.id_token.split(".")[0])))
-            #trace.info("IdToken JWT header: %s" % header)
+            # header = json.loads(b64d(str(conv.id_token.split(".")[0])))
+            # trace.info("IdToken JWT header: %s" % header)
         else:
             try:
                 res = unpack(response.content)

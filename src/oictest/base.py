@@ -45,6 +45,7 @@ class Conversation(tool.Conversation):
         self.info = None
         self.AuthorizationRequest = None
         self.etag = {}
+        self.timestamp = []
 
     def my_endpoints(self):
         return self.client.redirect_uris

@@ -818,7 +818,8 @@ FLOWS = {
                       "response_cls": [AccessTokenResponse,
                                        AuthorizationResponse]},
                   "claims-check": {"id_token": ["auth_time"],
-                                   "required": True}},
+                                   "required": True},
+                  "auth_time-check": {"max_age": 1}},
         "mti": {"all": "MUST"},
         "result": "The test passed if you were prompted to log in."
     },

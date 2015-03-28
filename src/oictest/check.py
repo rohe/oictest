@@ -8,6 +8,7 @@ from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse, OpenIDSchema
 from oic.oic import claims_match
 from oic.oic import message
+from oic.utils.time_util import utc_time_sans_frac
 from oictest.regalg import MTI
 from oictest.regalg import REGISTERED_JWS_ALGORITHMS
 from oictest.regalg import REGISTERED_JWE_alg_ALGORITHMS
@@ -2229,6 +2230,34 @@ class VerifyScopes(Warnings):
             self._status = self.status
             self._message = VS_LINE.format(missing)
 
+        return {}
+
+
+class AuthTimeCheck(Warnings):
+    """ Check that the auth_time returned in the ID Token is in the
+    expected range."""
+    cid = "auth_time-check"
+
+    def _func(self, conv):
+        res = get_id_tokens(conv)
+
+        # only interested in the last ID Token, and the IDToken instance will do
+
+        idt = res[-1][0]
+
+        now = utc_time_sans_frac()
+        max_age = self._kwargs["max_age"]
+        try:
+            _auth_time = idt["auth_time"]
+        except KeyError:  # not having a auth_time is an error
+            self._status = ERROR
+            self._message = "There is no auth_time claim in the ID Token."
+        else:
+            try:
+                assert now - max_age <= _auth_time <= now
+            except AssertionError:
+                self._status = WARNING
+                self._message = "auth_time not in the expected range"
         return {}
 
 
