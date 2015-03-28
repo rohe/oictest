@@ -1045,7 +1045,10 @@ class MultipleSignOn(Error):
             assert idt[0]["auth_time"] != idt[1]["auth_time"]
         except AssertionError:
             self._message = "Not two separate authentications!"
-            self._status = self.status
+            try:
+                self._status = self._kwargs["status"]
+            except KeyError:
+                self._status = self.status
 
         return {}
 
@@ -1068,7 +1071,7 @@ class SameAuthn(Error):
                                       "found %d" % len(idt)])
             self._status = self.status
 
-        # verify that it is in fact two separate authentications
+        # verify that the two ID Tokens are based on the same authentication
         try:
             assert idt[0]["auth_time"] == idt[1]["auth_time"]
             assert idt[0]["sub"] == idt[1]["sub"]
