@@ -1046,6 +1046,16 @@ class MultipleSignOn(Error):
                                       "one was expected"])
             self._status = self.status
 
+        # number of ID Tokens 2 or 4, nonce and aud should be the same for
+        # pairs .
+
+        if len(idt) == 4:
+            _idt = [idt[0]]
+            _nonce = idt[0]["nonce"]
+            _other = [i for i in idt if i["nonce"] != _nonce]
+            _idt.append(_other[0])
+            idt = _idt
+
         # verify that it is in fact two separate authentications
         try:
             assert idt[0]["auth_time"] != idt[1]["auth_time"]

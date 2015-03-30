@@ -27,7 +27,7 @@ def display_log(logs):
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OpenID Certification OP Test logs</h1>
-          <h3>A list of test results that are saved on disk:</h3>
+          <h3>A list of test ${object} that are saved on disk for this ${type}:</h3>
             ${display_log(logs)}
       </div>
 

@@ -257,6 +257,7 @@ class OPRP(object):
 
     def _display(self, path, tail):
         item = []
+        filenames = []
         for (dirpath, dirnames, filenames) in os.walk(path):
             if dirnames:
                 item = [(unquote(f),
@@ -267,11 +268,21 @@ class OPRP(object):
                          os.path.join(tail, f)) for f in filenames]
                 break
 
-        item.sort()
         resp = Response(mako_template="logs.mako",
                         template_lookup=self.lookup,
                         headers=[])
+
+        item.sort()
         argv = {"logs": item}
+        if tail == "log":
+            argv["object"] = "issuers"
+            argv["type"] = "test instance"
+        elif filenames:
+            argv["object"] = "results"
+            argv["type"] = "profile"
+        else:
+            argv["object"] = "profiles"
+            argv["type"] = "issuer"
 
         return resp(self.environ, self.start_response, **argv)
 
