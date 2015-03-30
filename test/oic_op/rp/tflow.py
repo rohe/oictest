@@ -840,7 +840,8 @@ FLOWS = {
                       "response_cls": [AccessTokenResponse,
                                        AuthorizationResponse]},
                   "claims-check": {"id_token": ["auth_time"],
-                                   "required": True}},
+                                   "required": True},
+                  "auth_time-check": {"max_age": 10000}},
         "mti": {"all": "MUST"}
     },
     'OP-OAuth-2nd': {
@@ -1534,7 +1535,7 @@ FLOWS = {
              ),
             '_login_',
             "_accesstoken_",
-            "rotate_sign_keys",
+            "rotate_enc_keys",
             "userinfo"
         ],
         "profile": "C,CI,CT,CIT..T.se.+",
