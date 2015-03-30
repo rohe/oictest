@@ -36,7 +36,9 @@ def test_support():
     assert stat is WARNING
     _output = CONV.test_output[-1]
     assert _output["status"] == WARNING
-    assert _output["message"] == "OP is not supporting ['address', 'phone'] according to 'scopes_supported' in the provider configuration"
+    assert _output["message"] == ("OP is not supporting ['address', 'phone'] "
+                                  "according to 'scopes_supported' in the "
+                                  "provider configuration")
 
 if __name__ == "__main__":
     test_support()
