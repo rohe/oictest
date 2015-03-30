@@ -19,6 +19,7 @@ from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 from oic.utils.time_util import in_a_while
+from oic.utils.time_util import utc_time_sans_frac
 from oictest import ConfigurationError
 
 from oictest.base import Conversation
@@ -642,6 +643,7 @@ class OPRP(object):
                             "response_type"]
                         LOGGER.info("redirect.url: %s" % url)
                         LOGGER.info("redirect.header: %s" % ht_args)
+                        conv.timestamp.append((url, utc_time_sans_frac()))
                         resp = Redirect(str(url))
                         return resp(self.environ, self.start_response)
                     else:

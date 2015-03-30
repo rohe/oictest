@@ -2243,7 +2243,7 @@ class VerifyScopes(Warnings):
 def request_times(conv, endpoint):
     res = []
 
-    where = conv.provider_info[endpoint]
+    where = conv.client.provider_info[endpoint]
 
     for url, when in conv.timestamp:
         if url.startswith(where):
