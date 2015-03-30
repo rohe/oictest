@@ -6,7 +6,7 @@
         "CIT": "Hybrid (code+id_token+token)"
     }
     PMAPL = ["C", "I", "IT", "CI", "CT", "CIT"]
-    L2I = {"discover": 1, "register": 2}
+    L2I = {"discovery": 1, "registration": 2}
     CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
 
     def profile_form(prof):
@@ -72,7 +72,7 @@
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OpenID Certification OP Test</h1>
-          <h2>You can change the profile you are testing here.</h2>
+          <h2>You can change the profile you are testing here:</h2>
           ${profile_form(profile)}
       </div>
 
