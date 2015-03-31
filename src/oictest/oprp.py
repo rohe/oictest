@@ -953,7 +953,10 @@ def represent_result(info, tid):
         if isinstance(item, tuple):
             continue
         elif item["status"] == WARNING:
-            warnings.append(item["message"])
+            try:
+                warnings.append(item["message"])
+            except KeyError:
+                pass
 
     if text == "PASSED":
         try:
