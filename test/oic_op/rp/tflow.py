@@ -421,7 +421,7 @@ FLOWS = {
             "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-nonce-NoReq-code': {
-        "desc": 'Login no nonce, code flow [Basic]',
+        "desc": 'Login no nonce, code flow [Basic, Hybrid]',
         "sequence": [
             '_discover_',
             '_register_',
