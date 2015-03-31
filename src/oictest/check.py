@@ -518,7 +518,6 @@ class CheckTokenEndpointAuthMethod(CriticalError):
                 _sup = ["client_secret_basic"]
 
             if _met not in _sup:
-                self._message = self.msg
                 self._status = self.status
         except KeyError:
             pass
