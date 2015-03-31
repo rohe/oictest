@@ -236,7 +236,7 @@ FLOWS = {
              {"request_args": {"id_token_signed_response_alg": "HS256"}}),
             "_login_",
             "_accesstoken_"],
-        "profile": "..T.s",
+        "profile": "..T.s.+",
         "tests": {"verify-idtoken-is-signed": {"alg": "HS256"},
                   "verify-response": {
                       "response_cls": [AccessTokenResponse,
@@ -250,7 +250,7 @@ FLOWS = {
              {"request_args": {"id_token_signed_response_alg": "ES256"}}),
             "_login_",
             "_accesstoken_"],
-        "profile": "..T.s",
+        "profile": "..T.s.+",
         "tests": {"verify-idtoken-is-signed": {"alg": "ES256"},
                   "verify-response": {
                       "response_cls": [AccessTokenResponse,
