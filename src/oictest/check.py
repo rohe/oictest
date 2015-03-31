@@ -2290,8 +2290,13 @@ class AuthTimeCheck(Warnings):
                 # T0 - max_age - S <= auth_time <= T1 + S
                 assert sent - max_age - SKEW <= _auth_time <= now + SKEW
             except AssertionError:
+                low = sent - max_age - SKEW
+                high = now + SKEW
+                _range = "{} - {}".format(low, _auth_time, high)
                 self._status = WARNING
-                self._message = "auth_time not in the expected range"
+                self._message = \
+                    "auth_time [{}] not in the expected range: {}".format(
+                        _auth_time, _range)
         return {}
 
 
