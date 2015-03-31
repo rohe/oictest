@@ -72,6 +72,9 @@ class Check(object):
 
         if self._message:
             res["message"] = self._message
+        else:
+            if self._status != OK:
+                res["message"] = self.msg
 
         if kwargs:
             res.update(kwargs)
