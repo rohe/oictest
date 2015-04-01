@@ -884,7 +884,7 @@ FLOWS = {
         "tests": {
             "verify-response": {
                 "response_cls": [ErrorResponse],
-                "error": ["access_denied"],
+                "error": ["access_denied", "invalid_token"],
                 "status": WARNING}},
         "mti": {"all": "SHOULD"},
         "reference": "http://tools.ietf.org/html/draft-ietf-oauth-v2-31"
