@@ -603,7 +603,7 @@ class VerifyResponse(ExpectedError):
                     try:
                         assert inst["error"] in self._kwargs["error"]
                     except AssertionError:
-                        self._message = "Unexpected error response" % inst[
+                        self._message = "Unexpected error response: %s" % inst[
                             "error"]
                         self._status = WARNING
                         return {}
