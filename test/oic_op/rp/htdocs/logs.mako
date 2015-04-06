@@ -1,8 +1,12 @@
 <%
-def display_log(logs):
+def display_log(logs, objtype):
     el = "<ul>"
-    for name, path in logs:
-        el += '<li><a href="%s">%s</a>' % (path, name)
+    if objtype == "results":
+        for name, path in logs:
+            el += '<li><a href="%s" download="%s.html">%s</a>' % (path, name, name)
+    else:
+        for name, path in logs:
+            el += '<li><a href="%s">%s</a>' % (path, name)
     el += "</ul>"
     return el
 %>
@@ -28,7 +32,7 @@ def display_log(logs):
       <div class="jumbotron">
         <h1>OpenID Certification OP Test logs</h1>
           <h3>A list of test ${object} that are saved on disk for this ${type}:</h3>
-            ${display_log(logs)}
+            ${display_log(logs, object)}
       </div>
 
     </div> <!-- /container -->
