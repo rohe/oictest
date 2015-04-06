@@ -46,7 +46,8 @@ ISSUERS = {
     u'https%3A%2F%2Fconnect.openid4.us%3A5443%2FphpOp': "NRI-phpop",
     u'https%3A%2F%2Faccounts.login00.idm.ver.sul.t-online.de': "DT-sul",
     u'https%3A%2F%2Faccounts.logint2.idm.toon.sul.t-online.de': "DT-tool",
-    u'https%3A%2F%2Flogin.salesforce.com': "salesforce"
+    u'https%3A%2F%2Flogin.salesforce.com': "salesforce",
+    "https%3A%2F%2Foictest.umdc.umu.se%3A8060%2F": "umu"
 }
 
 
