@@ -20,6 +20,7 @@ from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 from oic.utils.time_util import in_a_while
 from oic.utils.time_util import utc_time_sans_frac
+from requests import ConnectionError
 from oictest import ConfigurationError
 
 from oictest.base import Conversation
@@ -565,9 +566,17 @@ class OPRP(object):
                 conv.trace.info("------------ %s ------------" % req_c.request)
                 if req_c == Discover:
                     # Special since it's just a GET on a URL
-                    _r = req.discover(
-                        ots.client,
-                        issuer=ots.config.CLIENT["srv_discovery_url"])
+                    try:
+                        _r = req.discover(
+                            ots.client,
+                            issuer=ots.config.CLIENT["srv_discovery_url"])
+                    except ConnectionError:
+                            self.log_fault(session, "Connection Error",
+                                           "discover_request",
+                                           self.get_err_type(session))
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                     conv.position, conv.last_response, conv.last_content = _r
 
                     if conv.last_response.status >= 400:
@@ -589,7 +598,15 @@ class OPRP(object):
                                 return self.err_response(session, "jwks_fetch",
                                                          resp.content)
                 elif req_c == Webfinger:
-                    url = req.discover(**kwargs)
+                    try:
+                        url = req.discover(**kwargs)
+                    except ConnectionError:
+                            self.log_fault(session, "Connection Error",
+                                           "WebFinger_request",
+                                           self.get_err_type(session))
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                     if url:
                         conv.trace.request(url)
                         conv.test_output.append(
@@ -695,6 +712,12 @@ class OPRP(object):
                         except JWKESTException as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
+                        except ConnectionError:
+                                self.log_fault(session, "Connection Error",
+                                               "request",
+                                               self.get_err_type(session))
+                                conv.trace.info(END_TAG)
+                                return self.fini(session, conv)
 
                         if response is None:  # bail out
                             self.log_fault(session, "Empty response",
