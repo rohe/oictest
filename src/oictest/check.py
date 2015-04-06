@@ -2275,11 +2275,16 @@ class AuthTimeCheck(Warnings):
         # only interested in the last ID Token, and the IDToken instance will do
         idt = res[-1][0]
 
+        max_age = self._kwargs["max_age"]
+
         # last authentication request
         sent = request_times(conv, "authorization_endpoint")[-1]
+        low = sent - max_age
+        low -= SKEW
 
         now = utc_time_sans_frac()
-        max_age = self._kwargs["max_age"]
+        high = now + SKEW
+
         try:
             _auth_time = idt["auth_time"]
         except KeyError:  # not having a auth_time is an error
@@ -2288,10 +2293,8 @@ class AuthTimeCheck(Warnings):
         else:
             try:
                 # T0 - max_age - S <= auth_time <= T1 + S
-                assert sent - max_age - SKEW <= _auth_time <= now + SKEW
+                assert low <= _auth_time <= high
             except AssertionError:
-                low = sent - max_age - SKEW
-                high = now + SKEW
                 _range = "{} - {}".format(low, _auth_time, high)
                 self._status = WARNING
                 self._message = \

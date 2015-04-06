@@ -428,6 +428,8 @@ class OPRP(object):
                 instance, _ = get_protocol_response(
                     conv, AccessTokenResponse)[0]
                 kwargs["table"] = instance["id_token"]
+            else:
+                kwargs["table"] = {}
 
             try:
                 key = req.cache(self.cache, conv, sequence_info["cache"])
