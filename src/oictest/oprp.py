@@ -19,7 +19,8 @@ from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 from oic.utils.time_util import in_a_while
-from oic.utils.time_util import utc_time_sans_frac
+# from oic.utils.time_util import utc_time_sans_frac
+from oictest.check import utc_time_sans_frac
 from requests import ConnectionError
 from oictest import ConfigurationError
 

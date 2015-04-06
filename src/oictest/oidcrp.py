@@ -12,7 +12,8 @@ from oic.oauth2.message import Message
 from oic.oic import ProviderConfigurationResponse
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.utils.keyio import keyjar_init
-from oic.utils.time_util import utc_time_sans_frac
+# from oic.utils.time_util import utc_time_sans_frac
+from oictest.check import utc_time_sans_frac
 from oictest.testflows import RmCookie
 
 __author__ = 'roland'

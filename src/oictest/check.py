@@ -1,3 +1,4 @@
+import calendar
 import json
 
 from jwkest import b64d
@@ -5,10 +6,12 @@ from jwkest import unpack
 from jwkest.jwk import base64url_to_long
 from oic.exception import MessageException
 from oic.oauth2.message import ErrorResponse
-from oic.oic import AuthorizationResponse, OpenIDSchema
+from oic.oic import AuthorizationResponse
+from oic.oic import OpenIDSchema
 from oic.oic import claims_match
 from oic.oic import message
-from oic.utils.time_util import utc_time_sans_frac
+# from oic.utils.time_util import utc_time_sans_frac
+import time
 from oictest.regalg import MTI
 from oictest.regalg import REGISTERED_JWS_ALGORITHMS
 from oictest.regalg import REGISTERED_JWE_alg_ALGORITHMS
@@ -39,6 +42,10 @@ import urlparse
 from oic.oic.message import SCOPE2CLAIMS
 from oic.oic.message import IdToken
 from oic.utils import time_util
+
+
+def utc_time_sans_frac():
+    return int("%d" % calendar.timegm(time.gmtime()))
 
 
 def get_provider_info(conv):
