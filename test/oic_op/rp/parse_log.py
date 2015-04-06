@@ -368,7 +368,7 @@ if __name__ == "__main__":
     parser.add_argument('-l', dest='log')
     parser.add_argument('-d', dest='dir')
     parser.add_argument('-c', dest="config")
-    parser.add_argument('-D', dest="rec", action='store_true')
+    parser.add_argument('-D', dest="rec")
     args = parser.parse_args()
 
     if args.config:
@@ -386,34 +386,5 @@ if __name__ == "__main__":
 
     if args.rec:
         mat = {}
-        res = do_dir(".")
+        res = do_dir(args.rec)
         print json.dumps(res)
-
-        # prof = profiles(res)
-        # testid = tests(res)
-        #
-        # for t in testid:
-        #     mat[t] = [[0, 0, 0] for i in range(0, len(prof))]
-        #
-        # for iss, info in res.items():
-        #     for i in range(0, len(prof)):
-        #         try:
-        #             d = info[prof[i]]
-        #         except KeyError:
-        #             pass
-        #         else:
-        #             for j in range(0, len(testid)):
-        #                 tid = testid[j]
-        #                 try:
-        #                     r = d[tid]
-        #                 except KeyError:
-        #                     pass
-        #                 else:
-        #                     if r == " PASSED":
-        #                         mat[tid][i][0] += 1
-        #                     elif r == " WARNING":
-        #                         mat[tid][i][1] += 1
-        #                     elif r == " FAILED":
-        #                         mat[tid][i][2] += 1
-        #
-        # print json.dumps(mat)
