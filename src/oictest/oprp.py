@@ -5,8 +5,9 @@ import os
 from urllib import quote_plus
 from urllib import unquote
 import logging
-from jwkest import JWKESTException
+import tarfile
 
+from jwkest import JWKESTException
 from jwkest.jws import alg2keytype
 from oic.exception import PyoidcError
 
@@ -58,6 +59,20 @@ CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
 
 class NotSupported(Exception):
     pass
+
+
+def create_tar_file(dirname, test_profile):
+    tar = tarfile.open(test_profile, "w:gz")
+
+    for item in os.listdir(dirname):
+        if item.startswith("."):
+            continue
+
+        fn = os.path.join(dirname, item)
+
+        if os.path.isfile(fn):
+            tar.add(fn)
+    tar.close()
 
 
 def setup_logging(logfile, logger):
@@ -1095,12 +1110,13 @@ def support(conv, args):
             try:
                 _ns = not_supported(val, pi[key])
             except KeyError:  # Not defined
-                conv.trace.info("'%s' not defined in provider configuration")
+                conv.trace.info(
+                    "'%s' not defined in provider configuration" % key)
             else:
                 if _ns:
                     add_test_result(
                         conv, err,
-                        "OP is not supporting %s according to '%s' in the provider configuration" % (_ns, key))
+                        "OP is not supporting %s according to '%s' in the provider configuration" % (val, key))
                     stat = err
 
     return stat
