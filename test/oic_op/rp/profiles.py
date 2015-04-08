@@ -85,7 +85,7 @@ PROFILEMAP = {
         "IT": (
             "oic-registration",
             {"request_args": {
-                "response_types": ["id_token", "token"],
+                "response_types": ["id_token token"],
                 # don't register any
                 "token_endpoint_auth_method": [],
                 "userinfo_signed_response_alg": [],
@@ -97,7 +97,7 @@ PROFILEMAP = {
         "CI": (
             "oic-registration",
             {"request_args": {
-                "response_types": ["code", "id_token"],
+                "response_types": ["code id_token"],
                 # don't register any
                 "token_endpoint_auth_method": [],
                 "userinfo_signed_response_alg": [],
@@ -109,7 +109,7 @@ PROFILEMAP = {
         "CT": (
             "oic-registration",
             {"request_args": {
-                "response_types": ["code", "token"],
+                "response_types": ["code token"],
                 # don't register any
                 "token_endpoint_auth_method": [],
                 "userinfo_signed_response_alg": [],
@@ -121,7 +121,7 @@ PROFILEMAP = {
         "CIT": (
             "oic-registration",
             {"request_args": {
-                "response_types": ["code", "id_token", "token"],
+                "response_types": ["code id_token token"],
                 # don't register any
                 "token_endpoint_auth_method": [],
                 "userinfo_signed_response_alg": [],
