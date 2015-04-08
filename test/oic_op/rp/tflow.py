@@ -1367,6 +1367,7 @@ FLOWS = {
             '_discover_',
             ('_register_',
              {
+                 "support": {"error": {"subject_types_supported": "pairwise"}},
                  "request_args": {},
                  "function": (store_sector_redirect_uris,
                               {"other_uris": ["https://example.com/op"]})
