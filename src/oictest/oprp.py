@@ -588,8 +588,7 @@ class OPRP(object):
                             issuer=ots.config.CLIENT["srv_discovery_url"])
                     except ConnectionError:
                             self.log_fault(session, "Connection Error",
-                                           "discover_request",
-                                           self.get_err_type(session))
+                                           "discover_request", ERROR)
                             conv.trace.info(END_TAG)
                             return self.fini(session, conv)
 
@@ -618,8 +617,7 @@ class OPRP(object):
                         url = req.discover(**kwargs)
                     except ConnectionError:
                             self.log_fault(session, "Connection Error",
-                                           "WebFinger_request",
-                                           self.get_err_type(session))
+                                           "WebFinger_request", ERROR)
                             conv.trace.info(END_TAG)
                             return self.fini(session, conv)
 
