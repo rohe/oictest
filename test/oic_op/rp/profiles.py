@@ -1,6 +1,9 @@
 import copy
+import logging
 from oictest.prof_util import RESPONSE, _update, REGISTER
 from oictest.prof_util import DISCOVER
+
+LOGGER = logging.getLogger(__name__)
 
 __author__ = 'roland'
 
