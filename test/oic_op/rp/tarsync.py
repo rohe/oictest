@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import os
 
 __author__ = 'roland'
