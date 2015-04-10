@@ -61,18 +61,46 @@ class NotSupported(Exception):
     pass
 
 
-def create_tar_file(dirname, test_profile):
-    tar = tarfile.open(test_profile, "w:gz")
+def mk_tardir(issuer, test_profile):
+    wd = os.getcwd()
 
-    for item in os.listdir(dirname):
+    tardirname = wd
+    for part in ["tar", issuer, test_profile]:
+        tardirname = os.path.join(tardirname, part)
+        if not os.path.isdir(tardirname):
+            os.mkdir(tardirname)
+
+
+    logdirname = os.path.join(wd, "log", issuer, test_profile)
+    for item in os.listdir(logdirname):
         if item.startswith("."):
             continue
 
-        fn = os.path.join(dirname, item)
+        ln = os.path.join(logdirname, item)
+        tn = os.path.join(tardirname, "{}.txt".format(item))
+        if not os.path.isfile(tn):
+            os.link(ln, tn)
+
+
+def create_tar_archive(issuer, test_profile):
+    mk_tardir(issuer, test_profile)
+
+    wd = os.getcwd()
+    _dir = os.path.join(wd, "tar", issuer)
+    os.chdir(_dir)
+
+    tar = tarfile.open("{}.tar".format(test_profile), "w")
+
+    for item in os.listdir(test_profile):
+        if item.startswith("."):
+            continue
+
+        fn = os.path.join(test_profile, item)
 
         if os.path.isfile(fn):
             tar.add(fn)
     tar.close()
+    os.chdir(wd)
 
 
 def setup_logging(logfile, logger):
@@ -92,31 +120,6 @@ def get_test_info(session, test_id):
 def pprint_json(json_txt):
     _jso = json.loads(json_txt)
     return json.dumps(_jso, sort_keys=True, indent=2, separators=(',', ': '))
-
-
-# def static(environ, start_response, path):
-#     LOGGER.info("[static]sending: %s" % (path,))
-#
-#     try:
-#         text = open(path).read()
-#         if path.endswith(".ico"):
-#             start_response('200 OK', [('Content-Type', "image/x-icon")])
-#         elif path.endswith(".html"):
-#             start_response('200 OK', [('Content-Type', 'text/html')])
-#         elif path.endswith(".json"):
-#             start_response('200 OK', [('Content-Type', 'application/json')])
-#         elif path.endswith(".jwt"):
-#             start_response('200 OK', [('Content-Type', 'application/jwt')])
-#         elif path.endswith(".txt"):
-#             start_response('200 OK', [('Content-Type', 'text/plain')])
-#         elif path.endswith(".css"):
-#             start_response('200 OK', [('Content-Type', 'text/css')])
-#         else:
-#             start_response('200 OK', [('Content-Type', "text/plain")])
-#         return [text]
-#     except IOError:
-#         resp = NotFound()
-#         return resp(environ, start_response)
 
 
 def evaluate(session):
@@ -847,6 +850,8 @@ class OPRP(object):
                 f = open(path, "w")
                 f.write("\n".join(output))
                 f.close()
+                pp = path.split("/")
+                create_tar_archive(pp[1], pp[2])
                 return path
 
 # =============================================================================
