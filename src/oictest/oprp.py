@@ -285,7 +285,7 @@ class OPRP(object):
                     continue
                 fn = os.path.join(path, _name)
                 if os.path.isfile(fn):
-                    item.append((unquote(_name), os.path.join(path, _name)))
+                    item.append((unquote(_name), os.path.join(profile, _name)))
         else:
             if issuer:
                 argv = {'issuer': unquote(issuer), 'profile': ''}
@@ -311,7 +311,8 @@ class OPRP(object):
 
     def display_log(self, root, issuer="", profile="", testid=""):
         if testid:
-            path = os.path.join(root, issuer, profile, testid)
+            path = os.path.join(root, issuer, profile, testid).replace(":",
+                                                                       "%3A")
             return self.static(path)
         else:
             if issuer:
