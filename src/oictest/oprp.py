@@ -275,58 +275,53 @@ class OPRP(object):
             resp = NotFound()
             return resp(self.environ, self.start_response)
 
-    def _display(self, path, tail):
+    def _display(self, root, issuer, profile):
         item = []
-        filenames = []
-        for (dirpath, dirnames, filenames) in os.walk(path):
-            if dirnames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in dirnames]
-                break
-            elif filenames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in filenames]
-                break
+        if profile:
+            path = os.path.join(root, issuer, profile).replace(":", "%3A")
+            argv = {"issuer": unquote(issuer), "profile": profile}
+            for _name in os.listdir(path):
+                if _name.startswith("."):
+                    continue
+                fn = os.path.join(path, _name)
+                if os.path.isfile(fn):
+                    item.append((unquote(_name), os.path.join(path, _name)))
+        else:
+            if issuer:
+                argv = {'issuer': unquote(issuer), 'profile': ''}
+                path = os.path.join(root, issuer).replace(":", "%3A")
+            else:
+                argv = {'issuer': '', 'profile': ''}
+                path = root
+
+            for _name in os.listdir(path):
+                if _name.startswith("."):
+                    continue
+                fn = os.path.join(path, _name)
+                if os.path.isdir(fn):
+                    item.append((unquote(_name), os.path.join(path, _name)))
 
         resp = Response(mako_template="logs.mako",
                         template_lookup=self.lookup,
                         headers=[])
 
         item.sort()
-        argv = {"logs": item}
-        if tail == "log":
-            argv["object"] = "issuers"
-            argv["type"] = "test instance"
-        elif filenames:
-            argv["object"] = "results"
-            argv["type"] = "profile"
-        else:
-            argv["object"] = "profiles"
-            argv["type"] = "issuer"
-
+        argv["logs"] = item
         return resp(self.environ, self.start_response, **argv)
 
-    def display_log(self, path, tail):
-        path = path.replace(":", "%3A")
-        LOGGER.info("display_log.path: %s" % path)
-        tail = tail.replace(":", "%3A")
-        LOGGER.info("display_log.tail: %s" % tail)
-        if os.path.isdir(path):
-            return self._display(path, tail)
-        elif os.path.isfile(path):
+    def display_log(self, root, issuer="", profile="", testid=""):
+        if testid:
+            path = os.path.join(root, issuer, profile, testid)
             return self.static(path)
         else:
-            if path.endswith("%2F"):
-                path = path[:-3]
-                if tail.endswith("%2F"):
-                    tail = tail[:-3]
-                if os.path.isdir(path):
-                    return self._display(path, tail)
-                elif os.path.isfile(path):
-                    return self.static(path)
+            if issuer:
+                LOGGER.info("display_log issuer: '%s', profile: '%s'" % (
+                    issuer, profile))
 
-            resp = Response("No saved logs")
-            return resp(self.environ, self.start_response)
+                return self._display(root, issuer, profile)
+            else:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
 
     def client_init(self):
         ots = OIDCTestSetup(self.conf, self.test_flows, str(self.conf.PORT))
