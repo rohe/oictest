@@ -101,14 +101,17 @@ def _update(dic1, dic2):
     for key in ["request_args", "kw", "req_tests", "resp_tests"]:
         if key not in dic1:
             try:
-                dic1[key] = dic2[key]
+                dic1[key] = {}
+                for _k, _v in dic2[key].items():
+                    dic1[key][_k] = _v
             except KeyError:
                 pass
         elif key not in dic2:
             pass
         else:
-            dic2[key].update(dic1[key])
-            dic1[key] = dic2[key]
+            for k, v in dic2[key].items():
+                if k not in dic1[key]:
+                    dic1[key][k] = dic2[key][k]
 
     return dic1
 

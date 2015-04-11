@@ -1,6 +1,8 @@
 import copy
 import logging
-from oictest.prof_util import RESPONSE, _update, REGISTER
+from oictest.prof_util import RESPONSE
+from oictest.prof_util import _update
+from oictest.prof_util import REGISTER
 from oictest.prof_util import DISCOVER
 
 LOGGER = logging.getLogger(__name__)
@@ -154,7 +156,8 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
     _profile = _p[RESPONSE]
     for op in flows_[flowid]["sequence"]:
         if isinstance(op, tuple):
-            _op, _args = op
+            _op, _a = op
+            _args = copy.deepcopy(_a)
         else:
             _op = op
             _args = {}
@@ -163,8 +166,8 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
             if _p[DISCOVER] == "T":
                 _op, arg = profilemap["Discover"]["*"]
                 if arg:
-                    carg = copy.deepcopy(arg)
-                    _args = _update(_args, carg)
+                    # carg = copy.deepcopy(arg)
+                    _args = _update(_args, arg)
                 seq.append((phases[_op], _args))
             continue
 
@@ -172,8 +175,8 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
             if _p[REGISTER] == "T":
                 _op, arg = profilemap["Register"][_profile]
                 if arg:
-                    carg = copy.deepcopy(arg)
-                    _args = _update(_args, carg)
+                    # carg = copy.deepcopy(arg)
+                    _args = _update(_args, arg)
                 seq.append((phases[_op], _args))
             continue
 
