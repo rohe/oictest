@@ -61,15 +61,24 @@ def application(environ, start_response):
         except Exception as err:
             return oprp.err_response(session, "session_setup", err)
     elif path == "logs":
-        return oprp.display_log("log", "log")
+        return oprp.display_log("log", issuer="", profile="", testid="")
     elif path.startswith("log"):
-        if path == "log":
-            path = os.path.join(
-                path, quote_plus(oprp.conf.CLIENT["srv_discovery_url"]))
-            tail = path
+        if path == "log" or path == "log/":
+            parts = [quote_plus(oprp.conf.CLIENT["srv_discovery_url"])]
         else:
-            head, tail = os.path.split(path)
-        return oprp.display_log(path, tail)
+            parts = []
+            while path != "log":
+                head, tail = os.path.split(path)
+                # tail = tail.replace(":", "%3A")
+                # if tail.endswith("%2F"):
+                #     tail = tail[:-3]
+                parts.insert(0, tail)
+                path = head
+
+        return oprp.display_log("log", *parts)
+    elif path.startswith("tar"):
+        path = path.replace(":", "%3A")
+        return oprp.static(path)
     elif "flow_names" not in session:
         oprp.session_init(session)
 
@@ -114,7 +123,7 @@ def application(environ, start_response):
             if len(cp) == 5:
                 cp = cp[:-1]
 
-        # reset all testsflows
+        # reset all test flows
         oprp.reset_session(session, ".".join(cp))
         return oprp.flow_list(session)
     elif path.startswith("test_info"):
