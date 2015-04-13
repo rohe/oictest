@@ -137,6 +137,22 @@ def evaluate(session):
         pass
 
 
+def with_or_without_slash(path):
+    if os.path.isdir(path):
+        return path
+
+    if path.endswith("%2F"):
+        path = path[:-3]
+        if os.path.isdir(path):
+            return path
+    else:
+        path += "%2F"
+        if os.path.isdir(path):
+            return path
+
+    return None
+
+
 class OPRP(object):
     def __init__(self, lookup, conf, test_flows, cache, test_profile,
                  profiles, test_class, check_factory, environ=None,
@@ -280,6 +296,12 @@ class OPRP(object):
         if profile:
             path = os.path.join(root, issuer, profile).replace(":", "%3A")
             argv = {"issuer": unquote(issuer), "profile": profile}
+
+            path = with_or_without_slash(path)
+            if path is None:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
+
             for _name in os.listdir(path):
                 if _name.startswith("."):
                     continue
@@ -293,6 +315,11 @@ class OPRP(object):
             else:
                 argv = {'issuer': '', 'profile': ''}
                 path = root
+
+            path = with_or_without_slash(path)
+            if path is None:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
 
             for _name in os.listdir(path):
                 if _name.startswith("."):
@@ -952,15 +979,19 @@ def log_path(session, test_id=None):
     else:
         qiss = quote_plus(iss)
 
+    path = with_or_without_slash(os.path.join("log", qiss))
+    if path is None:
+        path = os.path.join("log", qiss)
+
     prof = ".".join(to_profile(session))
 
-    if not os.path.isdir("log/%s/%s" % (qiss, prof)):
-        os.makedirs("log/%s/%s" % (qiss, prof))
+    if not os.path.isdir("%s/%s" % (path, prof)):
+        os.makedirs("%s/%s" % (path, prof))
 
     if test_id is None:
         test_id = session["testid"]
 
-    return "log/%s/%s/%s" % (qiss, prof, test_id)
+    return "%s/%s/%s" % (path, prof, test_id)
 
 
 def end_tags(info):

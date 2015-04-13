@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+from __future__ import print_function
 import importlib
 import os
 from urllib import quote_plus
@@ -93,7 +95,7 @@ def application(environ, start_response):
         cp[0] = info["rtype"][0]
 
         crsu = []
-        for name, cs in CRYPTSUPPORT.items():
+        for name, cs in list(CRYPTSUPPORT.items()):
             try:
                 if info[name] == ["on"]:
                     crsu.append(cs)
@@ -160,7 +162,7 @@ def application(environ, start_response):
         try:
             return oprp.run_sequence(sequence_info, session, conv, ots,
                                      conv.trace, index)
-        except Exception, err:
+        except Exception as err:
             return oprp.err_response(session, "run_sequence", err)
     elif path == "opresult":
 
@@ -361,7 +363,7 @@ if __name__ == '__main__':
 
     txt = "RP server starting listening on port:%s%s" % (CONF.PORT, extra)
     LOGGER.info(txt)
-    print txt
+    print(txt)
     try:
         SRV.start()
     except KeyboardInterrupt:
