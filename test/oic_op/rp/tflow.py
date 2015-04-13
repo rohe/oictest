@@ -421,13 +421,13 @@ FLOWS = {
             "verify-response": {"response_cls": [OpenIDSchema]}},
     },
     'OP-nonce-NoReq-code': {
-        "desc": 'Login no nonce, code flow [Basic, Hybrid]',
+        "desc": 'Login no nonce, code flow [Basic]',
         "sequence": [
             '_discover_',
             '_register_',
             ('_login_', {"request_args": {"nonce": ""}})
         ],
-        "profile": "C,CT..",
+        "profile": "C..",
         'tests': {"verify-response": {"response_cls": [AuthorizationResponse]}},
         "mti": {"all": "MUST"}
     },
@@ -443,7 +443,7 @@ FLOWS = {
             "verify-response": {
                 "error": ["invalid_request"],
                 "response_cls": [ErrorResponse]}},
-        "profile": "I,IT..",
+        "profile": "I,IT,CT,CT,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-nonce-code': {
