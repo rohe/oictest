@@ -31,25 +31,6 @@ PROF = {
     "code+token.config.dynamic": "CT.T.T"
 }
 
-ISSUERS = {
-    u'https%3A%2F%2Fwww.paypal.com': "paypal",
-    u'https%3A%2F%2Fstsadweb.one.microsoft.com%2Fadfs': "ADFS",
-    u'https%3A%2F%2Fsts.windows.net%2Fb4ea3de6-839e-4ad1-ae78-c78e5c0cdc06%2F': "Azure",
-    u'https%3A%2F%2Fseed.gluu.org': "gluu",
-    u'https%3A%2F%2Foidcp.openrock.org%3A8043%2Fopenam%2Foauth2': "openrock",
-    u'https%3A%2F%2Foidc-conformance-dev-ed.my.salesforce.com': "salesforce-dev",
-    u'https%3A%2F%2Fmitreid.org%2F': "mitre",
-    u'https%3A%2F%2Fgold.pinglabs.net': "Ping",
-    u'https%3A%2F%2Fconnect.openid4.us': "NRI",
-    u'https%3A%2F%2Fconnect.broch.io': "Luke",
-    u'accounts.google.com': "google",
-    u'https%3A%2F%2Fconnect.openid4.us%3A5443%2FphpOp': "NRI-phpop",
-    u'https%3A%2F%2Faccounts.login00.idm.ver.sul.t-online.de': "DT-sul",
-    u'https%3A%2F%2Faccounts.logint2.idm.toon.sul.t-online.de': "DT-tool",
-    u'https%3A%2F%2Flogin.salesforce.com': "salesforce",
-    "https%3A%2F%2Foictest.umdc.umu.se%3A8060%2F": "umu"
-}
-
 EXTRAS = [
     "OP-ClientAuth-PrivateJWT",
     "OP-ClientAuth-SecretJWT",
@@ -82,6 +63,8 @@ EXTRAS = [
     "OP-request_uri-Enc",
     "OP-request_uri-SigEnc"
 ]
+
+ISSUERS = json.loads(open("issuers.json").read())
 
 
 def do_profile(prof, tests, issuers, inp):
