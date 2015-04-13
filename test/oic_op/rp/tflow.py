@@ -443,7 +443,7 @@ FLOWS = {
             "verify-response": {
                 "error": ["invalid_request"],
                 "response_cls": [ErrorResponse]}},
-        "profile": "I,IT,CT,CT,CIT..",
+        "profile": "I,IT,CT,CI,CIT..",
         "mti": {"all": "MUST"}
     },
     'OP-nonce-code': {
