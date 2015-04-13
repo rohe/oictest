@@ -106,7 +106,13 @@ def do_profile(prof, tests, issuers, inp):
 
     f = open("%s.csv" % _prof, "w")
 
-    _tmp = [ISSUERS[i] for i in _item[1:]]
+    _tmp = []
+    for i in _item[1:]:
+        try:
+            _tmp.append(ISSUERS[i])
+        except KeyError:
+            _tmp.append(i)
+
     _i = [""]
     _i.extend(_tmp)
     f.write(";".join(_i))
