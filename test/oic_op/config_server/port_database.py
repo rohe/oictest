@@ -23,6 +23,10 @@ class PortDatabase():
         self.database = dataset.connect('sqlite:///' + dict_path)
         self.table = self.database[self.TABLE_NAME]
 
+    def clear(self):
+        self.table.drop()
+        self.table = self.database[self.TABLE_NAME]
+
     def upsert(self, port, issuer, instance_id, port_type):
         if isinstance(issuer, str):
             issuer = unicode(issuer, encoding='utf-8')
@@ -58,7 +62,8 @@ class PortDatabase():
 
     def get_table_as_list(self):
         list = []
-        for row in self.table:
+        rows = self.table.find(order_by=[PORT_COLUMN])
+        for row in rows:
             list.append([row[PORT_COLUMN], row['issuer'], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
         return list
 
