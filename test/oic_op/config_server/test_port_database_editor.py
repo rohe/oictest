@@ -13,7 +13,7 @@ import unittest
 class TestPortDatabaseEditor(unittest.TestCase):
 
     def setUp(self):
-        self.config_editor = ConfigFileEditor()
+        self.config_editor = ConfigFileEditor("../rp")
         self.test_db = "./test.db"
         self.database = PortDatabase(self.test_db)
 

@@ -13,7 +13,7 @@ from config_server import load_config_module
 
 class ConfigFileEditor(object):
 
-    def __init__(self, config_file_path='../rp'):
+    def __init__(self, config_file_path='.'):
         self.config_file_path = config_file_path
         sys.path.append(config_file_path)
 
@@ -21,7 +21,7 @@ class ConfigFileEditor(object):
         try:
             return load_config_module(module)
         except ImportError as ex:
-            raise ImportError(ex.message + " in path %s" % self.config_file_path)
+            raise ImportError(ex.message + " in path: %s" % self.config_file_path)
 
     def get_issuer(self, config_file_dict):
         return get_issuer_from_config_file(config_file_dict)
@@ -44,7 +44,8 @@ class ConfigFileEditor(object):
             return PortDatabase.STATIC_PORT_TYPE
 
     def extract_database_info_from_config_file(self, database):
-        files = [f for f in os.listdir('.')]
+        database.clear()
+        files = [f for f in os.listdir(self.config_file_path)]
 
         config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
         for module in files:
@@ -61,7 +62,7 @@ class ConfigFileEditor(object):
                     instance_id = self.get_instance_id(config_file_dict, port)
                     port_type = self.get_port_type(config_file_dict)
 
-                    database.upsert(port=port,issuer=issuer, instance_id=instance_id, port_type=port_type)
+                    database.upsert(port=port, issuer=issuer, instance_id=instance_id, port_type=port_type)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -75,15 +76,12 @@ if __name__ == "__main__":
                         help="Generate database from configuration files in current folder")
 
     parser.add_argument('-p', dest='oprp_config_file_path',
-                        help="Generate database from configuration files in current folder")
+                        help="Path to where the oprp config files are located")
 
     parser.add_argument(dest="database")
     args = parser.parse_args()
 
     database = PortDatabase(args.database)
-
-    if args.show_database_content:
-        database.print_table()
 
     if args.port_to_remove:
         database._remove_row(args.port_to_remove)
@@ -95,4 +93,6 @@ if __name__ == "__main__":
 
     if args.generate_database:
         config_editor.extract_database_info_from_config_file(database)
+
+    if args.show_database_content:
         database.print_table()
