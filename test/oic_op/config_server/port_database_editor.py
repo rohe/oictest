@@ -1,6 +1,5 @@
-import importlib
+#!/usr/bin/env python
 import os
-import imp
 import argparse
 import re
 import sys

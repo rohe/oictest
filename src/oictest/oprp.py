@@ -337,15 +337,15 @@ class OPRP(object):
         return resp(self.environ, self.start_response, **argv)
 
     def display_log(self, root, issuer="", profile="", testid=""):
+        LOGGER.info(
+            "display_log root: '%s' issuer: '%s', profile: '%s' testid: '%s'" % (
+                root, issuer, profile, testid))
         if testid:
             path = os.path.join(root, issuer, profile, testid).replace(":",
                                                                        "%3A")
             return self.static(path)
         else:
             if issuer:
-                LOGGER.info("display_log issuer: '%s', profile: '%s'" % (
-                    issuer, profile))
-
                 return self._display(root, issuer, profile)
             else:
                 resp = Response("No saved logs")
