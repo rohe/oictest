@@ -186,8 +186,6 @@ class CheckHTTPResponse(CriticalError):
 
         res = {}
         if not _response:
-            self._message = "No response"
-            self._status = self.status
             return res
 
         if _response.status_code >= 400:
