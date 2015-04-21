@@ -5,8 +5,9 @@ import os
 from urllib import quote_plus
 from urllib import unquote
 import logging
-from jwkest import JWKESTException
+import tarfile
 
+from jwkest import JWKESTException
 from jwkest.jws import alg2keytype
 from oic.exception import PyoidcError
 
@@ -19,11 +20,14 @@ from oic.oic.message import RegistrationResponse
 from oic.oic.message import factory as message_factory
 from oic.oic.message import OpenIDSchema
 from oic.utils.time_util import in_a_while
+# from oic.utils.time_util import utc_time_sans_frac
+from oictest.check import utc_time_sans_frac
+from requests import ConnectionError
 from oictest import ConfigurationError
 
 from oictest.base import Conversation
 from oictest.check import get_protocol_response
-from oictest.oidcrp import test_summation
+from oictest.oidcrp import test_summation, MissingErrorResponse
 from oictest.oidcrp import OIDCTestSetup
 from oictest.oidcrp import request_and_return
 from oictest.prof_util import flows
@@ -57,6 +61,48 @@ class NotSupported(Exception):
     pass
 
 
+def mk_tardir(issuer, test_profile):
+    wd = os.getcwd()
+
+    tardirname = wd
+    for part in ["tar", issuer, test_profile]:
+        tardirname = os.path.join(tardirname, part)
+        if not os.path.isdir(tardirname):
+            os.mkdir(tardirname)
+
+
+    logdirname = os.path.join(wd, "log", issuer, test_profile)
+    for item in os.listdir(logdirname):
+        if item.startswith("."):
+            continue
+
+        ln = os.path.join(logdirname, item)
+        tn = os.path.join(tardirname, "{}.txt".format(item))
+        if not os.path.isfile(tn):
+            os.link(ln, tn)
+
+
+def create_tar_archive(issuer, test_profile):
+    mk_tardir(issuer, test_profile)
+
+    wd = os.getcwd()
+    _dir = os.path.join(wd, "tar", issuer)
+    os.chdir(_dir)
+
+    tar = tarfile.open("{}.tar".format(test_profile), "w")
+
+    for item in os.listdir(test_profile):
+        if item.startswith("."):
+            continue
+
+        fn = os.path.join(test_profile, item)
+
+        if os.path.isfile(fn):
+            tar.add(fn)
+    tar.close()
+    os.chdir(wd)
+
+
 def setup_logging(logfile, logger):
     hdlr = logging.FileHandler(logfile)
     base_formatter = logging.Formatter(
@@ -76,31 +122,6 @@ def pprint_json(json_txt):
     return json.dumps(_jso, sort_keys=True, indent=2, separators=(',', ': '))
 
 
-# def static(environ, start_response, path):
-#     LOGGER.info("[static]sending: %s" % (path,))
-#
-#     try:
-#         text = open(path).read()
-#         if path.endswith(".ico"):
-#             start_response('200 OK', [('Content-Type', "image/x-icon")])
-#         elif path.endswith(".html"):
-#             start_response('200 OK', [('Content-Type', 'text/html')])
-#         elif path.endswith(".json"):
-#             start_response('200 OK', [('Content-Type', 'application/json')])
-#         elif path.endswith(".jwt"):
-#             start_response('200 OK', [('Content-Type', 'application/jwt')])
-#         elif path.endswith(".txt"):
-#             start_response('200 OK', [('Content-Type', 'text/plain')])
-#         elif path.endswith(".css"):
-#             start_response('200 OK', [('Content-Type', 'text/css')])
-#         else:
-#             start_response('200 OK', [('Content-Type', "text/plain")])
-#         return [text]
-#     except IOError:
-#         resp = NotFound()
-#         return resp(environ, start_response)
-
-
 def evaluate(session):
     try:
         if session["node"].complete:
@@ -114,6 +135,22 @@ def evaluate(session):
             session["node"].state = INCOMPLETE
     except (AttributeError, KeyError):
         pass
+
+
+def with_or_without_slash(path):
+    if os.path.isdir(path):
+        return path
+
+    if path.endswith("%2F"):
+        path = path[:-3]
+        if os.path.isdir(path):
+            return path
+    else:
+        path += "%2F"
+        if os.path.isdir(path):
+            return path
+
+    return None
 
 
 class OPRP(object):
@@ -217,7 +254,7 @@ class OPRP(object):
             "profile": info["profile_info"],
             "trace": info["trace"],
             "output": info["test_output"],
-            "result": represent_result(info, testid)
+            "result": represent_result(info, testid).replace("\n", "<br>\n")
         }
     
         return resp(self.environ, self.start_response, **argv)
@@ -254,47 +291,65 @@ class OPRP(object):
             resp = NotFound()
             return resp(self.environ, self.start_response)
 
-    def _display(self, path, tail):
+    def _display(self, root, issuer, profile):
         item = []
-        for (dirpath, dirnames, filenames) in os.walk(path):
-            if dirnames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in dirnames]
-                break
-            elif filenames:
-                item = [(unquote(f),
-                         os.path.join(tail, f)) for f in filenames]
-                break
+        if profile:
+            path = os.path.join(root, issuer, profile).replace(":", "%3A")
+            argv = {"issuer": unquote(issuer), "profile": profile}
 
-        item.sort()
+            path = with_or_without_slash(path)
+            if path is None:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
+
+            for _name in os.listdir(path):
+                if _name.startswith("."):
+                    continue
+                fn = os.path.join(path, _name)
+                if os.path.isfile(fn):
+                    item.append((unquote(_name), os.path.join(profile, _name)))
+        else:
+            if issuer:
+                argv = {'issuer': unquote(issuer), 'profile': ''}
+                path = os.path.join(root, issuer).replace(":", "%3A")
+            else:
+                argv = {'issuer': '', 'profile': ''}
+                path = root
+
+            path = with_or_without_slash(path)
+            if path is None:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
+
+            for _name in os.listdir(path):
+                if _name.startswith("."):
+                    continue
+                fn = os.path.join(path, _name)
+                if os.path.isdir(fn):
+                    item.append((unquote(_name), os.path.join(path, _name)))
+
         resp = Response(mako_template="logs.mako",
                         template_lookup=self.lookup,
                         headers=[])
-        argv = {"logs": item}
 
+        item.sort()
+        argv["logs"] = item
         return resp(self.environ, self.start_response, **argv)
 
-    def display_log(self, path, tail):
-        path = path.replace(":", "%3A")
-        LOGGER.info("display_log.path: %s" % path)
-        tail = tail.replace(":", "%3A")
-        LOGGER.info("display_log.tail: %s" % tail)
-        if os.path.isdir(path):
-            return self._display(path, tail)
-        elif os.path.isfile(path):
+    def display_log(self, root, issuer="", profile="", testid=""):
+        LOGGER.info(
+            "display_log root: '%s' issuer: '%s', profile: '%s' testid: '%s'" % (
+                root, issuer, profile, testid))
+        if testid:
+            path = os.path.join(root, issuer, profile, testid).replace(":",
+                                                                       "%3A")
             return self.static(path)
         else:
-            if path.endswith("%2F"):
-                path = path[:-3]
-                if tail.endswith("%2F"):
-                    tail = tail[:-3]
-                if os.path.isdir(path):
-                    return self._display(path, tail)
-                elif os.path.isfile(path):
-                    return self.static(path)
-
-            resp = Response("No saved logs")
-            return resp(self.environ, self.start_response)
+            if issuer:
+                return self._display(root, issuer, profile)
+            else:
+                resp = Response("No saved logs")
+                return resp(self.environ, self.start_response)
 
     def client_init(self):
         ots = OIDCTestSetup(self.conf, self.test_flows, str(self.conf.PORT))
@@ -336,29 +391,38 @@ class OPRP(object):
 
         return conv, sequence_info, ots, conv.trace, index
 
-    def err_response(self, session, where, err):
-        if err:
-            exception_trace(where, err, LOGGER)
+    def log_fault(self, session, err, where, err_type=0):
+        if err_type == 0:
+            err_type = self.get_err_type(session)
 
         if "node" in session:
             if err:
                 if isinstance(err, Break):
                     session["node"].state = WARNING
                 else:
-                    session["node"].state = ERROR
+                    session["node"].state = err_type
             else:
-                session["node"].state = ERROR
+                session["node"].state = err_type
 
         if "conv" in session:
             if err:
-                session["conv"].trace.error("%s:%s" % (err.__class__.__name__,
-                                                       str(err)))
+                if isinstance(err, basestring):
+                    pass
+                else:
+                    session["conv"].trace.error("%s:%s" % (
+                        err.__class__.__name__, str(err)))
                 session["conv"].test_output.append(
-                    {"id": "-", "status": ERROR, "message": "%s" % err})
+                    {"id": "-", "status": err_type, "message": "%s" % err})
             else:
                 session["conv"].test_output.append(
-                    {"id": "-", "status": ERROR,
+                    {"id": "-", "status": err_type,
                      "message": "Error in %s" % where})
+
+    def err_response(self, session, where, err):
+        if err:
+            exception_trace(where, err, LOGGER)
+
+        self.log_fault(session, err, where)
 
         try:
             _tid = session["testid"]
@@ -407,6 +471,8 @@ class OPRP(object):
                 instance, _ = get_protocol_response(
                     conv, AccessTokenResponse)[0]
                 kwargs["table"] = instance["id_token"]
+            else:
+                kwargs["table"] = {}
 
             try:
                 key = req.cache(self.cache, conv, sequence_info["cache"])
@@ -462,6 +528,28 @@ class OPRP(object):
             return True
         else:
             return False
+
+    def fini(self, session, conv):
+        _tid = session["testid"]
+        conv.test_output.append(("X", END_TAG))
+        self.store_test_info(session)
+        self.dump_log(session, _tid)
+        session["node"].complete = True
+
+        _grp = _tid.split("-")[1]
+
+        resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
+        return resp(self.environ, self.start_response)
+
+    @staticmethod
+    def get_err_type(session):
+        errt = WARNING
+        try:
+            if session["node"].mti == {"all": "MUST"}:
+                errt = ERROR
+        except KeyError:
+            pass
+        return errt
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
@@ -520,9 +608,16 @@ class OPRP(object):
                 conv.trace.info("------------ %s ------------" % req_c.request)
                 if req_c == Discover:
                     # Special since it's just a GET on a URL
-                    _r = req.discover(
-                        ots.client,
-                        issuer=ots.config.CLIENT["srv_discovery_url"])
+                    try:
+                        _r = req.discover(
+                            ots.client,
+                            issuer=ots.config.CLIENT["srv_discovery_url"])
+                    except ConnectionError:
+                            self.log_fault(session, "Connection Error",
+                                           "discover_request", ERROR)
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                     conv.position, conv.last_response, conv.last_content = _r
 
                     if conv.last_response.status >= 400:
@@ -544,7 +639,14 @@ class OPRP(object):
                                 return self.err_response(session, "jwks_fetch",
                                                          resp.content)
                 elif req_c == Webfinger:
-                    url = req.discover(**kwargs)
+                    try:
+                        url = req.discover(**kwargs)
+                    except ConnectionError:
+                            self.log_fault(session, "Connection Error",
+                                           "WebFinger_request", ERROR)
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                     if url:
                         conv.trace.request(url)
                         conv.test_output.append(
@@ -611,6 +713,7 @@ class OPRP(object):
                             "response_type"]
                         LOGGER.info("redirect.url: %s" % url)
                         LOGGER.info("redirect.header: %s" % ht_args)
+                        conv.timestamp.append((url, utc_time_sans_frac()))
                         resp = Redirect(str(url))
                         return resp(self.environ, self.start_response)
                     else:
@@ -636,16 +739,32 @@ class OPRP(object):
                                 conv, url, trace, message_factory(
                                     resp_c.response), _method, body, _ctype,
                                 **_kwargs)
+                        except MissingErrorResponse:
+                            self.log_fault(session, "Missing Error Response",
+                                           "request_response",
+                                           self.get_err_type(session))
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
+
                         except PyoidcError as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
                         except JWKESTException as err:
                             return self.err_response(session,
                                                      "request_and_return", err)
+                        except ConnectionError:
+                                self.log_fault(session, "Connection Error",
+                                               "request",
+                                               self.get_err_type(session))
+                                conv.trace.info(END_TAG)
+                                return self.fini(session, conv)
 
                         if response is None:  # bail out
-                            return self.err_response(session,
-                                                     "request_and_return", None)
+                            self.log_fault(session, "Empty response",
+                                           "request_response",
+                                           self.get_err_type(session))
+                            conv.trace.info(END_TAG)
+                            return self.fini(session, conv)
 
                         trace.response(response)
                         LOGGER.info(response.to_dict())
@@ -660,7 +779,7 @@ class OPRP(object):
                             else:
                                 trace.error("Expected error, didn't get it")
                                 return self.err_response(session,
-                                                        "expected error")
+                                                         "expected error", None)
                         else:
                             if resp_c.response == "RegistrationResponse":
                                 if isinstance(response, RegistrationResponse):
@@ -694,16 +813,7 @@ class OPRP(object):
         except Exception as err:
             return self.err_response(session, "post_test", err)
 
-        _tid = session["testid"]
-        conv.test_output.append((("X", END_TAG)))
-        self.store_test_info(session)
-        self.dump_log(session, _tid)
-        session["node"].complete = True
-
-        _grp = _tid.split("-")[1]
-
-        resp = Redirect("%sopresult#%s" % (self.conf.BASE, _grp))
-        return resp(self.environ, self.start_response)
+        return self.fini(session, conv)
 
     @staticmethod
     def profile_info(session, test_id=None):
@@ -763,6 +873,8 @@ class OPRP(object):
                 f = open(path, "w")
                 f.write("\n".join(output))
                 f.close()
+                pp = path.split("/")
+                create_tar_archive(pp[1], pp[2])
                 return path
 
 # =============================================================================
@@ -867,15 +979,19 @@ def log_path(session, test_id=None):
     else:
         qiss = quote_plus(iss)
 
+    path = with_or_without_slash(os.path.join("log", qiss))
+    if path is None:
+        path = os.path.join("log", qiss)
+
     prof = ".".join(to_profile(session))
 
-    if not os.path.isdir("log/%s/%s" % (qiss, prof)):
-        os.makedirs("log/%s/%s" % (qiss, prof))
+    if not os.path.isdir("%s/%s" % (path, prof)):
+        os.makedirs("%s/%s" % (path, prof))
 
     if test_id is None:
         test_id = session["testid"]
 
-    return "log/%s/%s/%s" % (qiss, prof, test_id)
+    return "%s/%s/%s" % (path, prof, test_id)
 
 
 def end_tags(info):
@@ -908,7 +1024,10 @@ def represent_result(info, tid):
         if isinstance(item, tuple):
             continue
         elif item["status"] == WARNING:
-            warnings.append(item["message"])
+            try:
+                warnings.append(item["message"])
+            except KeyError:
+                pass
 
     if text == "PASSED":
         try:
@@ -974,6 +1093,39 @@ def included(val, given):
     return True
 
 
+def not_supported(val, given):
+    if isinstance(val, basestring):
+        if isinstance(given, basestring):
+            try:
+                assert val == given
+            except AssertionError:
+                return [val]
+        else:
+            try:
+                assert val in given
+            except AssertionError:
+                return [val]
+    elif isinstance(val, list):
+        if isinstance(given, basestring):
+            _missing = [v for v in val if v != given]
+        else:
+            _missing = []
+            for _val in val:
+                try:
+                    assert _val in given
+                except AssertionError:
+                    _missing.append(_val)
+        if _missing:
+            return _missing
+    else:
+        try:
+            assert val == given
+        except AssertionError:
+            return [val]
+
+    return None
+
+
 def support(conv, args):
     pi = conv.client.provider_info
     stat = 0
@@ -985,25 +1137,17 @@ def support(conv, args):
         else:
             err = ERROR
         for key, val in args[ser].items():
-            if key not in pi:
-                try:
-                    included(val, DEFAULTS[key])
-                except AssertionError:  # Explicitly Not supported
-                    add_test_result(conv, ERROR,
-                                    "Not supported: %s=%s" % (key, val))
-                    stat = ERROR
-                except KeyError:  # Not in defaults
-                    conv.trace.info("Not explicit: %s=%s using default" % (key,
-                                                                           val))
+            try:
+                _ns = not_supported(val, pi[key])
+            except KeyError:  # Not defined
+                conv.trace.info(
+                    "'%s' not defined in provider configuration" % key)
             else:
-                try:
-                    included(val, pi[key])
-                except AssertionError:  # Not supported
-                    add_test_result(conv, err,
-                                    "Not supported: %s=%s" % (key, val))
+                if _ns:
+                    add_test_result(
+                        conv, err,
+                        "OP is not supporting %s according to '%s' in the provider configuration" % (val, key))
                     stat = err
-                except KeyError:  # Not defined
-                    conv.trace.info("Not explicit: %s=%s" % (key, val))
 
     return stat
 

@@ -6,12 +6,12 @@
         "CIT": "Hybrid (code+id_token+token)"
     }
     PMAPL = ["C", "I", "IT", "CI", "CT", "CIT"]
-    L2I = {"discover": 1, "register": 2}
+    L2I = {"discovery": 1, "registration": 2}
     CRYPTSUPPORT = {"none": "n", "signing": "s", "encryption": "e"}
 
     def profile_form(prof):
         p = prof.split(".")
-        el = ["<h3>Choose response_type</h3>",
+        el = ["<h3>Choose response_type:</h3>",
               '<form action="profile" method="POST">']
         for key in PMAPL:
             txt = PMAP[key]
@@ -22,7 +22,7 @@
         el.append("<br>")
         el.append("These you can't change here:")
         el.append("<ul>")
-        for mode in ["discover", "register"]:
+        for mode in ["discovery", "registration"]:
             if p[L2I[mode]] == "T":
                 el.append("<li>Dynamic %s" % mode)
             else:
@@ -41,7 +41,7 @@
             else:
                 el.append('<input type="checkbox" name="%s">%s<br>' % (name, name))
         el.append("</p>")
-        el.append('</ul><p>Check this if you want the extra tests: ')
+        el.append('</ul><p>Check this if you want extra tests (not needed for any certification profiles): ')
         if len(p) == 5 and p[4] == "+":
             el.append('<input type="checkbox" name="extra" checked>')
         else:
@@ -72,7 +72,7 @@
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OpenID Certification OP Test</h1>
-          <h2>Here you change the profile you are testing</h2>
+          <h2>You can change the profile you are testing here:</h2>
           ${profile_form(profile)}
       </div>
 

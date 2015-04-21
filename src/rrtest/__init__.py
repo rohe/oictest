@@ -103,7 +103,10 @@ class Trace(object):
             yield line
 
     def lastline(self):
-        return self.trace[-1]
+        try:
+            return self.trace[-1]
+        except IndexError:
+            return ""
 
 
 def start_script(path, wdir="", *args):

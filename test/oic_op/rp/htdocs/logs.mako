@@ -1,8 +1,28 @@
 <%
-def display_log(logs):
-    el = "<ul>"
-    for name, path in logs:
-        el += '<li><a href="%s">%s</a>' % (path, name)
+import os
+
+def display_log(logs, issuer, profile):
+    if issuer:
+        if profile:
+            el = "<h3>A list of tests that are saved on disk for this profile:</h3>"
+        else:
+            el = "<h3>A list of profiles that are saved on disk for this issuer:</h3>"
+    else:
+        el = "<h3>A list of issuers that are saved on disk for this test server:</h3>"
+
+    el += "<ul>"
+
+    if profile:
+        for name, path in logs:
+            el += '<li><a href="%s" download="%s.html">%s</a>' % (path, name, name)
+    elif 'issuer':
+        for name, path in logs:
+            _tarfile = "/%s.tar" % path.replace("log", "tar")
+            el += '<li><a href="/%s">%s</a> tar file:<a href="%s">Download logs</a>' % (
+                path, name, _tarfile)
+    else:
+        for name, path in logs:
+            el += '<li><a href="%s">%s</a>' % (path, name)
     el += "</ul>"
     return el
 %>
@@ -27,8 +47,7 @@ def display_log(logs):
      <!-- Main component for a primary marketing message or call to action -->
       <div class="jumbotron">
         <h1>OpenID Certification OP Test logs</h1>
-          <h3>A list of test results that are saved on disk:</h3>
-            ${display_log(logs)}
+            ${display_log(logs, issuer, profile)}
       </div>
 
     </div> <!-- /container -->

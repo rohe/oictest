@@ -28,4 +28,4 @@ tmp*
 *egg-info*
 .coverage
 *.tmpl
-
+log/

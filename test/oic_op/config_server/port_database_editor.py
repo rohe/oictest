@@ -1,8 +1,8 @@
+#!/usr/bin/env python
 import collections
 import importlib
 import json
 import os
-import imp
 import argparse
 import re
 import sys

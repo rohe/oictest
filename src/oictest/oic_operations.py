@@ -26,7 +26,8 @@ __author__ = 'rohe0002'
 import time
 
 from urllib import urlencode
-from oic.oauth2 import JSON_ENCODED, PBase
+from oic.oauth2.util import JSON_ENCODED
+from oic.oauth2 import PBase
 
 # Used upstream not in this module so don't remove
 from oictest.check import *

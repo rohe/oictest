@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from __future__ import absolute_import
+from __future__ import print_function
 import importlib
 import os
 from urllib import quote_plus
@@ -61,15 +63,29 @@ def application(environ, start_response):
         except Exception as err:
             return oprp.err_response(session, "session_setup", err)
     elif path == "logs":
-        return oprp.display_log("log", "log")
+        return oprp.display_log("log", issuer="", profile="", testid="")
     elif path.startswith("log"):
-        if path == "log":
-            path = os.path.join(
-                path, quote_plus(oprp.conf.CLIENT["srv_discovery_url"]))
-            tail = path
+        if path == "log" or path == "log/":
+            _cc = oprp.conf.CLIENT
+            try:
+                _iss = _cc["srv_discovery_url"]
+            except KeyError:
+                _iss = _cc["provider_info"]["issuer"]
+            parts = [quote_plus(_iss)]
         else:
-            head, tail = os.path.split(path)
-        return oprp.display_log(path, tail)
+            parts = []
+            while path != "log":
+                head, tail = os.path.split(path)
+                # tail = tail.replace(":", "%3A")
+                # if tail.endswith("%2F"):
+                #     tail = tail[:-3]
+                parts.insert(0, tail)
+                path = head
+
+        return oprp.display_log("log", *parts)
+    elif path.startswith("tar"):
+        path = path.replace(":", "%3A")
+        return oprp.static(path)
     elif "flow_names" not in session:
         oprp.session_init(session)
 
@@ -77,46 +93,52 @@ def application(environ, start_response):
         oprp.reset_session(session)
         return oprp.flow_list(session)
     elif path == "pedit":
-        return oprp.profile_edit(session)
+        try:
+            return oprp.profile_edit(session)
+        except Exception as err:
+            return oprp.err_response(session, "pedit", err)
     elif path == "profile":
         info = parse_qs(get_post(environ))
-        cp = session["profile"].split(".")
-        cp[0] = info["rtype"][0]
-
-        crsu = []
-        for name, cs in CRYPTSUPPORT.items():
-            try:
-                if info[name] == ["on"]:
-                    crsu.append(cs)
-            except KeyError:
-                pass
-
-        if len(cp) == 3:
-            if len(crsu) == 3:
-                pass
-            else:
-                cp.append("".join(crsu))
-        else:  # len >= 4
-            cp[3] = "".join(crsu)
-
         try:
-            if info["extra"] == ['on']:
-                if len(cp) == 3:
-                    cp.extend(["", "+"])
-                elif len(cp) == 4:
-                    cp.append("+")
-                elif len(cp) == 5:
-                    cp[4] = "+"
-            else:
+            cp = session["profile"].split(".")
+            cp[0] = info["rtype"][0]
+
+            crsu = []
+            for name, cs in list(CRYPTSUPPORT.items()):
+                try:
+                    if info[name] == ["on"]:
+                        crsu.append(cs)
+                except KeyError:
+                    pass
+
+            if len(cp) == 3:
+                if len(crsu) == 3:
+                    pass
+                else:
+                    cp.append("".join(crsu))
+            else:  # len >= 4
+                cp[3] = "".join(crsu)
+
+            try:
+                if info["extra"] == ['on']:
+                    if len(cp) == 3:
+                        cp.extend(["", "+"])
+                    elif len(cp) == 4:
+                        cp.append("+")
+                    elif len(cp) == 5:
+                        cp[4] = "+"
+                else:
+                    if len(cp) == 5:
+                        cp = cp[:-1]
+            except KeyError:
                 if len(cp) == 5:
                     cp = cp[:-1]
-        except KeyError:
-            if len(cp) == 5:
-                cp = cp[:-1]
 
-        # reset all testsflows
-        oprp.reset_session(session, ".".join(cp))
-        return oprp.flow_list(session)
+            # reset all test flows
+            oprp.reset_session(session, ".".join(cp))
+            return oprp.flow_list(session)
+        except Exception as err:
+            return oprp.err_response(session, "profile", err)
     elif path.startswith("test_info"):
         p = path.split("/")
         try:
@@ -151,7 +173,7 @@ def application(environ, start_response):
         try:
             return oprp.run_sequence(sequence_info, session, conv, ots,
                                      conv.trace, index)
-        except Exception, err:
+        except Exception as err:
             return oprp.err_response(session, "run_sequence", err)
     elif path == "opresult":
 
@@ -262,7 +284,7 @@ def application(environ, start_response):
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
-    from oictest.check import factory as check_factory
+    from oictest.check import factory as check_factory, get_provider_info
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')
@@ -352,7 +374,7 @@ if __name__ == '__main__':
 
     txt = "RP server starting listening on port:%s%s" % (CONF.PORT, extra)
     LOGGER.info(txt)
-    print txt
+    print(txt)
     try:
         SRV.start()
     except KeyboardInterrupt:

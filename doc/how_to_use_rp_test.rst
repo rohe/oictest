@@ -60,10 +60,11 @@ value could be RSA1_5:A128CBC-HS256.
 If possible this information should be specifies while doing the dynamic client registration.
 But if the RP only supports static client registration you need to modify the URL path.
 
-errtype
-.......
+behavior
+........
 
-This is about getting the OP to make 'errors', presently these are defined:
+This is about getting the OP to behave in different ways, presently these are
+defined:
 
 ======  ==========================
 ath     the at_hash is incorrect
@@ -77,6 +78,9 @@ itsub   ID Token without sub claim
 kmm     signing/encryption with a key the RP doesn't have access to
 nonce   the nonce value returned is not the same as the received
 state   the state value returned is not the same as the received
+uisub   invalid subject
+rotsig  Rotate signing keys
+rotenc  Rotate encryption keys
 ======  ==========================
 
 claims

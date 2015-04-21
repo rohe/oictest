@@ -5,6 +5,7 @@ import re
 import os
 import sys
 import traceback
+import logging
 
 from exceptions import KeyError
 from exceptions import Exception
@@ -15,24 +16,29 @@ from exceptions import KeyboardInterrupt
 from urlparse import parse_qs
 from urlparse import urlparse
 from beaker.middleware import SessionMiddleware
-from dirg_util.http_util import HttpHandler
 
 from oic.oic.provider import EndSessionEndpoint
 from oic.utils.authn.authn_context import AuthnBroker
 from oic.utils.authn.client import verify_client
 from oic.utils.authz import AuthzHandling
-from oic.utils.http_util import *
+from oic.utils.client_management import CDB
+from oic.utils.http_util import BadRequest
+from oic.utils.http_util import Unauthorized
+from oic.utils.http_util import Response
+from oic.utils.http_util import NotFound
+from oic.utils.http_util import ServiceError
+from oic.utils.http_util import extract_from_request
 from oic.utils.keyio import keyjar_init
 from oic.utils.sdb import SessionDB
 from oic.utils.userinfo import UserInfo
 from oic.utils.webfinger import WebFinger
 from oic.utils.webfinger import OIC_ISSUER
+
 from rrtest import Trace
 from oictest.mode import extract_mode
 from oictest.mode import setup_op
 from oictest.mode import mode2path
 from response_encoder import ResponseEncoder
-from oic.utils.client_management import CDB
 
 __author__ = 'rohe0002'
 
@@ -254,7 +260,7 @@ def check_id(environ, start_response, session, trace):
 def endsession(environ, start_response, session, trace):
     _oas = session["op"]
     return wsgi_wrapper(environ, start_response, _oas.endsession_endpoint,
-                        session, trace)
+                        session=session, trace=trace)
 
 
 def find_identifier(uri):
@@ -291,13 +297,14 @@ def webfinger(environ, start_response, session, trace):
     else:
         wf = WebFinger()
         p = urlparse(resource)
-        mode, part = extract_mode(p[2])
-        if mode:
-            resp = Response(wf.response(subject=resource,
-                                        base=OP_ARG["baseurl"]+p[2][1:]))
-        else:
-            resp = Response(wf.response(subject=resource,
-                                        base=OP_ARG["baseurl"]))
+        if p.scheme == "acct":
+            l, _ = p.path.split("@")
+            path = "/%s%s" % (l, pathmap.IDMAP[l])
+        else:  # scheme == http/-s
+            path = pathmap.IDMAP[p.path[1:]]
+
+        resp = Response(wf.response(subject=resource,
+                                    base=OP_ARG["baseurl"]+path[1:]))
 
         trace.reply(resp.message)
 
@@ -365,6 +372,7 @@ URLS = [
     (r'log', display_log)
 ]
 
+
 def add_endpoints(extra):
     global URLS
 
@@ -398,11 +406,12 @@ def registration(environ, start_response):
 
 def generate_static_client_credentials(parameters):
     redirect_uris = parameters['redirect_uris']
-    jwks_uri = str(parameters['jwks_uri'])
-    cdb = CDB(config.CLIENT_DB)
-    static_client = cdb.create(redirect_uris=redirect_uris,
-                               policy_uri="example.com",
-                               logo_uri="example.com", jwks_uri=jwks_uri)
+    jwks_uri = str(parameters['jwks_uri'][0])
+    _cdb = CDB(config.CLIENT_DB)
+    static_client = _cdb.create(redirect_uris=redirect_uris,
+                                # policy_uri="example.com",
+                                # logo_uri="example.com",
+                                jwks_uri=jwks_uri)
     return static_client['client_id'], static_client['client_secret']
 
 
@@ -416,10 +425,9 @@ def application(environ, start_response):
     global OAS
     session = environ['beaker.session']
     path = environ.get('PATH_INFO', '').lstrip('/')
-    http_helper = HttpHandler(environ, start_response, session, LOGGER)
     response_encoder = ResponseEncoder(environ=environ,
                                        start_response=start_response)
-    parameters = http_helper.query_dict()
+    parameters = parse_qs(environ["QUERY_STRING"])
 
     if path == "robots.txt":
         return static(environ, start_response, "static/robots.txt")
@@ -513,6 +521,7 @@ if __name__ == '__main__':
     import argparse
     import shelve
     import importlib
+    import pathmap
 
     from cherrypy import wsgiserver
     from cherrypy.wsgiserver import ssl_pyopenssl
