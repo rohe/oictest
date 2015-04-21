@@ -185,6 +185,11 @@ class CheckHTTPResponse(CriticalError):
         _content = conv.last_content
 
         res = {}
+        if not _response:
+            self._message = "No response"
+            self._status = self.status
+            return res
+
         if _response.status_code >= 400:
             self._status = self.status
             self._message = self.msg
