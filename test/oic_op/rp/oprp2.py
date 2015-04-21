@@ -66,7 +66,12 @@ def application(environ, start_response):
         return oprp.display_log("log", issuer="", profile="", testid="")
     elif path.startswith("log"):
         if path == "log" or path == "log/":
-            parts = [quote_plus(oprp.conf.CLIENT["srv_discovery_url"])]
+            _cc = oprp.conf.CLIENT
+            try:
+                _iss = _cc["srv_discovery_url"]
+            except KeyError:
+                _iss = _cc["provider_info"]["issuer"]
+            parts = [quote_plus(_iss)]
         else:
             parts = []
             while path != "log":
@@ -273,7 +278,7 @@ def application(environ, start_response):
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
     from cherrypy import wsgiserver
-    from oictest.check import factory as check_factory
+    from oictest.check import factory as check_factory, get_provider_info
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-m', dest='mailaddr')

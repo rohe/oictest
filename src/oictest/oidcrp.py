@@ -126,6 +126,9 @@ class OIDCTestSetup(object):
             for key, val in self.config.CLIENT["provider_info"].items():
                 if key.endswith("_endpoint"):
                     setattr(client, key, val)
+                elif key == "jwks_uri":
+                    client.keyjar.load_keys(client.provider_info,
+                                            client.provider_info["issuer"])
 
         return client
 
