@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import unittest
 from port_database import PortDatabase
 from port_database import NoPortAvailable
+from config_server import get_default_client
+from port_database import PORT_COLUMN, CONFIG_FILE_COLUMN
 
 __author__ = 'danielevertsson'
 
-class TestSequenceFunctions(unittest.TestCase):
+class TestPortDatabase(unittest.TestCase):
 
     TABLE_NAME = 'ports'
 
@@ -166,6 +169,27 @@ class TestSequenceFunctions(unittest.TestCase):
         issuer = unicode('https://example/öäå', encoding='utf-8')
         self.database.upsert(issuer=issuer, port=8000, instance_id="test", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
         self.assertEqual(self.database.get_all_ports(), [8000])
+
+    def test_add_large_config_file(self):
+        defalut_config = get_default_client()
+        self.database.upsert(issuer="issuer",
+                             port=8000,
+                             instance_id="test",
+                             port_type=PortDatabase.DYNAMIC_PORT_TYPE,
+                             config_file=json.dumps(defalut_config))
+        row = self.database.table.find_one(issuer="issuer", instance_id="test")
+        config = json.loads(row['config_file'])
+        self.assertTrue(isinstance(config, dict))
+
+    def test_add_config_file_to_existing_database_entry(self):
+        port = 8004
+        config_file = {"etst":1}
+        self.database.upsert(port=port, issuer="apberget", instance_id='test1', port_type="static")
+        row = self.database.get_row(port)
+        self.database.upsert_row(row, config_file)
+        row = self.database.get_row(port)
+        self.assertEqual(row[PORT_COLUMN], port)
+        self.assertEqual(row[CONFIG_FILE_COLUMN], config_file)
 
 if __name__ == '__main__':
     unittest.main()

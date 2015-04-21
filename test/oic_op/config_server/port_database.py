@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import threading
 import dataset
 from prettytable import PrettyTable
@@ -7,6 +8,7 @@ PORT_COLUMN = 'port'
 PORT_TYPE_COLUMN = 'port_type'
 INSTANCE_ID_COLUMN = "instance_id"
 ISSUER_COLUMN = "issuer"
+CONFIG_FILE_COLUMN = 'config_file'
 
 class NoPortAvailable(Exception):
     pass
@@ -19,15 +21,23 @@ class PortDatabase():
 
     config_tread_lock = threading.Lock()
 
-    def __init__(self, dict_path):
-        self.database = dataset.connect('sqlite:///' + dict_path)
+    def __init__(self, database_path):
+        self.database_path = database_path
+        self.database = dataset.connect('sqlite:///' + database_path)
         self.table = self.database[self.TABLE_NAME]
 
     def clear(self):
         self.table.drop()
         self.table = self.database[self.TABLE_NAME]
 
-    def upsert(self, port, issuer, instance_id, port_type):
+    def upsert_row(self, row, config_file):
+        self.upsert(port=row[PORT_COLUMN],
+                    issuer=row[ISSUER_COLUMN],
+                    instance_id=row[INSTANCE_ID_COLUMN],
+                    port_type=row[PORT_TYPE_COLUMN],
+                    config_file=config_file)
+
+    def upsert(self, port, issuer, instance_id, port_type, config_file=None):
         if isinstance(issuer, str):
             issuer = unicode(issuer, encoding='utf-8')
 
@@ -37,7 +47,18 @@ class PortDatabase():
         if isinstance(port_type, str):
             port_type = unicode(port_type, encoding='utf-8')
 
-        row = dict(port=port, port_type=port_type, instance_id=instance_id, issuer=issuer)
+        if isinstance(config_file, dict):
+            config_file = json.dumps(config_file)
+
+        if isinstance(config_file, str):
+            config_file = unicode(config_file, encoding='utf-8')
+
+        row = dict(port=port,
+                   port_type=port_type,
+                   instance_id=instance_id,
+                   issuer=issuer,
+                   config_file=config_file)
+
         self.table.upsert(row, [PORT_COLUMN])
 
     def _get_column_elements(self, column, entries=None):
@@ -59,13 +80,18 @@ class PortDatabase():
         all_instance_ids = self.table.find(issuer=issuer)
         return self._get_column_elements(INSTANCE_ID_COLUMN, entries=all_instance_ids)
 
-
     def get_table_as_list(self):
         list = []
         rows = self.table.find(order_by=[PORT_COLUMN])
         for row in rows:
-            list.append([row[PORT_COLUMN], row['issuer'], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
+            list.append([row[PORT_COLUMN], row[ISSUER_COLUMN], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
         return list
+
+    def get_row(self, port):
+        row = self.table.find_one(port=port)
+        if row[CONFIG_FILE_COLUMN]:
+            row[CONFIG_FILE_COLUMN] = json.loads(row[CONFIG_FILE_COLUMN])
+        return row
 
     def print_table(self):
         list =self.get_table_as_list()

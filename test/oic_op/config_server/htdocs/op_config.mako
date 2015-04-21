@@ -115,7 +115,7 @@
                     </span>
 
                     <div class="col-sm-4">
-                        <input type="text" class="form-control" ng-model="opConfig.fetchDynamicInfoFromServer.input_field.value" name="issuer" issuer />
+                        <input type="text" maxlength="200" class="form-control" ng-model="opConfig.fetchDynamicInfoFromServer.input_field.value" name="issuer" issuer />
                     </div>
 
                     <span ng-show="dynamic_disco_form.issuer.$error.issuer"
@@ -149,7 +149,7 @@
                                     New element:
                                     <form>
                                         <div class="input-group">
-                                            <input type="text" class="form-control" id="input_{{input_field.id}}">
+                                            <input type="text" maxlength="200" class="form-control" id="input_{{input_field.id}}">
                                             <span class="input-group-btn">
                                                 <button class="btn btn-default btn-sm"
                                                         ng-click="addStaticProviderInfoElement(input_field.id)">
@@ -164,7 +164,7 @@
                                     Added elements:
                                     <form ng-repeat="element in input_field.values">
                                         <div class="input-group">
-                                            <input type="text" ng-model="element.value" class="form-control">
+                                            <input type="text" maxlength="200" ng-model="element.value" class="form-control">
                                             <span class="input-group-btn">
                                                 <button class="btn btn-danger btn-sm"
                                                         ng-click="removeStaticProviderInfoElement($index, input_field.id)">
@@ -179,7 +179,7 @@
                             <div class="col-sm-3" ng-show="!input_field.isList"></div>
 
                             <div class="col-sm-4" ng-show="!input_field.isList">
-                                <input type="text" class="form-control" ng-model="input_field.values">
+                                <input type="text" maxlength="200" class="form-control" ng-model="input_field.values">
                             </div>
                         </div>
                     </div>
@@ -220,6 +220,7 @@
 
                         <div class="input-group col-sm-4">
                             <input type="text"
+                                   maxlength="200"
                                    class="form-control"
                                    ng-model="new_instance_id"
                                    ng-disabled="instance_type.value == EXISTING_INSTANCE_ID||
@@ -282,7 +283,7 @@
                     </div>
 
                     <form class="col-sm-8">
-                        <input type="text" ng-model="textField.textFieldContent" ng-readonly="textField.disabled"
+                        <input type="text" maxlength="200" ng-model="textField.textFieldContent" ng-readonly="textField.disabled"
                                class="form-control">
                     </form>
                 </div>
@@ -360,7 +361,7 @@
                     </div>
 
                     <form class="col-sm-3">
-                        <input type="text" ng-model="opConfig.loginHint" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.loginHint" class="form-control">
                     </form>
 
                     <div class="col-sm-6">
@@ -381,7 +382,7 @@
                 </span>
 
                     <div class="col-sm-3">
-                        <input type="text" ng-model="opConfig.uiLocales" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.uiLocales" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
@@ -402,7 +403,7 @@
                     </div>
 
                     <div class="col-sm-3">
-                        <input type="text" ng-model="opConfig.claimsLocales" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.claimsLocales" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
@@ -424,7 +425,7 @@
                     </div>
 
                     <div class="col-sm-3">
-                        <input type="text" ng-model="opConfig.acrValues" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.acrValues" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
@@ -445,7 +446,7 @@
                     </div>
 
                     <div class="col-sm-3">
-                        <input type="text" ng-model="opConfig.webfinger_url" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.webfinger_url" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
@@ -466,7 +467,7 @@
                     </div>
 
                     <div class="col-sm-3">
-                        <input type="text" ng-model="opConfig.webfinger_email" class="form-control">
+                        <input type="text" maxlength="200" ng-model="opConfig.webfinger_email" class="form-control">
                     </div>
 
                     <div class="col-sm-6">
