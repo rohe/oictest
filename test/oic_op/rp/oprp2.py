@@ -93,46 +93,52 @@ def application(environ, start_response):
         oprp.reset_session(session)
         return oprp.flow_list(session)
     elif path == "pedit":
-        return oprp.profile_edit(session)
+        try:
+            return oprp.profile_edit(session)
+        except Exception as err:
+            return oprp.err_response(session, "pedit", err)
     elif path == "profile":
         info = parse_qs(get_post(environ))
-        cp = session["profile"].split(".")
-        cp[0] = info["rtype"][0]
-
-        crsu = []
-        for name, cs in list(CRYPTSUPPORT.items()):
-            try:
-                if info[name] == ["on"]:
-                    crsu.append(cs)
-            except KeyError:
-                pass
-
-        if len(cp) == 3:
-            if len(crsu) == 3:
-                pass
-            else:
-                cp.append("".join(crsu))
-        else:  # len >= 4
-            cp[3] = "".join(crsu)
-
         try:
-            if info["extra"] == ['on']:
-                if len(cp) == 3:
-                    cp.extend(["", "+"])
-                elif len(cp) == 4:
-                    cp.append("+")
-                elif len(cp) == 5:
-                    cp[4] = "+"
-            else:
+            cp = session["profile"].split(".")
+            cp[0] = info["rtype"][0]
+
+            crsu = []
+            for name, cs in list(CRYPTSUPPORT.items()):
+                try:
+                    if info[name] == ["on"]:
+                        crsu.append(cs)
+                except KeyError:
+                    pass
+
+            if len(cp) == 3:
+                if len(crsu) == 3:
+                    pass
+                else:
+                    cp.append("".join(crsu))
+            else:  # len >= 4
+                cp[3] = "".join(crsu)
+
+            try:
+                if info["extra"] == ['on']:
+                    if len(cp) == 3:
+                        cp.extend(["", "+"])
+                    elif len(cp) == 4:
+                        cp.append("+")
+                    elif len(cp) == 5:
+                        cp[4] = "+"
+                else:
+                    if len(cp) == 5:
+                        cp = cp[:-1]
+            except KeyError:
                 if len(cp) == 5:
                     cp = cp[:-1]
-        except KeyError:
-            if len(cp) == 5:
-                cp = cp[:-1]
 
-        # reset all test flows
-        oprp.reset_session(session, ".".join(cp))
-        return oprp.flow_list(session)
+            # reset all test flows
+            oprp.reset_session(session, ".".join(cp))
+            return oprp.flow_list(session)
+        except Exception as err:
+            return oprp.err_response(session, "profile", err)
     elif path.startswith("test_info"):
         p = path.split("/")
         try:
