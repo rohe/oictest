@@ -1,7 +1,9 @@
 import os
 import copy
 import subprocess
+import __builtin__
 from mock import patch
+import mock
 from config_server import NoResponseException
 from config_server import check_if_oprp_started
 from config_server import kill_existing_process_on_port
@@ -83,19 +85,19 @@ class TestConfigServer(unittest.TestCase):
         returned_issuer = get_issuer_from_gui_config(gui_config)
         self.assertEqual(static_issuer, returned_issuer)
 
-    def setup_config_server_mock(self, mock_server_config):
+    def _setup_config_server_mock(self, mock_server_config):
         mock_server_config.OPRP_DIR_PATH = '../rp/'
         mock_server_config.OPRP_SSL_MODULE = "sslconf"
         mock_server_config.HOST = "localhost"
 
     @patch('config_server.CONF')
     def test_identify_existing_config_file(self, mock_server_config):
-        self.setup_config_server_mock(mock_server_config)
+        self._setup_config_server_mock(mock_server_config)
 
         _port = 0
         config_file = get_config_file_path(_port, mock_server_config.OPRP_DIR_PATH)
         configuration = create_module_string({}, _port)
-        write_config_file(config_file, configuration)
+        write_config_file(config_file, configuration, _port)
 
         config_client_dict = identify_existing_config_file(_port)
         self.assertTrue(isinstance(config_client_dict, dict))
@@ -103,17 +105,17 @@ class TestConfigServer(unittest.TestCase):
 
     @patch('config_server.CONF')
     def test_identify_existing_missing_client_attribute(self, mock_server_config):
-        self.setup_config_server_mock(mock_server_config)
+        self._setup_config_server_mock(mock_server_config)
         _port = 1
         config_file = get_config_file_path(_port, mock_server_config.OPRP_DIR_PATH)
-        write_config_file(config_file, "")
+        write_config_file(config_file, "", _port)
         with self.assertRaises(AttributeError):
             identify_existing_config_file(_port)
         os.remove(config_file)
 
     @patch('config_server.CONF')
     def test_identify_config_file_which_does_not_exist(self, mock_server_config):
-        self.setup_config_server_mock(mock_server_config)
+        self._setup_config_server_mock(mock_server_config)
         with self.assertRaises(NoMatchException):
             identify_existing_config_file(-1)
 

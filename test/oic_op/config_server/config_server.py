@@ -6,6 +6,7 @@ import copy
 import importlib
 import json
 import os
+import shutil
 import time
 import argparse
 import datetime
@@ -791,6 +792,15 @@ def handle_download_config_file(session, response_encoder, parameters):
     filedict = json.dumps({"configDict": config_file_dict})
     return response_encoder.return_json(filedict)
 
+class ConfigSizeToLarge(Exception):
+    pass
+
+def validate_configuration_size(config):
+    if isinstance(config, dict):
+        config = json.dumps(config)
+    if len(config) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
+        raise ConfigSizeToLarge
+
 
 def handle_upload_config_file(parameters, session, response_encoder):
     """
@@ -798,11 +808,14 @@ def handle_upload_config_file(parameters, session, response_encoder):
     :return Default response, should be ignored
     """
     try:
-        session[OP_CONFIG] = json.loads(parameters['configFileContent'])
+        session[OP_CONFIG] = validate_configuration_size(json.loads(parameters['configFileContent']))
     except ValueError:
         return response_encoder.service_error(
             "Failed to load the configuration file. Make sure the config file "
             "follows the appopriate format")
+    except ConfigSizeToLarge:
+        LOGGER.debug("Some one tried to upload a configuration which exceeded the allowed file limit.")
+        return response_encoder.service_error("The uploaded configuration file exceeds the allowed file limit.")
 
     return response_encoder.return_json({})
 
@@ -830,32 +843,38 @@ def convert_from_unicode(data):
         return data
 
 
-def create_module_string(client_config, port):
+def create_module_string(client_config, port, base_url=None, ssl_module=None):
     _client = copy.deepcopy(client_config)
 
-    base = get_base_url(port)
+    if not base_url:
+        base_url = get_base_url(port)
+
+    if not ssl_module:
+        ssl_module = CONF.OPRP_SSL_MODULE
 
     _client['client_info'] = {
         "application_type": "web",
         "application_name": "OIC test tool",
         "contacts": ["roland.hedberg@umu.se"],
-        "redirect_uris": ["%sauthz_cb" % base],
-        "post_logout_redirect_uris": ["%slogout" % base]
+        "redirect_uris": ["%sauthz_cb" % base_url],
+        "post_logout_redirect_uris": ["%slogout" % base_url]
     }
 
     if 'client_registration' in _client:
         del _client['client_info']
 
-    _client['key_export_url'] = "%sexport/jwk_%%s.json" % base
-    _client['base_url'] = base
+    _client['key_export_url'] = "%sexport/jwk_%%s.json" % base_url
+    _client['base_url'] = base_url
 
     _client = convert_from_unicode(_client)
 
-    return "from " + CONF.OPRP_SSL_MODULE + " import *\nPORT = " + str(
-        port) + "\nBASE =\'" + str(base) + "\'\nCLIENT = " + str(_client)
+    return "from " + ssl_module + " import *\nPORT = " + str(
+        port) + "\nBASE =\'" + str(base_url) + "\'\nCLIENT = " + str(_client)
 
 
 def get_config_file_path(port, rp_config_folder):
+    if not rp_config_folder.endswith("/"):
+        rp_config_folder = rp_config_folder + "/"
     return rp_config_folder + "rp_conf_" + str(port) + ".py"
 
 class NoResponseException(Exception):
@@ -931,8 +950,29 @@ def kill_existing_process_on_port(port):
             raise
 
 
-def write_config_file(config_file_name, config_module):
-    with open(config_file_name, "w") as _file:
+def copy_existing_config_file(config_file_path, oprp_dir_path, port):
+    if not oprp_dir_path.endswith("/"):
+        oprp_dir_path = oprp_dir_path + "/"
+    backup_dir = oprp_dir_path + "config_backup"
+    try:
+        os.makedirs(backup_dir)
+    except OSError:
+        pass
+    time_stamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y%m%d_%H.%M.%S')
+    config_file_name = "rp_conf_" + str(port) + ".py"
+    backup_file = os.path.join(backup_dir, config_file_name + "_" + time_stamp)
+
+    try:
+        shutil.copy(config_file_path, backup_file)
+    except:
+        LOGGER.debug("Failed to make a backup of config file: %s" % config_file_path)
+        pass
+
+
+def write_config_file(config_file_path, config_module, port, oprp_dir_path="."):
+    copy_existing_config_file(config_file_path, oprp_dir_path, port)
+
+    with open(config_file_path, "w") as _file:
         _file.write(config_module)
 
 def is_using_dynamic_client_registration(config_gui_structure):
@@ -965,6 +1005,13 @@ def get_issuer_from_gui_config(gui_config):
 
     return issuer
 
+
+def save_config_info_in_database(_port, session):
+    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
+    row = port_db.get_row(_port)
+    port_db.upsert_row(row, session[OP_CONFIG])
+
+
 def handle_start_op_tester(session, response_encoder, parameters):
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
@@ -984,25 +1031,39 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
-    LOGGER.debug("The RP will try to start on port: %s" % _port)
     config_file_path = get_config_file_path(_port,
                                             CONF.OPRP_DIR_PATH)
 
-    session[OP_CONFIG] = convert_config_gui_structure(config_gui_structure, _port, _instance_id)
+    config_string = convert_config_gui_structure(config_gui_structure, _port, _instance_id)
+
+    try:
+        session[OP_CONFIG] = validate_configuration_size(config_string)
+    except ConfigSizeToLarge:
+        LOGGER.debug("Some one tried to store a configuration which exceeded the allowed file limit.")
+        return response_encoder.service_error("The configuration you are trying to store exceeds the allowed file limit.")
+
     config_module = create_module_string(session[OP_CONFIG], _port)
 
     try:
-        write_config_file(config_file_path, config_module)
+        write_config_file(config_file_path, config_module, _port, oprp_dir_path=CONF.OPRP_DIR_PATH)
         LOGGER.debug("Written configuration to file: %s" % config_file_path)
     except IOError as ioe:
         LOGGER.exception(str(ioe))
         response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
+
+    try:
+        save_config_info_in_database(_port, session)
+        LOGGER.debug("Written configuration for test instance using port %s to database" % _port)
+    except Exception as ex:
+        LOGGER.exception(str(ex))
+        response_encoder.service_error("Failed to store configurations in database. Please contact technical support")
 
     kill_existing_process_on_port(_port)
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
+    LOGGER.debug("The RP will try to start on port: %s" % _port)
     try:
         start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
