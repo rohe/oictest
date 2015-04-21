@@ -632,6 +632,8 @@ class OPRP(object):
                             return self.err_response(session, "jwks_fetch",
                                                      str(err))
                         else:
+                            conv.last_response = resp
+                            conv.last_content = resp.content
                             if resp.status_code < 300:
                                 trace.info(
                                     "JWKS: %s" % pprint_json(resp.content))

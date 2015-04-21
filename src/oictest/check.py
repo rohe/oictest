@@ -1960,6 +1960,7 @@ class VerifyBase64URL(Check):
         pi = get_provider_info(conv)
         resp = conv.client.http_request(pi["jwks_uri"], verify=False,
                                         allow_redirects=True)
+
         try:
             err_status = self._kwargs["err_status"]
         except KeyError:
@@ -2172,6 +2173,7 @@ class BareKeys(Information):
         pi = get_provider_info(conv)
         resp = conv.client.http_request(pi["jwks_uri"], verify=False,
                                         allow_redirects=True)
+
         if resp.status_code == 200:
             jwks = json.loads(resp.text)
             key = {}
