@@ -35,11 +35,16 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "oic==0.7.5",
-        "mechanize",
         "argparse",
-        "beautifulsoup4",
-        "requests >= 2.0.0"
+        "requests >= 2.0.0",
         #"importlib" only needed for 2.6
+        "beaker",
+        "argparse==1.2.2",
+        "pyjwkest==0.6.1",
+        "pycparser==2.10",
+        "dataset",
+        "prettytable",
+        "mock"
     ],
 
     zip_safe=False,
