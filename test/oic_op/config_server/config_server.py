@@ -188,7 +188,7 @@ def _generate_static_input_fields(default_input_value=None):
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
-    
+
     :return:The static input fields presented as the internal data structure
     """
     if default_input_value is None:
@@ -388,7 +388,7 @@ def convert_to_gui_drop_down(config_file_dict):
 def convert_config_file(config_file_dict):
     """
     Converts a config file structure to a config GUI structure
-    :param config_file_dict: The configuration file from which should be 
+    :param config_file_dict: The configuration file from which should be
     converted
     :return The updated configuration GUI data structure
     """
@@ -797,9 +797,10 @@ class ConfigSizeToLarge(Exception):
 
 def validate_configuration_size(config):
     if isinstance(config, dict):
-        config = json.dumps(config)
-    if len(config) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
+        config_string = json.dumps(config)
+    if len(config_string) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
         raise ConfigSizeToLarge
+    return config
 
 
 def handle_upload_config_file(parameters, session, response_encoder):
