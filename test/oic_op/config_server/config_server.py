@@ -188,7 +188,7 @@ def _generate_static_input_fields(default_input_value=None):
     """
     Generates all static input fields based on ProviderConfigurationResponse
     class localed in [your path]/pyoidc/scr/oic/oic/message.py
-
+    
     :return:The static input fields presented as the internal data structure
     """
     if default_input_value is None:
@@ -872,7 +872,6 @@ def create_module_string(client_config, port, base_url=None, ssl_module=None):
     return "from " + ssl_module + " import *\nPORT = " + str(
         port) + "\nBASE =\'" + str(base_url) + "\'\nCLIENT = " + str(_client)
 
-
 def get_config_file_path(port, rp_config_folder):
     if not rp_config_folder.endswith("/"):
         rp_config_folder = rp_config_folder + "/"
@@ -1196,6 +1195,14 @@ if __name__ == '__main__':
     }
 
     CONF = importlib.import_module(sys.argv[1])
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    if not hasattr(CONF, 'OPRP_PATH'):
+        CONF.OPRP_PATH =  current_dir + "/../rp/oprp2.py"
+
+    if not hasattr(CONF, 'OPRP_DIR_PATH'):
+        CONF.OPRP_DIR_PATH = current_dir + "/../rp/"
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 
