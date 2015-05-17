@@ -1,5 +1,5 @@
 .. _howto:
-
+.. This file is subject to the Apache License version 2.0 available at http://apache.org/licenses/LICENSE-2.0.
 ********************************
 How to test an OpenID Connect OP
 ********************************

@@ -1,3 +1,4 @@
+.. This file is subject to the Apache License version 2.0 available at http://apache.org/licenses/LICENSE-2.0.
 .. OicTest documentation master file, created by
    sphinx-quickstart on Wed Jan 25 12:20:08 2012.
    You can adapt this file completely to your liking, but it should at least
