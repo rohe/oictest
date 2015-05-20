@@ -299,7 +299,7 @@ def webfinger(environ, start_response, session, trace):
         p = urlparse(resource)
         if p.scheme == "acct":
             l, _ = p.path.split("@")
-            path = "/%s%s" % (l, pathmap.IDMAP[l])
+            path = pathmap.IDMAP[l]
         else:  # scheme == http/-s
             path = pathmap.IDMAP[p.path[1:]]
 
