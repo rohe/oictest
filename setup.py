@@ -35,11 +35,12 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "oic",
-        #"mechanize",
         "argparse",
-        #"beautifulsoup4",
-        "requests >= 2.0.0"
-        #"importlib" only needed for 2.6
+        "requests >= 2.0.0",
+        "dataset",
+        "prettytable",
+        "mechanize",
+        "beautifulsoup4"
     ],
 
     zip_safe=False,
