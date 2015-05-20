@@ -61,111 +61,111 @@ FLOWS = {
     #     "profile": "...T",
     #     "desc": "Uses Dynamic Registration"
     # },
-    "rp-rtyp-code": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            Registration,
-            Authn
-        ],
-        "profile": "C...",
-        "desc": "Can Make Request with 'code' Response Type"
-    },
-     "rp-rtyp-idt": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
-            Authn
-        ],
-        "desc": "Can Make Request with 'id_token' Response Type",
-        "profile": "I...",
-    },
-    "rp-rtyp-idt_token": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
-            Authn
-        ],
-        "profile": "I,IT...",
-        "desc": "Can Make Request with 'id_token token' Response Type"
-    },
-    "rp-rmod-form": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
-            (Authn, {set_request_args: {"response_mode": ["form_post"]}})
-        ],
-        "profile": "I,IT...",
-        "desc": "Can Make Request with response_mode=form_post"
-    },
-    "rp-tok-csbasic": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            Registration,
-            Authn,
-            (AccessToken,
-             {set_request_args: {"authn_method": "client_secret_basic"}})
-        ],
-        "profile": "C,CI,CIT...",
-        "desc": "Can Make Access Token Request with 'client_secret_basic' "
-                "Authentication"
-    },
-    #client_secret_post
-    "rp-tok-cspost": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {
-                 "token_endpoint_auth_method": "client_secret_post"}}),
-            Authn,
-            (AccessToken,
-             {set_request_args: {"authn_method": "client_secret_post"}})
-        ],
-        "profile": "C,CI,CIT...",
-        "desc": "Can Make Access Token Request with 'client_secret_post' "
-                "Authentication"
-    },
-    # client_secret_jwt
-    "rp-tok-csjwt": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {
-                 "token_endpoint_auth_method": "client_secret_jwt"}}),
-            Authn,
-            (AccessToken,
-             {set_request_args: {"authn_method": "client_secret_jwt"}})
-        ],
-        "profile": "C,CI,CIT...",
-        "desc": "Can Make Access Token Request with 'client_secret_jwt' "
-                "Authentication"
-    },
-    # private_key_jwt
-    "rp-tok-pkjwt": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            (Registration,
-             {set_request_args: {
-                 "token_endpoint_auth_method": "private_key_jwt",
-                 "jwks_uri": "https://localhost:8088/static/jwk.json"}}),
-            Authn,
-            (AccessToken,
-             {set_request_args: {"authn_method": "private_key_jwt"}})
-        ],
-        "profile": "C,CI,CIT...",
-        "desc": "Can Make Access Token Request with 'private_key_jwt' "
-                "Authentication"
-    },
+    # "rp-rtyp-code": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         Registration,
+    #         Authn
+    #     ],
+    #     "profile": "C...",
+    #     "desc": "Can Make Request with 'code' Response Type"
+    # },
+    #  "rp-rtyp-idt": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
+    #         Authn
+    #     ],
+    #     "desc": "Can Make Request with 'id_token' Response Type",
+    #     "profile": "I...",
+    # },
+    # "rp-rtyp-idt_token": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
+    #         Authn
+    #     ],
+    #     "profile": "I,IT...",
+    #     "desc": "Can Make Request with 'id_token token' Response Type"
+    # },
+    # "rp-rmod-form": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {"id_token_signed_response_alg": "RS256"}}),
+    #         (Authn, {set_request_args: {"response_mode": ["form_post"]}})
+    #     ],
+    #     "profile": "I,IT...",
+    #     "desc": "Can Make Request with response_mode=form_post"
+    # },
+    # "rp-tok-csbasic": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         Registration,
+    #         Authn,
+    #         (AccessToken,
+    #          {set_request_args: {"authn_method": "client_secret_basic"}})
+    #     ],
+    #     "profile": "C,CI,CIT...",
+    #     "desc": "Can Make Access Token Request with 'client_secret_basic' "
+    #             "Authentication"
+    # },
+    # #client_secret_post
+    # "rp-tok-cspost": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {
+    #              "token_endpoint_auth_method": "client_secret_post"}}),
+    #         Authn,
+    #         (AccessToken,
+    #          {set_request_args: {"authn_method": "client_secret_post"}})
+    #     ],
+    #     "profile": "C,CI,CIT...",
+    #     "desc": "Can Make Access Token Request with 'client_secret_post' "
+    #             "Authentication"
+    # },
+    # # client_secret_jwt
+    # "rp-tok-csjwt": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {
+    #              "token_endpoint_auth_method": "client_secret_jwt"}}),
+    #         Authn,
+    #         (AccessToken,
+    #          {set_request_args: {"authn_method": "client_secret_jwt"}})
+    #     ],
+    #     "profile": "C,CI,CIT...",
+    #     "desc": "Can Make Access Token Request with 'client_secret_jwt' "
+    #             "Authentication"
+    # },
+    # # private_key_jwt
+    # "rp-tok-pkjwt": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         (Registration,
+    #          {set_request_args: {
+    #              "token_endpoint_auth_method": "private_key_jwt",
+    #              "jwks_uri": "https://localhost:8088/static/jwk.json"}}),
+    #         Authn,
+    #         (AccessToken,
+    #          {set_request_args: {"authn_method": "private_key_jwt"}})
+    #     ],
+    #     "profile": "C,CI,CIT...",
+    #     "desc": "Can Make Access Token Request with 'private_key_jwt' "
+    #             "Authentication"
+    # },
     "rp-idt-sigenc": {
         "sequence": [
             Webfinger,

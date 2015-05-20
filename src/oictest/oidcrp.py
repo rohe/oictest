@@ -1,7 +1,7 @@
 import copy
 import json
 from urlparse import urlparse
-from jwkest import unpack
+from jwkest.jwt import JWT
 from jwkest import BadSyntax
 from jwkest.jwe import DecryptionFailed
 
@@ -301,7 +301,7 @@ def do_response(response, conv, url, trace, client, body_type, response_type,
                                                       body_type, state,
                                                       **kwargs)
         except DecryptionFailed:
-            p = unpack(response)
+            p = JWT().unpack(response)
             trace.log(
                 "Failed decryption on response with JWT header {}".format(p[0]))
             raise
@@ -314,7 +314,7 @@ def do_response(response, conv, url, trace, client, body_type, response_type,
             # trace.info("IdToken JWT header: %s" % header)
         else:
             try:
-                res = unpack(response.content)
+                res = JWT().unpack(response.content)
             except (BadSyntax, TypeError):
                 pass
             else:

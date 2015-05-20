@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import copy
-from jwkest.jwk import SerializationNotPossible
 from oic.exception import UnSupported, PyoidcError
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
@@ -23,7 +22,6 @@ __author__ = 'rohe0002'
 
 # ========================================================================
 
-import time
 
 from urllib import urlencode
 from oic.oauth2.util import JSON_ENCODED
