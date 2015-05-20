@@ -1,3 +1,4 @@
+# This file is subject to the Apache License version 2.0 available at http://apache.org/licenses/LICENSE-2.0.
 # -*- coding: utf-8 -*-
 #
 # OicTest documentation build configuration file, created by

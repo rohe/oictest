@@ -388,7 +388,7 @@ def convert_to_gui_drop_down(config_file_dict):
 def convert_config_file(config_file_dict):
     """
     Converts a config file structure to a config GUI structure
-    :param config_file_dict: The configuration file from which should be 
+    :param config_file_dict: The configuration file from which should be
     converted
     :return The updated configuration GUI data structure
     """
@@ -797,9 +797,10 @@ class ConfigSizeToLarge(Exception):
 
 def validate_configuration_size(config):
     if isinstance(config, dict):
-        config = json.dumps(config)
-    if len(config) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
+        config_string = json.dumps(config)
+    if len(config_string) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
         raise ConfigSizeToLarge
+    return config
 
 
 def handle_upload_config_file(parameters, session, response_encoder):
@@ -870,7 +871,6 @@ def create_module_string(client_config, port, base_url=None, ssl_module=None):
 
     return "from " + ssl_module + " import *\nPORT = " + str(
         port) + "\nBASE =\'" + str(base_url) + "\'\nCLIENT = " + str(_client)
-
 
 def get_config_file_path(port, rp_config_folder):
     if not rp_config_folder.endswith("/"):
@@ -1195,6 +1195,14 @@ if __name__ == '__main__':
     }
 
     CONF = importlib.import_module(sys.argv[1])
+
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+
+    if not hasattr(CONF, 'OPRP_PATH'):
+        CONF.OPRP_PATH =  current_dir + "/../rp/oprp2.py"
+
+    if not hasattr(CONF, 'OPRP_DIR_PATH'):
+        CONF.OPRP_DIR_PATH = current_dir + "/../rp/"
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 
