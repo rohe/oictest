@@ -188,6 +188,12 @@ class Authn(Request):
         conv.nonce = rndstr()
         self.req_args["nonce"] = conv.nonce
 
+    def setup(self, profile_map):
+        self.map_profile(profile_map)
+        self._setup()
+
+        self.req_args["redirect_uri"] = self.conv.callback_uris[0]
+
     def __call__(self):
         url, body, ht_args, csi = self.conv.client.request_info(
             AuthorizationRequest, method="GET", request_args=self.req_args,

@@ -52,15 +52,15 @@ FLOWS = {
     #     "profile": "..T.",
     #     "desc": "Will detect a faulty issuer claim in OP config"
     # },
-    "rp-dynreg-0": {
-        "sequence": [
-            Webfinger,
-            Discovery,
-            Registration
-        ],
-        "profile": "...T",
-        "desc": "Uses Dynamic Registration"
-    },
+    # "rp-dynreg-0": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery,
+    #         Registration
+    #     ],
+    #     "profile": "...T",
+    #     "desc": "Uses Dynamic Registration"
+    # },
     "rp-rtyp-code": {
         "sequence": [
             Webfinger,
