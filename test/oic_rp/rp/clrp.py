@@ -4,11 +4,11 @@ import importlib
 import json
 import logging
 import argparse
-import aatest
+import rrtest
 import time
 
 from urlparse import urlparse
-from aatest import FatalError
+from rrtest import FatalError
 
 from oic.oauth2 import SUCCESSFUL
 from oic.oauth2 import verify_header
@@ -37,7 +37,7 @@ __author__ = 'roland'
 logger = None
 
 
-class Trace(aatest.Trace):
+class Trace(rrtest.Trace):
     @staticmethod
     def format(resp):
         _d = {"claims": resp.to_dict()}

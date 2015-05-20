@@ -1,6 +1,6 @@
 import traceback
-from aatest import Break, FatalError
-from aatest.check import STATUSCODE, ExpectedError
+from rrtest import Break, FatalError
+from rrtest.check import STATUSCODE, ExpectedError
 import sys
 
 __author__ = 'roland'
