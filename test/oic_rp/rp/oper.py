@@ -80,14 +80,11 @@ class Operation(object):
                 "Running {} with kwargs: {}".format(func, kwargs))
             res = func(**kwargs)
         except Exception as err:
-            try:
-                assert isinstance(err, self.expect_exception)
-            except AssertionError:
+            res = None
+            if not self.expect_exception: # No exception expected, propagate it
                 raise
-            except KeyError:
-                raise err
             else:
-                res = None
+                assert isinstance(err, self.expect_exception)
         else:
             self.conv.trace.reply(res)
 
