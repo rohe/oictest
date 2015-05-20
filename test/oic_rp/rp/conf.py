@@ -9,7 +9,7 @@ SERVER_KEY = "certs/server.key"
 CA_BUNDLE = None
 VERIFY_SSL = False
 
-ISSUER = "https://localhost:8080/"
+ISSUER = "https://localhost:8092/"
 #ISSUER = "https://oictest.umdc.umu.se:8051/"
 
 KEY_EXPORT_URL = "%sstatic/jwk.json" % BASE
@@ -29,8 +29,13 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
-CLIENT_INFO = {
-    "redirect_uris": ["%sauthz_cb" % BASE],
-    "application_type": "web",
-    "contact": ["foo@example.com"]
+INFO = {
+    "client":{
+        "redirect_uris": ["%sauthz_cb" % BASE],
+        "application_type": "web",
+        "contact": ["foo@example.com"]
+    }
+    # registered
+    # srv_discovery_url
+    # provider_info
 }

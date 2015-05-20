@@ -1,7 +1,10 @@
+#!/usr/bin/env python
+
 import copy
 import importlib
 import json
 import logging
+import os
 from urlparse import parse_qs, urlparse
 import argparse
 from mako.lookup import TemplateLookup
@@ -83,6 +86,12 @@ def flow_list(environ, start_response, flows, done):
 
 def include(url, test_id):
     p = urlparse(url)
+    if p.path[1:].startswith(test_id):
+        if len(p.path[1:].split("/")) <= 1:
+            return os.path.join(url, "_/_/_/normal")
+        else:
+            return url
+
     return "%s://%s/%s%s_/_/_/normal" % (p.scheme, p.netloc, test_id, p.path)
 
 
@@ -101,6 +110,19 @@ def get_claims(client):
     return resp
 
 
+def print_result(resp):
+    try:
+        cl_name = resp.__class__.__name__
+    except AttributeError:
+        cl_name = ""
+        txt = resp
+    else:
+        txt = json.dumps(resp.to_dict(), sort_keys=True, indent=2,
+                         separators=(',', ': '))
+
+    logging.info("{}: {}".format(cl_name, txt))
+
+
 def catch_exception(spec, func, **kwargs):
     try:
         res = func(**kwargs)
@@ -111,6 +133,8 @@ def catch_exception(spec, func, **kwargs):
             raise
         else:
             res = None
+    else:
+        print_result(res)
 
     return res
 
@@ -132,7 +156,9 @@ def run_flow(client, index, session, test_id):
 
             if spec["action"] == "discover":
                 if isinstance(_args, basestring):
-                    session["issuer"] = client.discover(_args % test_id)
+                    _p = urlparse(CONF.ISSUER)
+                    session["issuer"] = client.discover(_args.format(test_id,
+                                                                     _p.netloc))
                 else:
                     session["issuer"] = client.discover(CONF.ISSUER+test_id)
             elif spec["action"] == "provider_info":
@@ -197,6 +223,7 @@ def application(environ, start_response):
             setattr(_cli, arg, val)
         session["done"] = []
 
+
     if path == "robots.txt":
         return static(environ, start_response, LOGGER, "static/robots.txt")
     elif path.startswith("static/"):
@@ -210,11 +237,10 @@ def application(environ, start_response):
         session["flow"] = FLOWS.FLOWS[path]
         session["index"] = 0
         session["item"] = path
-        test_id = "%s-%s" % (TESTID, path)
-        session["test_id"] = test_id
+        session["test_id"] = path
 
         try:
-            resp = run_flow(_cli, session["index"], session, test_id)
+            resp = run_flow(_cli, session["index"], session, path)
         except Exception as err:
             resp = ServiceError("%s" % err)
             return resp(environ, start_response)
@@ -280,7 +306,6 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', dest='flows')
-    parser.add_argument('-i', dest='identifier')
     parser.add_argument(dest="config")
     cargs = parser.parse_args()
 
@@ -296,10 +321,6 @@ if __name__ == '__main__':
 
     FLOWS = importlib.import_module(cargs.flows)
     CONF = importlib.import_module(cargs.config)
-    if cargs.identifier:
-        TESTID = cargs.identifier
-    else:
-        TESTID = "ITS"
 
     SERVER_ENV.update({"template_lookup": LOOKUP, "base_url": CONF.BASE})
 

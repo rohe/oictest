@@ -159,7 +159,8 @@ FLOWS = {
             '_discover_',
             ("oic-registration",
              {"request_args": {"id_token_signed_response_alg": "RS256"}}),
-            "_login_", "_accesstoken_"],
+            "_login_",
+            "_accesstoken_"],
         "profile": "..T.s",
         "mti": {"all": "MUST"},
         "tests": {"verify-idtoken-is-signed": {"alg": "RS256"},
@@ -1333,7 +1334,7 @@ FLOWS = {
                  "support": {
                      "warning": {
                          "token_endpoint_auth_methods_supported":
-                             "client_secret_jwt"}}
+                             "private_key_jwt"}}
              }),
         ],
         "profile": "C,CI,CT,CIT..T",

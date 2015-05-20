@@ -1203,6 +1203,10 @@ if __name__ == '__main__':
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
                                         SessionMiddleware(application,
                                                           session_opts))
+    try:
+        _dir_path = CONF.OPRP_DIR_PATH
+    except AttributeError:
+        _dir_path = ""
     if CONF.OPRP_DIR_PATH not in sys.path:
         sys.path.append(CONF.OPRP_DIR_PATH)
 

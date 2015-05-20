@@ -309,7 +309,7 @@ if __name__ == '__main__':
     sys.path.insert(0, ".")
     CONF = importlib.import_module(args.config)
 
-    setup_logging("rp_%s.log" % CONF.PORT, LOGGER)
+    setup_logging("rp_%s.log" % CONF.PORT)
 
     try:
         if args.testflows:

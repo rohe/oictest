@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import copy
 from jwkest.jwk import SerializationNotPossible
-from oic.exception import UnSupported
+from oic.exception import UnSupported, PyoidcError
 from oic.utils.keyio import KeyBundle
 from oic.utils.keyio import dump_jwks
 from oic.oauth2.message import SchemeError
@@ -1054,7 +1054,7 @@ class Discover(Operation):
                 else:
                     raise
             except KeyError:
-                raise
+                raise PyoidcError("Issuer uses HTTP not HTTPS")
 
         client.match_preferences(pcr)
         self.trace.info("Client behavior: %s" % client.behaviour)

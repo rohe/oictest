@@ -11,7 +11,7 @@ NP = 5
 
 
 def extract_mode(path):
-    # path = <test_id>/<sign_alg>/<encrypt>/<errtype/<claims>/<endpoint>
+    # path = <test_id>/<sign_alg>/<encrypt>/<behaviortype/<claims>/<endpoint>
 
     if path == "":
         return {}, ""
@@ -63,7 +63,7 @@ def extract_mode(path):
 
 
 def mode2path(mode):
-    # test_id/<sig-alg>/<enc-alg>/<err>/<userinfo>
+    # test_id/<sig-alg>/<enc-alg>/<behavior>/<userinfo>
     if mode is None:
         mode = {}
 
@@ -132,8 +132,8 @@ def setup_op(mode, com_args, op_arg):
             pass
 
         try:
-            op.err_type = mode["err"]
-            op.server.err_type = mode["err"]
+            op.behavior_type = mode["behavior"]
+            op.server.behavior_type = mode["behavior"]
         except KeyError:
             pass
 

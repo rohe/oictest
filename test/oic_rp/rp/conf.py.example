@@ -29,8 +29,10 @@ keys = [
     {"type": "EC", "crv": "P-256", "use": ["enc"]}
 ]
 
-CLIENT_INFO = {
-    "redirect_uris": ["%sauthz_cb" % BASE],
-    "application_type": "web",
-    "contact": ["foo@example.com"]
+INFO = {
+    "client": {
+        "redirect_uris": ["%sauthz_cb" % BASE],
+        "application_type": "web",
+        "contact": ["foo@example.com"]
+    }
 }

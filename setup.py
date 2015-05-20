@@ -35,9 +35,9 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
         "oic==0.7.5",
-        "mechanize",
+        #"mechanize",
         "argparse",
-        "beautifulsoup4",
+        #"beautifulsoup4",
         "requests >= 2.0.0"
         #"importlib" only needed for 2.6
     ],

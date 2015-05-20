@@ -2,8 +2,9 @@ import calendar
 import json
 
 from jwkest import b64d
-from jwkest import unpack
+#from jwkest import unpack
 from jwkest.jwk import base64url_to_long
+from jwkest.jwt import split_token
 from oic.exception import MessageException
 from oic.oauth2.message import ErrorResponse
 from oic.oic import AuthorizationResponse
@@ -746,7 +747,7 @@ class VerifyClaims(Error):
                 pass
 
         if "request" in req:
-            jso = json.loads(unpack(req["request"])[1])
+            jso = json.loads(split_token(req["request"])[1])
             _uic = jso["userinfo"]
             for key, val in _uic["claims"].items():
                 userinfo_claims[key] = val
@@ -1357,7 +1358,7 @@ class CheckEncryptedUserInfo(Error):
 
     def _func(self, conv):
         jwt, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
-        p = unpack(msg)
+        p = split_token(msg)
         try:
             assert p[0]["alg"].startswith("RSA")
         except AssertionError:

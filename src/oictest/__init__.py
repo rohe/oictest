@@ -42,6 +42,10 @@ class ConfigurationError(Exception):
     pass
 
 
+class NotSupported(Exception):
+    pass
+
+
 def start_key_server(url, wdir="", script_path=""):
     """
 

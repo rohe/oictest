@@ -303,8 +303,8 @@ def webfinger(environ, start_response, session, trace):
         else:  # scheme == http/-s
             path = pathmap.IDMAP[p.path[1:]]
 
-        resp = Response(wf.response(subject=resource,
-                                    base=OP_ARG["baseurl"]+path[1:]))
+        _url = os.path.join(OP_ARG["baseurl"], session["test_id"], path[1:])
+        resp = Response(wf.response(subject=resource, base=_url))
 
         trace.reply(resp.message)
 
@@ -470,6 +470,17 @@ def application(environ, start_response):
 
     mode, endpoint = extract_mode(path)
 
+    if endpoint == ".well-known/webfinger":
+        _p = urlparse(parameters["resource"][0])
+        if _p.scheme in ["http", "https"]:
+            mode = {"test_id": _p.path[1:]}
+        elif _p.scheme == "acct":
+            _l, _ = _p.path.split('@')
+            mode = {"test_id": _l}
+        else:
+            resp = ServiceError("Unknown scheme: {}".format(_p.scheme))
+            return resp(environ, start_response)
+
     if mode:
         session["test_id"] = mode["test_id"]
 
@@ -603,7 +614,9 @@ if __name__ == '__main__':
         "authz": authz,
         "client_authn": verify_client,
         "symkey": config.SYM_KEY,
-    }
+        "template_lookup": LOOKUP,
+        "template": {"form_post": "form_response.mako"},
+        }
 
     OP_ARG = {}
 

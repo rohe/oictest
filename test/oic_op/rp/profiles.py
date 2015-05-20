@@ -138,14 +138,15 @@ PROFILEMAP = {
     }
 }
 
+
 SUBPROF = {"n": "none", "s": "sign", "e": "encrypt"}
 
 
-def get_sequence(flowid, spec, flows_, profilemap, phases):
+def get_sequence(flow_id, spec, flows_, profile_map, phases):
     """
     Return a sequence of request/responses that together defined the test flow.
 
-    :param flowid: Flow id
+    :param flow_id: Flow id
     :param spec: string or form <response_type><discovery><registration>...
     :return: list of request/responses and their arguments
     """
@@ -154,7 +155,7 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
     seq = []
 
     _profile = _p[RESPONSE]
-    for op in flows_[flowid]["sequence"]:
+    for op in flows_[flow_id]["sequence"]:
         if isinstance(op, tuple):
             _op, _a = op
             _args = copy.deepcopy(_a)
@@ -164,7 +165,7 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
 
         if _op == "_discover_":
             if _p[DISCOVER] == "T":
-                _op, arg = profilemap["Discover"]["*"]
+                _op, arg = profile_map["Discover"]["*"]
                 if arg:
                     # carg = copy.deepcopy(arg)
                     _args = _update(_args, arg)
@@ -173,7 +174,7 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
 
         if _op == "_register_":
             if _p[REGISTER] == "T":
-                _op, arg = profilemap["Register"][_profile]
+                _op, arg = profile_map["Register"][_profile]
                 if arg:
                     # carg = copy.deepcopy(arg)
                     _args = _update(_args, arg)
@@ -194,7 +195,7 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
                 _op = op
 
             try:
-                op = profilemap[_profile][_op]
+                op = profile_map[_profile][_op]
             except KeyError:
                 break
 
@@ -202,7 +203,7 @@ def get_sequence(flowid, spec, flows_, profilemap, phases):
             continue
 
         if _op == "oic-registration":  # default minimal registration info
-            _, b = profilemap["Register"][_profile]
+            _, b = profile_map["Register"][_profile]
             if b:
                 cb = copy.deepcopy(b)
                 _args = _update(_args, cb)

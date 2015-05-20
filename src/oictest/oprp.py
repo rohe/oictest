@@ -48,7 +48,7 @@ from testclass import DisplayUserInfo
 from testclass import DisplayIDToken
 from testclass import Webfinger
 
-LOGGER = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 INCOMPLETE = 4
 
@@ -61,6 +61,16 @@ class NotSupported(Exception):
     pass
 
 
+def setup_logging(logfile):
+    hdlr = logging.FileHandler(logfile)
+    base_formatter = logging.Formatter(
+        "%(asctime)s %(name)s:%(levelname)s %(message)s")
+
+    hdlr.setFormatter(base_formatter)
+    logger.addHandler(hdlr)
+    logger.setLevel(logging.DEBUG)
+
+
 def mk_tardir(issuer, test_profile):
     wd = os.getcwd()
 
@@ -69,7 +79,6 @@ def mk_tardir(issuer, test_profile):
         tardirname = os.path.join(tardirname, part)
         if not os.path.isdir(tardirname):
             os.mkdir(tardirname)
-
 
     logdirname = os.path.join(wd, "log", issuer, test_profile)
     for item in os.listdir(logdirname):
@@ -103,7 +112,7 @@ def create_tar_archive(issuer, test_profile):
     os.chdir(wd)
 
 
-def setup_logging(logfile, logger):
+def not_logging(logfile, logger):
     hdlr = logging.FileHandler(logfile)
     base_formatter = logging.Formatter(
         "%(asctime)s %(name)s:%(levelname)s %(message)s")
@@ -265,7 +274,7 @@ class OPRP(object):
         return resp(self.environ, self.start_response)
     
     def static(self, path):
-        LOGGER.info("[static]sending: %s" % (path,))
+        logger.info("[static]sending: %s" % (path,))
 
         try:
             text = open(path).read()
@@ -337,7 +346,7 @@ class OPRP(object):
         return resp(self.environ, self.start_response, **argv)
 
     def display_log(self, root, issuer="", profile="", testid=""):
-        LOGGER.info(
+        logger.info(
             "display_log root: '%s' issuer: '%s', profile: '%s' testid: '%s'" % (
                 root, issuer, profile, testid))
         if testid:
@@ -420,7 +429,7 @@ class OPRP(object):
 
     def err_response(self, session, where, err):
         if err:
-            exception_trace(where, err, LOGGER)
+            exception_trace(where, err, logger)
 
         self.log_fault(session, err, where)
 
@@ -553,7 +562,7 @@ class OPRP(object):
 
     def run_sequence(self, sequence_info, session, conv, ots, trace, index):
         while index < len(sequence_info["sequence"]):
-            LOGGER.info("###{i}### {f} ###{i}###".format(
+            logger.info("###{i}### {f} ###{i}###".format(
                 f=session["testid"], i=index))
             session["index"] = index
             try:
@@ -670,7 +679,7 @@ class OPRP(object):
                                  "message": "%s not supported" % req.endpoint})
                             return self.opresult(conv, session)
 
-                    LOGGER.info("request: %s" % req.request)
+                    logger.info("request: %s" % req.request)
                     if req.request == "AuthorizationRequest":
                         # New state for each request
                         kwargs["request_args"].update({"state": rndstr()})
@@ -713,8 +722,8 @@ class OPRP(object):
                     if req.request == "AuthorizationRequest":
                         session["response_type"] = kwargs["request_args"][
                             "response_type"]
-                        LOGGER.info("redirect.url: %s" % url)
-                        LOGGER.info("redirect.header: %s" % ht_args)
+                        logger.info("redirect.url: %s" % url)
+                        logger.info("redirect.header: %s" % ht_args)
                         conv.timestamp.append((url, utc_time_sans_frac()))
                         resp = Redirect(str(url))
                         return resp(self.environ, self.start_response)
@@ -769,7 +778,7 @@ class OPRP(object):
                             return self.fini(session, conv)
 
                         trace.response(response)
-                        LOGGER.info(response.to_dict())
+                        logger.info(response.to_dict())
 
                         if expect_error:
                             session["expect_error"] = True
