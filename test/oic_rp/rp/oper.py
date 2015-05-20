@@ -156,7 +156,7 @@ class Registration(Operation):
 
     def __call__(self):
         if self.dynamic:
-            self.catch_exception(self.conv.client.register, **self.op_args)
+            self.catch_exception(self.conv.client.register, **self.req_args)
         else:
             self.conv.client.store_registration_info(
                 RegistrationResponse(**self.conf.INFO["registered"]))
@@ -166,7 +166,8 @@ class Registration(Operation):
         self._setup()
 
         if self.dynamic:
-            self.op_args["url"] = self.conv.client.provider_info[
+            self.req_args.update(self.conf.INFO["client"])
+            self.req_args["url"] = self.conv.client.provider_info[
                 "registration_endpoint"]
 
 

@@ -14,44 +14,44 @@ ORDDESC = ["rp-webfinger", "rp-disc", "rp-dynreg", "rp-rtyp", "rp-rmod",
            "rp-tok", "rp-idt"]
 
 FLOWS = {
-    "rp-webfinger-url": {
-        "sequence": [Webfinger],
-        "desc": "Can Discover Identifiers using URL Syntax",
-        "profile": ".T..",
-    },
-    "rp-webfinger-email": {
-        "sequence": [(Webfinger, {resource: {"pattern": "acct:{}@{}"}})],
-        "desc": "Can Discover Identifiers using acct Syntax",
-        "profile": ".T..",
-    },
-    "rp-disc-config": {
-        "sequence": [
-            Webfinger,
-            Discovery
-        ],
-        "profile": "..T.",
-        "desc": "Uses openid-configuration Discovery Information"
-    },
-    "rp-disc-jwks_uri": {
-        "sequence": [
-            Webfinger,
-            Discovery
-        ],
-        "profile": "..T.",
-        "desc": "Can read and understand jwks_uri",
-        "tests": {
-            "providerinfo-has-jwks_uri": {},
-            "bare-keys": {}
-        }
-    },
-    "rp-disc-faulty-issuer": {
-        "sequence": [
-            Webfinger,
-            (Discovery, {expect_exception: IssuerMismatch})
-        ],
-        "profile": "..T.",
-        "desc": "Will detect a faulty issuer claim in OP config"
-    },
+    # "rp-webfinger-url": {
+    #     "sequence": [Webfinger],
+    #     "desc": "Can Discover Identifiers using URL Syntax",
+    #     "profile": ".T..",
+    # },
+    # "rp-webfinger-email": {
+    #     "sequence": [(Webfinger, {resource: {"pattern": "acct:{}@{}"}})],
+    #     "desc": "Can Discover Identifiers using acct Syntax",
+    #     "profile": ".T..",
+    # },
+    # "rp-disc-config": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery
+    #     ],
+    #     "profile": "..T.",
+    #     "desc": "Uses openid-configuration Discovery Information"
+    # },
+    # "rp-disc-jwks_uri": {
+    #     "sequence": [
+    #         Webfinger,
+    #         Discovery
+    #     ],
+    #     "profile": "..T.",
+    #     "desc": "Can read and understand jwks_uri",
+    #     "tests": {
+    #         "providerinfo-has-jwks_uri": {},
+    #         "bare-keys": {}
+    #     }
+    # },
+    # "rp-disc-faulty-issuer": {
+    #     "sequence": [
+    #         Webfinger,
+    #         (Discovery, {expect_exception: IssuerMismatch})
+    #     ],
+    #     "profile": "..T.",
+    #     "desc": "Will detect a faulty issuer claim in OP config"
+    # },
     "rp-dynreg-0": {
         "sequence": [
             Webfinger,
