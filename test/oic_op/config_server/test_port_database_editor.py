@@ -4,8 +4,7 @@ import mock
 from port_database_editor import ConfigFileEditor
 from config_server import CONFIG_DICT_INSTANCE_ID_KEY
 from config_server import get_config_file_path
-from port_database import PortDatabase
-
+from port_database import PortDatabase, CONFIG_FILE_COLUMN
 
 __author__ = 'danielevertsson'
 
@@ -66,24 +65,19 @@ class TestPortDatabaseEditor(unittest.TestCase):
             self.config_editor.get_config_file_dict("rp_conf_%s" % ports[0])
         self._remove_config_files(folder, ports)
 
-    def _setup_three_database_entries(self, database_ports=[8001, 8002, 8003]):
-        issuer="google"
-        self.database.upsert(issuer=issuer, port=database_ports[0], instance_id="test", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
-        self.database.upsert(issuer=issuer, port=database_ports[1], instance_id="test1", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
-        try:
-            self.database.upsert(issuer=issuer, port=database_ports[2], instance_id="test2", port_type=PortDatabase.DYNAMIC_PORT_TYPE)
-        except IndexError:
-            pass
+    def _setup_database_entries(self, database_ports=[8001, 8002, 8003]):
+        for port in database_ports:
+            self.database.upsert(issuer="google", port=port, instance_id="test" + str(port), port_type=PortDatabase.DYNAMIC_PORT_TYPE)
 
     def test_identify_removed_config_files(self):
         database_ports = [8001, 8002, 8003]
-        self._setup_three_database_entries(database_ports)
+        self._setup_database_entries(database_ports)
         ports = self.config_editor.identify_ports_for_removed_config_files(self.database, ['rp_conf_8001.py', 'rp_conf_8003.py'])
         self.assertEqual(ports, [8002])
 
     def test_restore_removed_config_file(self):
         database_ports = [8001, 8002]
-        self._setup_three_database_entries(database_ports)
+        self._setup_database_entries(database_ports)
         self.config_editor._restore_config_file = MagicMock(return_value=None)
 
         with mock.patch('__builtin__.raw_input', return_value='y'):
@@ -92,11 +86,34 @@ class TestPortDatabaseEditor(unittest.TestCase):
 
     def test_remove_unwanted_config_file_info_from_database(self):
         database_ports = [8001, 8002]
-        self._setup_three_database_entries(database_ports)
+        self._setup_database_entries(database_ports)
 
         with mock.patch('__builtin__.raw_input', return_value='n'):
             self.config_editor.prompt_user_for_config_file_restoration(self.database, [8002])
         self.assertEqual(self.database.get_all_ports(), [8001])
+
+    def test_add_config_info_to_existing_entry_if_not_existing(self):
+        database_ports = [8001]
+        self._setup_database_entries(database_ports)
+        instance_id = self.database.get_row(8001)[CONFIG_DICT_INSTANCE_ID_KEY]
+        config_file_dict = {'srv_discovery_url': "https://test.com", CONFIG_DICT_INSTANCE_ID_KEY: instance_id}
+        self.config_editor.get_config_file_dict = MagicMock(return_value=config_file_dict)
+        self.assertTrue(self.database.get_row(8001)[CONFIG_FILE_COLUMN] == None)
+
+        self.config_editor.sync_database_information(self.database, "rp_conf_8001.py")
+        config_file_in_db = self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+        self.assertEqual(config_file_dict, config_file_in_db)
+
+    def test_non_existing_entry_in_database(self):
+        config_file_dict = {'srv_discovery_url': "https://test.com", CONFIG_DICT_INSTANCE_ID_KEY: "test_id"}
+        self.config_editor.get_config_file_dict = MagicMock(return_value=config_file_dict)
+
+        with self.assertRaises(TypeError) as ex:
+            self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+
+        self.config_editor.sync_database_information(self.database, "rp_conf_8001.py")
+        config_file_in_db = self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+        self.assertEqual(config_file_dict, config_file_in_db)
 
 if __name__ == '__main__':
     unittest.main()
