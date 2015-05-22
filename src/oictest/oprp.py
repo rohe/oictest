@@ -88,7 +88,7 @@ def mk_tardir(issuer, test_profile):
         ln = os.path.join(logdirname, item)
         tn = os.path.join(tardirname, "{}.txt".format(item))
         if not os.path.isfile(tn):
-            os.link(ln, tn)
+            os.symlink(ln, tn)
 
 
 def create_tar_archive(issuer, test_profile):
