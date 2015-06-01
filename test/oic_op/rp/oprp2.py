@@ -9,24 +9,42 @@ import argparse
 import logging
 import sys
 
-from mako.lookup import TemplateLookup
 
-from oic.oic.message import factory as message_factory
+SERVER_LOG_FOLDER = "server_log"
+if not os.path.isdir(SERVER_LOG_FOLDER):
+    os.makedirs(SERVER_LOG_FOLDER)
 
-from oic.oauth2 import ResponseError
-from oic.utils import exception_trace
-from oic.utils.http_util import Redirect
-from oic.utils.http_util import get_post
-from oic.utils.http_util import BadRequest
-from oictest.oprp import setup_logging
-from oictest.oprp import OPRP
-from oictest.oprp import CRYPTSUPPORT
-from oictest.oprp import post_tests
+def setup_common_log():
+    global COMMON_LOGGER, hdlr, base_formatter
+    COMMON_LOGGER = logging.getLogger("common")
+    hdlr = logging.FileHandler("%s/common.log" % SERVER_LOG_FOLDER)
+    base_formatter = logging.Formatter("%(asctime)s %(name)s:%(levelname)s %(message)s")
+    hdlr.setFormatter(base_formatter)
+    COMMON_LOGGER.addHandler(hdlr)
+    COMMON_LOGGER.setLevel(logging.DEBUG)
+
+setup_common_log()
+
+
+try:
+    from mako.lookup import TemplateLookup
+    from oic.oic.message import factory as message_factory
+    from oic.oauth2 import ResponseError
+    from oic.utils import exception_trace
+    from oic.utils.http_util import Redirect
+    from oic.utils.http_util import get_post
+    from oic.utils.http_util import BadRequest
+    from oictest.oprp import setup_logging
+    from oictest.oprp import OPRP
+    from oictest.oprp import CRYPTSUPPORT
+    from oictest.oprp import post_tests
+except Exception as ex:
+    COMMON_LOGGER.exception(ex)
+    raise ex
 
 LOGGER = logging.getLogger("")
 
 RP_ARGS = None
-
 
 def application(environ, start_response):
     LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
@@ -309,7 +327,7 @@ if __name__ == '__main__':
     sys.path.insert(0, ".")
     CONF = importlib.import_module(args.config)
 
-    setup_logging("server_log/rp_%s.log" % CONF.PORT, LOGGER)
+    setup_logging("%s/rp_%s.log" % (SERVER_LOG_FOLDER, CONF.PORT), LOGGER)
 
     try:
         if args.testflows:

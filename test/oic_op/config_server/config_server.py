@@ -5,6 +5,7 @@ import collections
 import copy
 import importlib
 import json
+from logging import FileHandler
 import os
 import shutil
 import time
@@ -12,6 +13,7 @@ import argparse
 import datetime
 import logging
 import sys
+from requestlogger import WSGILogger, ApacheFormatter
 import requests
 import subprocess
 import signal
@@ -57,8 +59,6 @@ def setup_logging(logfile):
 
 
 def static(environ, start_response, logger, path):
-    logger.info("[static]sending: %s" % (path,))
-
     try:
         text = open(path).read()
         if path.endswith(".ico"):
@@ -1121,60 +1121,52 @@ def handle_get_redirect_url(session, response_encoder, parameters):
         json.dumps({"redirect_url": redirect_url}))
 
 
-def application(environ, start_response):
+def handle_path(environ, start_response):
     path = environ.get('PATH_INFO', '').lstrip('/')
-    LOGGER.info("Connection from: %s" % environ["REMOTE_ADDR"])
-    LOGGER.info("Path: %s" % path)
-
     session = environ['beaker.session']
-
     http_helper = HttpHandler(environ, start_response, session, LOGGER)
     response_encoder = ResponseEncoder(environ=environ,
                                        start_response=start_response)
     parameters = http_helper.query_dict()
-
     if path == "favicon.ico":
         return static(environ, start_response, LOGGER, "static/favicon.ico")
-
     if path.startswith("static/"):
         return static(environ, start_response, LOGGER, path)
 
     # TODO This is all web frameworks which should be imported via dirg-util
     if path.startswith("_static/"):
         return static(environ, start_response, LOGGER, path)
-
     if path.startswith("export/"):
         return static(environ, start_response, LOGGER, path)
-
     if path == "":
         return op_config(environ, start_response)
-
     if path == "create_new_config_file":
         return handle_create_new_config_file(response_encoder, session)
-
     if path == "get_op_config":
         return handle_get_op_config(session, response_encoder)
-
     if path == "does_op_config_exist":
         return handle_does_op_config_exist(session, response_encoder)
-
     if path == "download_config_file":
         return handle_download_config_file(session, response_encoder, parameters)
-
     if path == "upload_config_file":
         return handle_upload_config_file(parameters, session, response_encoder)
-
     if path == "start_op_tester":
         return handle_start_op_tester(session, response_encoder, parameters)
-
     if path == "get_redirect_url":
         return handle_get_redirect_url(session, response_encoder, parameters)
-
     if path == "request_instance_ids":
         return handle_request_instance_ids(response_encoder, parameters)
-
     return http_helper.http404()
 
+def application(environ, start_response):
+    try:
+        return handle_path(environ, start_response);
+    except Exception as ex:
+        LOGGER.exception(ex)
+        raise ex
+
+loggingapp = WSGILogger(application, [FileHandler("access.log")], ApacheFormatter())
+loggingapp.logger.propagate = False
 
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
@@ -1209,7 +1201,7 @@ if __name__ == '__main__':
     setup_logging("config_server.log")
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
-                                        SessionMiddleware(application,
+                                        SessionMiddleware(loggingapp,
                                                           session_opts))
     try:
         _dir_path = CONF.OPRP_DIR_PATH
