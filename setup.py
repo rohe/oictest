@@ -40,7 +40,8 @@ setup(
         "dataset",
         "prettytable",
         "mechanize",
-        "beautifulsoup4"
+        "beautifulsoup4",
+        "wsgi-request-logger"
     ],
 
     zip_safe=False,
