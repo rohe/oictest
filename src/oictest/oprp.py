@@ -882,7 +882,13 @@ class OPRP(object):
                 output.append("")
 
                 f = open(path, "w")
-                f.write("\n".join(output))
+                txt = "\n".join(output)
+
+                try:
+                    f.write(txt)
+                except UnicodeEncodeError:
+                    f.write(txt.encode("utf8"))
+
                 f.close()
                 pp = path.split("/")
                 create_tar_archive(pp[1], pp[2])
