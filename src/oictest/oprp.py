@@ -98,7 +98,7 @@ def create_tar_archive(issuer, test_profile):
     _dir = os.path.join(wd, "tar", issuer)
     os.chdir(_dir)
 
-    tar = tarfile.open("{}.tar".format(test_profile), "w")
+    tar = tarfile.open("{}.tar".format(test_profile), "w", dereference=True)
 
     for item in os.listdir(test_profile):
         if item.startswith("."):
