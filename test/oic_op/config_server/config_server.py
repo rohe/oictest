@@ -18,6 +18,7 @@ import requests
 import subprocess
 import signal
 import re
+import traceback
 
 from dirg_util.http_util import HttpHandler
 from mako.lookup import TemplateLookup
@@ -818,7 +819,7 @@ def handle_upload_config_file(parameters, session, response_encoder):
         LOGGER.debug("Some one tried to upload a configuration which exceeded the allowed file limit.")
         return response_encoder.service_error("The uploaded configuration file exceeds the allowed file limit.")
 
-    return response_encoder.return_json({})
+    return response_encoder.return_json("{}")
 
 
 def get_default_client():
@@ -1039,7 +1040,7 @@ def handle_start_op_tester(session, response_encoder, parameters):
     try:
         session[OP_CONFIG] = validate_configuration_size(config_string)
     except ConfigSizeToLarge:
-        LOGGER.debug("Some one tried to store a configuration which exceeded the allowed file limit.")
+        LOGGER.debug("Someone tried to store a configuration which exceeded the allowed file limit.")
         return response_encoder.service_error("The configuration you are trying to store exceeds the allowed file limit.")
 
     config_module = create_module_string(session[OP_CONFIG], _port)
@@ -1049,14 +1050,16 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.debug("Written configuration to file: %s" % config_file_path)
     except IOError as ioe:
         LOGGER.exception(str(ioe))
-        response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
+        print(traceback.format_exc())
+        return response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
 
     try:
         save_config_info_in_database(_port, session)
         LOGGER.debug("Written configuration for test instance using port %s to database" % _port)
     except Exception as ex:
         LOGGER.exception(str(ex))
-        response_encoder.service_error("Failed to store configurations in database. Please contact technical support")
+        print(traceback.format_exc())
+        return response_encoder.service_error("Failed to store configurations in database. Please contact technical support")
 
     kill_existing_process_on_port(_port)
 

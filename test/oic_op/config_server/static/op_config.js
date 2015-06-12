@@ -390,7 +390,21 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     function start_op_tester_success_callback(data, status, headers, config) {
-        window.location.href = data['oprp_url'];
+        var info_text = "Your test instance has been successfully launched, please take note of the URL you now will " +
+            "be redirected to. The test instance will be around until you tell us to remove it. Therefor the next time " +
+            "you want to test you can go directly to the test instance and continue testing. No need to create a " +
+            "new test instance unless you want to change from static provider configuration discovery to dynamic or " +
+            "static client registration to dynamic.";
+
+        bootbox.confirm({
+            message: info_text,
+            title: "Test instance successfully started",
+            callback: function (clicked_ok) {
+                if (clicked_ok) {
+                    window.location.href = data['oprp_url'];
+                }
+            }
+        });
     }
 
     /**
