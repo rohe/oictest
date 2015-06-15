@@ -34,9 +34,7 @@ from oic.utils.http_util import Response
 from port_database import PortDatabase, NoPortAvailable
 
 
-LOGGER = logging.getLogger("")
-urllib3_logger = logging.getLogger('requests.packages.urllib3')
-urllib3_logger.setLevel(logging.WARNING)
+LOGGER = logging.getLogger(__name__)
 
 LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
                         module_directory='modules',
@@ -903,8 +901,44 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
     raise NoResponseException("RP (%s) failed to start" % oprp_url)
 
 
+def run_command(commands_to_pipe):
+
+    past_sub_process = None
+
+    for command in commands_to_pipe:
+
+        if past_sub_process:
+            p = subprocess.Popen(command, stdin=past_sub_process.stdout, stdout=subprocess.PIPE)
+        else:
+            p = subprocess.Popen(command, stdout=subprocess.PIPE)
+
+        past_sub_process = p
+
+    return p.stdout.read()
+
+def verify_if_port_is_unused(failed_to_start_message, port):
+    try:
+        pid = run_command([["lsof", "-i", ":%s" % port],["grep", "LISTEN"],["awk", '{print $2}']])
+
+        if pid:
+            LOGGER.error("A process is already running on the allocated port: %s" % port)
+            process_info = run_command([["ps", "-ax"],["grep", str(int(pid))]])
+            LOGGER.debug("Apparently this port is used by process: %s" % process_info)
+        else:
+            return
+
+    except Exception as ex:
+        LOGGER.exception(str(ex))
+        LOGGER.error("Failed to verify if any other process is running on port: %s" % port)
+
+    raise Exception(failed_to_start_message)
+
 def start_rp_process(port, command, working_directory=None):
+    failed_to_start_message = "RP (%s) failed to start" % get_base_url(port)
     LOGGER.debug("Try to start RP on {} with command {}".format(port, command))
+
+    verify_if_port_is_unused(failed_to_start_message, port)
+
     try:
         p = subprocess.Popen(command,
                              stdout=subprocess.PIPE,
@@ -916,15 +950,14 @@ def start_rp_process(port, command, working_directory=None):
         LOGGER.fatal(
             "Failed to run oprp script: {} Error message: ".format(
                 command[0], ex))
-        raise Exception("Failed to run oprp script: {}".format(ex))
+        raise Exception(failed_to_start_message)
 
     if retcode is None:
         check_if_oprp_started(port)
     else:
         LOGGER.error("Return code {} != None. Command executed: {}".format(
             retcode, command))
-        raise NoResponseException(
-            "RP (%s) failed to start" % get_base_url(port))
+        raise NoResponseException(failed_to_start_message)
 
 def get_oprp_pid(port):
     pid = None
@@ -948,7 +981,7 @@ def kill_existing_process_on_port(port):
             LOGGER.debug("Killed RP running on port %s" % port)
         except OSError as ex:
             LOGGER.error("Failed to kill process (%s) connected to the server %s" % (pid, get_base_url(port)))
-            raise
+            raise ex
 
 
 def copy_existing_config_file(config_file_path, oprp_dir_path, port):
@@ -1026,7 +1059,8 @@ def handle_start_op_tester(session, response_encoder, parameters):
         except NoPortAvailable:
             pass
     else:
-        _port = session['port']
+        if "port" in session:
+            _port = session['port']
 
     if not _port:
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
@@ -1061,7 +1095,12 @@ def handle_start_op_tester(session, response_encoder, parameters):
         print(traceback.format_exc())
         return response_encoder.service_error("Failed to store configurations in database. Please contact technical support")
 
-    kill_existing_process_on_port(_port)
+    try:
+        kill_existing_process_on_port(_port)
+    except Exception as ex:
+        LOGGER.exception(str(ex))
+        print(traceback.format_exc())
+        return response_encoder.service_error("Failed to restart test instance. Please contact technical support")
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
