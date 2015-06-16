@@ -21,10 +21,11 @@ class PortDatabase():
 
     config_tread_lock = threading.Lock()
 
-    def __init__(self, database_path):
+    def __init__(self, database_path, is_port_used_func=None):
         self.database_path = database_path
         self.database = dataset.connect('sqlite:///' + database_path)
         self.table = self.database[self.TABLE_NAME]
+        self.is_port_used_func = is_port_used_func
 
     def clear(self):
         self.table.drop()
@@ -135,9 +136,13 @@ class PortDatabase():
         if port > max_port:
             raise NoPortAvailable(
                 "No port is available at the moment, please try again later")
+
+        while self.is_port_used_func(port):
+            port += 1
+
         return port
 
-    def enter_row(self, issuer, instance_id, port_type, min_port, max_port):
+    def allocate_port(self, issuer, instance_id, port_type, min_port, max_port):
         with self.config_tread_lock:
             port = self._get_existing_port(issuer=issuer, instance_id=instance_id)
 

@@ -1,9 +1,11 @@
 import os
 import copy
 import subprocess
-import __builtin__
+from threading import Thread
+from beaker.middleware import SessionMiddleware
+from cherrypy import wsgiserver
 from mock import patch
-import mock
+from port_database import PortDatabase
 from config_server import NoResponseException
 from config_server import check_if_oprp_started
 from config_server import kill_existing_process_on_port
@@ -24,12 +26,65 @@ from config_server import convert_instance
 from config_server import convert_to_value_list
 from config_server import set_dynamic_discovery_issuer_config_gui_structure
 from config_server import load_config_module
+from config_server import get_port_from_database
+from config_server import is_port_unused_by_other_process
 
 __author__ = 'danielevertsson'
 
 import unittest
 
+
+def application(environ, start_response):
+    pass
+
 class TestConfigServer(unittest.TestCase):
+
+    def test_if_possible_to_separate_between_test_instance_and_other_process(self):
+        self.assertFalse(is_port_unused_by_other_process(9000))
+
+        p = subprocess.Popen(['grep', 'rp_conf_9001'], stdout=subprocess.PIPE)
+        self.assertFalse(is_port_unused_by_other_process(9001))
+        p.kill()
+
+        self.start_http_server_thread(9000)
+        self.assertTrue(is_port_unused_by_other_process(9000))
+
+        self.start_http_server_thread(9001)
+        p = subprocess.Popen(['grep', 'rp_conf_9001'], stdout=subprocess.PIPE)
+        self.assertFalse(is_port_unused_by_other_process(9001))
+
+
+    def start_server(self, port):
+        SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', port),
+                                        SessionMiddleware(application))
+        print "serving at port: " + str(port)
+        SRV.start()
+        print "here"
+
+    def start_http_server_thread(self, port):
+        thread = Thread(target=self.start_server, args=(port, ))
+        thread.daemon = True
+        thread.start()
+
+    @patch('config_server.CONF')
+    def test_alloc_port_used_by_other_process(self, mock_server_config):
+        test_db = "test.db"
+        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = test_db
+        self.start_http_server_thread(8000)
+        allocated_port = get_port_from_database("issuer", "id", 8000, 8100, PortDatabase.STATIC_PORT_TYPE)
+        self.assertEqual(8001, allocated_port)
+        os.remove(test_db)
+
+    @patch('config_server.CONF')
+    def test_alloc_multiple_ports_used_by_other_processes(self, mock_server_config):
+        test_db = "test.db"
+        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = test_db
+        self.start_http_server_thread(8000)
+        self.start_http_server_thread(8001)
+        self.start_http_server_thread(8002)
+        allocated_port = get_port_from_database("issuer", "id", 8000, 8100, PortDatabase.STATIC_PORT_TYPE)
+        self.assertEqual(8003, allocated_port)
+        os.remove(test_db)
 
     def test_check_if_oprp_started_raises_NoResponseException(self):
         with self.assertRaises(NoResponseException):

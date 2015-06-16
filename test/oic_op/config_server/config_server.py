@@ -798,7 +798,9 @@ def validate_configuration_size(config):
     if isinstance(config, dict):
         config_string = json.dumps(config)
     if len(config_string) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
-        raise ConfigSizeToLarge
+        raise ConfigSizeToLarge("The given configuration contained %s chars when the "
+                                "maximum number of chars are %s" % (len(config_string),
+                                                                    CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED))
     return config
 
 
@@ -886,20 +888,27 @@ def check_if_oprp_started(port, oprp_url=None, timeout=5):
 
     stop_time = datetime.datetime.now() + datetime.timedelta(seconds=timeout)
 
+    response = None
+
     while datetime.datetime.now() < stop_time:
         try:
             response = requests.get(oprp_url, verify=False)
 
             if response.status_code == 200:
-                LOGGER.debug("The RP is running on port: %s and returning status code 200 OK" % port)
+                LOGGER.debug("The RP is running on port %s and returned status code 200 OK" % port)
                 return
 
             time.sleep(1)
         except ConnectionError:
             pass
+    error_message = "Test instance (%s) failed to return '200 OK' within %s sec. " % (oprp_url, timeout)
 
-    raise NoResponseException("RP (%s) failed to start" % oprp_url)
+    if response:
+        error_message += "The last response returned from the test instance: %s" % response
+    else:
+        error_message += "No response where returned from the test instance"
 
+    raise NoResponseException(error_message)
 
 def run_command(commands_to_pipe):
 
@@ -916,28 +925,39 @@ def run_command(commands_to_pipe):
 
     return p.stdout.read()
 
-def verify_if_port_is_unused(failed_to_start_message, port):
-    try:
-        pid = run_command([["lsof", "-i", ":%s" % port],["grep", "LISTEN"],["awk", '{print $2}']])
 
-        if pid:
-            LOGGER.error("A process is already running on the allocated port: %s" % port)
-            process_info = run_command([["ps", "-ax"],["grep", str(int(pid))]])
-            LOGGER.debug("Apparently this port is used by process: %s" % process_info)
-        else:
-            return
+def log_process_info(pid, port):
+    process_info = run_command([["ps", "-ax"], ["grep", str(int(pid))]])
+    LOGGER.debug("Apparently port %s is already in use by process: %s" % (port, process_info))
+
+
+def is_port_unused_by_other_process(port):
+    try:
+        oprp_pid = get_oprp_pid(port)
+
+        pid = run_command([["lsof", "-i", ":%s" % port],["grep", "LISTEN"],["awk", '{print $2}']])
+        pids = pid.splitlines()
+
+        if not (pid and not oprp_pid):
+            return False
+
+        LOGGER.error("Tried to allocate port %s but it's used by another process" % port)
+
+        for pid in pids:
+            log_process_info(pid, port)
 
     except Exception as ex:
         LOGGER.exception(str(ex))
         LOGGER.error("Failed to verify if any other process is running on port: %s" % port)
 
-    raise Exception(failed_to_start_message)
+    return True
 
 def start_rp_process(port, command, working_directory=None):
     failed_to_start_message = "RP (%s) failed to start" % get_base_url(port)
     LOGGER.debug("Try to start RP on {} with command {}".format(port, command))
 
-    verify_if_port_is_unused(failed_to_start_message, port)
+    if is_port_unused_by_other_process(port):
+        raise Exception(failed_to_start_message)
 
     try:
         p = subprocess.Popen(command,
@@ -982,6 +1002,8 @@ def kill_existing_process_on_port(port):
         except OSError as ex:
             LOGGER.error("Failed to kill process (%s) connected to the server %s" % (pid, get_base_url(port)))
             raise ex
+    else:
+        LOGGER.debug("No process has been killed. Found no test instance running on port %s" % port)
 
 
 def copy_existing_config_file(config_file_path, oprp_dir_path, port):
@@ -1046,6 +1068,12 @@ def save_config_info_in_database(_port, session):
     port_db.upsert_row(row, session[OP_CONFIG])
 
 
+def handle_exception(ex, response_encoder, message):
+    LOGGER.exception(str(ex))
+    print(traceback.format_exc())
+    return response_encoder.service_error(message)
+
+
 def handle_start_op_tester(session, response_encoder, parameters):
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
@@ -1066,16 +1094,13 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
-    config_file_path = get_config_file_path(_port,
-                                            CONF.OPRP_DIR_PATH)
-
+    config_file_path = get_config_file_path(_port, CONF.OPRP_DIR_PATH)
     config_string = convert_config_gui_structure(config_gui_structure, _port, _instance_id)
 
     try:
         session[OP_CONFIG] = validate_configuration_size(config_string)
-    except ConfigSizeToLarge:
-        LOGGER.debug("Someone tried to store a configuration which exceeded the allowed file limit.")
-        return response_encoder.service_error("The configuration you are trying to store exceeds the allowed file limit.")
+    except ConfigSizeToLarge as ex:
+        return handle_exception(ex, response_encoder, "The configuration you are trying to store exceeds the allowed file limit.")
 
     config_module = create_module_string(session[OP_CONFIG], _port)
 
@@ -1083,29 +1108,25 @@ def handle_start_op_tester(session, response_encoder, parameters):
         write_config_file(config_file_path, config_module, _port, oprp_dir_path=CONF.OPRP_DIR_PATH)
         LOGGER.debug("Written configuration to file: %s" % config_file_path)
     except IOError as ioe:
-        LOGGER.exception(str(ioe))
-        print(traceback.format_exc())
-        return response_encoder.service_error("Failed to write configurations file (%s) to disk. Please contact technical support" % config_file_path)
+        error_message = "Failed to write configurations file (%s) to disk. " \
+                        "Please contact technical support" % config_file_path
+        return handle_exception(ioe, response_encoder, error_message)
+
 
     try:
         save_config_info_in_database(_port, session)
-        LOGGER.debug("Written configuration for test instance using port %s to database" % _port)
+        LOGGER.debug('Configurations for the test instance using instance ID equal to "%s" which should be using port %s to has been saved in the database' % (_instance_id, _port))
     except Exception as ex:
-        LOGGER.exception(str(ex))
-        print(traceback.format_exc())
-        return response_encoder.service_error("Failed to store configurations in database. Please contact technical support")
+        return handle_exception(ex, response_encoder, "Failed to store configurations in database. Please contact technical support")
 
     try:
         kill_existing_process_on_port(_port)
     except Exception as ex:
-        LOGGER.exception(str(ex))
-        print(traceback.format_exc())
-        return response_encoder.service_error("Failed to restart test instance. Please contact technical support")
+        return handle_exception(ex, response_encoder, "Failed to restart test instance. Please contact technical support")
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
-    LOGGER.debug("The RP will try to start on port: %s" % _port)
     try:
         start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
@@ -1117,8 +1138,10 @@ def handle_start_op_tester(session, response_encoder, parameters):
 
 
 def get_port_from_database(issuer, instance_id, min_port, max_port, port_type):
-    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
-    return port_db.enter_row(issuer, instance_id, port_type, min_port, max_port)
+    is_port_unused_func = is_port_unused_by_other_process
+    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE, is_port_unused_func)
+    return port_db.allocate_port(issuer, instance_id, port_type, min_port, max_port)
+
 
 
 def allocate_dynamic_port(issuer, oprp_instance_id):
