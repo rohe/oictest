@@ -90,6 +90,10 @@ class PortDatabase():
 
     def get_row(self, port):
         row = self.table.find_one(port=port)
+
+        if not row:
+            return None
+
         if row[CONFIG_FILE_COLUMN]:
             row[CONFIG_FILE_COLUMN] = json.loads(row[CONFIG_FILE_COLUMN])
         return row
@@ -150,7 +154,7 @@ class PortDatabase():
                 port = self._get_existing_port(issuer, instance_id, port_type)
 
                 if port:
-                    return port
+                    return int(port)
             elif port is not None:
                 self._remove_row(port)
 

@@ -4,6 +4,9 @@ import subprocess
 from threading import Thread
 from beaker.middleware import SessionMiddleware
 from cherrypy import wsgiserver
+import cherrypy
+from cherrypy._cperror import CherryPyException
+from cherrypy.wsgiserver.wsgiserver2 import CherryPyWSGIServer
 from mock import patch
 from port_database import PortDatabase
 from config_server import NoResponseException
@@ -54,37 +57,41 @@ class TestConfigServer(unittest.TestCase):
         self.assertFalse(is_port_unused_by_other_process(9001))
 
 
-    def start_server(self, port):
-        SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', port),
-                                        SessionMiddleware(application))
-        print "serving at port: " + str(port)
-        SRV.start()
-        print "here"
+    def start_server(self, SRV):
+        try:
+            SRV.start()
+        except KeyboardInterrupt:
+            SRV.stop()
 
     def start_http_server_thread(self, port):
-        thread = Thread(target=self.start_server, args=(port, ))
-        thread.daemon = True
-        thread.start()
+        self.SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', port),
+                                        SessionMiddleware(application))
+        self.thread = Thread(target=self.start_server, args=(self.SRV, ))
+        self.thread.daemon = True
+        self.thread.start()
 
     @patch('config_server.CONF')
     def test_alloc_port_used_by_other_process(self, mock_server_config):
-        test_db = "test.db"
-        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = test_db
+        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = self.test_db
         self.start_http_server_thread(8000)
         allocated_port = get_port_from_database("issuer", "id", 8000, 8100, PortDatabase.STATIC_PORT_TYPE)
         self.assertEqual(8001, allocated_port)
-        os.remove(test_db)
+
+    def setUp(self):
+        self.test_db = "./test.db"
+        self.database = PortDatabase(self.test_db)
+
+    def tearDown(self):
+        os.remove(self.test_db)
 
     @patch('config_server.CONF')
     def test_alloc_multiple_ports_used_by_other_processes(self, mock_server_config):
-        test_db = "test.db"
-        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = test_db
+        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = self.test_db
         self.start_http_server_thread(8000)
         self.start_http_server_thread(8001)
         self.start_http_server_thread(8002)
         allocated_port = get_port_from_database("issuer", "id", 8000, 8100, PortDatabase.STATIC_PORT_TYPE)
         self.assertEqual(8003, allocated_port)
-        os.remove(test_db)
 
     def test_check_if_oprp_started_raises_NoResponseException(self):
         with self.assertRaises(NoResponseException):
@@ -144,6 +151,7 @@ class TestConfigServer(unittest.TestCase):
         mock_server_config.OPRP_DIR_PATH = '../rp/'
         mock_server_config.OPRP_SSL_MODULE = "sslconf"
         mock_server_config.HOST = "localhost"
+        mock_server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = self.test_db
 
     @patch('config_server.CONF')
     def test_identify_existing_config_file(self, mock_server_config):
@@ -171,8 +179,7 @@ class TestConfigServer(unittest.TestCase):
     @patch('config_server.CONF')
     def test_identify_config_file_which_does_not_exist(self, mock_server_config):
         self._setup_config_server_mock(mock_server_config)
-        with self.assertRaises(NoMatchException):
-            identify_existing_config_file(-1)
+        self.assertEqual(None, identify_existing_config_file(-1))
 
     def test_create_key_if_non_exist(self):
         dict = {}
@@ -193,7 +200,7 @@ class TestConfigServer(unittest.TestCase):
         dynamic_discovery_issuer = "example2.com"
         new_gui_config = create_new_configuration_dict()
         new_gui_config = set_dynamic_discovery_issuer_config_gui_structure(dynamic_discovery_issuer, new_gui_config)
-        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id")
+        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id", True)
 
         self.assertDictContainsSubset({"srv_discovery_url": dynamic_discovery_issuer}, config_file_dict)
         with self.assertRaises(KeyError):
@@ -210,18 +217,21 @@ class TestConfigServer(unittest.TestCase):
         mock_generate_static_input_fields.return_value = _generate_static_input_fields(default_static_discovery_value)
         new_gui_config = create_new_configuration_dict()
         new_gui_config['fetchStaticProviderInfo']['showInputFields'] = True
-        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id")
+        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id", True)
 
         self.assertTrue(config_file_dict['provider_info'])
         with self.assertRaises(KeyError):
             config_file_dict['srv_discovery_url']
 
+    @patch('config_server.LOGGER')
+    @patch('config_server.CONF')
     @patch('config_server.identify_existing_config_file')
-    def test_do_not_overwrite_custom_value_config_file(self, mock_identify_existing_config_file):
+    def test_do_not_overwrite_custom_value_config_file(self, mock_identify_existing_config_file, mock_conf, logger):
+        self._setup_config_server_mock(mock_conf)
         custom_info = {"custom_key": "custom_value"}
         mock_identify_existing_config_file.return_value = copy.deepcopy(custom_info)
         new_gui_config = create_new_configuration_dict()
-        config_dict = convert_config_gui_structure(new_gui_config, 0, "id")
+        config_dict = convert_config_gui_structure(new_gui_config, 0, "id", True)
         self.assertDictContainsSubset(custom_info, config_dict)
 
     def test_convert_list_instance_to_list_should_be_untouched(self):
@@ -242,12 +252,13 @@ class TestConfigServer(unittest.TestCase):
         field_value = convert_instance(to_list, value)
         self.assertEqual(field_value, convert_to_value_list([value]))
 
+    @patch('config_server.LOGGER')
     @patch('config_server.identify_existing_config_file')
-    def test_if_instance_id_is_save_to_config_file(self, mock_identify_existing_config_file):
+    def test_if_instance_id_is_save_to_config_file(self, mock_identify_existing_config_file, logger):
         new_gui_config = create_new_configuration_dict()
         instance_id = "my_instance_id"
-        mock_identify_existing_config_file.side_effect = NoMatchException()
-        config_dict = convert_config_gui_structure(new_gui_config, 0, instance_id)
+        mock_identify_existing_config_file.return_value = None
+        config_dict = convert_config_gui_structure(new_gui_config, 0, instance_id, True)
         self.assertDictContainsSubset({"instance_id": instance_id}, config_dict)
 
     def test_import_non_existing_module(self):

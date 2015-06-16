@@ -675,8 +675,7 @@ def identify_existing_config_file(port):
             file_port = int(module.split("_")[2])
             if file_port == port:
                 return load_config_module(module)
-
-    raise NoMatchException("No match found for port: %s" % port)
+    return None
 
 def create_key_dict_pair_if_non_exist(key, dict):
     if key not in dict:
@@ -697,7 +696,7 @@ def profile_to_config_file_dict(config_dict, config_gui_structure):
 
 CONFIG_DICT_INSTANCE_ID_KEY = 'instance_id'
 
-def convert_config_gui_structure(config_gui_structure, port, instance_id):
+def convert_config_gui_structure(config_gui_structure, port, instance_id, is_port_in_database):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
@@ -709,7 +708,13 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id):
     try:
         config_dict = identify_existing_config_file(port)
     except Exception as ex:
-        LOGGER.error(ex.message)
+        handle_exception(ex)
+
+    if not is_port_in_database and config_dict:
+        file_path = get_config_file_path(port, CONF.OPRP_DIR_PATH)
+        LOGGER.error("The identified configuration file does not exist in the database. It will be overwritten by the default configuration. File path: %s" % file_path)
+
+    if not (is_port_in_database and config_dict):
         config_dict = get_default_client()
 
     config_dict = clear_config_keys(config_dict)
@@ -787,7 +792,7 @@ def handle_download_config_file(session, response_encoder, parameters):
     config_gui_structure = parameters['op_configurations']
     instance_id = ""
     port = -1
-    config_file_dict = convert_config_gui_structure(config_gui_structure, port, instance_id)
+    config_file_dict = convert_config_gui_structure(config_gui_structure, port, instance_id, is_port_in_database())
     filedict = json.dumps({"configDict": config_file_dict})
     return response_encoder.return_json(filedict)
 
@@ -1068,10 +1073,18 @@ def save_config_info_in_database(_port, session):
     port_db.upsert_row(row, session[OP_CONFIG])
 
 
-def handle_exception(ex, response_encoder, message):
+def handle_exception(ex, response_encoder=None, message=""):
+    if not response_encoder:
+        response_encoder = ResponseEncoder()
+
     LOGGER.exception(str(ex))
     print(traceback.format_exc())
     return response_encoder.service_error(message)
+
+
+def is_port_in_database(_port):
+    port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
+    return port_db.get_row(_port) == None
 
 
 def handle_start_op_tester(session, response_encoder, parameters):
@@ -1094,8 +1107,7 @@ def handle_start_op_tester(session, response_encoder, parameters):
         LOGGER.error(NO_PORT_ERROR_MESSAGE)
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
-    config_file_path = get_config_file_path(_port, CONF.OPRP_DIR_PATH)
-    config_string = convert_config_gui_structure(config_gui_structure, _port, _instance_id)
+    config_string = convert_config_gui_structure(config_gui_structure, _port, _instance_id, is_port_in_database(_port))
 
     try:
         session[OP_CONFIG] = validate_configuration_size(config_string)
@@ -1103,6 +1115,7 @@ def handle_start_op_tester(session, response_encoder, parameters):
         return handle_exception(ex, response_encoder, "The configuration you are trying to store exceeds the allowed file limit.")
 
     config_module = create_module_string(session[OP_CONFIG], _port)
+    config_file_path = get_config_file_path(_port, CONF.OPRP_DIR_PATH)
 
     try:
         write_config_file(config_file_path, config_module, _port, oprp_dir_path=CONF.OPRP_DIR_PATH)
