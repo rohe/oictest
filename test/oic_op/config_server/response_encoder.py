@@ -1,5 +1,5 @@
 import json
-from oic.utils.http_util import Response, ServiceError
+from oic.utils.http_util import Response, ServiceError, BadRequest
 
 class ResponseEncoder:
     def __init__(self, environ=None, start_response=None):
@@ -19,4 +19,9 @@ class ResponseEncoder:
         """
         message = {"ExceptionMessage": message, "HTML": html}
         resp = ServiceError(json.dumps(message))
+        return resp(self.environ, self.start_response)
+
+    def bad_request(self):
+        message = "Invalid request"
+        resp = BadRequest(json.dumps(message))
         return resp(self.environ, self.start_response)

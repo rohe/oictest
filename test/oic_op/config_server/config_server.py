@@ -760,6 +760,9 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
     return config_dict
 
 def handle_request_instance_ids(response_encoder, parameters):
+    if 'opConfigurations' not in parameters:
+        return response_encoder.bad_request()
+
     config_gui_structure = parameters['opConfigurations']
     issuer = get_issuer_from_gui_config(config_gui_structure)
     port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
@@ -789,6 +792,9 @@ def handle_download_config_file(session, response_encoder, parameters):
     """
     :return Return the configuration file stored in the session
     """
+    if 'op_configurations' not in parameters:
+        return response_encoder.bad_request()
+
     config_gui_structure = parameters['op_configurations']
     instance_id = ""
     port = -1
@@ -814,6 +820,9 @@ def handle_upload_config_file(parameters, session, response_encoder):
     Adds a uploaded config file to the session
     :return Default response, should be ignored
     """
+    if 'configFileContent' not in parameters:
+        return response_encoder.bad_request()
+
     try:
         session[OP_CONFIG] = validate_configuration_size(json.loads(parameters['configFileContent']))
     except ValueError:
@@ -1088,6 +1097,9 @@ def is_port_in_database(_port):
 
 
 def handle_start_op_tester(session, response_encoder, parameters):
+    if 'op_configurations' not in parameters:
+        return response_encoder.bad_request()
+
     config_gui_structure = parameters['op_configurations']
     _profile = generate_profile(config_gui_structure)
     _instance_id = parameters['oprp_instance_id']
@@ -1185,6 +1197,11 @@ def get_existing_port(issuer, static_ports_db):
 
 
 def handle_get_redirect_url(session, response_encoder, parameters):
+    if "oprp_instance_id" not in parameters:
+        return response_encoder.bad_request()
+    if 'issuer' not in parameters:
+        return response_encoder.bad_request()
+
     try:
         port = allocate_static_port(parameters['issuer'], parameters["oprp_instance_id"])
     except NoPortAvailable as ex:
