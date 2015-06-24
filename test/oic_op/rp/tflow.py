@@ -803,6 +803,7 @@ FLOWS = {
             "_login_",
             "_accesstoken_",
             "note",
+            '_discover_',
             '_register_',
             ("_login_", {"request_args": {"max_age": 1}}),
             "_accesstoken_"
