@@ -1052,6 +1052,7 @@ class MultipleSignOn(Error):
             self._message = " ".join(["Only one authentication when more than",
                                       "one was expected"])
             self._status = self.status
+            return {}
 
         # number of ID Tokens 2 or 4, nonce and aud should be the same for
         # pairs .
