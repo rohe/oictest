@@ -90,12 +90,12 @@ class TestPortDatabase(unittest.TestCase):
 
     def test_enter_row_with_existing_port(self):
         self.create_three_entries_with_same_issuer_google_but_different_instance_ids()
-        port = self.database.enter_row("google", 'test2', "static", 8001, 8010)
+        port = self.database.allocate_port("google", 'test2', "static", 8001, 8010)
         self.assertEqual(port, 8002)
 
     def test_enter_row_with_non_existing_port(self):
         self.create_three_entries_with_same_issuer_google_but_different_instance_ids()
-        port = self.database.enter_row("google", 'test4', "static", 8001, 8010)
+        port = self.database.allocate_port("google", 'test4', "static", 8001, 8010)
         self.assertEqual(port, 8004)
 
     ISSUER_GOOGLE = "google"
@@ -109,7 +109,7 @@ class TestPortDatabase(unittest.TestCase):
         index = 0
         while index < number_of_entries:
             index += 1
-            port = self.database.enter_row(issuer,
+            port = self.database.allocate_port(issuer,
                                            "ID_%s" % index,
                                            port_type,
                                            self.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
@@ -139,14 +139,14 @@ class TestPortDatabase(unittest.TestCase):
         issuer = "google"
         instance_id='test1'
         self.database.upsert(port=8501, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
-        port = self.database.enter_row(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
+        port = self.database.allocate_port(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
         self.assertEqual(port, 8001)
 
     def test_use_existing_dynamic_port(self):
         issuer = "google"
         instance_id='test1'
         self.database.upsert(port=8001, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
-        port = self.database.enter_row(issuer, instance_id, PortDatabase.STATIC_PORT_TYPE, 8001, 8003)
+        port = self.database.allocate_port(issuer, instance_id, PortDatabase.STATIC_PORT_TYPE, 8001, 8003)
         self.assertEqual(port, 8001)
 
     def test_if_static_port_is_remove_when_switching_to_dynamic_port(self):
@@ -154,7 +154,7 @@ class TestPortDatabase(unittest.TestCase):
         instance_id='test1'
         static_port = 8501
         self.database.upsert(port=static_port, issuer=issuer, instance_id=instance_id, port_type=PortDatabase.STATIC_PORT_TYPE)
-        self.database.enter_row(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
+        self.database.allocate_port(issuer, instance_id, PortDatabase.DYNAMIC_PORT_TYPE, 8001, 8003)
         ports = self.database.get_all_ports()
         self.assertNotIn(static_port, ports)
 
