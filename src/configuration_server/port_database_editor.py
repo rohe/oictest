@@ -1,24 +1,21 @@
 #!/usr/bin/env python
-import collections
-import importlib
 import json
 import os
-import argparse
 import re
 import sys
 
-from port_database import PortDatabase
-from config_server import get_issuer_from_config_file
-from config_server import CONFIG_DICT_INSTANCE_ID_KEY
-from config_server import load_config_module
-from port_database import CONFIG_FILE_COLUMN
-from config_server import get_config_file_path, create_module_string
+import argparse
+
+from configuration_server.configurations import load_config_module, CONFIG_DICT_INSTANCE_ID_KEY, create_module_string, \
+    get_config_file_path, get_issuer_from_config_file
+from configuration_server.test_instance_database import PortDatabase, CONFIG_FILE_COLUMN
+
 
 DATABASE_SELECTED = "database"
 CONFIG_FILE_SELECTED = "config_file"
 OPRP_SSL_MODULE = "sslconf"
 
-class ConfigFileEditor(object):
+class PortDatabaseEditor(object):
 
     def __init__(self, config_file_path='.'):
         self.config_file_path = config_file_path
@@ -201,9 +198,9 @@ if __name__ == "__main__":
         database._remove_row(args.port_to_remove)
 
     if args.oprp_config_file_path:
-        config_editor = ConfigFileEditor(args.oprp_config_file_path)
+        config_editor = PortDatabaseEditor(args.oprp_config_file_path)
     else:
-        config_editor = ConfigFileEditor()
+        config_editor = PortDatabaseEditor()
 
     if args.generate_database:
         config_editor.extract_database_info_from_config_file(database)

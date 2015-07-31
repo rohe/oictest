@@ -41,7 +41,8 @@ setup(
         "prettytable",
         "mechanize",
         "beautifulsoup4",
-        "wsgi-request-logger"
+        "wsgi-request-logger",
+        "pytest"
     ],
 
     zip_safe=False,

@@ -21,9 +21,10 @@ class PortDatabase():
 
     config_tread_lock = threading.Lock()
 
-    def __init__(self, database_path, is_port_used_func=None):
-        self.database_path = database_path
-        self.database = dataset.connect('sqlite:///' + database_path)
+    def __init__(self, database_path=None, is_port_used_func=None):
+        self.database = dataset.connect('sqlite:///:memory:')
+        if database_path is not None:
+            self.database = dataset.connect('sqlite:///' + database_path)
         self.table = self.database[self.TABLE_NAME]
         self.is_port_used_func = is_port_used_func
 
@@ -96,6 +97,10 @@ class PortDatabase():
 
         if row[CONFIG_FILE_COLUMN]:
             row[CONFIG_FILE_COLUMN] = json.loads(row[CONFIG_FILE_COLUMN])
+
+        if row[PORT_COLUMN]:
+            row[PORT_COLUMN] = int(row[PORT_COLUMN])
+
         return row
 
     def print_table(self):
