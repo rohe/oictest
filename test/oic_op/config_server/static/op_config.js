@@ -247,6 +247,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
      * @param config - The configuration on the response from the server
      */
     function error_callback(data, status, headers, config) {
+        $('#myPleaseWait').modal('hide');
         bootbox.alert(data.ExceptionMessage);
     }
 
@@ -380,6 +381,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
+                            $('#myPleaseWait').modal('show');
                             op_configuration_factory.start_op_tester($scope.opConfig, get_instance_id()).success(start_op_tester_success_callback).error(error_callback);
                             $scope.$apply();
                         }
@@ -390,6 +392,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     function start_op_tester_success_callback(data, status, headers, config) {
+        $('#myPleaseWait').modal('hide');
         var info_text = "Your test instance has been successfully launched, please take note of the URL you now will " +
             "be redirected to. The test instance will be around until you tell us to remove it. Therefor the next time " +
             "you want to test you can go directly to the test instance and continue testing. No need to create a " +

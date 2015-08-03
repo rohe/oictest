@@ -17,6 +17,7 @@
 
 <%block name="header">
     ${parent.header()}
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </%block>
 
 <%block name="headline">
@@ -542,6 +543,25 @@
             </div>
         </div>
     </div>
+
+    <!-- Modal Start here-->
+    <div class="modal fade bs-example-modal-sm" id="myPleaseWait" tabindex="-1"
+        role="dialog" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog modal-sm">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">
+                        <span class="glyphicon glyphicon-time">
+                        </span>Please wait while your infomation is being stored
+                     </h4>
+                </div>
+                <div class="modal-body">
+                    <img src="static/loader.gif" alt="Loading screen" align="center" class="centeralBlock">
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Modal ends Here -->
 
 </%block>
 
