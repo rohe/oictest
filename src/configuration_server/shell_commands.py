@@ -11,6 +11,7 @@ __author__ = 'danielevertsson'
 
 LOGGER = logging.getLogger("configuration_server.shell_commands")
 
+
 def check_if_oprp_started(port, oprp_url, timeout=5):
     stop_time = datetime.datetime.now() + datetime.timedelta(seconds=timeout)
 
@@ -36,8 +37,10 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
 
     raise NoResponseException(error_message)
 
+
 class NoResponseException(Exception):
     pass
+
 
 def kill_existing_process_on_port(port, base_url):
 
@@ -58,7 +61,7 @@ def is_port_used_by_another_process(port):
     try:
         oprp_pid = get_oprp_pid(port)
 
-        pid = run_command([["lsof", "-i", ":%s" % port],["grep", "LISTEN"],["awk", '{print $2}']])
+        pid = run_command([["lsof", "-i", ":%s" % port], ["grep", "LISTEN"], ["awk", '{print $2}']])
         pids = pid.splitlines()
 
         if not (pid and not oprp_pid):
@@ -75,6 +78,7 @@ def is_port_used_by_another_process(port):
 
     return True
 
+
 def get_oprp_pid(port):
     pid = None
     p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
@@ -86,9 +90,11 @@ def get_oprp_pid(port):
 
     return pid
 
+
 def run_command(commands_to_pipe):
 
     past_sub_process = None
+    p = None
 
     for command in commands_to_pipe:
 

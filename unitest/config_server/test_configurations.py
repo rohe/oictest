@@ -9,7 +9,8 @@ from configuration_server.configurations import convert_to_gui_drop_down, _gener
     identify_existing_config_file, \
     create_key_dict_pair_if_non_exist, convert_config_gui_structure, convert_instance, convert_to_value_list, \
     load_config_module, generate_config_module_name, get_config_file_path, convert_to_uft8, \
-    convert_abbreviation_to_response_type, convert_response_type_to_abbreviation, UnKnownResponseTypeAbbreviation
+    convert_abbreviation_to_response_type, convert_response_type_to_abbreviation, UnKnownResponseTypeAbbreviation, \
+    set_test_specific_request_parameters
 
 
 __author__ = 'danielevertsson'
@@ -42,7 +43,7 @@ class TestConfigurationModule:
         static_issuer = 'static_issuer'
         mock_generate_static_input_fields.return_value = _generate_static_input_fields(static_issuer)
         gui_config = create_new_configuration_dict()
-        gui_config = set_dynamic_discovery_issuer_config_gui_structure("dynamic_issuer", gui_config, show_field=False)
+        gui_config = set_dynamic_discovery_issuer_config_gui_structure("dynamic_issuer/", gui_config, show_field=False)
         returned_issuer = get_issuer_from_gui_config(gui_config)
         assert static_issuer == returned_issuer
 
@@ -109,7 +110,7 @@ class TestConfigurationModule:
         dynamic_discovery_issuer = "example2.com"
         new_gui_config = create_new_configuration_dict()
         new_gui_config = set_dynamic_discovery_issuer_config_gui_structure(dynamic_discovery_issuer, new_gui_config)
-        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id", True, CONF=server_config)
+        config_file_dict = convert_config_gui_structure(new_gui_config, 0, "id", True, conf=server_config)
 
         assert "srv_discovery_url" in config_file_dict
         assert dynamic_discovery_issuer == config_file_dict['srv_discovery_url']
@@ -193,3 +194,23 @@ class TestConfigurationModule:
     def test_enter_non_existing_abbreviation(self):
         with pytest.raises(UnKnownResponseTypeAbbreviation):
             convert_abbreviation_to_response_type("QQQ")
+
+    @pytest.mark.parametrize("config_file_key,gui_struct_key, value", [
+        ("webfinger_subject", "webfingerSubject", 1),
+        ("login_hint", "loginHint", 2),
+        ("ui_locales", "uiLocales", 3),
+        ("claims_locales", "claimsLocales", 4),
+        ("acr_values", "acrValues", 5),
+        ("webfinger_url", "webfinger_url", 6),
+        ("webfinger_email", "webfinger_email", 7),
+    ])
+    def test_convert_test_specific_request_parameters(self,
+                                                      config_file_key,
+                                                      gui_struct_key,
+                                                      value):
+        gui_conf_structure = {}
+        config_file = {config_file_key: value}
+        with pytest.raises(KeyError):
+            gui_conf_structure[gui_struct_key]
+        set_test_specific_request_parameters(config_file, gui_conf_structure)
+        assert gui_conf_structure[gui_struct_key] == value

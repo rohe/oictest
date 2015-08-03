@@ -16,6 +16,7 @@ from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oic.message import ProviderConfigurationResponse
+from configuration_server.config_values import CONFIG_FILE_KEYS, GUI_CONFIG_STRUCTURE_KEYS
 
 from configuration_server.response_encoder import ResponseEncoder
 
@@ -25,32 +26,38 @@ __author__ = 'danielevertsson'
 CONFIG_DICT_INSTANCE_ID_KEY = 'instance_id'
 LOGGER = logging.getLogger("configuration_server.configuration")
 
+
 class UnKnownResponseTypeAbbreviation(Exception):
     pass
 
+
 def get_config_file_path(port, rp_config_folder):
     if not rp_config_folder.endswith("/"):
-        rp_config_folder = rp_config_folder + "/"
+        rp_config_folder += "/"
     return rp_config_folder + generate_config_module_name(port)
+
 
 def parse_crypto_feature_abbreviation(config_gui_structure):
     arg = ""
     for feature in config_gui_structure['signingEncryptionFeaturesCheckboxes'][
-            'features']:
+        'features']:
         if feature['selected']:
             arg += feature['abbreviation']
     return arg
 
+
 def convert_dynamic_client_registration_to_abbreviation(config_gui_structure):
     if config_gui_structure['dynamicClientRegistrationDropDown'][
-            'value'] == "yes":
+        'value'] == "yes":
         return "T"
     return "F"
+
 
 def convert_dynamic_discovery_to_abbreviation(config_gui_structure):
     if contains_dynamic_discovery_info(config_gui_structure):
         return "T"
     return "F"
+
 
 def convert_response_type_to_abbreviation(response_type):
     abbreviations_dict = {
@@ -64,6 +71,7 @@ def convert_response_type_to_abbreviation(response_type):
 
     return abbreviations_dict[response_type]
 
+
 def generate_profile(config_gui_structure):
     response_type_abbr = convert_response_type_to_abbreviation(
         config_gui_structure["responseTypeDropDown"]["value"])
@@ -76,11 +84,12 @@ def generate_profile(config_gui_structure):
         config_gui_structure)
 
     profile = response_type_abbr + "." + \
-        dynamic_discovery_abbr + "." + \
-        dynamic_client_registration_abbr + "." + \
-        crypto_features_abbr + "."
+              dynamic_discovery_abbr + "." + \
+              dynamic_client_registration_abbr + "." + \
+              crypto_features_abbr + "."
 
     return profile
+
 
 def load_config_module(module):
     test_conf = importlib.import_module(module)
@@ -88,6 +97,7 @@ def load_config_module(module):
         return test_conf.CLIENT
     except AttributeError as ex:
         raise AttributeError("Module (%s) has no attribute 'CLIENT'" % module)
+
 
 def identify_existing_config_file(port, oprp_dir_path):
     files = [f for f in os.listdir(oprp_dir_path)]
@@ -101,12 +111,14 @@ def identify_existing_config_file(port, oprp_dir_path):
                 return load_config_module(module)
     return None
 
+
 def generate_config_module_name(port, file_extension=".py"):
     return "rp_conf_" + str(port) + file_extension
 
+
 def copy_existing_config_file(config_file_path, oprp_dir_path, port):
     if not oprp_dir_path.endswith("/"):
-        oprp_dir_path = oprp_dir_path + "/"
+        oprp_dir_path += "/"
     backup_dir = oprp_dir_path + "config_backup"
     try:
         os.makedirs(backup_dir)
@@ -122,11 +134,13 @@ def copy_existing_config_file(config_file_path, oprp_dir_path, port):
         LOGGER.debug("Failed to make a backup of config file: %s" % config_file_path)
         pass
 
+
 def write_config_file(config_file_path, config_module, port, oprp_dir_path="."):
     copy_existing_config_file(config_file_path, oprp_dir_path, port)
 
     with open(config_file_path, "w") as _file:
         _file.write(config_module)
+
 
 def convert_to_uft8(data):
     if isinstance(data, basestring):
@@ -141,11 +155,12 @@ def convert_to_uft8(data):
     else:
         return data
 
-def create_module_string(client_config, port, CONF, base_url, ssl_module=None):
+
+def create_module_string(client_config, port, base_url, conf=None, ssl_module=None):
     _client = copy.deepcopy(client_config)
 
     if not ssl_module:
-        ssl_module = CONF.OPRP_SSL_MODULE
+        ssl_module = conf.OPRP_SSL_MODULE
 
     _client['client_info'] = {
         "application_type": "web",
@@ -166,9 +181,11 @@ def create_module_string(client_config, port, CONF, base_url, ssl_module=None):
     return "from " + ssl_module + " import *\nPORT = " + str(
         port) + "\nBASE =\'" + str(base_url) + "\'\nCLIENT = " + str(_client)
 
+
 def get_default_client():
     default = importlib.import_module("configuration_server.default_oprp_config")
     return copy.deepcopy(default.CLIENT)
+
 
 def clear_config_keys(config_dict):
     optional_fields = ['webfinger_subject',
@@ -188,6 +205,7 @@ def clear_config_keys(config_dict):
 
     return config_dict
 
+
 def convert_to_list(value_dict):
     _list = []
     for element in value_dict:
@@ -195,8 +213,9 @@ def convert_to_list(value_dict):
 
     return _list
 
+
 def static_provider_info_to_config_file_dict(config_gui_structure,
-                                         config_file_dict):
+                                             config_file_dict):
     """
     Converts static information in the internal data structure and updates
     the configDict
@@ -211,7 +230,7 @@ def static_provider_info_to_config_file_dict(config_gui_structure,
     provider_attribute_dict = {}
 
     for input_field in config_gui_structure['fetchStaticProviderInfo'][
-            'input_fields']:
+        'input_fields']:
         if input_field['show']:
             visible_input_field_list.append(input_field)
 
@@ -228,8 +247,9 @@ def static_provider_info_to_config_file_dict(config_gui_structure,
 
     return config_file_dict
 
+
 def client_registration_to_config_file_dict(config_gui_structure,
-                                         config_file_dict):
+                                            config_file_dict):
     """
     Converts required information in the web interface to the
     a configuration dictionary which follows the "Configuration file
@@ -246,7 +266,8 @@ def client_registration_to_config_file_dict(config_gui_structure,
 
     if not support_dynamic_client_registration:
         for attribute in config_gui_structure[
-                'supportsStaticClientRegistrationTextFields']:
+            'supportsStaticClientRegistrationTextFields']:
+
             if 'client_registration' not in config_file_dict:
                 config_file_dict['client_registration'] = {}
 
@@ -279,16 +300,19 @@ def create_key_dict_pair_if_non_exist(key, dict):
         dict[key] = {}
     return dict
 
+
 def subject_type_to_config_file_dict(config_dict, config_gui_structure):
     config_dict = create_key_dict_pair_if_non_exist('preferences', config_dict)
     config_dict['preferences']['subject_type'] = \
         config_gui_structure["clientSubjectType"]["value"]
     return config_dict
 
+
 def profile_to_config_file_dict(config_dict, config_gui_structure):
     config_dict = create_key_dict_pair_if_non_exist('behaviour', config_dict)
     config_dict['behaviour']['profile'] = generate_profile(config_gui_structure)
     return config_dict
+
 
 def handle_exception(ex, response_encoder=None, message=""):
     if not response_encoder:
@@ -298,7 +322,8 @@ def handle_exception(ex, response_encoder=None, message=""):
     print(traceback.format_exc())
     return response_encoder.service_error(message)
 
-def convert_config_gui_structure(config_gui_structure, port, instance_id, is_port_in_database, CONF):
+
+def convert_config_gui_structure(config_gui_structure, port, instance_id, is_port_in_database, conf):
     """
     Converts the internal data structure to a dictionary which follows the
     "Configuration file structure", see setup.rst
@@ -308,12 +333,12 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
     see setup.rst
     """
     try:
-        config_dict = identify_existing_config_file(port, CONF.OPRP_DIR_PATH)
+        config_dict = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
     except Exception as ex:
         handle_exception(ex)
 
     if not is_port_in_database and config_dict:
-        file_path = get_config_file_path(port, CONF.OPRP_DIR_PATH)
+        file_path = get_config_file_path(port, conf.OPRP_DIR_PATH)
         LOGGER.error("The identified configuration file does not exist in the database. "
                      "It will be overwritten by the default configuration. File path: %s" % file_path)
 
@@ -326,16 +351,16 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
         config_dict[CONFIG_DICT_INSTANCE_ID_KEY] = instance_id
 
     if contains_dynamic_discovery_info(config_gui_structure):
-        dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer']\
-                                                        ['input_field']\
-                                                        ['value']
+        dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer'] \
+            ['input_field'] \
+            ['value']
         config_dict['srv_discovery_url'] = dynamic_input_field_value
 
     elif config_gui_structure['fetchStaticProviderInfo']['showInputFields']:
         config_dict = static_provider_info_to_config_file_dict(config_gui_structure,
-                                                           config_dict)
+                                                               config_dict)
 
-    config_dict = client_registration_to_config_file_dict(config_gui_structure,config_dict)
+    config_dict = client_registration_to_config_file_dict(config_gui_structure, config_dict)
     config_dict = subject_type_to_config_file_dict(config_dict, config_gui_structure)
     config_dict = profile_to_config_file_dict(config_dict, config_gui_structure)
 
@@ -362,13 +387,16 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
 
     return config_dict
 
+
 def find_static_provider_info_field(input_fields, fields_id):
     for input_field in input_fields:
         if input_field['id'] == fields_id:
             return input_field
 
+
 def contains_dynamic_discovery_info(config_gui_structure):
     return config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] is True
+
 
 def get_issuer_from_gui_config(gui_config):
     issuer = None
@@ -385,19 +413,23 @@ def get_issuer_from_gui_config(gui_config):
 
     return issuer
 
+
 def is_using_dynamic_client_registration(config_gui_structure):
     return config_gui_structure['dynamicClientRegistrationDropDown']['value'] == "yes"
+
 
 def set_dynamic_discovery_issuer_config_gui_structure(issuer, config_gui_structure, show_field=True):
     config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] = show_field
     config_gui_structure['fetchDynamicInfoFromServer']['input_field']['value'] = issuer
     return config_gui_structure
 
+
 def convert_to_gui_drop_down(config_file_dict):
     gui_list = []
     for element in config_file_dict:
         gui_list.append({"type": element, "name": element})
     return gui_list
+
 
 def convert_abbreviation_to_response_type(response_type_abbreviation):
     response_types = {
@@ -411,7 +443,9 @@ def convert_abbreviation_to_response_type(response_type_abbreviation):
     try:
         return response_types[response_type_abbreviation]
     except KeyError:
-        raise UnKnownResponseTypeAbbreviation("The supplied response type abbreviation (%s) is not recognized" % response_type_abbreviation)
+        raise UnKnownResponseTypeAbbreviation(
+            "The supplied response type abbreviation (%s) is not recognized" % response_type_abbreviation)
+
 
 def parse_profile(profile):
     if not isinstance(profile, basestring):
@@ -424,12 +458,22 @@ def parse_profile(profile):
 
     return response_type, crypto_feature_support
 
+
 def set_feature_list(config_structure_dict, oprp_arg):
     feature_list = config_structure_dict['signingEncryptionFeaturesCheckboxes'][
         'features']
 
     for feature in feature_list:
         feature['selected'] = feature['abbreviation'] in oprp_arg
+
+
+def set_test_specific_request_parameters(config_file_dict, config_structure_dict):
+    for (key, value) in CONFIG_FILE_KEYS.iteritems():
+        if value in config_file_dict:
+            gui_config_key = GUI_CONFIG_STRUCTURE_KEYS[key]
+            config_structure_dict[gui_config_key] = config_file_dict[value]
+    return config_structure_dict
+
 
 def convert_config_file(config_file_dict):
     """
@@ -466,29 +510,10 @@ def convert_config_file(config_file_dict):
     if crypto_feature_support:
         set_feature_list(config_structure_dict, crypto_feature_support)
 
-    if 'webfinger_subject' in config_file_dict:
-        config_structure_dict['webfingerSubject'] = config_file_dict[
-            'webfinger_subject']
-
-    if 'login_hint' in config_file_dict:
-        config_structure_dict['loginHint'] = config_file_dict['login_hint']
-
-    if "ui_locales" in config_file_dict:
-        config_structure_dict['uiLocales'] = config_file_dict['ui_locales']
-
-    if "claims_locales" in config_file_dict:
-        config_structure_dict['claimsLocales'] = config_file_dict['claims_locales']
-
-    if "acr_values" in config_file_dict:
-        config_structure_dict['acrValues'] = config_file_dict['acr_values']
-
-    if "webfinger_url" in config_file_dict:
-        config_structure_dict['webfinger_url'] = config_file_dict['webfinger_url']
-
-    if "webfinger_email" in config_file_dict:
-        config_structure_dict['webfinger_email'] = config_file_dict['webfinger_email']
+    config_structure_dict = set_test_specific_request_parameters(config_file_dict, config_structure_dict)
 
     return config_structure_dict
+
 
 def dynamic_discovery_to_gui_structure(config_file_dict, config_gui_structure):
     """
@@ -501,11 +526,12 @@ def dynamic_discovery_to_gui_structure(config_file_dict, config_gui_structure):
     """
     config_gui_structure["fetchInfoFromServerDropDown"]["value"] = "dynamic"
     config_gui_structure["fetchDynamicInfoFromServer"]["showInputField"] = True
-    config_gui_structure["fetchDynamicInfoFromServer"]["input_field"]["value"]\
+    config_gui_structure["fetchDynamicInfoFromServer"]["input_field"]["value"] \
         = \
         config_file_dict["srv_discovery_url"]
 
     return config_gui_structure
+
 
 def client_registration_supported_to_gui(config_file_dict,
                                          config_gui_structure):
@@ -528,7 +554,7 @@ def client_registration_supported_to_gui(config_file_dict,
             "value"] = "no"
 
         for text_field in config_gui_structure[
-                "supportsStaticClientRegistrationTextFields"]:
+            "supportsStaticClientRegistrationTextFields"]:
             if text_field["id"] == "client_id":
                 text_field["textFieldContent"] = \
                     config_file_dict["client_registration"]["client_id"]
@@ -539,7 +565,7 @@ def client_registration_supported_to_gui(config_file_dict,
             "value"] = "no"
 
         for text_field in config_gui_structure[
-                "supportsStaticClientRegistrationTextFields"]:
+            "supportsStaticClientRegistrationTextFields"]:
             if text_field["id"] == "client_secret":
                 text_field["textFieldContent"] = \
                     config_file_dict["client_registration"]["client_secret"]
@@ -550,8 +576,10 @@ def client_registration_supported_to_gui(config_file_dict,
 
     return config_gui_structure
 
+
 def is_list_instance(element):
     return not isinstance(element, basestring)
+
 
 def convert_to_value_list(elements):
     value_list = []
@@ -559,6 +587,7 @@ def convert_to_value_list(elements):
         value_list.append({"value": element})
 
     return value_list
+
 
 def convert_static_provider_info_to_gui(config_file_dict, config_gui_structure):
     """
@@ -576,7 +605,7 @@ def convert_static_provider_info_to_gui(config_file_dict, config_gui_structure):
 
     for input_fieldId in config_file_dict[provider_info_key]:
         for input_field in config_gui_structure["fetchStaticProviderInfo"][
-                "input_fields"]:
+            "input_fields"]:
             if input_field['id'] == input_fieldId:
                 input_field['show'] = True
                 attribute_value = config_file_dict[provider_info_key][
@@ -590,6 +619,7 @@ def convert_static_provider_info_to_gui(config_file_dict, config_gui_structure):
 
     return config_gui_structure
 
+
 def is_pyoidc_message_list(field_type):
     if field_type == REQUIRED_LIST_OF_SP_SEP_STRINGS:
         return True
@@ -601,6 +631,7 @@ def is_pyoidc_message_list(field_type):
         return True
     return False
 
+
 def convert_instance(_is_list, default_input_value):
     if _is_list:
         if isinstance(default_input_value, list):
@@ -611,11 +642,13 @@ def convert_instance(_is_list, default_input_value):
         field_value = default_input_value
     return field_value
 
+
 def get_issuer_from_config_file(config_file):
     try:
         return config_file['srv_discovery_url']
     except KeyError:
         return config_file['provider_info']['issuer']
+
 
 def _generate_static_input_fields(default_input_value=None):
     """
@@ -660,6 +693,7 @@ def _generate_static_input_fields(default_input_value=None):
 
     return _config_fields_list
 
+
 def create_new_configuration_dict():
     """
     :return Returns a new configuration which follows the internal data
@@ -676,10 +710,11 @@ def create_new_configuration_dict():
         "fetchStaticProviderInfo": {"showInputFields": False,
                                     "input_fields": static_input_fields_list},
         "fetchDynamicInfoFromServer": {"showInputField": False,
-                                       "input_field": {"label": "What is the issuer path for this configuration information? *",
-                                                       "value": "",
-                                                       "show": False,
-                                                       "isList": False}},
+                                       "input_field": {
+                                           "label": "What is the issuer path for this configuration information? *",
+                                           "value": "",
+                                           "show": False,
+                                           "isList": False}},
         "dynamicClientRegistrationDropDown": {
             "label": "Do the provider support dynamic client registration?",
             "value": "yes",

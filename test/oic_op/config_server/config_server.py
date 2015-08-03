@@ -15,7 +15,8 @@ from mako.lookup import TemplateLookup
 from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 
-from configuration_server.configurations import convert_config_file, get_issuer_from_gui_config, convert_to_gui_drop_down, \
+from configuration_server.configurations import convert_config_file, get_issuer_from_gui_config, \
+    convert_to_gui_drop_down, \
     convert_config_gui_structure, generate_profile, is_using_dynamic_client_registration, handle_exception, \
     create_module_string, get_config_file_path, write_config_file, get_default_client
 
@@ -39,6 +40,7 @@ NO_PORT_ERROR_MESSAGE = "It appears that no ports are available at the " \
                         "moment. Please try again later."
 CONF = None
 
+
 def setup_logging(logfile):
     hdlr = logging.FileHandler(logfile)
     base_formatter = logging.Formatter(
@@ -49,7 +51,7 @@ def setup_logging(logfile):
     LOGGER.setLevel(logging.DEBUG)
 
 
-def static(environ, start_response, logger, path):
+def static(environ, start_response, path):
     try:
         text = open(path).read()
         if path.endswith(".ico"):
@@ -78,6 +80,7 @@ def op_config(environ, start_response):
                     headers=[])
     return resp(environ, start_response)
 
+
 def handle_get_op_config(session, response_encoder):
     """
     Handles the get config Gui structure request
@@ -101,6 +104,7 @@ def handle_get_op_config(session, response_encoder):
 
     return response_encoder.service_error(
         "No file saved in this current session")
+
 
 def handle_request_instance_ids(response_encoder, parameters):
     if 'opConfigurations' not in parameters:
@@ -131,7 +135,7 @@ def handle_does_op_config_exist(session, response_encoder):
     return response_encoder.return_json(result)
 
 
-def handle_download_config_file(session, response_encoder, parameters):
+def handle_download_config_file(response_encoder, parameters):
     """
     :return Return the configuration file stored in the session
     """
@@ -146,11 +150,13 @@ def handle_download_config_file(session, response_encoder, parameters):
                                                     instance_id,
                                                     is_port_in_database(port),
                                                     CONF)
-    filedict = json.dumps({"configDict": config_file_dict})
-    return response_encoder.return_json(filedict)
+    file_dict = json.dumps({"configDict": config_file_dict})
+    return response_encoder.return_json(file_dict)
+
 
 class ConfigSizeToLarge(Exception):
     pass
+
 
 def validate_configuration_size(config):
     if isinstance(config, dict):
@@ -175,7 +181,7 @@ def handle_upload_config_file(parameters, session, response_encoder):
     except ValueError:
         return response_encoder.service_error(
             "Failed to load the configuration file. Make sure the config file "
-            "follows the appopriate format")
+            "follows the appropriate format")
     except ConfigSizeToLarge:
         LOGGER.debug("Some one tried to upload a configuration which exceeded the allowed file limit.")
         return response_encoder.service_error("The uploaded configuration file exceeds the allowed file limit.")
@@ -195,7 +201,7 @@ def start_rp_process(port, command, working_directory=None):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              cwd=working_directory)
-        retcode = p.poll()  # returns None while subprocess is running
+        return_code = p.poll()  # returns None while subprocess is running
 
     except Exception as ex:
         LOGGER.fatal(
@@ -203,11 +209,11 @@ def start_rp_process(port, command, working_directory=None):
                 command[0], ex))
         raise Exception(failed_to_start_message)
 
-    if retcode is None:
+    if return_code is None:
         check_if_oprp_started(port, get_base_url(port))
     else:
         LOGGER.error("Return code {} != None. Command executed: {}".format(
-            retcode, command))
+            return_code, command))
         raise NoResponseException(failed_to_start_message)
 
 
@@ -216,12 +222,15 @@ def save_config_info_in_database(_port, session):
     row = port_db.get_row(_port)
     port_db.upsert_row(row, session[OP_CONFIG])
 
+
 def is_port_in_database(_port):
     port_db = PortDatabase(CONF.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE)
-    return port_db.get_row(_port) == None
+    return port_db.get_row(_port) is None
+
 
 def get_base_url(port):
     return 'https://%s:%d/' % (CONF.HOST, int(port))
+
 
 def handle_start_op_tester(session, response_encoder, parameters):
     if 'op_configurations' not in parameters:
@@ -247,19 +256,20 @@ def handle_start_op_tester(session, response_encoder, parameters):
         return response_encoder.service_error(NO_PORT_ERROR_MESSAGE)
 
     config_string = convert_config_gui_structure(config_gui_structure,
-                                                                _port,
-                                                                _instance_id,
-                                                                is_port_in_database(_port),
-                                                                CONF)
+                                                 _port,
+                                                 _instance_id,
+                                                 is_port_in_database(_port),
+                                                 CONF)
     try:
         session[OP_CONFIG] = validate_configuration_size(config_string)
     except ConfigSizeToLarge as ex:
-        return handle_exception(ex, response_encoder, "The configuration you are trying to store exceeds the allowed file limit.")
+        return handle_exception(ex, response_encoder,
+                                "The configuration you are trying to store exceeds the allowed file limit.")
 
     config_module = create_module_string(session[OP_CONFIG],
                                          _port,
-                                         CONF,
-                                         get_base_url(_port))
+                                         get_base_url(_port),
+                                         conf=CONF)
     config_file_path = get_config_file_path(_port, CONF.OPRP_DIR_PATH)
 
     try:
@@ -270,24 +280,28 @@ def handle_start_op_tester(session, response_encoder, parameters):
                         "Please contact technical support" % config_file_path
         return handle_exception(ioe, response_encoder, error_message)
 
-
     try:
         save_config_info_in_database(_port, session)
-        LOGGER.debug('Configurations for the test instance using instance ID equal to "%s" which should be using port %s to has been saved in the database' % (_instance_id, _port))
+        LOGGER.debug(
+            'Configurations for the test instance using instance ID equal to '
+            '"%s" which should be using port %s to has been saved in the database' % (
+                _instance_id, _port))
     except Exception as ex:
-        return handle_exception(ex, response_encoder, "Failed to store configurations in database. Please contact technical support")
+        return handle_exception(ex, response_encoder,
+                                "Failed to store configurations in database. Please contact technical support")
 
     try:
         kill_existing_process_on_port(_port, get_base_url(_port))
     except Exception as ex:
-        return handle_exception(ex, response_encoder, "Failed to restart test instance. Please contact technical support")
+        return handle_exception(ex, response_encoder,
+                                "Failed to restart test instance. Please contact technical support")
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
     try:
         start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
-                                CONF.OPRP_TEST_FLOW, config_module], "../rp/")
+                                 CONF.OPRP_TEST_FLOW, config_module], "../rp/")
         return response_encoder.return_json(
             json.dumps({"oprp_url": str(get_base_url(_port))}))
     except Exception as ex:
@@ -301,13 +315,13 @@ def get_port_from_database(issuer, instance_id, min_port, max_port, port_type):
     return port_db.allocate_port(issuer, instance_id, port_type, min_port, max_port)
 
 
-
 def allocate_dynamic_port(issuer, oprp_instance_id):
     return get_port_from_database(issuer,
                                   oprp_instance_id,
                                   CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN,
                                   CONF.DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MAX,
                                   PortDatabase.DYNAMIC_PORT_TYPE)
+
 
 def allocate_static_port(issuer, oprp_instance_id):
     return get_port_from_database(issuer,
@@ -357,15 +371,15 @@ def handle_path(environ, start_response):
                                        start_response=start_response)
     parameters = http_helper.query_dict()
     if path == "favicon.ico":
-        return static(environ, start_response, LOGGER, "static/favicon.ico")
+        return static(environ, start_response, "static/favicon.ico")
     if path.startswith("static/"):
-        return static(environ, start_response, LOGGER, path)
+        return static(environ, start_response, path)
 
     # TODO This is all web frameworks which should be imported via dirg-util
     if path.startswith("_static/"):
-        return static(environ, start_response, LOGGER, path)
+        return static(environ, start_response, path)
     if path.startswith("export/"):
-        return static(environ, start_response, LOGGER, path)
+        return static(environ, start_response, path)
     if path == "":
         return op_config(environ, start_response)
     if path == "create_new_config_file":
@@ -375,7 +389,7 @@ def handle_path(environ, start_response):
     if path == "does_op_config_exist":
         return handle_does_op_config_exist(session, response_encoder)
     if path == "download_config_file":
-        return handle_download_config_file(session, response_encoder, parameters)
+        return handle_download_config_file(response_encoder, parameters)
     if path == "upload_config_file":
         return handle_upload_config_file(parameters, session, response_encoder)
     if path == "start_op_tester":
@@ -386,15 +400,17 @@ def handle_path(environ, start_response):
         return handle_request_instance_ids(response_encoder, parameters)
     return http_helper.http404()
 
+
 def application(environ, start_response):
     try:
-        return handle_path(environ, start_response);
+        return handle_path(environ, start_response)
     except Exception as ex:
         LOGGER.exception(ex)
         raise ex
 
-loggingapp = WSGILogger(application, [FileHandler("access.log")], ApacheFormatter())
-loggingapp.logger.propagate = False
+
+logging_app = WSGILogger(application, [FileHandler("access.log")], ApacheFormatter())
+logging_app.logger.propagate = False
 
 if __name__ == '__main__':
     from beaker.middleware import SessionMiddleware
@@ -419,7 +435,7 @@ if __name__ == '__main__':
     current_dir = os.path.dirname(os.path.abspath(__file__))
 
     if not hasattr(CONF, 'OPRP_PATH'):
-        CONF.OPRP_PATH =  current_dir + "/../rp/oprp2.py"
+        CONF.OPRP_PATH = current_dir + "/../rp/oprp2.py"
 
     if not hasattr(CONF, 'OPRP_DIR_PATH'):
         CONF.OPRP_DIR_PATH = current_dir + "/../rp/"
@@ -429,7 +445,7 @@ if __name__ == '__main__':
     setup_logging("config_server.log")
 
     SRV = wsgiserver.CherryPyWSGIServer(('0.0.0.0', CONF.PORT),
-                                        SessionMiddleware(loggingapp,
+                                        SessionMiddleware(logging_app,
                                                           session_opts))
     try:
         _dir_path = CONF.OPRP_DIR_PATH

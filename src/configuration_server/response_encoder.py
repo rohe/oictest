@@ -1,6 +1,7 @@
 import json
 from oic.utils.http_util import Response, ServiceError, BadRequest
 
+
 class ResponseEncoder:
     def __init__(self, environ=None, start_response=None):
         self.environ = environ

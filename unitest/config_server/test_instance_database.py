@@ -106,7 +106,7 @@ class TestPortDatabase:
 
     def test_remove_entry_based_on_port(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001)
-        database._remove_row(8001)
+        database.remove_row(8001)
         assert database.get_all_ports() == [8002, 8003]
 
     def test_get_port_based_on_issuer_and_id(self):

@@ -10,8 +10,10 @@ INSTANCE_ID_COLUMN = "instance_id"
 ISSUER_COLUMN = "issuer"
 CONFIG_FILE_COLUMN = 'config_file'
 
+
 class NoPortAvailable(Exception):
     pass
+
 
 class PortDatabase():
     TABLE_NAME = 'ports'
@@ -104,7 +106,7 @@ class PortDatabase():
         return row
 
     def print_table(self):
-        list =self.get_table_as_list()
+        list = self.get_table_as_list()
         table = PrettyTable(["Port", "Issuer", "Instance ID", "Port Type"])
         table.padding_width = 1
 
@@ -118,7 +120,7 @@ class PortDatabase():
             table.add_row(list)
         print table
 
-    def _remove_row(self, port):
+    def remove_row(self, port):
         self.table.delete(port=port)
 
     def _get_port_type(self, port):
@@ -161,7 +163,7 @@ class PortDatabase():
                 if port:
                     return int(port)
             elif port is not None:
-                self._remove_row(port)
+                self.remove_row(port)
 
             port = self._get_next_free_port(min_port, max_port)
             self.upsert(port, issuer, instance_id, port_type)
