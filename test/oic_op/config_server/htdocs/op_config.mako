@@ -272,6 +272,7 @@
                     </form>
 
                     <div class="col-sm-6">
+                        E.g. bob@example.com
                     </div>
                 </div>
 
@@ -293,6 +294,7 @@
                     </div>
 
                     <div class="col-sm-6">
+                        E.g. en se
                     </div>
                 </div>
 
@@ -314,6 +316,7 @@
                     </div>
 
                     <div class="col-sm-6">
+                        E.g. en se
                     </div>
 
                 </div>
@@ -336,6 +339,7 @@
                     </div>
 
                     <div class="col-sm-6">
+                        E.g. 2 1
                     </div>
                 </div>
 
@@ -357,6 +361,7 @@
                     </div>
 
                     <div class="col-sm-6">
+                        https://example.com/bob
                     </div>
                 </div>
 
@@ -378,6 +383,7 @@
                     </div>
 
                     <div class="col-sm-6">
+                        E.g. bob@example.com
                     </div>
                 </div>
 
