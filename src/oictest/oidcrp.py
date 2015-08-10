@@ -318,7 +318,7 @@ def do_response(response, conv, url, trace, client, body_type, response_type,
             except (BadSyntax, TypeError):
                 pass
             else:
-                trace.info("JWT header: %s" % res[0])
+                trace.info("JWT header: {}".format(res))
 
     if _response is None:
         conv.protocol_response.append((_response, ""))

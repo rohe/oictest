@@ -153,6 +153,7 @@ def application(environ, start_response):
                     cp = cp[:-1]
 
             # reset all test flows
+            RP_ARGS["test_profile"] = ".".join(cp)
             oprp.reset_session(session, ".".join(cp))
             return oprp.flow_list(session)
         except Exception as err:
