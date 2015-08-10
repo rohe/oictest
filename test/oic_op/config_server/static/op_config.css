@@ -11,6 +11,12 @@ hr {
     margin-top: 0px;
 }
 
+.centeralBlock{
+    display: block;
+    margin-left: auto;
+    margin-right: auto
+}
+
 li {
     cursor: pointer;
 }

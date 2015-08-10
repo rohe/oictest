@@ -10,8 +10,11 @@ from configuration_server.configurations import convert_to_gui_drop_down, _gener
     create_key_dict_pair_if_non_exist, convert_config_gui_structure, convert_instance, convert_to_value_list, \
     load_config_module, generate_config_module_name, get_config_file_path, convert_to_uft8, \
     convert_abbreviation_to_response_type, convert_response_type_to_abbreviation, UnKnownResponseTypeAbbreviation, \
-    set_test_specific_request_parameters
+    set_test_specific_request_parameters, set_issuer, GuiConfig, UserFriendlyException, \
+    handle_exception
+from configuration_server.response_encoder import ResponseEncoder
 
+ISSUER = "issuer"
 
 __author__ = 'danielevertsson'
 
@@ -52,7 +55,7 @@ class TestConfigurationModule:
         server_config.OPRP_DIR_PATH = '.'
         server_config.OPRP_SSL_MODULE = "sslconf"
         server_config.HOST = "localhost"
-        server_config.STATIC_CLIENT_REGISTRATION_PORTS_DATABASE_FILE = None
+        server_config.PORT_DATABASE_FILE = None
         sys.path.append(server_config.OPRP_DIR_PATH)
         return server_config
 
@@ -214,3 +217,42 @@ class TestConfigurationModule:
             gui_conf_structure[gui_struct_key]
         set_test_specific_request_parameters(config_file, gui_conf_structure)
         assert gui_conf_structure[gui_struct_key] == value
+
+    def test_set_static_and_dynamic_disco_issuer(self):
+        config = set_issuer(ISSUER, create_new_configuration_dict())
+        gui_config = GuiConfig(config)
+        assert ISSUER == gui_config.get_static_discovery_issuer()
+        assert ISSUER == gui_config.get_dynamic_discovery_issuer()
+
+    def test_user_friendly_exception_extra_parameter(self):
+        message = "message"
+        log_info = "log_info"
+        ex = UserFriendlyException(message, log_info)
+        assert ex.message == message
+        assert ex.log_info == log_info
+
+    def side_effect(value):
+        return value
+
+    @patch('uuid.uuid4')
+    @patch('configuration_server.configurations.LOGGER')
+    def test_separate_between_user_friendly_exception_message_and_log_info(self, logger, uuid4_mock):
+        event_id = "a1s2d3"
+        message = "message"
+        log_info = "log_info"
+        ex = UserFriendlyException(message, log_info)
+        uuid4_mock.return_value = event_id
+        response_encoder = MagicMock()
+        handle_exception(ex, response_encoder)
+        response_encoder.service_error.assert_called_once_with(message, event_id=event_id)
+        assert logger.error.called
+
+    @patch('uuid.uuid4')
+    def test_if_exception_is_not_user_friendly_standard_message_should_be_used(self, uuid4_mock):
+        event_id = "a1s2d3"
+        uuid4_mock.return_value = event_id
+        message = "message"
+        ex = Exception("Exception message")
+        response_encoder = MagicMock()
+        handle_exception(ex, response_encoder, message=message)
+        response_encoder.service_error.assert_called_once_with(message, event_id=event_id)

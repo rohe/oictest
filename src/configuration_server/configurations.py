@@ -10,6 +10,7 @@ import shutil
 import datetime
 import time
 import traceback
+import uuid
 
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
@@ -29,6 +30,35 @@ LOGGER = logging.getLogger("configuration_server.configuration")
 
 class UnKnownResponseTypeAbbreviation(Exception):
     pass
+
+
+class GuiConfig():
+
+    def __init__(self, gui_config_structure=None):
+
+        if not gui_config_structure:
+            gui_config_structure = create_new_configuration_dict()
+
+        self.config_structure = gui_config_structure
+
+    def get_dynamic_discovery_issuer(self):
+        return self.config_structure['fetchDynamicInfoFromServer']['input_field']['value']
+
+    def set_dynamic_discovery_issuer(self, issuer):
+        self.config_structure['fetchDynamicInfoFromServer']['input_field']['value'] = issuer
+
+    def set_dynamic_discovery_visibility(self, visible):
+        self.config_structure['fetchDynamicInfoFromServer']['showInputField'] = visible
+
+    def get_static_discovery_issuer(self):
+        input_fields = self.config_structure['fetchStaticProviderInfo']['input_fields']
+        issuer_field = find_static_provider_info_field(input_fields, "issuer")
+        return issuer_field['values']
+
+    def set_static_discovery_issuer(self, issuer):
+        input_fields = self.config_structure['fetchStaticProviderInfo']['input_fields']
+        issuer_field = find_static_provider_info_field(input_fields, "issuer")
+        issuer_field['values'] = issuer
 
 
 def get_config_file_path(port, rp_config_folder):
@@ -314,13 +344,51 @@ def profile_to_config_file_dict(config_dict, config_gui_structure):
     return config_dict
 
 
-def handle_exception(ex, response_encoder=None, message=""):
-    if not response_encoder:
-        response_encoder = ResponseEncoder()
+class UserFriendlyException(Exception):
+    def __init__(self, message, log_info=None, show_trace=True):
+        super(UserFriendlyException, self).__init__(message)
+        self.log_info = log_info
+        self.show_trace = show_trace
 
-    LOGGER.exception(str(ex))
+
+def log_exception(event_id, exception):
+    logged_exception = type(exception)("[" + event_id + "] " + exception.message)
+    LOGGER.exception(str(logged_exception))
+
+
+def handle_exception(exception, response_encoder, message="", failed_to_message=""):
+    if failed_to_message:
+        message = "Failed to %s. Please contact technical support." % failed_to_message
+
+    event_id = str(uuid.uuid4())
+
+    if isinstance(exception, UserFriendlyException):
+        if exception.show_trace:
+            log_exception(event_id, exception)
+    else:
+        log_exception(event_id, exception)
+
     print(traceback.format_exc())
-    return response_encoder.service_error(message)
+    if response_encoder:
+        if isinstance(exception, UserFriendlyException):
+            if exception.log_info:
+                LOGGER.error("[" + event_id + "] " + exception.log_info)
+            return response_encoder.service_error(exception.message, event_id=event_id)
+        LOGGER.error("[" + event_id + "] " + message)
+        return response_encoder.service_error(message, event_id=event_id)
+    return None
+
+
+def does_configuration_exists(port_database, issuer, instance_id, conf):
+    port = port_database.get_port(issuer=issuer, instance_id=instance_id)
+    config = port_database.get_configuration(issuer=issuer, instance_id=instance_id)
+
+    try:
+        config = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
+    except Exception as ex:
+        handle_exception(ex, None)
+
+    return config is not None
 
 
 def convert_config_gui_structure(config_gui_structure, port, instance_id, is_port_in_database, conf):
@@ -335,12 +403,12 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
     try:
         config_dict = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
     except Exception as ex:
-        handle_exception(ex)
+        handle_exception(ex, None)
 
     if not is_port_in_database and config_dict:
         file_path = get_config_file_path(port, conf.OPRP_DIR_PATH)
         LOGGER.error("The identified configuration file does not exist in the database. "
-                     "It will be overwritten by the default configuration. File path: %s" % file_path)
+                     "File path: %s" % file_path)
 
     if not (is_port_in_database and config_dict):
         config_dict = get_default_client()
@@ -351,10 +419,8 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id, is_por
         config_dict[CONFIG_DICT_INSTANCE_ID_KEY] = instance_id
 
     if contains_dynamic_discovery_info(config_gui_structure):
-        dynamic_input_field_value = config_gui_structure['fetchDynamicInfoFromServer'] \
-            ['input_field'] \
-            ['value']
-        config_dict['srv_discovery_url'] = dynamic_input_field_value
+        gui_config = GuiConfig(config_gui_structure)
+        config_dict['srv_discovery_url'] = gui_config.get_dynamic_discovery_issuer()
 
     elif config_gui_structure['fetchStaticProviderInfo']['showInputFields']:
         config_dict = static_provider_info_to_config_file_dict(config_gui_structure,
@@ -398,15 +464,15 @@ def contains_dynamic_discovery_info(config_gui_structure):
     return config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] is True
 
 
-def get_issuer_from_gui_config(gui_config):
+def get_issuer_from_gui_config(gui_config_structure):
     issuer = None
 
-    if contains_dynamic_discovery_info(gui_config):
-        issuer = gui_config['fetchDynamicInfoFromServer']['input_field']['value']
+    gui_config = GuiConfig(gui_config_structure)
+
+    if contains_dynamic_discovery_info(gui_config_structure):
+        issuer = gui_config.get_dynamic_discovery_issuer()
     else:
-        input_fields = gui_config['fetchStaticProviderInfo']['input_fields']
-        issuer_field = find_static_provider_info_field(input_fields, "issuer")
-        issuer = issuer_field['values']
+        issuer = gui_config.get_static_discovery_issuer()
 
     if issuer.endswith("/"):
         issuer = issuer[:-1]
@@ -419,9 +485,10 @@ def is_using_dynamic_client_registration(config_gui_structure):
 
 
 def set_dynamic_discovery_issuer_config_gui_structure(issuer, config_gui_structure, show_field=True):
-    config_gui_structure['fetchDynamicInfoFromServer']['showInputField'] = show_field
-    config_gui_structure['fetchDynamicInfoFromServer']['input_field']['value'] = issuer
-    return config_gui_structure
+    gui_config = GuiConfig(config_gui_structure)
+    gui_config.set_dynamic_discovery_visibility(show_field)
+    gui_config.set_dynamic_discovery_issuer(issuer)
+    return gui_config.config_structure
 
 
 def convert_to_gui_drop_down(config_file_dict):
@@ -525,12 +592,10 @@ def dynamic_discovery_to_gui_structure(config_file_dict, config_gui_structure):
     :return The updated presentation of the internal data structure
     """
     config_gui_structure["fetchInfoFromServerDropDown"]["value"] = "dynamic"
-    config_gui_structure["fetchDynamicInfoFromServer"]["showInputField"] = True
-    config_gui_structure["fetchDynamicInfoFromServer"]["input_field"]["value"] \
-        = \
-        config_file_dict["srv_discovery_url"]
-
-    return config_gui_structure
+    gui_config = GuiConfig(config_gui_structure)
+    gui_config.set_dynamic_discovery_visibility(True)
+    gui_config.set_dynamic_discovery_issuer(config_file_dict["srv_discovery_url"])
+    return gui_config.config_structure
 
 
 def client_registration_supported_to_gui(config_file_dict,
@@ -692,6 +757,13 @@ def _generate_static_input_fields(default_input_value=None):
         _config_fields_list.append(config_field)
 
     return _config_fields_list
+
+
+def set_issuer(issuer, gui_config_structure):
+    gui_config = GuiConfig(gui_config_structure)
+    gui_config.set_static_discovery_issuer(issuer)
+    gui_config.set_dynamic_discovery_issuer(issuer)
+    return gui_config.config_structure
 
 
 def create_new_configuration_dict():

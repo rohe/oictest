@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import os
 import random
 import string
@@ -29,9 +30,10 @@ def set_port_type(index, static_port_type_value):
         return PortDatabase.DYNAMIC_PORT_TYPE
     return PortDatabase.STATIC_PORT_TYPE
 
-def generate_database_entries(entries_to_generate=1, base_port=8000, base_issuer="issuer", base_instance_id="id",
-                              static_port_value=None, static_issuer_value=None, static_instance_id_value=None,
-                              static_port_type_value=None,
+def generate_database_entries(entries_to_generate=1, base_port=8000, base_issuer="issuer",
+                              base_instance_id="id", base_config_file_dict_value="value",
+                              static_port_value=None, static_issuer_value=None,
+                              static_instance_id_value=None, static_port_type_value=None
                               ):
     index = 0
     database = PortDatabase(is_port_used_func=is_port_used_func)
@@ -40,11 +42,13 @@ def generate_database_entries(entries_to_generate=1, base_port=8000, base_issuer
         issuer = set_base_attribute(base_issuer, static_issuer_value, str(index))
         instance_id = set_base_attribute(base_instance_id, static_instance_id_value, str(index))
         port_type = set_port_type(index, static_port_type_value)
+        config_file = {"key": base_config_file_dict_value + str(index)}
 
         database.upsert(port=port,
                         issuer=issuer,
                         instance_id=instance_id,
-                        port_type=port_type)
+                        port_type=port_type,
+                        config_file=config_file)
         index = index + 1
     return database
 
@@ -111,7 +115,7 @@ class TestPortDatabase:
 
     def test_get_port_based_on_issuer_and_id(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001, static_issuer_value="issuer")
-        port = database._get_existing_port("issuer", 'id1')
+        port = database.get_existing_port("issuer", 'id1')
         assert port == 8002
 
     def test_get_next_free_port(self):
@@ -159,7 +163,7 @@ class TestPortDatabase:
 
     def test_get_existing_port_with_non_existing_credientials(self, setup_empty_database):
         database = setup_empty_database
-        assert database._get_existing_port("","","") == None
+        assert database.get_existing_port("","","") == None
 
     def test_get_port_type(self):
         database = generate_database_entries(base_port=8001,
@@ -244,3 +248,27 @@ class TestPortDatabase:
         assert len(database.get_all_ports()) == 3
         database.clear()
         assert len(database.get_all_ports()) == 0
+
+    def test_get_none_existing_port(self, setup_empty_database):
+        database = setup_empty_database
+        assert database.get_port(issuer="issuer", instance_id="id") is None
+
+    def test_get_port_by_issuer_and_instance_id(self, setup_empty_database):
+        database = generate_database_entries(entries_to_generate=3,
+                                                        base_instance_id="ID",
+                                                        base_port=8000,
+                                                        static_issuer_value=ISSUER_GOOGLE)
+        assert database.get_port(issuer=ISSUER_GOOGLE, instance_id="ID1") == 8001
+
+    @pytest.mark.parametrize("instance_id, config_file", [
+        ("ID0", {"key": "value0"}),
+        ("ID1", {"key": "value1"}),
+        ("ID2", {"key": "value2"}),
+    ])
+    def test_loading_config_file(self, instance_id, config_file):
+        database = generate_database_entries(entries_to_generate=3,
+                                             base_instance_id="ID",
+                                             base_config_file_dict_value="value",
+                                             static_issuer_value=ISSUER_GOOGLE)
+
+        assert database.get_configuration(ISSUER_GOOGLE, instance_id) == config_file

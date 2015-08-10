@@ -6,10 +6,15 @@ import subprocess
 import requests
 import time
 from requests.exceptions import ConnectionError
+from configuration_server.configurations import UserFriendlyException
 
 __author__ = 'danielevertsson'
 
 LOGGER = logging.getLogger("configuration_server.shell_commands")
+
+
+class NoResponseException(UserFriendlyException):
+    pass
 
 
 def check_if_oprp_started(port, oprp_url, timeout=5):
@@ -28,6 +33,7 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
             time.sleep(1)
         except ConnectionError:
             pass
+
     error_message = "Test instance (%s) failed to return '200 OK' within %s sec. " % (oprp_url, timeout)
 
     if response:
@@ -35,11 +41,8 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
     else:
         error_message += "No response where returned from the test instance"
 
-    raise NoResponseException(error_message)
-
-
-class NoResponseException(Exception):
-    pass
+    raise NoResponseException("Failed to start test instance %s." % oprp_url,
+                              log_info=error_message)
 
 
 def kill_existing_process_on_port(port, base_url):
@@ -57,25 +60,31 @@ def kill_existing_process_on_port(port, base_url):
         LOGGER.debug("No process has been killed. Found no test instance running on port %s" % port)
 
 
+def log_process_information(output, port):
+    try:
+        pids = output.splitlines()
+        for pid in pids:
+            process_info = run_command([["ps", "-ax"], ["grep", str(int(pid))]])
+            LOGGER.debug("Apparently port %s is already in use by process: %s" % (port, process_info))
+    except Exception:
+        pass
+
+
 def is_port_used_by_another_process(port):
+    result = None
     try:
         oprp_pid = get_oprp_pid(port)
+        result = run_command([["lsof", "-i", ":%s" % port], ["grep", "LISTEN"], ["awk", '{print $2}']])
 
-        pid = run_command([["lsof", "-i", ":%s" % port], ["grep", "LISTEN"], ["awk", '{print $2}']])
-        pids = pid.splitlines()
-
-        if not (pid and not oprp_pid):
+        if not (result and not oprp_pid):
             return False
-
-        LOGGER.error("Tried to allocate port %s but it's used by another process" % port)
-
-        for pid in pids:
-            log_process_info(pid, port)
 
     except Exception as ex:
         LOGGER.exception(str(ex))
         LOGGER.error("Failed to verify if any other process is running on port: %s" % port)
 
+    if result:
+        log_process_information(result, port)
     return True
 
 
@@ -106,8 +115,3 @@ def run_command(commands_to_pipe):
         past_sub_process = p
 
     return p.stdout.read()
-
-
-def log_process_info(pid, port):
-    process_info = run_command([["ps", "-ax"], ["grep", str(int(pid))]])
-    LOGGER.debug("Apparently port %s is already in use by process: %s" % (port, process_info))
