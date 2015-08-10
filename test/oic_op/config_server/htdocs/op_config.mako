@@ -17,7 +17,6 @@
 
 <%block name="header">
     ${parent.header()}
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </%block>
 
 <%block name="headline">
@@ -33,56 +32,17 @@
             OpenID Certification OP Test Tool Configuration
         </h2>
 
-        <div class="row">
-            <div class="col-sm-4">
-                <button class="btn btn-primary btn-sm" ng-click="create_new_config_file();">
-                    <span class="glyphicon glyphicon-file"></span>
-                    Create new configurations
-                </button>
-            </div>
-
-            <div class="col-sm-4">
-                <button class="btn btn-primary btn-sm" ng-click="showModalUploadConfigWindow();">
-                    <span class="glyphicon glyphicon-open"></span>
-                    Upload configurations
-                </button>
-            </div>
-
-            <div class="col-sm-4">
-                <button class="btn btn-primary btn-sm" ng-click="request_download_config_file();">
-                    <span class="glyphicon glyphicon-download-alt"></span>
-                    Download configurations
-                </button>
-            </div>
-        </div>
-        <br>
-
         <ul class="nav nav-tabs" ng-show="opConfig">
             <li role="presentation"
                 ng-class="{'active': provider_tab_visible,
                            'disabled': true}">
-
-                <a>
-                    Provider configuration
-                </a>
-            </li>
-
-            <li role="presentation"
-                ng-class="{'active': test_instance_tab_visible,
-                           'disabled': true}">
-
-                <a>
-                    Test instance configuration
-                </a>
+                <a>Provider configuration</a>
             </li>
 
             <li role="presentation"
                 ng-class="{'active': client_tab_visible,
                            'disabled': true}">
-
-                <a>
-                    Client configuration
-                </a>
+                <a>Client configuration</a>
             </li>
         </ul>
 
@@ -197,67 +157,12 @@
                 </button>
 
                 <button class="btn btn-primary btn-sm"
-                        ng-click="request_instance_ids()"
+                        ng-click="show_client_config()"
                         ng-disabled="dynamic_disco_form.$invalid || !contains_required_provider_info()">
                     Next
                 </button>
             </div>
-            <!-- ################################################################################################# -->
-            <div ng-show="test_instance_tab_visible">
 
-                Instances connected to issuer: <b>{{selected_issuer}}</b>
-                <br>
-
-                The application supports up to five test tool instances connected to the same issuer. The test tool
-                instances are separated by an id chosen by the user.
-                <br>
-                <br>
-                <form>
-                    <div class="row">
-                        <div class="col-sm-3">
-                            <input type="radio" ng-model="instance_type.value" value="{{NEW_INSTANCE_ID}}">
-                            Create new test tool instance id:
-                        </div>
-
-                        <div class="input-group col-sm-4">
-                            <input type="text"
-                                   maxlength="200"
-                                   class="form-control"
-                                   ng-model="new_instance_id"
-                                   ng-disabled="instance_type.value == EXISTING_INSTANCE_ID||
-                                                existing_instance_ids.values.length >= 5">
-                        </div>
-                        <span class="requiredText"
-                              ng-show="existing_instance_ids.values.length >= 5">
-                            Maximum number of test instances reached
-                        </span>
-
-                    </div>
-
-                    <input type="radio" ng-model="instance_type.value" value="{{EXISTING_INSTANCE_ID}}">
-                    Select test instance you want to overwrite
-
-                    <select ng-model="existing_instance_ids.value"
-                            ng-options="v.type as v.name for v in existing_instance_ids.values"
-                            ng-disabled="instance_type.value == NEW_INSTANCE_ID">
-                    </select>
-                </form>
-
-                <br>
-                <button class="btn btn-primary btn-sm"
-                        ng-click="show_provider_config()">
-                    Previous
-                </button>
-
-                <button class="btn btn-primary btn-sm"
-                        ng-click="show_client_config()"
-                        ng-disabled="(instance_type.value == EXISTING_INSTANCE_ID &&
-                                      existing_instance_ids.values.length == 0)||
-                                     (instance_type.value == NEW_INSTANCE_ID &&
-                                      new_instance_id == '')">
-                    Next
-                </button>
-            </div>
             <!-- ################################################################################################# -->
             <div ng-show="client_tab_visible">
                 <h3>
@@ -270,7 +175,8 @@
                             {{opConfig.dynamicClientRegistrationDropDown.label}}
                         </span>
                         <select ng-model="opConfig.dynamicClientRegistrationDropDown.value"
-                                ng-options="v.type as v.name for v in opConfig.dynamicClientRegistrationDropDown.values">
+                                ng-options="v.type as v.name for v in opConfig.dynamicClientRegistrationDropDown.values"
+                                ng-disabled="!contains_redirect_url">
                         </select>
                     </div>
                 </div>
@@ -475,7 +381,7 @@
                     </div>
                 </div>
 
-                <button class="btn btn-primary btn-sm" ng-click="show_test_instance_config()">
+                <button class="btn btn-primary btn-sm" ng-click="show_provider_config()">
                     Previous
                 </button>
 

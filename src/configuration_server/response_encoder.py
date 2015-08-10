@@ -14,12 +14,15 @@ class ResponseEncoder:
         resp = Response(text, headers=[('Content-Type', "application/json")])
         return resp(self.environ, self.start_response)
 
-    def service_error(self, message, html=None):
+    def service_error(self, message, event_id=None, html=None):
         """
         :return A error response which is used to show error messages in the client
         """
-        message = {"ExceptionMessage": message, "HTML": html}
-        resp = ServiceError(json.dumps(message))
+        if event_id:
+            message += " Please reference to this event by: " + event_id
+
+        response_message = {"ExceptionMessage": message + "", "HTML": html}
+        resp = ServiceError(json.dumps(response_message))
         return resp(self.environ, self.start_response)
 
     def bad_request(self):

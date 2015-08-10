@@ -1,3 +1,5 @@
+import SimpleHTTPServer
+import SocketServer
 from threading import Thread
 
 from mock import patch
@@ -77,9 +79,19 @@ class TestShellCommands:
         with pytest.raises(NoResponseException):
             check_if_oprp_started(None, oprp_url="http://1234.1234.1234.1234:8000", timeout=1)
 
+    def _python_server_start_serving(self, httpd):
+        httpd.serve_forever()
+
+    def _start_python_server(self, port):
+        Handler = SimpleHTTPServer.SimpleHTTPRequestHandler
+        httpd = SocketServer.TCPServer(("", port), Handler)
+        thread = Thread(target=self._python_server_start_serving, args=(httpd, ))
+        thread.daemon = True
+        thread.start()
+
     def test_if_able_to_get_200_ok_from_running_server(self):
-        self._start_http_server_thread(8000)
-        return_code = check_if_oprp_started(None, oprp_url="https://0.0.0.0:8000", timeout=2)
+        self._start_python_server(9001)
+        return_code = check_if_oprp_started(None, oprp_url="http://localhost:9001", timeout=2)
         assert return_code
 
     @patch("configuration_server.shell_commands.run_command")

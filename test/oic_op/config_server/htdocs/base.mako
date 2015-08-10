@@ -1,9 +1,10 @@
 <html ng-app="main">
 <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <%block name="meta"/>
-    <script src="/_static/angular.js"></script>
-    <script src="/_static/jquery.min.latest.js"></script>
-    <script src="/_static/bootstrap/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.4.3/angular.min.js"></script>
+    <script src="/_static/jquery.min.latest.js" type="text/javascript"></script>
+    <script src="/_static/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
     <%block name="script"/>
     <link href="/_static/bootstrap/css/bootstrap.min.css" rel="stylesheet" media="screen">
     <link rel="stylesheet" type="text/css" href="/_static/basic.css">
@@ -28,8 +29,8 @@
         </div>
         </div>
 
-        <script src="/_static/toaster.js"></script>
-        <script src="/_static/bootbox.min.js"></script>
+        <script src="/_static/toaster.js" type="text/javascript"></script>
+        <script src="/_static/bootbox.min.js" type="text/javascript"></script>
     </%block>
 
 
