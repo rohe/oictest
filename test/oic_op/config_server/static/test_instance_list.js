@@ -49,6 +49,13 @@ app.controller('IndexCtrl', function ($scope, $window, toaster, op_configuration
         return false;
     };
 
+    $scope.does_test_instances_exist = function(){
+        if ($scope.test_instances){
+            return Object.keys($scope.test_instances).length > 0
+        }
+        return false
+    };
+
     $scope.reached_max_num_of_instances = function(){
         if ($scope.test_instances){
             return Object.keys($scope.test_instances).length >= 5

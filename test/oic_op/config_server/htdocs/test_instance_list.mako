@@ -18,6 +18,9 @@
 <%block name="header">
     ${parent.header()}
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <style>
+        hr {border-color: #cfcfcf}
+    </style>
 </%block>
 
 <%block name="headline">
@@ -27,6 +30,17 @@
 <%block name="body">
 
     <div id="content">
+
+        <h2>OpenID Connect Provider Certification</h2>
+        <br>
+
+        <p>
+            This is a tool used for testing the compliance of an OpenID Connect Provider with the
+            OpenID Connect specifications. In order
+            to start testing you need to configure a test instance. Enter the issuer URL to the OpenID
+            Connect Provider you want to test.
+        </p>
+        <br>
 
         <form class="row"
               novalidate
@@ -52,7 +66,8 @@
             </span>
         </form>
 
-        <div ng-show="test_instances">
+        <div ng-show="does_test_instances_exist()">
+            <hr>
             <h2>Existing test instances</h2>
 
             <div class="row">
@@ -92,11 +107,20 @@
                       title="No configuration exists for this test instance"></span>
 
             </div>
-
+            <br>
         </div>
 
+
         <div ng-show="test_instances">
-            <h2>New test instance</h2>
+            <hr>
+            <h3>New test instance</h3>
+
+            <p>
+                Enter a ID for the new test instance. When configured the test instance will
+                appear in a list above which will contain all existing test instances. It will then
+                be possible to continue using an existing test instance later on or reconfigure
+                it if needed.
+            </p>
 
             <div class="row">
                 <div class="input-group col-sm-4">
