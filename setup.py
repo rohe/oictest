@@ -27,7 +27,7 @@ setup(
     author="Roland Hedberg",
     author_email="roland.hedberg@adm.umu.se",
     license="Apache 2.0",
-    packages=["oictest", "rrtest", "oauth2test", "umatest"],
+    packages=["oictest", "rrtest", "oauth2test", "umatest", "configuration_server"],
     package_dir={"": "src"},
     classifiers=[
         "Development Status :: 4 - Beta",
@@ -41,7 +41,9 @@ setup(
         "prettytable",
         "mechanize",
         "beautifulsoup4",
-        "wsgi-request-logger"
+        "wsgi-request-logger",
+        "pytest",
+        "cherrypy"
     ],
 
     zip_safe=False,

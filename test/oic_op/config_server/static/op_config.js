@@ -22,12 +22,12 @@ app.factory('op_configuration_factory', function ($http) {
             return $http.get("/does_op_config_exist");
         },
 
-        start_op_tester: function (op_configurations, oprp_instance_id) {
-            return $http.post("/start_op_tester", {"op_configurations": op_configurations, "oprp_instance_id": oprp_instance_id});
+        start_op_tester: function (op_configurations) {
+            return $http.post("/start_op_tester", {"op_configurations": op_configurations});
         },
 
-        get_redirect_url: function (issuer, oprp_instance_id) {
-            return $http.post("/get_redirect_url", {"issuer": issuer, "oprp_instance_id": oprp_instance_id});
+        get_redirect_url: function (issuer) {
+            return $http.post("/get_redirect_url", {"issuer": issuer});
         },
 
         request_instance_ids: function (opConfigurations) {
@@ -36,8 +36,8 @@ app.factory('op_configuration_factory', function ($http) {
     };
 });
 
-app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory) {
-    $scope.opConfig;
+app.controller('IndexCtrl', function ($scope, $location, toaster, op_configuration_factory) {
+    $scope.opConfig = null;
     $scope.contains_redirect_url = false;
 
     var TEST_STATUS = {
@@ -179,34 +179,14 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
         $scope.test_instance_tab_visible = true;
     };
 
-    function get_instance_id(){
-        if ($scope.instance_type.value == $scope.NEW_INSTANCE_ID){
-            return $scope.new_instance_id
-        }
-        else{
-            return $scope.existing_instance_ids.value
-        }
-    }
-
     $scope.show_client_config = function () {
-        var instance_id = get_instance_id();
-        get_redirect_url(instance_id);
+        get_redirect_url();
         clear_tabs();
         $scope.client_tab_visible = true;
     };
 
     $scope.existing_instance_ids = {};
     $scope.selected_issuer = ""
-
-    function request_instance_ids_success_callback(data, status, headers, config) {
-        $scope.existing_instance_ids = data['existing_instance_ids'];
-        $scope.selected_issuer = data['issuer'];
-        $scope.show_test_instance_config()
-    }
-
-    $scope.request_instance_ids = function(){
-        op_configuration_factory.request_instance_ids($scope.opConfig).success(request_instance_ids_success_callback).error(error_callback);
-    };
 
     function setRedirectUrl(redirectUrl) {
         var input_fields = $scope.opConfig.supportsStaticClientRegistrationTextFields
@@ -247,7 +227,11 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
      * @param config - The configuration on the response from the server
      */
     function error_callback(data, status, headers, config) {
-        bootbox.alert(data.ExceptionMessage);
+        $('#myPleaseWait').modal('hide');
+        if (data.ExceptionMessage != "")
+            bootbox.alert(data.ExceptionMessage);
+        else
+            bootbox.alert("An error occurred on the server, please contact technical support");
     }
 
     /**
@@ -354,6 +338,8 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
      * @returns {boolean} - Returns true if required input fields are not empty else false
      */
     $scope.containsRequiredClientInfo = function() {
+        if (!$scope.opConfig)
+            return false
         if ($scope.opConfig['dynamicClientRegistrationDropDown']['value'] == "no") {
             if (!hasEnteredClientIdAndClientSecret()) {
                 return false
@@ -380,7 +366,8 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
                         label: "Yes",
                         className: "btn-primary",
                         callback: function () {
-                            op_configuration_factory.start_op_tester($scope.opConfig, get_instance_id()).success(start_op_tester_success_callback).error(error_callback);
+                            $('#myPleaseWait').modal('show');
+                            op_configuration_factory.start_op_tester($scope.opConfig).success(start_op_tester_success_callback).error(error_callback);
                             $scope.$apply();
                         }
                     }
@@ -390,6 +377,7 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     function start_op_tester_success_callback(data, status, headers, config) {
+        $('#myPleaseWait').modal('hide');
         var info_text = "Your test instance has been successfully launched, please take note of the URL you now will " +
             "be redirected to. The test instance will be around until you tell us to remove it. Therefor the next time " +
             "you want to test you can go directly to the test instance and continue testing. No need to create a " +
@@ -471,6 +459,9 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
     };
 
     $scope.contains_required_provider_info = function() {
+        if (!$scope.opConfig)
+            return false
+
         var provider_discovery = $scope.opConfig.fetchInfoFromServerDropDown.value;
 
         if (!$scope.opConfig || !provider_discovery){
@@ -517,8 +508,8 @@ app.controller('IndexCtrl', function ($scope, toaster, op_configuration_factory)
         return issuer
     }
 
-    function get_redirect_url(instance_id) {
-        op_configuration_factory.get_redirect_url(get_issuer(), instance_id).success(get_redirect_url_success_callback).error(error_callback);
+    function get_redirect_url() {
+        op_configuration_factory.get_redirect_url(get_issuer()).success(get_redirect_url_success_callback).error(error_callback);
     }
 
 });

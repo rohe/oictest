@@ -3,6 +3,7 @@ import json
 import threading
 import dataset
 from prettytable import PrettyTable
+from configuration_server.configurations import UserFriendlyException
 
 PORT_COLUMN = 'port'
 PORT_TYPE_COLUMN = 'port_type'
@@ -10,8 +11,10 @@ INSTANCE_ID_COLUMN = "instance_id"
 ISSUER_COLUMN = "issuer"
 CONFIG_FILE_COLUMN = 'config_file'
 
-class NoPortAvailable(Exception):
+
+class NoPortAvailable(UserFriendlyException):
     pass
+
 
 class PortDatabase():
     TABLE_NAME = 'ports'
@@ -21,9 +24,10 @@ class PortDatabase():
 
     config_tread_lock = threading.Lock()
 
-    def __init__(self, database_path, is_port_used_func=None):
-        self.database_path = database_path
-        self.database = dataset.connect('sqlite:///' + database_path)
+    def __init__(self, database_path=None, is_port_used_func=None):
+        self.database = dataset.connect('sqlite:///:memory:')
+        if database_path is not None:
+            self.database = dataset.connect('sqlite:///' + database_path)
         self.table = self.database[self.TABLE_NAME]
         self.is_port_used_func = is_port_used_func
 
@@ -38,7 +42,14 @@ class PortDatabase():
                     port_type=row[PORT_TYPE_COLUMN],
                     config_file=config_file)
 
+    def remove_last_slash(self, string):
+        if isinstance(string, basestring):
+            if string.endswith("/"):
+                string = string[:-1]
+        return string
+
     def upsert(self, port, issuer, instance_id, port_type, config_file=None):
+        issuer = self.remove_last_slash(issuer)
         if isinstance(issuer, str):
             issuer = unicode(issuer, encoding='utf-8')
 
@@ -78,6 +89,7 @@ class PortDatabase():
         return self._get_column_elements(ISSUER_COLUMN)
 
     def get_instance_ids(self, issuer):
+        issuer = self.remove_last_slash(issuer)
         all_instance_ids = self.table.find(issuer=issuer)
         return self._get_column_elements(INSTANCE_ID_COLUMN, entries=all_instance_ids)
 
@@ -88,6 +100,20 @@ class PortDatabase():
             list.append([row[PORT_COLUMN], row[ISSUER_COLUMN], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
         return list
 
+    def port_column_to_int(self, row):
+        if row[PORT_COLUMN]:
+            row[PORT_COLUMN] = int(row[PORT_COLUMN])
+        return row
+
+    def get_port(self, issuer, instance_id):
+        issuer = self.remove_last_slash(issuer)
+        row = self.table.find_one(issuer=issuer, instance_id=instance_id)
+
+        if not row:
+            return None
+
+        return self.port_column_to_int(row)[PORT_COLUMN]
+
     def get_row(self, port):
         row = self.table.find_one(port=port)
 
@@ -96,10 +122,20 @@ class PortDatabase():
 
         if row[CONFIG_FILE_COLUMN]:
             row[CONFIG_FILE_COLUMN] = json.loads(row[CONFIG_FILE_COLUMN])
+
+        row = self.port_column_to_int(row)
+
         return row
 
+    def get_configuration(self, issuer, instance_id):
+        port = self.get_port(issuer, instance_id)
+        row = self.get_row(port)
+        if row:
+            return row[CONFIG_FILE_COLUMN]
+        return None
+
     def print_table(self):
-        list =self.get_table_as_list()
+        list = self.get_table_as_list()
         table = PrettyTable(["Port", "Issuer", "Instance ID", "Port Type"])
         table.padding_width = 1
 
@@ -113,7 +149,7 @@ class PortDatabase():
             table.add_row(list)
         print table
 
-    def _remove_row(self, port):
+    def remove_row(self, port):
         self.table.delete(port=port)
 
     def _get_port_type(self, port):
@@ -122,7 +158,8 @@ class PortDatabase():
             return None
         return row[PORT_TYPE_COLUMN]
 
-    def _get_existing_port(self, issuer, instance_id, port_type=None):
+    def get_existing_port(self, issuer, instance_id, port_type=None):
+        issuer = self.remove_last_slash(issuer)
         if not port_type:
             row = self.table.find_one(issuer=issuer, instance_id=instance_id)
         else:
@@ -138,8 +175,7 @@ class PortDatabase():
         while port in existing_ports:
             port += 1
         if port > max_port:
-            raise NoPortAvailable(
-                "No port is available at the moment, please try again later")
+            raise NoPortAvailable("")
 
         while self.is_port_used_func(port):
             port += 1
@@ -148,15 +184,15 @@ class PortDatabase():
 
     def allocate_port(self, issuer, instance_id, port_type, min_port, max_port):
         with self.config_tread_lock:
-            port = self._get_existing_port(issuer=issuer, instance_id=instance_id)
+            port = self.get_existing_port(issuer=issuer, instance_id=instance_id)
 
             if self._get_port_type(port) == port_type:
-                port = self._get_existing_port(issuer, instance_id, port_type)
+                port = self.get_existing_port(issuer, instance_id, port_type)
 
                 if port:
                     return int(port)
             elif port is not None:
-                self._remove_row(port)
+                self.remove_row(port)
 
             port = self._get_next_free_port(min_port, max_port)
             self.upsert(port, issuer, instance_id, port_type)
