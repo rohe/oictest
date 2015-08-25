@@ -43,7 +43,8 @@ setup(
         "beautifulsoup4",
         "wsgi-request-logger",
         "pytest",
-        "cherrypy"
+        "cherrypy",
+        "pyOpenSSL",
     ],
 
     zip_safe=False,

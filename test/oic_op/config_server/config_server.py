@@ -16,12 +16,13 @@ from oic.utils.http_util import NotFound
 from oic.utils.http_util import Response
 
 from configuration_server.configurations import convert_config_file, get_issuer_from_gui_config, \
-    convert_to_gui_drop_down, \
-    convert_config_gui_structure, generate_profile, is_using_dynamic_client_registration, handle_exception, \
+    convert_config_gui_structure, generate_profile, is_using_dynamic_client_registration, \
+    handle_exception, \
     create_module_string, get_config_file_path, write_config_file, get_default_client, set_issuer, \
     UserFriendlyException, does_configuration_exists
 
-from configuration_server.shell_commands import is_port_used_by_another_process, kill_existing_process_on_port, \
+from configuration_server.shell_commands import is_port_used_by_another_process, \
+    kill_existing_process_on_port, \
     check_if_oprp_started, NoResponseException
 from configuration_server.test_instance_database import PortDatabase, NoPortAvailable
 
@@ -81,11 +82,14 @@ def op_config(environ, start_response, mako_template):
                     headers=[])
     return resp(environ, start_response)
 
+
 class InvalidConfigType(UserFriendlyException):
     pass
 
+
 class MissingSessionInformation(UserFriendlyException):
     pass
+
 
 def handle_get_op_config(session, response_encoder):
     """
@@ -126,7 +130,7 @@ def handle_request_instance_ids(response_encoder, parameters):
                                                     issuer=issuer,
                                                     instance_id=instance_id,
                                                     conf=CONF)
-        return_info[instance_id] = {"url" : get_base_url(port),
+        return_info[instance_id] = {"url": get_base_url(port),
                                     "port": port,
                                     "contains_config": contains_config}
 
@@ -147,35 +151,35 @@ def handle_download_config_file(response_encoder, parameters):
     """
     :return Return the configuration file stored in the session
     """
-    if 'op_configurations' not in parameters:
-        return response_encoder.bad_request()
+    if ISSUER_QUERY_KEY in parameters and INSTANCE_ID_QUERY_KEY in parameters:
+        issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
+        instance_id = parameters[INSTANCE_ID_QUERY_KEY]
+        port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
+        configurations = port_database.get_configuration(issuer, instance_id)
 
-    config_gui_structure = parameters['op_configurations']
-    instance_id = ""
-    port = -1
-    config_file_dict = convert_config_gui_structure(config_gui_structure,
-                                                    port,
-                                                    instance_id,
-                                                    is_port_in_database(port),
-                                                    CONF)
-    file_dict = json.dumps({"configDict": config_file_dict})
-    return response_encoder.return_json(file_dict)
+        file_dict = json.dumps({"configDict": configurations})
+        return response_encoder.return_json(file_dict)
+    return response_encoder.bad_request()
 
 
 class ConfigSizeToLarge(UserFriendlyException):
     pass
 
-
 def validate_configuration_size(config):
+    config_string = ""
+
     if isinstance(config, dict):
         config_string = json.dumps(config)
+    else:
+        raise InvalidConfigType("The configuration is malformed. Should be in json format", show_trace=False)
+
     if len(config_string) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
         raise ConfigSizeToLarge("The configuration you are trying to store exceeds the allowed "
                                 "file limit.",
                                 log_info="The configuration contained %s chars "
                                          "while maximum number of chars allowed are %s" % (
-                                    len(config_string),
-                                    CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED),
+                                         len(config_string),
+                                         CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED),
                                 show_trace=False)
     return config
 
@@ -185,18 +189,23 @@ def handle_upload_config_file(parameters, session, response_encoder):
     Adds a uploaded config file to the session
     :return Default response, should be ignored
     """
+    store_new_test_instance(parameters, session)
+
     if 'configFileContent' not in parameters:
         return response_encoder.bad_request()
 
     try:
-        session[OP_CONFIG] = validate_configuration_size(json.loads(parameters['configFileContent']))
+        session[OP_CONFIG] = validate_configuration_size(
+            json.loads(parameters['configFileContent']))
     except ValueError:
         return response_encoder.service_error(
             "Failed to load the configuration file. Make sure the config file "
             "follows the appropriate format")
     except ConfigSizeToLarge:
-        LOGGER.debug("Some one tried to upload a configuration which exceeded the allowed file limit.")
-        return response_encoder.service_error("The uploaded configuration file exceeds the allowed file limit.")
+        LOGGER.debug(
+            "Some one tried to upload a configuration which exceeded the allowed file limit.")
+        return response_encoder.service_error(
+            "The uploaded configuration file exceeds the allowed file limit.")
 
     return response_encoder.return_json("{}")
 
@@ -204,15 +213,16 @@ def handle_upload_config_file(parameters, session, response_encoder):
 class PortUsedByOtherProcess(UserFriendlyException):
     pass
 
+
 class SubProcessFailed(UserFriendlyException):
     pass
 
+
 def start_rp_process(port, command, working_directory=None):
-    FAILED_TO_START_MESSAGE = "Failed to start test instance %s." % get_base_url(port)
-    "Try to start RP on %s with command %s" % (port, command)
+    failed_to_start_message = "Failed to start test instance %s." % get_base_url(port)
 
     if is_port_used_by_another_process(port):
-        raise PortUsedByOtherProcess(FAILED_TO_START_MESSAGE,
+        raise PortUsedByOtherProcess(failed_to_start_message,
                                      log_info="Port %s is used by another process" % port)
 
     try:
@@ -223,7 +233,7 @@ def start_rp_process(port, command, working_directory=None):
 
 
     except Exception as ex:
-        raise SubProcessFailed(FAILED_TO_START_MESSAGE,
+        raise SubProcessFailed(failed_to_start_message,
                                log_info="Failed to run oprp script: %s Error message: %s"
                                         % (command[0], ex.message))
 
@@ -231,8 +241,9 @@ def start_rp_process(port, command, working_directory=None):
 
     return_code = p.poll()
     if return_code is not None:
-        raise NoResponseException(FAILED_TO_START_MESSAGE,
-                                  log_info="Return code %s != None so the process did not start correctly. Command executed: %s"
+        raise NoResponseException(failed_to_start_message,
+                                  log_info="Return code %s != None so the process did not "
+                                           "start correctly. Command executed: %s"
                                            % (return_code, command))
 
 
@@ -249,6 +260,7 @@ def is_port_in_database(_port):
 
 def get_base_url(port):
     return 'https://%s:%d/' % (CONF.HOST, int(port))
+
 
 def handle_start_op_tester(session, response_encoder, parameters):
     if 'op_configurations' not in parameters:
@@ -303,21 +315,23 @@ def handle_start_op_tester(session, response_encoder, parameters):
             '"%s" which should be using port %s to has been saved in the database' % (
                 _instance_id, _port))
     except Exception as ex:
-        return handle_exception(ex, response_encoder, failed_to_message="store configurations in database")
+        return handle_exception(ex, response_encoder,
+                                failed_to_message="store configurations in database")
 
     try:
         kill_existing_process_on_port(_port, get_base_url(_port))
     except Exception as ex:
-        return handle_exception(ex, response_encoder, failed_to_message="restart existing test instance")
+        return handle_exception(ex, response_encoder,
+                                failed_to_message="restart existing test instance")
 
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
 
     start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
-                             CONF.OPRP_TEST_FLOW, config_module], "../rp/")
+                             CONF.OPRP_TEST_FLOW, config_module], CONF.OPRP_DIR_PATH)
+
     return response_encoder.return_json(
         json.dumps({"oprp_url": str(get_base_url(_port))}))
-
 
 
 def get_port_from_database(issuer, instance_id, min_port, max_port, port_type):
@@ -349,12 +363,16 @@ def remove_last_slash(string):
     return string
 
 
-def handle_create_new_config_file(response_encoder, session, parameters):
+def store_new_test_instance(parameters, session):
     parameters[ISSUER_QUERY_KEY] = remove_last_slash(parameters[ISSUER_QUERY_KEY])
     store_query_parameter(parameters, session, ISSUER_QUERY_KEY)
     store_query_parameter(parameters, session, INSTANCE_ID_QUERY_KEY)
-    session[OP_CONFIG] = get_default_client()
     session[IS_RECONFIGURING] = False
+
+
+def handle_create_new_config_file(response_encoder, session, parameters):
+    store_new_test_instance(parameters, session)
+    session[OP_CONFIG] = get_default_client()
     return response_encoder.return_json("{}")
 
 
@@ -363,6 +381,7 @@ def get_existing_port(issuer, static_ports_db):
         if static_ports_db[port] == issuer:
             return port
     return None
+
 
 class NoStaticClientRegPortAvailable(UserFriendlyException):
     pass
@@ -416,6 +435,7 @@ def handle_get_redirect_url(session, response_encoder, parameters):
 class MissingQueryParameter(Exception):
     pass
 
+
 ISSUER_QUERY_KEY = "issuer"
 INSTANCE_ID_QUERY_KEY = "instance_id"
 IS_RECONFIGURING = "is_reconfiguring"
@@ -446,7 +466,6 @@ def handle_load_existing_config(response_encoder, session, parameters):
         session[IS_RECONFIGURING] = True
         return response_encoder.return_json("{}")
     return response_encoder.bad_request()
-
 
 
 def handle_path(environ, start_response, response_encoder):
@@ -491,12 +510,14 @@ def handle_path(environ, start_response, response_encoder):
 
 
 def application(environ, start_response):
+    response_encoder = ResponseEncoder(environ=environ,
+                                       start_response=start_response)
     try:
-        response_encoder = ResponseEncoder(environ=environ,
-                                           start_response=start_response)
         return handle_path(environ, start_response, response_encoder)
     except Exception as ex:
-        return handle_exception(ex, response_encoder, message="An error occurred on the server side, please contact technical support.")
+        return handle_exception(ex, response_encoder,
+                                message="An error occurred on the server side, "
+                                        "please contact technical support.")
 
 
 logging_app = WSGILogger(application, [FileHandler("access.log")], ApacheFormatter())
@@ -547,6 +568,7 @@ if __name__ == '__main__':
     if CONF.BASE.startswith("https"):
         import cherrypy
         from cherrypy.wsgiserver import ssl_pyopenssl
+
         SRV.ssl_adapter = ssl_pyopenssl.pyOpenSSLAdapter(
             CONF.SERVER_CERT, CONF.SERVER_KEY, CONF.CA_BUNDLE)
         try:

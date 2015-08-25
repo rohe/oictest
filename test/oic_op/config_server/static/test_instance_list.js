@@ -1,30 +1,95 @@
 var app = angular.module('main', ['toaster'])
 
+String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
+function append_current_path(path){
+    var current_path = window.location.pathname;
+
+    if (current_path.endsWith("/") == false) {
+        current_path += "/"
+    }
+
+    return current_path + path
+}
+
 app.factory('op_configuration_factory', function ($http) {
     return {
         request_instance_ids: function (issuer) {
-            return $http.post("/request_instance_ids", {"issuer": issuer});
+            return $http.post(append_current_path("request_instance_ids"), {"issuer": issuer});
         },
         create_new_config_file: function (instance_id, issuer) {
-            return $http.post("/create_new_config_file", {
+            return $http.post(append_current_path("create_new_config_file"), {
                 "instance_id": instance_id,
                 "issuer": issuer});
         },
         load_existing_config: function (instance_id, issuer) {
-            return $http.post("/load_existing_config", {
+            return $http.post(append_current_path("load_existing_config"), {
                 "instance_id": instance_id,
                 "issuer": issuer});
+        },
+        request_upload_config_file: function (configFileContent, instance_id, issuer) {
+            return $http.post(append_current_path("upload_config_file"), {
+                "configFileContent": configFileContent,
+                "instance_id": instance_id,
+                "issuer": issuer
+            });
+        },
+        download_config_file: function (issuer, instance_id) {
+            return $http.post("/download_config_file", {"issuer": issuer, "instance_id": instance_id});
         }
     };
 });
 
-app.controller('IndexCtrl', function ($scope, $window, toaster, op_configuration_factory) {
+app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_configuration_factory) {
 
     $scope.new_instance_id = "";
+    $scope.uploaded_instance_id = "";
     $scope.issuer = "";
+    $scope.file_to_upload = "";
 
     $('input').attr("autocomplete", "off");
     $('form').attr("autocomplete", "off");
+
+    function download_config_file_success_callback(data, status, headers, config) {
+        configDict = JSON.stringify(data["configDict"])
+        var a = document.createElement("a");
+        a.download = "config.json";
+        a.href = "data:text/plain;base64," + btoa(configDict);
+
+        //Appending the element a to the body is only necessary for the download to work in firefox
+        document.body.appendChild(a)
+        a.click();
+        document.body.removeChild(a)
+    }
+
+    $scope.request_download_config_file = function (instance_id)  {
+        op_configuration_factory.download_config_file($scope.issuer, instance_id).success(download_config_file_success_callback).error(error_callback);
+    }
+
+    $scope.fileNameChanged = function() {
+        $scope.file_to_upload = document.getElementById("targetFile").files[0];
+        $scope.$apply();
+    }
+
+    $scope.request_upload_config_file = function () {
+        if ($scope.file_to_upload) {
+
+            var reader = new FileReader();
+            reader.readAsText($scope.file_to_upload, "UTF-8");
+            reader.onload = function (evt) {
+                op_configuration_factory.request_upload_config_file(evt.target.result, $scope.uploaded_instance_id, $scope.issuer).success(go_to_config_page).error(error_callback);
+                $scope.$apply();
+            };
+            reader.onerror = function (evt) {
+                alert("error reading file");
+            }
+        }
+        else{
+            alert("Failed to upload file because no file where selected.")
+        }
+    };
 
     $scope.reconfigure_test_instance = function(instance_id){
         op_configuration_factory.load_existing_config(instance_id, $scope.issuer).
@@ -70,7 +135,7 @@ app.controller('IndexCtrl', function ($scope, $window, toaster, op_configuration
     };
 
     function go_to_config_page(data, status, headers, config) {
-        $window.location.href = '/config_page';
+        $window.location.href = append_current_path('config_page');
     }
 
     function error_callback(data, status, headers, config) {
