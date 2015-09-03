@@ -11,6 +11,7 @@ _cli = Client()
 CONV = Conversation(_cli, {}, Trace(), None,
                     message_factory, check_factory=check_factory)
 
+
 class Response(object):
     pass
 
@@ -18,7 +19,7 @@ class Response(object):
 def test_do_response_400_empty():
     response = Response()
     response.status_code = 400
-    response.text = ""
+    response.text = "test"
     response.content = ""
 
     url = "https://exaample.com/registration"
@@ -32,6 +33,7 @@ def test_do_response_400_empty():
                        response_type, state, **kwargs)
 
     assert resp is None
+
 
 if __name__ == "__main__":
     test_do_response_400_empty()
