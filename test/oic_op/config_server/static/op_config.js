@@ -220,6 +220,9 @@ app.controller('IndexCtrl', function ($scope, $location, toaster, op_configurati
 
     function get_redirect_url_success_callback(data, status, headers, config) {
         setRedirectUrl(data['redirect_url'])
+        if (data['info']){
+            bootbox.alert(data.ExceptionMessage);
+        }
     }
 
     /**

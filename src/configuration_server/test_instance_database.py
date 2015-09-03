@@ -16,6 +16,10 @@ class NoPortAvailable(UserFriendlyException):
     pass
 
 
+class PortMissingInDatabase(UserFriendlyException):
+    pass
+
+
 class PortDatabase():
     TABLE_NAME = 'ports'
 
@@ -97,7 +101,8 @@ class PortDatabase():
         list = []
         rows = self.table.find(order_by=[PORT_COLUMN])
         for row in rows:
-            list.append([row[PORT_COLUMN], row[ISSUER_COLUMN], row[INSTANCE_ID_COLUMN], row[PORT_TYPE_COLUMN]])
+            list.append([row[PORT_COLUMN], row[ISSUER_COLUMN], row[INSTANCE_ID_COLUMN],
+                         row[PORT_TYPE_COLUMN]])
         return list
 
     def port_column_to_int(self, row):
@@ -110,8 +115,11 @@ class PortDatabase():
         row = self.table.find_one(issuer=issuer, instance_id=instance_id)
 
         if not row:
-            return None
-
+            raise PortMissingInDatabase("Failed to identify test instance in database.",
+                                        log_info="No port found in the database for the given "
+                                                 "credentials issuer: %s instance_id: %s"
+                                                 % (issuer, instance_id),
+                                        show_trace=False)
         return self.port_column_to_int(row)[PORT_COLUMN]
 
     def get_row(self, port):

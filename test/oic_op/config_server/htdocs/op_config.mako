@@ -29,7 +29,7 @@
     <div id="content">
 
         <h2>
-            OpenID Certification OP Test Tool Configuration
+            OpenID Connect Provider Certification - Test Instance Configuration
         </h2>
 
         <ul class="nav nav-tabs" ng-show="opConfig">

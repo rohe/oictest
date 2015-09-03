@@ -89,30 +89,42 @@
                     <input type="text" class="form-control" value="{{values.port}}" disabled/>
                 </div>
 
-                <button class="btn btn-default btn-sm col-sm-2"
-                        ng-click="reconfigure_test_instance(instance_id)">
+                <div class="col-sm-6">
+                    <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="reconfigure_test_instance(instance_id)">
 
-                    <span class="glyphicon glyphicon-pencil"></span>
-                    Reconfigure
-                </button>
+                        <span class="glyphicon glyphicon-pencil"></span>
+                        Reconfigure
+                    </button>
 
-                <button class="btn btn-default btn-sm col-sm-2"
-                        ng-click="request_download_config_file(instance_id)";
-                        ng-disabled="!values.contains_config">
+                    <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="request_download_config_file(instance_id)";
+                            ng-disabled="!values.contains_config">
 
-                    <span class="glyphicon glyphicon-download-alt"></span>
-                    Download configuration
-                </button>
+                        <span class="glyphicon glyphicon-download-alt"></span>
+                        Download config
+                    </button>
 
-                <a href={{values.url}} class="btn btn-default btn-sm col-sm-2" target="_blank">
-                    Go to test instance
-                    <span class="glyphicon glyphicon-arrow-right"></span>
-                </a>
+                   <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="request_restart_test_instance(instance_id)";
+                            ng-disabled="!values.contains_config">
 
-                <span class="glyphicon glyphicon-warning-sign col-sm-1"
+                        <span class="glyphicon glyphicon-repeat"></span>
+                        Restart
+                    </button>
+
+                    <a href={{values.url}} class="btn btn-default btn-sm col-sm-3" target="_blank">
+                        Go to test instance
+                        <span class="glyphicon glyphicon-arrow-right"></span>
+                    </a>
+
+
+                </div>
+                    <span class="glyphicon glyphicon-warning-sign"
                       ng-show="!values.contains_config"
                       style="color: #d2322d"
                       title="No configuration exists for this test instance"></span>
+
 
             </div>
             <br>

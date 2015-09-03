@@ -28,7 +28,6 @@ from configuration_server.test_instance_database import PortDatabase, NoPortAvai
 
 from configuration_server.response_encoder import ResponseEncoder
 
-
 LOGGER = logging.getLogger("configuration_server")
 
 LOOKUP = TemplateLookup(directories=['templates', 'htdocs'],
@@ -152,18 +151,24 @@ def handle_download_config_file(response_encoder, parameters):
     :return Return the configuration file stored in the session
     """
     if ISSUER_QUERY_KEY in parameters and INSTANCE_ID_QUERY_KEY in parameters:
-        issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
-        instance_id = parameters[INSTANCE_ID_QUERY_KEY]
-        port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
-        configurations = port_database.get_configuration(issuer, instance_id)
+        configurations = load_configuration_from_database(parameters)
 
         file_dict = json.dumps({"configDict": configurations})
         return response_encoder.return_json(file_dict)
     return response_encoder.bad_request()
 
 
+def load_configuration_from_database(parameters):
+    issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
+    instance_id = parameters[INSTANCE_ID_QUERY_KEY]
+    port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
+    configurations = port_database.get_configuration(issuer, instance_id)
+    return configurations
+
+
 class ConfigSizeToLarge(UserFriendlyException):
     pass
+
 
 def validate_configuration_size(config):
     config_string = ""
@@ -171,15 +176,16 @@ def validate_configuration_size(config):
     if isinstance(config, dict):
         config_string = json.dumps(config)
     else:
-        raise InvalidConfigType("The configuration is malformed. Should be in json format", show_trace=False)
+        raise InvalidConfigType("The configuration is malformed. Should be in json format",
+                                show_trace=False)
 
     if len(config_string) > CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED:
         raise ConfigSizeToLarge("The configuration you are trying to store exceeds the allowed "
                                 "file limit.",
                                 log_info="The configuration contained %s chars "
                                          "while maximum number of chars allowed are %s" % (
-                                         len(config_string),
-                                         CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED),
+                                             len(config_string),
+                                             CONF.CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED),
                                 show_trace=False)
     return config
 
@@ -230,8 +236,6 @@ def start_rp_process(port, command, working_directory=None):
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE,
                              cwd=working_directory)
-
-
     except Exception as ex:
         raise SubProcessFailed(failed_to_start_message,
                                log_info="Failed to run oprp script: %s Error message: %s"
@@ -247,10 +251,10 @@ def start_rp_process(port, command, working_directory=None):
                                            % (return_code, command))
 
 
-def save_config_info_in_database(_port, session):
+def save_config_info_in_database(_port, configurations):
     port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
     row = port_db.get_row(_port)
-    port_db.upsert_row(row, session[OP_CONFIG])
+    port_db.upsert_row(row, configurations)
 
 
 def is_port_in_database(_port):
@@ -262,7 +266,7 @@ def get_base_url(port):
     return 'https://%s:%d/' % (CONF.HOST, int(port))
 
 
-def handle_start_op_tester(session, response_encoder, parameters):
+def handle_start_test_instance(session, response_encoder, parameters):
     if 'op_configurations' not in parameters:
         return response_encoder.bad_request()
 
@@ -294,22 +298,46 @@ def handle_start_op_tester(session, response_encoder, parameters):
                                                  CONF)
 
     session[OP_CONFIG] = validate_configuration_size(config_string)
+    return restart_test_instance(_instance_id, _port, _profile, response_encoder,
+                                 session[OP_CONFIG])
 
-    config_module = create_module_string(session[OP_CONFIG],
+
+class MissingConfigurations(UserFriendlyException):
+    pass
+
+
+def handle_restart_test_instance(response_encoder, parameters):
+    if ISSUER_QUERY_KEY in parameters and INSTANCE_ID_QUERY_KEY in parameters:
+        issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
+        instance_id = parameters[INSTANCE_ID_QUERY_KEY]
+        port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
+        configurations = port_database.get_configuration(issuer, instance_id)
+        if not configurations:
+            raise MissingConfigurations(
+                "Failed to load the configuration for the given test instance",
+                log_info="No configuration from test instance issuer: "
+                         "%s instance_id: %s" % (issuer, instance_id),
+                show_trace=False)
+        port = port_database.get_port(issuer, instance_id)
+        profile = configurations['behaviour']['profile']
+        return restart_test_instance(instance_id, port, profile, response_encoder, configurations)
+    return response_encoder.bad_request()
+
+
+def restart_test_instance(_instance_id, _port, _profile, response_encoder, configurations):
+    config_module = create_module_string(configurations,
                                          _port,
                                          get_base_url(_port),
                                          conf=CONF)
     config_file_path = get_config_file_path(_port, CONF.OPRP_DIR_PATH)
-
     try:
         write_config_file(config_file_path, config_module, _port, oprp_dir_path=CONF.OPRP_DIR_PATH)
         LOGGER.debug("Written configuration to file: %s" % config_file_path)
     except IOError as ioe:
         error_message = "write configurations file (%s) to disk." % config_file_path
         return handle_exception(ioe, response_encoder, failed_to_message=error_message)
-
     try:
-        save_config_info_in_database(_port, session)
+        save_config_info_in_database(_port, configurations)
         LOGGER.debug(
             'Configurations for the test instance using instance ID '
             '"%s" which should be using port %s to has been saved in the database' % (
@@ -317,19 +345,15 @@ def handle_start_op_tester(session, response_encoder, parameters):
     except Exception as ex:
         return handle_exception(ex, response_encoder,
                                 failed_to_message="store configurations in database")
-
     try:
         kill_existing_process_on_port(_port, get_base_url(_port))
     except Exception as ex:
         return handle_exception(ex, response_encoder,
                                 failed_to_message="restart existing test instance")
-
     config_file_name = os.path.basename(config_file_path)
     config_module = config_file_name.split(".")[0]
-
     start_rp_process(_port, [CONF.OPRP_PATH, "-p", _profile, "-t",
                              CONF.OPRP_TEST_FLOW, config_module], CONF.OPRP_DIR_PATH)
-
     return response_encoder.return_json(
         json.dumps({"oprp_url": str(get_base_url(_port))}))
 
@@ -408,28 +432,33 @@ def handle_get_redirect_url(session, response_encoder, parameters):
                                         show_trace=False)
     instance_id = session[INSTANCE_ID_QUERY_KEY]
     issuer = parameters['issuer']
+    response = {}
 
     if session[IS_RECONFIGURING]:
         if uses_dynamic_client_reg(issuer, instance_id):
-            return response_encoder.service_error("While reconfiguring a test instance it is not "
-                                                  "possible to change "
-                                                  "whether your openID provider supports 'client "
-                                                  "registration' or not. In order to change this "
-                                                  "feature please create a new test instance")
-    try:
-        port = allocate_static_port(issuer, instance_id)
-    except NoPortAvailable:
-        raise NoStaticClientRegPortAvailable("No ports for test instances using static client "
-                                             "registration is available at the moment, please try "
-                                             "again later.",
-                                             log_info="Failed to allocate a port used for static "
-                                                      "client registration since no port where "
-                                                      "available.",
-                                             show_trace=False)
+            response['info'] = "While reconfiguring a test instance it is not possible to " \
+                               "change whether your openID provider supports 'client " \
+                               "registration' or not. In order to change this feature please " \
+                               "create a new test instance"
+        port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
+        port = port_database.get_port(issuer, instance_id)
+    else:
+        try:
+            port = allocate_static_port(issuer, instance_id)
+        except NoPortAvailable:
+            raise NoStaticClientRegPortAvailable("No ports for test instances using static client "
+                                                 "registration is available at the moment, "
+                                                 "please try "
+                                                 "again later.",
+                                                 log_info="Failed to allocate a port used for "
+                                                          "static "
+                                                          "client registration since no port "
+                                                          "where available.",
+                                                 show_trace=False)
     session['port'] = port
     redirect_url = get_base_url(port) + "authz_cb"
-    return response_encoder.return_json(
-        json.dumps({"redirect_url": redirect_url}))
+    response['redirect_url'] = redirect_url
+    return response_encoder.return_json(json.dumps(response))
 
 
 class MissingQueryParameter(Exception):
@@ -450,10 +479,7 @@ def store_query_parameter(parameters, session, query_key):
 
 def handle_load_existing_config(response_encoder, session, parameters):
     if ISSUER_QUERY_KEY in parameters and INSTANCE_ID_QUERY_KEY in parameters:
-        issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
-        instance_id = parameters[INSTANCE_ID_QUERY_KEY]
-        port_database = PortDatabase(CONF.PORT_DATABASE_FILE)
-        configurations = port_database.get_configuration(issuer, instance_id)
+        configurations = load_configuration_from_database(parameters)
 
         store_query_parameter(parameters, session, ISSUER_QUERY_KEY)
         store_query_parameter(parameters, session, INSTANCE_ID_QUERY_KEY)
@@ -499,13 +525,15 @@ def handle_path(environ, start_response, response_encoder):
     if path == "upload_config_file":
         return handle_upload_config_file(parameters, session, response_encoder)
     if path == "start_op_tester":
-        return handle_start_op_tester(session, response_encoder, parameters)
+        return handle_start_test_instance(session, response_encoder, parameters)
     if path == "get_redirect_url":
         return handle_get_redirect_url(session, response_encoder, parameters)
     if path == "request_instance_ids":
         return handle_request_instance_ids(response_encoder, parameters)
     if path == "load_existing_config":
         return handle_load_existing_config(response_encoder, session, parameters)
+    if path == "restart_test_instance":
+        return handle_restart_test_instance(response_encoder, parameters)
     return http_helper.http404()
 
 

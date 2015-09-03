@@ -34,7 +34,8 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
         except ConnectionError:
             pass
 
-    error_message = "Test instance (%s) failed to return '200 OK' within %s sec. " % (oprp_url, timeout)
+    error_message = "Test instance (%s) failed to return '200 OK' within %s sec. " % \
+                    (oprp_url, timeout)
 
     if response:
         error_message += "The last response returned from the test instance: %s" % response
@@ -54,7 +55,7 @@ def kill_existing_process_on_port(port, base_url):
             os.kill(pid, signal.SIGKILL)
             LOGGER.debug("Killed RP running on port %s" % port)
         except OSError as ex:
-            LOGGER.error("Failed to kill process (%s) connected to the server %s" % base_url)
+            LOGGER.error("Failed to kill process (%s) connected to the server %s" % (pid, base_url))
             raise ex
     else:
         LOGGER.debug("No process has been killed. Found no test instance running on port %s" % port)
@@ -65,7 +66,8 @@ def log_process_information(output, port):
         pids = output.splitlines()
         for pid in pids:
             process_info = run_command([["ps", "-ax"], ["grep", str(int(pid))]])
-            LOGGER.debug("Apparently port %s is already in use by process: %s" % (port, process_info))
+            LOGGER.debug("Apparently port %s is already in use by process: %s" %
+                         (port, process_info))
     except Exception:
         pass
 
@@ -74,8 +76,11 @@ def is_port_used_by_another_process(port):
     result = None
     try:
         oprp_pid = get_oprp_pid(port)
-        result = run_command([["lsof", "-i", ":%s" % port], ["grep", "LISTEN"], ["awk", '{print $2}']])
-
+        result = run_command([
+            ["lsof", "-i", ":%s" % port],
+            ["grep", "LISTEN"],
+            ["awk", '{print $2}']
+        ])
         if not (result and not oprp_pid):
             return False
 

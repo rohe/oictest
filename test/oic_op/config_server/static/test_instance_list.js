@@ -38,6 +38,10 @@ app.factory('op_configuration_factory', function ($http) {
         },
         download_config_file: function (issuer, instance_id) {
             return $http.post("/download_config_file", {"issuer": issuer, "instance_id": instance_id});
+        },
+
+        restart_test_instance: function (issuer, instance_id) {
+            return $http.post("/restart_test_instance", {"issuer": issuer, "instance_id": instance_id});
         }
     };
 });
@@ -64,8 +68,16 @@ app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_co
         document.body.removeChild(a)
     }
 
+    function restart_test_instance_success_callback(data, status, headers, config) {
+        bootbox.alert("The test instance restarted successfully")
+    }
+
     $scope.request_download_config_file = function (instance_id)  {
         op_configuration_factory.download_config_file($scope.issuer, instance_id).success(download_config_file_success_callback).error(error_callback);
+    }
+
+    $scope.request_restart_test_instance = function (instance_id)  {
+        op_configuration_factory.restart_test_instance($scope.issuer, instance_id).success(restart_test_instance_success_callback).error(error_callback);
     }
 
     $scope.fileNameChanged = function() {

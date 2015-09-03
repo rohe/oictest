@@ -42,7 +42,6 @@ setup(
         "mechanize",
         "beautifulsoup4",
         "wsgi-request-logger",
-        "pytest",
         "cherrypy",
         "pyOpenSSL",
     ],
