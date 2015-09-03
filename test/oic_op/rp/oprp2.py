@@ -269,12 +269,19 @@ def application(environ, start_response):
             LOGGER.info("Response: %s" % info)
             conv.trace.reply(info)
             resp_cls = message_factory(resp_c.response)
-            algs = ots.client.sign_enc_algs("id_token")
+
+            kwargs = {
+                "algs": ots.client.sign_enc_algs("id_token"),
+                "keyjar": ots.client.keyjar
+            }
+            if "issuer_mismatch" in ots.client.allow:
+                kwargs["sender"] = ots.client.provider_info["issuer"]
+
             try:
                 response = ots.client.parse_response(
                     resp_cls, info, _ctype,
                     conv.AuthorizationRequest["state"],
-                    keyjar=ots.client.keyjar, algs=algs)
+                    **kwargs)
             except ResponseError as err:
                 return oprp.err_response(session, "run_sequence", err)
             except Exception as err:

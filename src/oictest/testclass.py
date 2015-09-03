@@ -8,6 +8,7 @@ from oic.utils.webfinger import OIC_ISSUER
 
 import copy
 from oic.oauth2.message import SchemeError
+from oic.oauth2.exception import NonFatalException
 
 from rrtest.request import BodyResponse
 from rrtest.request import GetRequest
@@ -18,8 +19,6 @@ from rrtest.request import UrlResponse
 __author__ = 'rohe0002'
 
 # ========================================================================
-
-import time
 
 from oic.oauth2 import rndstr
 from oic.oauth2.util import JSON_ENCODED
@@ -347,7 +346,12 @@ class Discover(Operation):
         else:
             self.trace.request("URL: %s" % OIDCONF_PATTERN % issuer)
 
-        pcr = client.provider_config(issuer)
+        try:
+            pcr = client.provider_config(issuer)
+        except NonFatalException as err:
+            pcr = err.resp
+            self.trace.info("Warning: {}".format(err.msg))
+
         if over_ride:
             pcr.update(over_ride)
             for key, val in over_ride.items():
