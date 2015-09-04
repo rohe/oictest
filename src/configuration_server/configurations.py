@@ -19,9 +19,6 @@ from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oic.message import ProviderConfigurationResponse
 from configuration_server.config_values import CONFIG_FILE_KEYS, GUI_CONFIG_STRUCTURE_KEYS
 
-from configuration_server.response_encoder import ResponseEncoder
-
-
 __author__ = 'danielevertsson'
 
 CONFIG_DICT_INSTANCE_ID_KEY = 'instance_id'
@@ -33,9 +30,7 @@ class UnKnownResponseTypeAbbreviation(Exception):
 
 
 class GuiConfig:
-
     def __init__(self, gui_config_structure=None):
-
         if not gui_config_structure:
             gui_config_structure = create_new_configuration_dict()
 
@@ -378,10 +373,8 @@ def does_configuration_exists(port_database, issuer, instance_id, conf):
     port = port_database.get_port(issuer=issuer, instance_id=instance_id)
     config = port_database.get_configuration(issuer=issuer, instance_id=instance_id)
 
-    try:
+    if not config:
         config = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
-    except Exception as ex:
-        handle_exception(ex, None)
 
     return config is not None
 
@@ -396,10 +389,7 @@ def convert_config_gui_structure(config_gui_structure, port, instance_id,
     :return A dictionary which follows the "Configuration file structure",
     see setup.rst
     """
-    try:
-        config_dict = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
-    except Exception as ex:
-        handle_exception(ex, None)
+    config_dict = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
 
     if not is_port_in_database and config_dict:
         file_path = get_config_file_path(port, conf.OPRP_DIR_PATH)
