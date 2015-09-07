@@ -249,10 +249,11 @@ app.controller('IndexCtrl', function ($scope, $location, toaster, op_configurati
      */
     function error_callback(data, status, headers, config) {
         $('#myPleaseWait').modal('hide');
-        if (data.ExceptionMessage != "")
+        if (data.ExceptionMessage)
             bootbox.alert(data.ExceptionMessage);
         else
-            bootbox.alert("An error occurred on the server, please contact technical support");
+            bootbox.alert("An internal server error occurred, but no further information where " +
+                "provided. Please contact techical support");
     }
 
     /**

@@ -151,7 +151,11 @@ app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_co
     }
 
     function error_callback(data, status, headers, config) {
-        bootbox.alert(data.ExceptionMessage);
+        if (data.ExceptionMessage)
+            bootbox.alert(data.ExceptionMessage);
+        else
+            bootbox.alert("An internal server error occurred, but no further information where " +
+                "provided. Please contact techical support");
     }
 });
 
