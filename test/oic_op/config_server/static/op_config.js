@@ -1,37 +1,55 @@
 var app = angular.module('main', ['toaster'])
 
+var CONFIG_PAGE_PATH = "config_page/"
+
+String.prototype.endsWith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
+function append_current_path(path){
+    var current_path = window.location.pathname;
+
+    if (current_path.endsWith("/") == false) {
+        current_path += "/"
+    }
+
+    current_path = current_path.replace(CONFIG_PAGE_PATH, "");
+
+    return current_path + path
+}
+
 app.factory('op_configuration_factory', function ($http) {
     return {
         get_op_config: function () {
-            return $http.get("/get_op_config");
+            return $http.get(append_current_path("get_op_config"));
         },
 
-        request_download_config_file: function (op_configurations) {
-            return $http.post("/download_config_file", {"op_configurations": op_configurations});
+        download_config_file: function (op_configurations) {
+            return $http.post(append_current_path("download_config_file"), {"op_configurations": op_configurations});
         },
 
         request_upload_config_file: function (configFileContent) {
-            return $http.post("/upload_config_file", {"configFileContent": configFileContent});
+            return $http.post(append_current_path("upload_config_file"), {"configFileContent": configFileContent});
         },
 
         create_new_config_file: function () {
-            return $http.get("/create_new_config_file");
+            return $http.get(append_current_path("create_new_config_file"));
         },
 
         does_config_file_exist: function () {
-            return $http.get("/does_op_config_exist");
+            return $http.get(append_current_path("does_op_config_exist"));
         },
 
         start_op_tester: function (op_configurations) {
-            return $http.post("/start_op_tester", {"op_configurations": op_configurations});
+            return $http.post(append_current_path("start_op_tester"), {"op_configurations": op_configurations});
         },
 
         get_redirect_url: function (issuer) {
-            return $http.post("/get_redirect_url", {"issuer": issuer});
+            return $http.post(append_current_path("get_redirect_url"), {"issuer": issuer});
         },
 
         request_instance_ids: function (opConfigurations) {
-            return $http.post("/request_instance_ids", {"opConfigurations": opConfigurations});
+            return $http.post(append_current_path("request_instance_ids"), {"opConfigurations": opConfigurations});
         }
     };
 });
@@ -202,6 +220,9 @@ app.controller('IndexCtrl', function ($scope, $location, toaster, op_configurati
 
     function get_redirect_url_success_callback(data, status, headers, config) {
         setRedirectUrl(data['redirect_url'])
+        if (data['info']){
+            bootbox.alert(data.ExceptionMessage);
+        }
     }
 
     /**
@@ -213,7 +234,7 @@ app.controller('IndexCtrl', function ($scope, $location, toaster, op_configurati
      */
     function config_file_exist_for_download_success_callback(data, status, headers, config) {
         if (data['does_config_file_exist']) {
-            op_configuration_factory.request_download_config_file($scope.opConfig).success(downloadConfigFileSuccessCallback).error(error_callback);
+            op_configuration_factory.download_config_file($scope.opConfig).success(downloadConfigFileSuccessCallback).error(error_callback);
         } else {
             showNoConfigAvailable();
         }
@@ -398,7 +419,7 @@ app.controller('IndexCtrl', function ($scope, $location, toaster, op_configurati
     /**
      * Tries to download the configuration file from the server
      */
-    $scope.request_download_config_file = function () {
+    $scope.download_config_file = function () {
         op_configuration_factory.does_config_file_exist().success(config_file_exist_for_download_success_callback).error(error_callback);
     };
 
