@@ -95,7 +95,7 @@ def is_port_used_by_another_process(port):
 
 def get_oprp_pid(port):
     pid = None
-    p = subprocess.Popen(['ps', '-A'], stdout=subprocess.PIPE)
+    p = subprocess.Popen(['ps', '-ax'], stdout=subprocess.PIPE)
     out, err = p.communicate()
     for line in out.splitlines():
         if "rp_conf_" + str(port) in line:
