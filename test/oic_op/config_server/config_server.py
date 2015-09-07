@@ -543,9 +543,11 @@ def application(environ, start_response):
     try:
         return handle_path(environ, start_response, response_encoder)
     except Exception as ex:
-        return handle_exception(ex, response_encoder,
-                                message="An error occurred on the server side, "
-                                        "please contact technical support.")
+        response = handle_exception(ex, response_encoder,
+                                    message="An error occurred on the server side, "
+                                            "please contact technical support.")
+        LOGGER.debug("Error response: " + str(response))
+        return response
 
 
 logging_app = WSGILogger(application, [FileHandler("access.log")], ApacheFormatter())
