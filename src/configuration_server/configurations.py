@@ -11,6 +11,7 @@ import datetime
 import time
 import traceback
 import uuid
+import imp
 
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
@@ -114,8 +115,13 @@ def generate_profile(config_gui_structure):
     return profile
 
 
-def load_config_module(module):
-    test_conf = importlib.import_module(module)
+def load_config_module(module, full_module_path=None):
+    if not full_module_path:
+        test_conf = importlib.import_module(module)
+    else:
+        # importlib.import_module uses the compiled rp_conf_XXXX module when loading the
+        # information from the module
+        test_conf = imp.load_source(module, full_module_path)
     try:
         return test_conf.CLIENT
     except AttributeError as ex:
@@ -131,7 +137,7 @@ def identify_existing_config_file(port, oprp_dir_path):
             module = filename[:-3]
             file_port = int(module.split("_")[2])
             if file_port == port:
-                return load_config_module(module)
+                return load_config_module(module, full_module_path=oprp_dir_path + filename)
     return None
 
 

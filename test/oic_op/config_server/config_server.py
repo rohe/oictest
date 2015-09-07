@@ -19,7 +19,7 @@ from configuration_server.configurations import convert_config_file, get_issuer_
     convert_config_gui_structure, generate_profile, is_using_dynamic_client_registration, \
     handle_exception, \
     create_module_string, get_config_file_path, write_config_file, get_default_client, set_issuer, \
-    UserFriendlyException, does_configuration_exists
+    UserFriendlyException, does_configuration_exists, identify_existing_config_file
 
 from configuration_server.shell_commands import is_port_used_by_another_process, \
     kill_existing_process_on_port, \
@@ -480,6 +480,13 @@ def store_query_parameter(parameters, session, query_key):
 def handle_load_existing_config(response_encoder, session, parameters):
     if ISSUER_QUERY_KEY in parameters and INSTANCE_ID_QUERY_KEY in parameters:
         configurations = load_configuration_from_database(parameters)
+
+        if not configurations:
+            issuer = remove_last_slash(parameters[ISSUER_QUERY_KEY])
+            instance_id = parameters[INSTANCE_ID_QUERY_KEY]
+            port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
+            port = port_db.get_port(issuer, instance_id)
+            configurations = identify_existing_config_file(port, CONF.OPRP_DIR_PATH)
 
         store_query_parameter(parameters, session, ISSUER_QUERY_KEY)
         store_query_parameter(parameters, session, INSTANCE_ID_QUERY_KEY)
