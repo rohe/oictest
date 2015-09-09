@@ -228,8 +228,9 @@ def start_rp_process(port, command, working_directory=None):
     failed_to_start_message = "Failed to start test instance %s." % get_base_url(port)
 
     if is_port_used_by_another_process(port):
+        log_info = "Port %s is used by another process" % port
         raise PortUsedByOtherProcess(failed_to_start_message,
-                                     log_info="Port %s is used by another process" % port)
+                                     log_info=log_info)
 
     try:
         p = subprocess.Popen(command,

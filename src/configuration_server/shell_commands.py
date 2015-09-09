@@ -6,6 +6,7 @@ import subprocess
 import requests
 import time
 from requests.exceptions import ConnectionError
+import sys
 from configuration_server.configurations import UserFriendlyException
 
 __author__ = 'danielevertsson'
@@ -95,13 +96,18 @@ def is_port_used_by_another_process(port):
 
 def get_oprp_pid(port):
     pid = None
-    p = subprocess.Popen(['ps', '-ax'], stdout=subprocess.PIPE)
+    process_command = ['ps', '-ax']
+    p = subprocess.Popen(process_command, stdout=subprocess.PIPE)
+    sys.stderr.writelines("Running command: %s \n" % process_command)
     out, err = p.communicate()
     for line in out.splitlines():
         if "rp_conf_" + str(port) in line:
+            sys.stderr.writelines("Matching process: %s \n" % line)
             pid = int(line.split(None, 1)[0])
+            sys.stderr.write("Identified pid: %s \n" % pid)
             break
-
+    if not pid:
+        sys.stderr.write("Failed to identify pid for port %s \n" % port)
     return pid
 
 
