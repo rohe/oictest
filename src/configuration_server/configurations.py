@@ -364,7 +364,6 @@ def handle_exception(exception, response_encoder, message="", failed_to_message=
     else:
         log_exception(event_id, exception)
 
-    print(traceback.format_exc())
     if response_encoder:
         if isinstance(exception, UserFriendlyException):
             if exception.log_info:

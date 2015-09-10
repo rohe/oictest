@@ -6,6 +6,7 @@ import subprocess
 import requests
 import time
 from requests.exceptions import ConnectionError
+import sys
 from configuration_server.configurations import UserFriendlyException
 
 __author__ = 'danielevertsson'
@@ -49,6 +50,17 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
 def kill_existing_process_on_port(port, base_url):
 
     pid = get_oprp_pid(port)
+
+    if not pid:
+        pid = run_command([
+            ["lsof", "-i", ":%s" % port],
+            ["grep", "LISTEN"],
+            ["awk", '{print $2}']
+        ])
+        pid = int(pid)
+        if pid:
+            process_info = run_command([["ps", "-ax"], ["grep", str(pid)]])
+            LOGGER.warning("Port is used by another application: %s" % process_info)
 
     if pid:
         try:
@@ -101,7 +113,6 @@ def get_oprp_pid(port):
         if "rp_conf_" + str(port) in line:
             pid = int(line.split(None, 1)[0])
             break
-
     return pid
 
 
