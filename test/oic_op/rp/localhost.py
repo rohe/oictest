@@ -1,9 +1,8 @@
 import copy
 import default
-from sslconf import *
 
 HOST = "localhost"
-PORT = 8088
+PORT = 8089
 BASE = "https://%s:%d/" % (HOST, PORT)
 
 CLIENT = {
