@@ -3,10 +3,11 @@ import logging
 import os
 import signal
 import subprocess
-import requests
 import time
+
+import requests
 from requests.exceptions import ConnectionError
-import sys
+
 from configuration_server.configurations import UserFriendlyException
 
 __author__ = 'danielevertsson'
@@ -57,10 +58,14 @@ def kill_existing_process_on_port(port, base_url):
             ["grep", "LISTEN"],
             ["awk", '{print $2}']
         ])
-        pid = int(pid)
-        if pid:
-            process_info = run_command([["ps", "-ax"], ["grep", str(pid)]])
-            LOGGER.warning("Port is used by another application: %s" % process_info)
+
+        if pid is not None and len(pid) > 0:
+            pid = int(pid)
+            if pid:
+                process_info = run_command([["ps", "-ax"], ["grep", str(pid)]])
+                LOGGER.warning("Port is used by another application: %s" % process_info)
+        else:
+            pid = None
 
     if pid:
         try:
