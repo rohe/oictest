@@ -71,7 +71,7 @@
             <h2>Existing test instances</h2>
 
             <div class="row">
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                     <b>Instance ID</b>
                 </div>
 
@@ -81,7 +81,7 @@
             </div>
 
             <div ng-repeat="(instance_id, values) in test_instances" class="row">
-                <div class="col-sm-5">
+                <div class="col-sm-4">
                     <input type="text" class="form-control" value="{{instance_id}}" disabled/>
                 </div>
 
@@ -89,22 +89,42 @@
                     <input type="text" class="form-control" value="{{values.port}}" disabled/>
                 </div>
 
-                <button class="btn btn-default btn-sm col-sm-2"
-                        ng-click="reconfigure_test_instance(instance_id)">
+                <div class="col-sm-6">
+                    <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="reconfigure_test_instance(instance_id)">
 
-                    <span class="glyphicon glyphicon-pencil"></span>
-                    Reconfigure
-                </button>
+                        <span class="glyphicon glyphicon-pencil"></span>
+                        Reconfigure
+                    </button>
 
-                <a href={{values.url}} class="btn btn-default btn-sm col-sm-2" target="_blank">
-                    Go to test instance
-                    <span class="glyphicon glyphicon-arrow-right"></span>
-                </a>
+                    <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="request_download_config_file(instance_id)";
+                            ng-disabled="!values.contains_config">
 
-                <span class="glyphicon glyphicon-warning-sign col-sm-1"
+                        <span class="glyphicon glyphicon-download-alt"></span>
+                        Download config
+                    </button>
+
+                   <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="request_restart_test_instance(instance_id)";
+                            ng-disabled="!values.contains_config">
+
+                        <span class="glyphicon glyphicon-repeat"></span>
+                        Restart
+                    </button>
+
+                    <a href={{values.url}} class="btn btn-default btn-sm col-sm-3" target="_blank">
+                        Go to test instance
+                        <span class="glyphicon glyphicon-arrow-right"></span>
+                    </a>
+
+
+                </div>
+                    <span class="glyphicon glyphicon-warning-sign"
                       ng-show="!values.contains_config"
                       style="color: #d2322d"
                       title="No configuration exists for this test instance"></span>
+
 
             </div>
             <br>
@@ -151,6 +171,60 @@
                  ng-show="does_instance_id_exist(new_instance_id)">
                 This instance id already exists
             </span>
+
+        </div>
+        <br>
+
+        <div ng-show="test_instances">
+            <hr>
+            <h3>Upload configuration</h3>
+
+            <div class="row">
+                <span class="col-sm-4">Enter a instance ID for the new test instance</span>
+
+                <div class="input-group col-sm-4">
+                    <input type="text"
+                           maxlength="200"
+                           class="form-control"
+                           ng-model="uploaded_instance_id"
+                           ng-disabled="reached_max_num_of_instances()">
+                </div>
+            </div>
+
+            <div class="row">
+                <span class="col-sm-4">Select configuration file</span>
+                <input type="file" name="file" id="targetFile" class="col-sm-4" onchange="angular.element(this).scope().fileNameChanged()">
+            </div>
+
+            <button class="btn btn-primary btn-sm col-sm-2"
+                    ng-click="request_upload_config_file()"
+                    ng-disabled="does_instance_id_exist(uploaded_instance_id) ||
+                                 reached_max_num_of_instances() ||
+                                 uploaded_instance_id == '' ||
+                                 file_to_upload == ''">
+
+                <span class="glyphicon glyphicon-file"></span>
+                Upload configuration
+            </button>
+
+
+            <span class="requiredText"
+                  ng-show="reached_max_num_of_instances()">
+                You have reached the maximum number of test instances
+            </span>
+
+            <span class="requiredText"
+                 ng-show="does_instance_id_exist(uploaded_instance_id)">
+                This instance id already exists
+            </span>
+            <br>
+
+            <span><b>
+                NOTE: This feature only loads the uploaded configuration to the web form.
+                The configuration will be stored on the server ONLY when the web form is
+                submitted.
+            </b></span>
+
 
         </div>
 
