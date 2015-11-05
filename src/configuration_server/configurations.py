@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import importlib
+import json
 import logging
 import os
 import re
@@ -9,16 +10,18 @@ import copy
 import shutil
 import datetime
 import time
-import traceback
 import uuid
 import imp
+import sys
 
 from oic.oauth2.message import REQUIRED_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_STRINGS
 from oic.oauth2.message import OPTIONAL_LIST_OF_SP_SEP_STRINGS
 from oic.oauth2.message import REQUIRED_LIST_OF_STRINGS
 from oic.oic.message import ProviderConfigurationResponse
-from configuration_server.config_values import CONFIG_FILE_KEYS, GUI_CONFIG_STRUCTURE_KEYS
+
+from configuration_server.config_values import CONFIG_FILE_KEYS, GUI_CONFIG_STRUCTURE_KEYS, \
+    CONTACT_EMAIL
 
 __author__ = 'danielevertsson'
 
@@ -116,6 +119,7 @@ def generate_profile(config_gui_structure):
 
 
 def load_config_module(module, full_module_path=None):
+    sys.dont_write_bytecode = True
     if not full_module_path:
         test_conf = importlib.import_module(module)
     else:
@@ -126,9 +130,14 @@ def load_config_module(module, full_module_path=None):
         return test_conf.CLIENT
     except AttributeError as ex:
         raise AttributeError("Module (%s) has no attribute 'CLIENT'" % module)
+    finally:
+        sys.dont_write_bytecode = False
 
 
 def identify_existing_config_file(port, oprp_dir_path):
+    if not oprp_dir_path.endswith("/"):
+        oprp_dir_path = oprp_dir_path + "/"
+
     files = [f for f in os.listdir(oprp_dir_path)]
     config_file_pattern = re.compile("rp_conf_[0-9]+.py$")
 
@@ -167,7 +176,7 @@ def backup_existing_config_file(config_file_path, oprp_dir_path, port):
 def write_config_file(config_file_path, config_module, port, oprp_dir_path="."):
     backup_existing_config_file(config_file_path, oprp_dir_path, port)
 
-    with open(config_file_path, "w") as _file:
+    with open(config_file_path, "w", 0) as _file:
         _file.write(config_module)
 
 
@@ -831,3 +840,34 @@ def create_new_configuration_dict():
         "webfinger_email": ""
     }
     return op_configurations
+
+
+class FailedToLoadClientConfig(Exception):
+    pass
+
+
+def set_contact_email_in_client_config(client_config, email, ):
+    if isinstance(client_config, basestring):
+        client_config = json.loads(client_config)
+    if not isinstance(client_config, dict):
+        raise FailedToLoadClientConfig("Failed to load the client configuration. Please verify if "
+                                       "the client configuration is a dict or a dict represented as "
+                                       "a string ")
+    client_config[CONTACT_EMAIL] = email
+    return convert_to_uft8(client_config)
+
+
+def set_email_to_file(ports, email, conf):
+    for port in ports:
+        client_config = identify_existing_config_file(port, conf.OPRP_DIR_PATH)
+        if client_config:
+            client_config[CONTACT_EMAIL] = email
+            config_module = create_module_string(client_config,
+                                                 port,
+                                                 'https://%s:%d/' % (conf.HOST, int(port)),
+                                                 conf=conf)
+            config_file_path = get_config_file_path(port, conf.OPRP_DIR_PATH)
+            write_config_file(config_file_path,
+                              config_module,
+                              port,
+                              oprp_dir_path=conf.OPRP_DIR_PATH)

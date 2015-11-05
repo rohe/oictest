@@ -1,4 +1,4 @@
-var app = angular.module('main', ['toaster'])
+var app = angular.module('main', ['toaster']);
 
 String.prototype.endsWith = function(suffix) {
     return this.indexOf(suffix, this.length - suffix.length) !== -1;
@@ -18,6 +18,17 @@ app.factory('op_configuration_factory', function ($http) {
     return {
         request_instance_ids: function (issuer) {
             return $http.post(append_current_path("request_instance_ids"), {"issuer": issuer});
+        },
+        submit_contact_info: function (issuer, email) {
+            return $http.post(
+                append_current_path("submit_contact_info"),
+                {"issuer": issuer, "email": email}
+            );
+        },
+        request_existing_contact_info: function (issuer) {
+            return $http.post(
+                append_current_path("load_existing_contact_info"), {"issuer": issuer}
+            );
         },
         create_new_config_file: function (instance_id, issuer) {
             return $http.post(append_current_path("create_new_config_file"), {
@@ -51,7 +62,10 @@ app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_co
     $scope.new_instance_id = "";
     $scope.uploaded_instance_id = "";
     $scope.issuer = "";
+    $scope.emailverfier = "";
     $scope.file_to_upload = "";
+    $scope.existing_email = "";
+    $scope.is_contact_form_visible = false;
 
     $('input').attr("autocomplete", "off");
     $('form').attr("autocomplete", "off");
@@ -103,6 +117,32 @@ app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_co
         }
     };
 
+    function request_existing_contact_info_success_callback(data, status, headers, config) {
+        if (data["existing_email"]) {
+            $scope.emailverfier = data["existing_email"]
+            $scope.existing_email = data["existing_email"]
+        }
+        $scope.is_contact_form_visible = true;
+    }
+
+    function reset_variables() {
+        $scope.new_instance_id = "";
+        $scope.uploaded_instance_id = "";
+        $scope.emailverfier = "";
+        $scope.file_to_upload = "";
+        $scope.existing_email = "";
+        $scope.is_contact_form_visible = false;
+        $scope.test_instances = null;
+    }
+
+    $scope.request_existing_contact_info = function () {
+        reset_variables();
+        op_configuration_factory.request_existing_contact_info($scope.issuer).
+            success(request_existing_contact_info_success_callback).
+            error(error_callback);
+
+    }
+
     $scope.reconfigure_test_instance = function(instance_id){
         op_configuration_factory.load_existing_config(instance_id, $scope.issuer).
             success(go_to_config_page).
@@ -112,6 +152,21 @@ app.controller('IndexCtrl', function ($scope, $window, $location, toaster, op_co
     function request_instance_ids_success_callback(data, status, headers, config) {
         $scope.test_instances = data;
     }
+
+    function submit_contact_info_success_callback(data, status, headers, config) {
+        if (data["existing_email"]) {
+            $scope.existing_email = data["existing_email"]
+        }
+        op_configuration_factory.request_instance_ids(data['issuer']).
+            success(request_instance_ids_success_callback).
+            error(error_callback);
+    }
+
+    $scope.submit_contact_info = function (issuer, email) {
+        op_configuration_factory.submit_contact_info(issuer, email).
+            success(submit_contact_info_success_callback).
+            error(error_callback);
+    };
 
     $scope.request_instance_ids = function(issuer){
         op_configuration_factory.request_instance_ids(issuer).
@@ -171,6 +226,25 @@ app.directive('issuer', function () {
                     return viewValue;
                 } else {
                     ctrl.$setValidity('issuer', false);
+                    return undefined;
+                }
+            });
+        }
+    };
+});
+
+var EMAIL_REGEXP = /^.{1,}@[_a-z0-9A-Z]+(\.[a-z0-9A-Z]+)+$/;
+
+app.directive('emailverfier', function () {
+    return {
+        require: 'ngModel',
+        link: function (scope, elm, attrs, ctrl) {
+            ctrl.$parsers.unshift(function (viewValue) {
+                if (EMAIL_REGEXP.test(viewValue)) {
+                    ctrl.$setValidity('emailverfier', true);
+                    return viewValue;
+                } else {
+                    ctrl.$setValidity('emailverfier', false);
                     return undefined;
                 }
             });

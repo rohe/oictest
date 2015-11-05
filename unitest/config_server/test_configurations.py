@@ -1,18 +1,21 @@
 import copy
+import json
+import os
 import sys
 
 import pytest
+
 from mock import patch, Mock, MagicMock
 
+from configuration_server.config_values import CONTACT_EMAIL
 from configuration_server.configurations import convert_to_gui_drop_down, _generate_static_input_fields, \
     create_new_configuration_dict, get_issuer_from_gui_config, set_dynamic_discovery_issuer_config_gui_structure, \
     identify_existing_config_file, \
     create_key_dict_pair_if_non_exist, convert_config_gui_structure, convert_instance, convert_to_value_list, \
-    load_config_module, generate_config_module_name, get_config_file_path, convert_to_uft8, \
-    convert_abbreviation_to_response_type, convert_response_type_to_abbreviation, UnKnownResponseTypeAbbreviation, \
+    load_config_module, generate_config_module_name, convert_abbreviation_to_response_type, \
+    convert_response_type_to_abbreviation, UnKnownResponseTypeAbbreviation, \
     set_test_specific_request_parameters, set_issuer, GuiConfig, UserFriendlyException, \
-    handle_exception
-from configuration_server.response_encoder import ResponseEncoder
+    handle_exception, set_email_to_file, set_contact_email_in_client_config
 
 ISSUER = "issuer"
 
@@ -50,19 +53,30 @@ class TestConfigurationModule:
         returned_issuer = get_issuer_from_gui_config(gui_config)
         assert static_issuer == returned_issuer
 
-    def _setup_server_config(self):
+    def _setup_server_config(self, oprp_dir_path="."):
         server_config = Mock()
-        server_config.OPRP_DIR_PATH = '.'
+        server_config.OPRP_DIR_PATH = oprp_dir_path
         server_config.OPRP_SSL_MODULE = "sslconf"
         server_config.HOST = "localhost"
         server_config.PORT_DATABASE_FILE = None
         sys.path.append(server_config.OPRP_DIR_PATH)
         return server_config
 
-    def _create_temp_config_module_files(self, ports, tmpdir, file_extension=".py"):
+    def _create_temp_config_module_files(self, ports, tmpdir, file_extension=".py",
+                                         client_attribute="{}"):
+        if not isinstance(tmpdir, basestring):
+            tmpdir = str(tmpdir)
+
         for port in ports:
-            file = tmpdir.join(generate_config_module_name(port, file_extension))
-            file.write("PORT = 8001")
+            path = os.path.join(tmpdir, generate_config_module_name(port, file_extension))
+            with open(path, "w", 0) as file:
+                file.write("PORT = 8001\n"
+                           "BASE ='http://localhost'\n"
+                           "CLIENT = " + client_attribute)
+        sslconf_path = os.path.join(tmpdir, "sslconf.py")
+        with open(sslconf_path, "w", 0) as sslconf_file:
+            sslconf_file.write("")
+        sys.path.append(tmpdir)
 
     @patch('configuration_server.configurations.load_config_module')
     def test_identify_existing_config_file(self, load_config_module_mock, tmpdir):
@@ -73,15 +87,6 @@ class TestConfigurationModule:
         self._create_temp_config_module_files([_port], tmpdir, ".pyc")
         config_client_dict = identify_existing_config_file(_port, str(tmpdir))
         assert config_client_dict
-
-    @patch('importlib.import_module')
-    def test_load_client_attribute_in_config_module(self, import_module_mock):
-        client_info = {'srv_discovery_url': 'asd'}
-        config_module = Mock()
-        config_module.CLIENT = client_info
-        import_module_mock.return_value = config_module
-        loaded_client_info = load_config_module(config_module)
-        assert loaded_client_info == client_info
 
     @patch('importlib.import_module')
     def test_load_client_non_existing_client_attribute(self, import_module_mock):
@@ -256,3 +261,26 @@ class TestConfigurationModule:
         response_encoder = MagicMock()
         handle_exception(ex, response_encoder, message=message)
         response_encoder.service_error.assert_called_once_with(message, event_id=event_id)
+
+    def test_set_email_to_config_file(self, tmpdir):
+        server_config = self._setup_server_config(oprp_dir_path=str(tmpdir))
+        ports = [8001, 8002, 8003, 8004]
+        existing_key = "srv_discovery_url"
+        client_attribute = json.dumps({existing_key: 'https://example.com'})
+        self._create_temp_config_module_files(ports, tmpdir, client_attribute=client_attribute)
+        set_email_to_file(ports[:3], "asd@asd.se", server_config)
+        for port in ports[:3]:
+            config_module = identify_existing_config_file(port, server_config.OPRP_DIR_PATH)
+            assert CONTACT_EMAIL in config_module
+            assert existing_key in config_module
+
+        config_module = identify_existing_config_file(8004, server_config.OPRP_DIR_PATH)
+        assert CONTACT_EMAIL not in config_module
+
+    @pytest.mark.parametrize("client_attribute", [
+        json.dumps({'srv_discovery_url': 'https://example.com'}),
+        {'srv_discovery_url': 'https://example.com'}
+    ])
+    def test_set_contact_email_in_client_config(self, client_attribute):
+        result = set_contact_email_in_client_config(client_attribute, "asd@asd.se")
+        assert result[CONTACT_EMAIL].decode('utf-8')

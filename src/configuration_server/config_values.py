@@ -7,6 +7,7 @@ CLAIMS_LOCALES = "claims_locales"
 ACR_VALUES = "acr_values"
 WEBFINGER_URL = "webfinger_url"
 WEBFINGER_EMAIL = "webfinger_email"
+CONTACT_EMAIL = "contact_email"
 
 GUI_CONFIG_STRUCTURE_KEYS = {
     WEBFINGER_SUBJECT: "webfingerSubject",

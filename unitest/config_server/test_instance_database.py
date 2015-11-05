@@ -3,12 +3,16 @@
 import os
 import random
 import string
+
 import pytest
+
+from mock import Mock
+
+from configuration_server.config_values import CONTACT_EMAIL
 from configuration_server.test_instance_database import PortDatabase, \
     NoPortAvailable, PORT_COLUMN, \
     CONFIG_FILE_COLUMN, \
     PortMissingInDatabase
-from mock import Mock
 
 __author__ = 'danielevertsson'
 
@@ -51,7 +55,11 @@ def allocate_ports(database, number_of_entries, port_type, issuer=None):
     return port
 
 
-def generate_database_entries(entries_to_generate=1, base_port=8000, base_issuer="issuer",
+BASE_ISSUER = "issuer"
+BASE_PORT = 8000
+
+
+def generate_database_entries(entries_to_generate=1, base_port=BASE_PORT, base_issuer=BASE_ISSUER,
                               base_instance_id="id", base_config_file_dict_value="value",
                               static_port_value=None, static_issuer_value=None,
                               static_instance_id_value=None, static_port_type_value=None):
@@ -102,18 +110,18 @@ class TestPortDatabase(object):
         assert ports == [8001, 8002, 8003]
 
     def test_list_all_issuers(self):
-        database = generate_database_entries(entries_to_generate=3, base_issuer="issuer")
+        database = generate_database_entries(entries_to_generate=3, base_issuer=BASE_ISSUER)
         issuers = database.get_all_issuers()
         assert issuers == ["issuer0", "issuer1", "issuer2"]
 
     def test_get_database_as_list_and_check_number_of_elements(self):
         database = generate_database_entries(entries_to_generate=3)
-        list = database.get_table_as_list()
+        list = database.get_port_table_as_list()
         assert len(list) == 3
 
     def test_get_database_as_list_and_check_if_ports_are_correct(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001)
-        list = database.get_table_as_list()
+        list = database.get_port_table_as_list()
         ports = []
         for element in list:
             ports.append(element[0])
@@ -121,13 +129,13 @@ class TestPortDatabase(object):
 
     def test_print_table(self):
         database = generate_database_entries(entries_to_generate=3)
-        database.print_table()
+        database.print_port_table()
 
     def test_if_entries_with_same_port_is_only_updated(self):
         database = generate_database_entries(entries_to_generate=3, static_port_value=8001)
         ports = database.get_all_ports()
         assert ports == [8001]
-        assert len(database.get_table_as_list()) == 1
+        assert len(database.get_port_table_as_list()) == 1
 
     def test_remove_entry_based_on_port(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001)
@@ -136,26 +144,26 @@ class TestPortDatabase(object):
 
     def test_get_port_based_on_issuer_and_id(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001,
-                                             static_issuer_value="issuer")
-        port = database.get_existing_port("issuer", 'id1')
+                                             static_issuer_value=BASE_ISSUER)
+        port = database.get_existing_port(BASE_ISSUER, 'id1')
         assert port == 8002
 
     def test_get_next_free_port(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001,
-                                             static_issuer_value="issuer")
+                                             static_issuer_value=BASE_ISSUER)
         port = database._get_next_free_port(8001, 8010)
         assert port == 8004
 
     def test_enter_row_with_existing_port(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001,
-                                             static_issuer_value="issuer")
-        port = database.allocate_port("issuer", 'id1', PortDatabase.STATIC_PORT_TYPE, 8001, 8010)
+                                             static_issuer_value=BASE_ISSUER)
+        port = database.allocate_port(BASE_ISSUER, 'id1', PortDatabase.STATIC_PORT_TYPE, 8001, 8010)
         assert port == 8002
 
     def test_enter_row_with_non_existing_port(self):
         database = generate_database_entries(entries_to_generate=3, base_port=8001,
-                                             static_issuer_value="issuer")
-        port = database.allocate_port("issuer", 'id3', PortDatabase.STATIC_PORT_TYPE, 8001, 8010)
+                                             static_issuer_value=BASE_ISSUER)
+        port = database.allocate_port(BASE_ISSUER, 'id3', PortDatabase.STATIC_PORT_TYPE, 8001, 8010)
         assert port == 8004
 
     def test_fill_port_database(self, setup_empty_database):
@@ -226,17 +234,17 @@ class TestPortDatabase(object):
         random_string = ''.join(random.choice(string.ascii_uppercase) for _ in range(100000))
         port = 8000
         database = generate_database_entries(static_port_value=port)
-        database.upsert_row(database.get_row(port), random_string)
-        row = database.table.find_one(port=port)
+        database.upsert_row(database.get_row_by_port(port), random_string)
+        row = database.port_table.find_one(port=port)
         assert row['config_file'] == random_string
 
     def test_add_config_file_to_existing_database_entry(self):
         port = 8000
         database = generate_database_entries(static_port_value=port)
-        row = database.get_row(port)
+        row = database.get_row_by_port(port)
         config_file = {"test": 1}
         database.upsert_row(row, config_file)
-        row = database.get_row(port)
+        row = database.get_row_by_port(port)
         assert row[PORT_COLUMN] == port
         assert row[CONFIG_FILE_COLUMN] == config_file
 
@@ -247,7 +255,7 @@ class TestPortDatabase(object):
 
     def test_get_non_existing_row(self, setup_empty_database):
         database = setup_empty_database
-        row = database.get_row(8000)
+        row = database.get_row_by_port(8000)
         assert row is None
 
     def test_get_next_unused_port(self):
@@ -267,9 +275,9 @@ class TestPortDatabase(object):
     def test_get_none_existing_port(self, setup_empty_database):
         database = setup_empty_database
         with pytest.raises(PortMissingInDatabase):
-            database.get_port(issuer="issuer", instance_id="id")
+            database.get_port(issuer=BASE_ISSUER, instance_id="id")
 
-    def test_get_port_by_issuer_and_instance_id(self, setup_empty_database):
+    def test_get_port_by_issuer_and_instance_id(self):
         database = generate_database_entries(entries_to_generate=3,
                                              base_instance_id="ID",
                                              base_port=8000,
@@ -288,3 +296,32 @@ class TestPortDatabase(object):
                                              static_issuer_value=ISSUER_GOOGLE)
 
         assert database.get_configuration(ISSUER_GOOGLE, instance_id) == config_file
+
+    def test_add_and_indentify_issuer_contact_info(self):
+        database = generate_database_entries(static_issuer_value=BASE_ISSUER)
+        email = "asd@asd.se"
+        database.set_email_info(BASE_ISSUER, email)
+        assert email == database.identify_existing_contact_info(BASE_ISSUER)
+
+    def test_get_ports_by_issuer(self):
+        num_of_entries = 3
+        database = generate_database_entries(entries_to_generate=num_of_entries,
+                                             static_issuer_value=BASE_ISSUER)
+        unique_issuer_port = BASE_PORT + num_of_entries
+        unique_issuer = "non_base_issuer"
+        database.upsert(port=unique_issuer_port,
+                        issuer=unique_issuer,
+                        instance_id="id",
+                        port_type=PortDatabase.DYNAMIC_PORT_TYPE)
+        ports = database.get_ports(BASE_ISSUER)
+
+        assert unique_issuer_port not in ports
+        for i in range(num_of_entries):
+            assert BASE_PORT + i in ports
+
+    def test_append_email_info_to_signle_existing_config_file_column(self):
+        database = generate_database_entries(static_issuer_value=BASE_ISSUER)
+        email = "asd@asd.se"
+        database.set_email_info(BASE_ISSUER, email)
+        row = database.get_row_by_port(BASE_PORT)
+        assert row[CONFIG_FILE_COLUMN][CONTACT_EMAIL] == email

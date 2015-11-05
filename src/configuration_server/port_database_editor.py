@@ -3,14 +3,12 @@ import json
 import os
 import re
 import sys
-
 import argparse
 
 from configuration_server.configurations import load_config_module, \
     CONFIG_DICT_INSTANCE_ID_KEY, create_module_string, \
     get_config_file_path, get_issuer_from_config_file
 from configuration_server.test_instance_database import PortDatabase, CONFIG_FILE_COLUMN
-
 
 DATABASE_SELECTED = "database"
 CONFIG_FILE_SELECTED = "config_file"
@@ -52,7 +50,7 @@ class PortDatabaseEditor(object):
 
     @staticmethod
     def _restore_config_file(database, full_config_file_path, port):
-        config_dict = database.get_row(port)[CONFIG_FILE_COLUMN]
+        config_dict = database.get_row_by_port(port)[CONFIG_FILE_COLUMN]
         module_content = create_module_string(config_dict,
                                               port,
                                               config_dict['base_url'],
@@ -145,7 +143,7 @@ class PortDatabaseEditor(object):
             port_type = self.get_port_type(file_config_info)
 
             try:
-                database_config_info = database.get_row(port)[CONFIG_FILE_COLUMN]
+                database_config_info = database.get_row_by_port(port)[CONFIG_FILE_COLUMN]
             except TypeError:
                 database.upsert(port=port,
                                 issuer=issuer,
@@ -221,4 +219,5 @@ if __name__ == "__main__":
         CONFIG_EDITOR.extract_database_info_from_config_file(DATABASE)
 
     if ARGS.show_database_content:
-        DATABASE.print_table()
+        DATABASE.print_port_table()
+        DATABASE.print_issuer_contact_table()
