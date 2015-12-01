@@ -87,6 +87,10 @@ def get_id_tokens(conv):
     return res
 
 
+def jwt_header(msg):
+    return json.loads(b64d(str(msg.split(".")[0])))
+
+
 class CmpIdtoken(Other):
     """
     Compares the JSON received as a CheckID response with my own
@@ -1294,7 +1298,7 @@ class CheckAsymSignedUserInfo(Error):
 
     def _func(self, conv):
         instance, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
-        header = json.loads(b64d(str(msg.split(".")[0])))
+        header = jwt_header(msg)
         try:
             assert header["alg"].startswith("RS")
         except AssertionError:
@@ -1359,9 +1363,9 @@ class CheckEncryptedUserInfo(Error):
 
     def _func(self, conv):
         jwt, msg = get_protocol_response(conv, message.OpenIDSchema)[0]
-        p = split_token(msg)
+        header = jwt_header(msg)
         try:
-            assert p[0]["alg"].startswith("RSA")
+            assert header["alg"].startswith("RSA")
         except AssertionError:
             self._status = self.status
 
