@@ -209,10 +209,12 @@ def sub_claims(request_args, conv, kwargs):
 def specific_acr_claims(request_args, conv, kwargs):
     try:
         _acrs = conv.client_config["acr_values"]
+        if isinstance(_acrs, basestring):
+            _acrs = _acrs.split(" ")
     except KeyError:
         _acrs = ["2"]
 
-    request_args["claims"] = {"id_token": {"acr": {"values": _acrs}}}
+    request_args["claims"] = {"id_token": {"acr": {"essential": True, "values": _acrs}}}
     return request_args
 
 
