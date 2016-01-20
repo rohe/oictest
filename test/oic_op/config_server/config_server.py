@@ -7,8 +7,8 @@ import os
 import logging
 import sys
 import subprocess
-
 import argparse
+
 from requestlogger import WSGILogger, ApacheFormatter
 from dirg_util.http_util import HttpHandler
 from mako.lookup import TemplateLookup
@@ -19,13 +19,12 @@ from configuration_server.configurations import convert_config_file, get_issuer_
     convert_config_gui_structure, generate_profile, is_using_dynamic_client_registration, \
     handle_exception, \
     create_module_string, get_config_file_path, write_config_file, get_default_client, set_issuer, \
-    UserFriendlyException, does_configuration_exists, identify_existing_config_file
-
+    UserFriendlyException, does_configuration_exists, identify_existing_config_file, \
+    set_email_to_file
 from configuration_server.shell_commands import is_port_used_by_another_process, \
     kill_existing_process_on_port, \
     check_if_oprp_started, NoResponseException
 from configuration_server.test_instance_database import PortDatabase, NoPortAvailable
-
 from configuration_server.response_encoder import ResponseEncoder
 
 LOGGER = logging.getLogger("configuration_server")
@@ -112,6 +111,23 @@ def handle_get_op_config(session, response_encoder):
         return response_encoder.return_json(json.dumps(config_gui_structure))
 
     raise MissingSessionInformation("Failed to load the configuration from the current session.")
+
+
+def handle_submit_contact_info(response_encoder, parameters):
+    if 'issuer' not in parameters or 'email' not in parameters:
+        return response_encoder.bad_request()
+
+    issuer = parameters['issuer']
+    email = parameters['email']
+
+    port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
+    port_db.set_email_info(issuer, email)
+
+    ports = port_db.get_ports(issuer)
+    set_email_to_file(ports, email, CONF)
+
+    return_info = {'issuer': issuer, 'existing_email': email}
+    return response_encoder.return_json(json.dumps(return_info))
 
 
 def handle_request_instance_ids(response_encoder, parameters):
@@ -254,13 +270,13 @@ def start_rp_process(port, command, working_directory=None):
 
 def save_config_info_in_database(_port, configurations):
     port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
-    row = port_db.get_row(_port)
+    row = port_db.get_row_by_port(_port)
     port_db.upsert_row(row, configurations)
 
 
 def is_port_in_database(_port):
     port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
-    return port_db.get_row(_port) is None
+    return port_db.get_row_by_port(_port) is None
 
 
 def get_base_url(port):
@@ -502,6 +518,17 @@ def handle_load_existing_config(response_encoder, session, parameters):
     return response_encoder.bad_request()
 
 
+def handle_load_existing_contact_info(response_encoder, parameters):
+    if ISSUER_QUERY_KEY in parameters:
+        port_db = PortDatabase(CONF.PORT_DATABASE_FILE)
+        email = port_db.identify_existing_contact_info(parameters[ISSUER_QUERY_KEY])
+        if email:
+            response_info = {"existing_email": email}
+            return response_encoder.return_json(json.dumps(response_info))
+        return response_encoder.return_json("{}")
+    return response_encoder.bad_request()
+
+
 def handle_path(environ, start_response, response_encoder):
     path = environ.get('PATH_INFO', '').lstrip('/')
     session = environ['beaker.session']
@@ -538,8 +565,12 @@ def handle_path(environ, start_response, response_encoder):
         return handle_get_redirect_url(session, response_encoder, parameters)
     if path == "request_instance_ids":
         return handle_request_instance_ids(response_encoder, parameters)
+    if path == "submit_contact_info":
+        return handle_submit_contact_info(response_encoder, parameters)
     if path == "load_existing_config":
         return handle_load_existing_config(response_encoder, session, parameters)
+    if path == "load_existing_contact_info":
+        return handle_load_existing_contact_info(response_encoder, parameters)
     if path == "restart_test_instance":
         return handle_restart_test_instance(response_encoder, parameters)
     return http_helper.http404()

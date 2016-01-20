@@ -26,7 +26,7 @@ def check_if_oprp_started(port, oprp_url, timeout=5):
 
     while datetime.datetime.now() < stop_time:
         try:
-            response = requests.get(oprp_url, verify=False)
+            response = requests.get(oprp_url, verify=False, timeout=(timeout, timeout))
 
             if response.status_code == 200:
                 LOGGER.debug("The RP is running on port %s and returned status code 200 OK" % port)

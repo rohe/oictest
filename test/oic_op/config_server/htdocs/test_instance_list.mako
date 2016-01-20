@@ -19,7 +19,9 @@
     ${parent.header()}
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <style>
-        hr {border-color: #cfcfcf}
+        hr {
+            border-color: #cfcfcf
+        }
     </style>
 </%block>
 
@@ -37,7 +39,8 @@
         <p>
             This is a tool used for testing the compliance of an OpenID Connect Provider with the
             OpenID Connect specifications. In order
-            to start testing you need to configure a test instance. Enter the issuer URL to the OpenID
+            to start testing you need to configure a test instance. Enter the issuer URL to the
+            OpenID
             Connect Provider you want to test.
         </p>
         <br>
@@ -51,11 +54,12 @@
             </span>
 
             <div class="col-sm-4">
-                <input type="text" maxlength="200" class="form-control" ng-model="issuer" name="issuer" issuer />
+                <input type="text" maxlength="200" class="form-control" ng-model="issuer"
+                       name="issuer" issuer/>
             </div>
 
             <button class="btn btn-primary btn-sm col-sm-1"
-                    ng-click="request_instance_ids(issuer)"
+                    ng-click="request_existing_contact_info()"
                     ng-disabled="dynamic_disco_form.$invalid">
                 Next
             </button>
@@ -65,6 +69,48 @@
                 Issuer URL should not contain <i>.well-known/openid-configuration</i>
             </span>
         </form>
+
+        <div ng-show="is_contact_form_visible">
+            <hr>
+            <h2>Contact infomation</h2>
+
+            <p>
+                Please supply an email address which will be used if we need to contact
+                you about your test instances.
+            </p>
+
+            <form class="row"
+                  novalidate
+                  name="contact_info_form">
+
+                <div class="col-sm-3">
+                    Email address
+                </div>
+
+                <div class="col-sm-3">
+                    <input type="text" maxlength="200" class="form-control" ng-model="emailverfier"
+                           name="emailverfier" emailverfier/>
+                </div>
+
+                <div class="col-sm-6" ng-show="existing_email">
+                    This email <b> {{existing_email}} </b> is currently registered at the server.
+                </div>
+
+            </form>
+
+            <button class="btn btn-primary btn-sm col-sm-2"
+                    ng-click="submit_contact_info(issuer, emailverfier)"
+                    ng-disabled="contact_info_form.$invalid">
+                Save contact info
+            </button>
+            <br>
+
+            <span ng-show="contact_info_form.emailverfier.$error.emailverfier"
+                  class="requiredText">
+                The email address is not valid.
+            </span>
+            <br>
+        </div>
 
         <div ng-show="does_test_instances_exist()">
             <hr>
@@ -98,15 +144,15 @@
                     </button>
 
                     <button class="btn btn-default btn-sm col-sm-3"
-                            ng-click="request_download_config_file(instance_id)";
+                            ng-click="request_download_config_file(instance_id)" ;
                             ng-disabled="!values.contains_config">
 
                         <span class="glyphicon glyphicon-download-alt"></span>
                         Download config
                     </button>
 
-                   <button class="btn btn-default btn-sm col-sm-3"
-                            ng-click="request_restart_test_instance(instance_id)";
+                    <button class="btn btn-default btn-sm col-sm-3"
+                            ng-click="request_restart_test_instance(instance_id)" ;
                             ng-disabled="!values.contains_config">
 
                         <span class="glyphicon glyphicon-repeat"></span>
@@ -121,9 +167,9 @@
 
                 </div>
                     <span class="glyphicon glyphicon-warning-sign"
-                      ng-show="!values.contains_config"
-                      style="color: #d2322d"
-                      title="No configuration exists for this test instance"></span>
+                          ng-show="!values.contains_config"
+                          style="color: #d2322d"
+                          title="No configuration exists for this test instance"></span>
 
 
             </div>
@@ -168,7 +214,7 @@
             </span>
 
             <span class="requiredText"
-                 ng-show="does_instance_id_exist(new_instance_id)">
+                  ng-show="does_instance_id_exist(new_instance_id)">
                 This instance id already exists
             </span>
 
@@ -190,10 +236,12 @@
                            ng-disabled="reached_max_num_of_instances()">
                 </div>
             </div>
+            <br>
 
             <div class="row">
                 <span class="col-sm-4">Select configuration file</span>
-                <input type="file" name="file" id="targetFile" class="col-sm-4" onchange="angular.element(this).scope().fileNameChanged()">
+                <input type="file" name="file" id="targetFile" class="col-sm-4"
+                       onchange="angular.element(this).scope().fileNameChanged()">
             </div>
 
             <button class="btn btn-primary btn-sm col-sm-2"
@@ -214,7 +262,7 @@
             </span>
 
             <span class="requiredText"
-                 ng-show="does_instance_id_exist(uploaded_instance_id)">
+                  ng-show="does_instance_id_exist(uploaded_instance_id)">
                 This instance id already exists
             </span>
             <br>

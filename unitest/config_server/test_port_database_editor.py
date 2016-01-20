@@ -94,21 +94,21 @@ class TestPortDatabaseEditor:
     def test_add_config_info_to_existing_entry_if_not_existing(self):
         database_ports = [8001]
         self._setup_database_entries(database_ports)
-        instance_id = self.database.get_row(8001)[CONFIG_DICT_INSTANCE_ID_KEY]
+        instance_id = self.database.get_row_by_port(8001)[CONFIG_DICT_INSTANCE_ID_KEY]
         config_file_dict = {'srv_discovery_url': "https://test.com", CONFIG_DICT_INSTANCE_ID_KEY: instance_id}
         self.port_db_editor.get_config_file_dict = MagicMock(return_value=config_file_dict)
-        assert self.database.get_row(8001)[CONFIG_FILE_COLUMN] == None
+        assert self.database.get_row_by_port(8001)[CONFIG_FILE_COLUMN] == None
 
         self.port_db_editor.sync_database_information(self.database, "rp_conf_8001.py")
-        config_file_in_db = self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+        config_file_in_db = self.database.get_row_by_port(8001)[CONFIG_FILE_COLUMN]
         assert config_file_dict == config_file_in_db
 
     def test_non_existing_entry_in_database(self):
         config_file_dict = {'srv_discovery_url': "https://test.com", CONFIG_DICT_INSTANCE_ID_KEY: "test_id"}
         self.port_db_editor.get_config_file_dict = MagicMock(return_value=config_file_dict)
         with pytest.raises(TypeError):
-            self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+            self.database.get_row_by_port(8001)[CONFIG_FILE_COLUMN]
 
         self.port_db_editor.sync_database_information(self.database, "rp_conf_8001.py")
-        config_file_in_db = self.database.get_row(8001)[CONFIG_FILE_COLUMN]
+        config_file_in_db = self.database.get_row_by_port(8001)[CONFIG_FILE_COLUMN]
         assert config_file_dict == config_file_in_db
