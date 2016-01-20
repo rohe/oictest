@@ -17,6 +17,7 @@ Contents:
 
    install
    setup/setup_op_test
+                 developer_doc/op_test_tool
    how_to_use_rp_test
    contents
 
