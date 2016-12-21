@@ -159,7 +159,7 @@ def tos_uri(request_args, conv, kwargs):
 def static_jwk(request_args, conv, kwargs):
     _client = conv.client
     request_args["jwks_uri"] = None
-    request_args["jwks"] = {"keys": _client.keyjar.dump_issuer_keys("")}
+    request_args["jwks"] = {"keys": _client.keyjar.export_jwks()}
     return request_args
 
 
