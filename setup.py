@@ -34,8 +34,8 @@ setup(
         "License :: OSI Approved :: Apache Software License",
         "Topic :: Software Development :: Libraries :: Python Modules"],
     install_requires=[
-        "oic=0.7.8",
-        "pyjwkest=1.0.7beta"
+        "oic == 0.7.8",
+        "pyjwkest == 1.0.7beta"
         "argparse",
         "requests >= 2.0.0",
         "dataset",
