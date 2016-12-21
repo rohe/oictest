@@ -1,0 +1,72 @@
+Get the package from github
+
+$ git clone https://github.com/rohe/oictest.git
+
+Change into the directory and build
+
+$ cd oictest
+$ python setup.py install
+
+Note, this works with Python 2.7 . It may work with later versions.
+
+Now, it's time to configure.
+
+$ cd test/oic_op/config_server
+
+The file in question is config.py in the present directory.
+
+This is the configuration used by op.certification:
+
+------------------------------------------------------------------
+
+HOST = "op.certification.openid.net"
+PORT = 60000
+HTTPS = True
+
+OPRP_PATH = '/home/oictest/projects/oictest/test/oic_op/rp/oprp2.py'
+
+DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MIN = 60050
+DYNAMIC_CLIENT_REGISTRATION_PORT_RANGE_MAX = 60999
+
+STATIC_CLIENT_REGISTRATION_PORT_RANGE_MIN = 60050
+STATIC_CLIENT_REGISTRATION_PORT_RANGE_MAX = 60999
+
+if HTTPS:
+    BASE = "https://%s:%d/" % (HOST, PORT)
+else:
+    BASE = "http://%s:%d/" % (HOST, PORT)
+
+# If BASE is https these has to be specified
+SERVER_CERT = "../rp/certs/openid.pem"
+SERVER_KEY = "../rp/certs/openid.key"
+CERT_CHAIN = "/etc/ssl/certs/bundle.pem"
+CA_BUNDLE = None
+VERIFY_SSL = False
+
+PORT_DATABASE_FILE = "./static_ports.db"
+
+OPRP_DIR_PATH = '../rp/'
+OPRP_SSL_MODULE = "sslconf"
+OPRP_TEST_FLOW = "tflow"
+
+CONFIG_MAX_NUMBER_OF_CHARS_ALLOWED = 10000
+
+------------------------------------------------------------------
+
+The only thing that *MUST* be changed if you are running this on another
+machine is the HOST name.
+
+You probably also have to change the references to the cert and key files.
+If you need to do that you may also want to change '../rp/sslconf.py' to be the
+same.
+
+It is not absolutely necessary to run the config server and the test instances
+using the same SSL certificate and key.
+Anyway, what is in ../rp/sslconf.py defines which certificate, key and
+CA bundle the test instances will use.
+
+Once the files are correct you can start the configuration server like this:
+
+$ python ./config_server.py config
+
+You should now be able to reach port 60000 on the machine.

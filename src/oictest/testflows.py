@@ -1027,7 +1027,7 @@ class RegistrationRequestJWKS(RegistrationRequest):
         _client = self.conv.client
         self.request_args["jwks_uri"] = None
         self.request_args["jwks"] = {
-            "keys": _client.keyjar.dump_issuer_keys("")}
+            "keys": _client.keyjar.export_jwks()}
 
 
 class RegistrationRequestNoResponseTypes(RegistrationRequest):

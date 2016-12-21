@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import copy
 
-import rrtest.request as req
 from rrtest.request import GetRequest
 from rrtest.request import Request
 from rrtest.request import PostRequest
@@ -715,8 +714,7 @@ class RegistrationRequestJWKS(RegistrationRequest):
         RegistrationRequest.__init__(self, conv)
         _client = self.conv.client
         self.request_args["jwks_uri"] = None
-        self.request_args["jwks"] = {
-            "keys": _client.keyjar.dump_issuer_keys("")}
+        self.request_args["jwks"] = {"keys": _client.keyjar.export_jwks("")}
 
 
 class RegistrationRequestNoResponseTypes(RegistrationRequest):
