@@ -1,4 +1,4 @@
-Get the package from github
+Get the package from github:
 
 $ git clone https://github.com/rohe/oictest.git
 
