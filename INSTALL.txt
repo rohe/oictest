@@ -2,14 +2,14 @@ Get the package from github
 
 $ git clone https://github.com/rohe/oictest.git
 
-Change into the directory and build
+Change into the directory and build:
 
 $ cd oictest
 $ python setup.py install
 
 Note, this works with Python 2.7 . It may work with later versions.
 
-Now, it's time to configure.
+Now, it's time to configure:
 
 $ cd test/oic_op/config_server
 
